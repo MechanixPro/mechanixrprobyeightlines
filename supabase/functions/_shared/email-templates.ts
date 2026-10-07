@@ -37,7 +37,7 @@ function layout(o: { preheader: string; title: string; body: string; site: Site;
 const first = (name: string) => escapeHtml(String(name || 'there').trim().split(/\s+/)[0] || 'there');
 const firstText = (name: string) => String(name || 'there').trim().split(/\s+/)[0] || 'there';
 
-export type BookingData = Site & { name: string; ref: string; bike: string; service: string; area: string; whenText: string; estimate: number };
+export type BookingData = Site & { checkupFee?: number | null; name: string; ref: string; bike: string; service: string; area: string; whenText: string; estimate: number };
 
 export function bookingReceived(d: BookingData): Mail {
   const subject = `We got your request ${d.ref}`;
@@ -48,9 +48,9 @@ ${rows([['Reference', d.ref], ['Bike', d.bike], ['Service', d.service], ['Area',
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px">
 <tr><td style="padding:4px 12px 4px 0;font:700 15px ${FONT};color:${EMBER};vertical-align:top">1</td><td style="padding:4px 0;font:15px/1.5 ${FONT};color:${INK}">Our expert calls or messages you to confirm what is needed, and whether it can be done at your door.</td></tr>
 <tr><td style="padding:4px 12px 4px 0;font:700 15px ${FONT};color:${EMBER};vertical-align:top">2</td><td style="padding:4px 0;font:15px/1.5 ${FONT};color:${INK}">You get an itemised quote on WhatsApp. Parts are fitted only after you approve.</td></tr>
-<tr><td style="padding:4px 12px 4px 0;font:700 15px ${FONT};color:${EMBER};vertical-align:top">3</td><td style="padding:4px 0;font:15px/1.5 ${FONT};color:${INK}">Approve the quote, we lock your slot, and a certified mechanic comes to you.</td></tr></table>
+<tr><td style="padding:4px 12px 4px 0;font:700 15px ${FONT};color:${EMBER};vertical-align:top">3</td><td style="padding:4px 0;font:15px/1.5 ${FONT};color:${INK}">Approve the quote${d.checkupFee ? ` and pay the ${rupee(d.checkupFee)} checkup and quote fee to confirm your booking. It is adjusted in your final bill if you go ahead with the service` : ''}. A Mechanix Pro-certified mechanic then comes to you, with OEM-certified parts.</td></tr></table>
 ${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}${button('Call us', 'tel:' + d.phoneTel, NAVY, '#ffffff')}`;
-  const text = `Thanks, ${firstText(d.name)}. We got your request.\n\nOur expert will check what your bike needs and send you a quote on WhatsApp. Nothing starts, and nothing is charged, until you approve it.\n\nReference: ${d.ref}\nBike: ${d.bike}\nService: ${d.service}\nArea: ${d.area}\nPreferred time: ${d.whenText}\nStarting estimate: ${rupee(d.estimate)}, GST included\n\nWhat happens next\n1. Our expert calls or messages you to confirm what is needed.\n2. You get an itemised quote on WhatsApp. Parts are fitted only after you approve.\n3. Approve the quote, we lock your slot, and a mechanic comes to you.\n\nWhatsApp: ${d.whatsappUrl}\nCall: ${d.phoneDisplay}\n\nMechanix Pro, Bengaluru · ${d.email}`;
+  const text = `Thanks, ${firstText(d.name)}. We got your request.\n\nOur expert will check what your bike needs and send you a quote on WhatsApp. Nothing starts, and nothing is charged, until you approve it.\n\nReference: ${d.ref}\nBike: ${d.bike}\nService: ${d.service}\nArea: ${d.area}\nPreferred time: ${d.whenText}\nStarting estimate: ${rupee(d.estimate)}, GST included\n\nWhat happens next\n1. Our expert calls or messages you to confirm what is needed.\n2. You get an itemised quote on WhatsApp. Parts are fitted only after you approve.\n3. Approve the quote${d.checkupFee ? ` and pay the ${rupee(d.checkupFee)} checkup and quote fee to confirm your booking (adjusted in your final bill if you go ahead)` : ''}. A Mechanix Pro-certified mechanic then comes to you, with OEM-certified parts.\n\nWhatsApp: ${d.whatsappUrl}\nCall: ${d.phoneDisplay}\n\nMechanix Pro, Bengaluru · ${d.email}`;
   return { subject, html: layout({ preheader: 'Your quote comes on WhatsApp. Nothing starts until you approve it.', title: subject, body, site: d }), text };
 }
 

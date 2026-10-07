@@ -356,3 +356,25 @@ main.page .final{margin-top:32px}
 .sheetx{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:20px;background:rgba(10,18,32,.55)}
 .sheetx-panel{background:var(--card);border-radius:var(--r-lg);padding:24px;max-width:460px;width:100%;box-shadow:0 30px 60px -20px rgba(0,0,0,.5)}
 .sheetx-panel h3{font-size:24px;margin:0 0 8px}.sheetx-panel p{color:var(--ink-2);margin:0 0 16px}
+
+/* calendar */
+.cal{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:8px;max-width:380px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.cal-head b{font-size:16px}
+.cal-nav{width:44px;height:44px;border:0;border-radius:50%;background:var(--soft);color:var(--ink);font-size:22px;cursor:pointer;line-height:1}.cal-nav:disabled{opacity:.3;cursor:not-allowed}
+.cal-dow,.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;text-align:center}
+.cal-dow span{font-size:12px;color:var(--muted);padding:4px 0}
+.cal-day{aspect-ratio:1;width:100%;min-width:0;padding:0;border:0;border-radius:50%;background:transparent;color:var(--ink);font:600 15px var(--font);cursor:pointer;transition:background .15s,transform .15s}
+.cal-day:hover:not(:disabled){background:var(--soft)}.cal-day:disabled{color:#B5BCC9;cursor:not-allowed}
+.cal-day.today{box-shadow:inset 0 0 0 1.5px var(--ember)}
+.cal-day[aria-pressed="true"]{background:var(--navy);color:#fff;transform:scale(1.06)}
+/* clock */
+.clock{display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+.clock-face{position:relative;width:260px;max-width:100%;height:260px;border-radius:50%;background:var(--card);border:1px solid var(--line);box-shadow:inset 0 0 0 10px var(--soft)}
+.clock-num{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border:0;border-radius:50%;background:transparent;color:var(--ink);font:600 16px var(--font);cursor:pointer;transform:rotate(var(--a)) translateY(-100px) rotate(calc(var(--a) * -1));transition:background .15s}
+.clock-num:hover:not(:disabled){background:var(--ember-soft)}.clock-num:disabled{color:#B5BCC9;cursor:not-allowed}
+.clock-num[aria-pressed="true"]{background:var(--ember);color:#1F1206}
+.clock-hand{position:absolute;left:50%;top:50%;width:3px;height:84px;margin-left:-1.5px;background:var(--ember);border-radius:3px;transform-origin:50% 0;transform:rotate(calc(var(--a) + 180deg));animation:handIn .35s ease both;pointer-events:none}
+.clock-center{position:absolute;inset:78px;border-radius:50%;display:grid;place-content:center;text-align:center;background:var(--card);box-shadow:0 0 0 1px var(--line);z-index:1}
+.clock-center b{font-size:15px;line-height:1.2}.clock-center small{font-size:11px;color:var(--muted)}
+@keyframes handIn{from{transform:rotate(calc(var(--a) + 150deg));opacity:.4}to{transform:rotate(calc(var(--a) + 180deg));opacity:1}}
+@media(prefers-reduced-motion:reduce){.clock-hand{animation:none}.cal-day,.clock-num{transition:none}}

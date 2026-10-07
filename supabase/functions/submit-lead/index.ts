@@ -97,11 +97,12 @@ Deno.serve(async (req) => {
       const upd: Record<string, unknown> = { email: extra.email };
       if (extra.email_marketing) { upd.email_marketing_consent = true; upd.email_unsubscribed_at = null; }
       await db.from('customers').update(upd).eq('id', cust.id);
-      const mail = bookingReceived({
+      const { data: feeRow } = await db.from('services').select('price').eq('id', 'advance').maybeSingle();
+      const mail = bookingReceived({ checkupFee: feeRow?.price ?? null,
         siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 97430 31301'), phoneTel: env('PHONE_TEL', '+919743031301'),
         whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/919743031301'), email: 'hello@mechanixpro.in',
         name, ref: lead.ref, bike: [clean(b.bike_brand, 30), clean(b.bike_model, 40)].filter((x) => x && x !== 'Other').join(' ') || 'Your bike',
-        service: priced.service.name, area: clean(b.area, 40) || 'Bengaluru', whenText: isCallback ? 'We will call you back soon' : formatWhen(date, slot), estimate: priced.total,
+        service: priced.service.name, area: clean(b.area, 40) || 'Bengaluru', whenText: isCallback ? 'We will call you back soon' : formatWhen(date, slot, extra.preferred_time), estimate: priced.total,
       });
       const r = await sendEmail({ to: extra.email, subject: mail.subject, html: mail.html, text: mail.text, tags: { template: 'booking_received' } });
       await db.from('email_log').insert({ lead_id: lead.id, to_email: extra.email, template: 'booking_received', status: r.ok ? 'sent' : r.skipped ? 'skipped' : 'failed', provider_id: r.id ?? null, error: r.error ?? null });

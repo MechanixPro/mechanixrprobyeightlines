@@ -34,5 +34,6 @@ export function cleanLeadFields(b: Record<string, unknown>) {
     request_type: b.request_type === 'callback' ? 'callback' : 'quote',
     reg_no: cleanReg(b.reg_no),
     reminder_opt_in: b.reminder_opt_in === true,
+    preferred_time: strip(b.preferred_time, 30) || null,
   };
 }

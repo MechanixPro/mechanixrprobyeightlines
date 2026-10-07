@@ -5,13 +5,13 @@ import json, os, re, sys, urllib.request
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, 'src', 'site.json'); APP = os.path.join(ROOT, 'assets', 'js', 'app.js')
 q = lambda s: json.dumps(s, ensure_ascii=False).replace('"', "'")
-DESC = {'basic': 'Oil level check, chain lube, brake adjust, wash', 'general': 'Engine oil change, filter clean, 20-point check', 'full': 'General service plus throttle body clean, brake pads check, polish', 'repair': 'Inspection visit; repair quoted before work starts', 'sos': 'Puncture, battery or breakdown; mechanic dispatched now'}
+DESC = {'basic': 'Oil level check, chain lube, brake adjust, wash', 'general': 'Engine oil change, filter clean, 20-point check', 'full': 'General service plus throttle body clean, brake pads check, polish', 'repair': 'Checkup and quote visit; repair quoted before work starts', 'sos': 'Puncture, battery or breakdown; mechanic dispatched now'}
 ADDON_NAMES = {'wash': 'Foam wash', 'chain': 'Chain clean and lube', 'brake': 'Brake tuning', 'tyre': 'Tyre and puncture check', 'battery': 'Battery health test'}
 
 def write_defaults(site):
     rows = [f"    {{ id: '{k}', kind: 'service', name: {q(v['name'])}, price: {v['price']}, description: {q(DESC.get(k, ''))}, includes: [{', '.join(q(x) for x in v['includes'])}] }}" for k, v in site['services'].items()]
     rows += [f"    {{ id: '{k}', kind: 'addon', name: {q(ADDON_NAMES.get(k, k))}, price: {n} }}" for k, n in site['addons'].items()]
-    rows += [f"    {{ id: 'advance', kind: 'fee', name: 'Booking advance', price: {site['advance']} }}", f"    {{ id: 'bigbike', kind: 'fee', name: 'Above-180cc surcharge', price: {site['bigBike']} }}"]
+    rows += [f"    {{ id: 'advance', kind: 'fee', name: 'Checkup and quote fee', price: {site['advance']} }}", f"    {{ id: 'bigbike', kind: 'fee', name: 'Above-180cc surcharge', price: {site['bigBike']} }}"]
     s = open(APP, encoding='utf-8').read()
     s = re.sub(r"  var DEFAULT_ITEMS = \[.*?\n  \];\n", lambda m: "  var DEFAULT_ITEMS = [\n" + ",\n".join(rows) + "\n  ];\n", s, count=1, flags=re.S)
     open(APP, 'w', encoding='utf-8').write(s)

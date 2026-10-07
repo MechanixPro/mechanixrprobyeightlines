@@ -1,6 +1,6 @@
 {
   "warrantyDays": 30,
-  "advance": 199,
+  "advance": 349,
   "bigBike": 300,
   "services": {
     "basic": {
@@ -38,11 +38,12 @@
     },
     "repair": {
       "name": "Repair or problem check",
-      "price": 199,
+      "price": 349,
       "includes": [
         "Inspection visit at your location",
         "Diagnosis of the problem",
-        "Itemised quote before any work starts"
+        "Itemised quote before any work starts",
+        "The fee is adjusted in your final bill if you go ahead with the service"
       ]
     },
     "sos": {

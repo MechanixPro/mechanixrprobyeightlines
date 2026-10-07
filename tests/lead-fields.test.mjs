@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { cleanLeadFields } from '../supabase/functions/_shared/lead-fields.ts';
 
 test('empty body gives safe defaults', () => {
-  assert.deepEqual(cleanLeadFields({}), { km_band: null, issues: [], note: null, place: 'home', contact_pref: 'whatsapp', bike_type: null, ref_code: null, campaign: null, address: null, lat: null, lng: null, email: null, email_marketing: false, request_type: 'quote', reg_no: null, reminder_opt_in: false });
+  assert.deepEqual(cleanLeadFields({}), { km_band: null, issues: [], note: null, place: 'home', contact_pref: 'whatsapp', bike_type: null, ref_code: null, campaign: null, address: null, lat: null, lng: null, email: null, email_marketing: false, request_type: 'quote', reg_no: null, reminder_opt_in: false, preferred_time: null });
 });
 test('known values pass through', () => {
   const r = cleanLeadFields({ km_band: 'mid', issues: ['brake', 'chain'], note: 'rattle', place: 'road', contact_pref: 'call', bike_type: 's', ref_code: 'asha', campaign: 'Monsoon-Check' });
-  assert.deepEqual(r, { km_band: 'mid', issues: ['brake', 'chain'], note: 'rattle', place: 'road', contact_pref: 'call', bike_type: 's', ref_code: 'ASHA', campaign: 'monsoon-check', address: null, lat: null, lng: null, email: null, email_marketing: false, request_type: 'quote', reg_no: null, reminder_opt_in: false });
+  assert.deepEqual(r, { km_band: 'mid', issues: ['brake', 'chain'], note: 'rattle', place: 'road', contact_pref: 'call', bike_type: 's', ref_code: 'ASHA', campaign: 'monsoon-check', address: null, lat: null, lng: null, email: null, email_marketing: false, request_type: 'quote', reg_no: null, reminder_opt_in: false, preferred_time: null });
 });
 test('unknown enum values are rejected to defaults', () => {
   const r = cleanLeadFields({ km_band: 'huge', place: 'moon', contact_pref: 'fax', bike_type: 'x' });
@@ -66,4 +66,11 @@ test('pick up and drop is an accepted place, and the reminder choice must be an 
   assert.equal(cleanLeadFields({ place: 'pickup' }).place, 'pickup');
   assert.equal(cleanLeadFields({ reminder_opt_in: true }).reminder_opt_in, true);
   assert.equal(cleanLeadFields({ reminder_opt_in: 'true' }).reminder_opt_in, false);
+});
+
+test('the arrival window text is tidied and capped', () => {
+  assert.equal(cleanLeadFields({ preferred_time: ' 10–11 AM ' }).preferred_time, '10–11 AM');
+  assert.equal(cleanLeadFields({ preferred_time: '<b>9–10 AM</b>' }).preferred_time, 'b9–10 AM/b');
+  assert.equal(cleanLeadFields({ preferred_time: 'x'.repeat(80) }).preferred_time.length, 30);
+  assert.equal(cleanLeadFields({ preferred_time: '' }).preferred_time, null);
 });

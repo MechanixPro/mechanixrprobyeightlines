@@ -1,7 +1,7 @@
 # Mechanix Pro — website, admin panel & WhatsApp automation
 
 Lead-capture website for **mechanixpro.in** that turns visitors into WhatsApp bookings, an admin panel to manage
-them, and an AI WhatsApp assistant that follows up until the customer pays the booking advance.
+them, and an AI WhatsApp assistant that follows up until the customer pays the checkup and quote fee.
 
 | Part | Tech | Where |
 |---|---|---|
@@ -107,7 +107,7 @@ Database → Extensions → enable **pg_cron** and **pg_net**, then run the `cro
 ## How a booking flows
 1. Visitor builds a service (bike → service → add-ons → slot). Build is saved on their phone.
 2. **Book on WhatsApp** → `submit-lead` validates, checks Turnstile and rate limits, prices it on the server, saves the lead (ref `MP-XXXXXX`) → WhatsApp opens with the booking pre-filled.
-3. Customer sends it → `whatsapp-webhook` links the chat to the lead → AI assistant confirms details and sends a Razorpay link for the ₹199 advance.
+3. Customer sends it → `whatsapp-webhook` links the chat to the lead → AI assistant confirms details and sends a Razorpay link for the checkup and quote fee.
 4. No reply or no payment → `follow-up` sends up to 4 polite reminders over 3 days (never 9 PM–9 AM). STOP opts out.
 5. Customer pays → `razorpay-webhook` marks it **Paid**, stops reminders, confirms on WhatsApp. Admin assigns the mechanic.
 Admins see everything live in `/admin/` and can switch AI off per booking or globally.

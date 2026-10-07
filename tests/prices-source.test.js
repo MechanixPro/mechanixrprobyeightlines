@@ -10,7 +10,7 @@ const pages = () => { const o = ['index.html']; for (const d of fs.readdirSync(r
 const sources = () => [...fs.readdirSync(path.join(root, 'src')).filter((f) => /\.(html|jsonld)$/.test(f)).map((f) => 'src/' + f), 'scripts/build_pages.py', 'assets/js/hero.js'];
 
 test('site.json is the one list of prices, the fees and the warranty length', () => {
-  assert.equal(site.warrantyDays, 30); assert.equal(site.advance, 199); assert.equal(site.bigBike, 300);
+  assert.equal(site.warrantyDays, 30); assert.equal(site.advance, 349); assert.equal(site.bigBike, 300);
   for (const id of ['basic', 'general', 'full', 'repair', 'sos']) { assert.ok(site.services[id].price >= 0); assert.ok(site.services[id].includes.length >= 3, id); }
 });
 test('the database holds every service, add-on and fee, and the app defaults match site.json', () => {

@@ -9,3 +9,8 @@ test('formatWhen writes the day and the time window the way the website does', (
 });
 test('an emergency booking says as soon as possible, with no day', () => assert.equal(formatWhen('2026-10-11', 'asap'), 'As soon as possible'));
 test('an unknown slot still gives a readable day', () => assert.equal(formatWhen('2026-10-11', 'weird'), 'Sunday, 11 Oct'));
+
+test('an exact arrival window replaces the broad slot text in emails', () => {
+  assert.equal(formatWhen('2026-10-11', 'morning', '10–11 AM'), 'Sunday, 11 Oct · 10–11 AM');
+  assert.equal(formatWhen('2026-10-11', 'asap', '10–11 AM'), 'As soon as possible');
+});

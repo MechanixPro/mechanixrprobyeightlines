@@ -111,7 +111,7 @@ urls = [('/', '1.0')]
 for slug, name, pins, locs, why in AREAS:
     url = f'{SITE}/bike-service-{slug}/'
     title = f'Doorstep Bike Service in {name}, Bengaluru | Mechanix Pro'
-    desc = f'Bike and scooter service at your home or office in {name} ({pins}). Prices from {{text:basic}}, certified mechanics, {{days}}-day service warranty. Get a quote on WhatsApp.'
+    desc = f'Bike and scooter service at your home or office in {name} ({pins}). Prices from {{text:basic}}, Mechanix Pro-certified mechanics, OEM-certified parts, {{days}}-day service warranty. Get a quote on WhatsApp.'
     book = f'/book/?area={html.escape(name)}'
     faq = [
       (f'Do you come to my home in {name}?', f'Yes. Our mechanics cover {locs}. We service your bike at home, at your office parking or at the roadside.'),
@@ -126,7 +126,7 @@ for slug, name, pins, locs, why in AREAS:
       "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]}, ensure_ascii=False) + '</script>'
     body = f'''<p class="breadcrumb"><a href="/">Home</a> › Bike service in {name}</p>
 <h1 style="font-size:clamp(34px,6vw,52px)">Doorstep bike service in {name}.</h1>
-<p class="muted" style="font-size:20px">Certified mechanics at your home or office across {locs}. Get a quote on WhatsApp, and nothing starts without your OK.</p>
+<p class="muted" style="font-size:20px">Mechanix Pro-certified mechanics at your home or office across {locs}, with OEM-certified parts. Get a quote on WhatsApp, and nothing starts without your OK.</p>
 <p><a class="btn btn-primary" href="{book}">Build your service</a> <a class="btn btn-wa" href="#" data-wa="{html.escape(name)}">Get a quote on WhatsApp</a></p>
 <h2>Why riders in {name} service at home</h2>
 <p>{why} Instead of losing half a day at a garage, a Mechanix Pro mechanic services your bike where it is parked, usually in 60 to 90 minutes.</p>
@@ -134,7 +134,7 @@ for slug, name, pins, locs, why in AREAS:
 <div class="card">{''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES)}</div>
 <p class="tiny muted" style="margin-top:8px">Bikes and scooters up to 180cc; above 180cc add {{fee:bigbike}} to service packages. GST included. Pincodes: {pins}.</p>
 <h2>How it works</h2>
-<ol><li>Build your service on the website and send it on WhatsApp.</li><li>Our expert checks what is needed, confirms if it can be done at home, and sends your quote.</li><li>You approve, we lock your slot ({{fee:advance}} advance, adjusted in your bill), and the mechanic arrives.</li></ol>
+<ol><li>Build your service on the website and send it on WhatsApp.</li><li>Our expert checks what is needed, confirms if it can be done at home, and sends your quote.</li><li>You approve, we lock your slot ({{fee:advance}} checkup and quote fee, adjusted in your bill if you go ahead), and the mechanic arrives.</li></ol>
 <h2>Questions from {name} riders</h2>
 {''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in faq)}
 <div class="final" style="margin-top:32px"><h2>Book a service in {name}.</h2><p>Takes under a minute.</p><a class="btn btn-primary" href="{book}">Build your service</a></div>
@@ -157,9 +157,9 @@ LEGAL = {
  'terms': ('Terms & Conditions', 'Terms for booking and using Mechanix Pro doorstep bike services.', '''
 <p class="muted">Last updated: [date]. Draft — to be reviewed by a lawyer before launch.</p>
 <h2>1. Service</h2><p>Mechanix Pro, operated by [Registered business name] (GSTIN [GSTIN]), provides two-wheeler service and repair at your location in our service areas in Bengaluru, through trained mechanics from our partner workshops.</p>
-<h2>2. Booking</h2><p>You can request a booking on our website or WhatsApp. A booking is confirmed when we confirm your slot and you pay the booking advance (currently {{fee:advance}}), which is adjusted in your final bill.</p>
-<h2>3. Prices and extra work</h2><p>Listed prices include GST and cover the labour and items described for each package. Parts, oil above standard grade and work outside the package are charged only after you approve an itemised estimate.</p>
-<h2>4. Payment</h2><p>Advance and final payments are made through Razorpay (UPI, cards, wallets, net banking) or as agreed with us. Invoices show GST separately.</p>
+<h2>2. Booking</h2><p>You can request a booking on our website or WhatsApp. A booking is confirmed when we confirm your slot and you pay the checkup and quote fee (currently {{fee:advance}}). The fee is adjusted in your final bill if you go ahead with the service.</p>
+<h2>3. Prices and extra work</h2><p>Listed prices include GST and cover the labour and items described for each package. Parts used are OEM-certified. Parts, oil above standard grade and work outside the package are charged only after you approve an itemised estimate.</p>
+<h2>4. Payment</h2><p>The checkup and quote fee and final payments are made through Razorpay (UPI, cards, wallets, net banking) or as agreed with us. Invoices show GST separately.</p>
 <h2>5. Cancellation</h2><p>See our <a href="/refund-policy/">Refund & Cancellation Policy</a>.</p>
 <h2>6. Vehicle handover</h2><p>If your bike must go to a workshop, it leaves only after you share a one-time code with the mechanic, and returns the same way. Please remove valuables. Keep your registration and insurance documents valid.</p>
 <h2>7. Warranty</h2><p>Our service work is covered for {{days}} days from the service date. Parts also carry the manufacturer's warranty. Accidents, misuse and work by others after our service are not covered.</p>
@@ -169,7 +169,7 @@ LEGAL = {
 <h2>11. Contact</h2><p>hello@mechanixpro.in · <span data-phone>+91 XXXXX XXXXX</span></p>'''),
  'refund-policy': ('Refund & Cancellation Policy', 'How cancellations and refunds work for Mechanix Pro bookings.', '''
 <p class="muted">Last updated: [date].</p>
-<h2>Cancelling a booking</h2><ul><li><b>More than 2 hours before your slot:</b> free. Your {{fee:advance}} advance is refunded in full.</li><li><b>Less than 2 hours before, or after the mechanic has left:</b> the {{fee:advance}} advance covers the visit and is not refunded.</li><li><b>Emergency (SOS) visits:</b> cancellable free until a mechanic is assigned.</li></ul>
+<h2>Cancelling a booking</h2><ul><li><b>More than 2 hours before your slot:</b> free. Your {{fee:advance}} checkup and quote fee is refunded in full.</li><li><b>Less than 2 hours before, or after the mechanic has left:</b> the {{fee:advance}} checkup and quote fee covers the visit and is not refunded.</li><li><b>Emergency (SOS) visits:</b> cancellable free until a mechanic is assigned.</li></ul>
 <h2>If we cancel</h2><p>If we cannot reach you in your slot, we offer another slot or a full refund — your choice.</p>
 <h2>Service issues</h2><p>If something we fixed fails within {{days}} days, we redo that work free. If we cannot fix it, we refund the charge for that item.</p>
 <h2>How refunds are paid</h2><p>Refunds go to your original payment method through Razorpay within 5–7 working days of approval.</p>
@@ -206,7 +206,7 @@ for slug, (title, desc, body) in LEGAL.items():
     urls.append((f'/{slug}/', '0.3'))
 
 MAIN = [
-  ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from {{text:basic}}, certified mechanics, {{days}}-day service warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>', '1.0'),
+  ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from {{text:basic}}, Mechanix Pro-certified mechanics, OEM-certified parts, {{days}}-day service warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>', '1.0'),
   ('book', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.9'),
   ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, General from {{text:general}}, Full from {{text:full}}. GST included. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
   ('help', 'help', 'How Doorstep Bike Service Works and FAQ | Mechanix Pro', 'How Mechanix Pro works: build your service, get a WhatsApp quote, approve, and we service your bike at your door in Bengaluru. Answers to common questions.', 'help.jsonld', 'page-help', APP_JS, '0.8'),

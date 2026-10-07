@@ -66,7 +66,7 @@
       note: String(st.note || '').trim(), place: st.place, contact_pref: st.contact === 'call' ? 'call' : 'whatsapp', ref_code: st.ref_code || null, coupon_code: cleanCoupon(st.coupon) || null, request_type: st.requestType === 'callback' ? 'callback' : 'quote', reg_no: cleanReg(st.reg) || null, reminder_opt_in: st.reminder === true,
       email: validEmail(st.email) ? String(st.email).trim().toLowerCase() : null, email_marketing: validEmail(st.email) && st.emailOffers === true, campaign: st.campaign || null,
       address: String(st.address || '').trim() || null, lat: validGeo(st.lat, st.lng) ? st.lat : null, lng: validGeo(st.lat, st.lng) ? st.lng : null,
-      preferred_date: asap ? (todayIso || dateIso) : dateIso, preferred_slot: asap ? 'asap' : st.slot, consent_whatsapp: !!st.consent
+      preferred_date: asap ? (todayIso || dateIso) : dateIso, preferred_slot: asap ? 'asap' : (st.slot || (st.hour >= 9 ? hourGroup(st.hour) : '')), preferred_time: !asap && st.hour >= 9 && st.hour <= 19 ? windowLabel(st.hour) : null, consent_whatsapp: !!st.consent
     };
   }
   var AREA_COORDS = { 'HSR Layout': [12.9116, 77.6389], 'Koramangala': [12.9352, 77.6245], 'BTM Layout': [12.9166, 77.6101], 'Bellandur': [12.9304, 77.6784], 'Sarjapur Road': [12.9100, 77.6870], 'Electronic City': [12.8452, 77.6602], 'Marathahalli': [12.9569, 77.7011], 'Bommanahalli': [12.9081, 77.6247], 'JP Nagar': [12.9063, 77.5857] };
@@ -99,6 +99,32 @@
   function tileImage(brand, row, photos) { return photos && photos[modelSlug(brand, row[0])] ? '/assets/img/models/' + modelSlug(brand, row[0]) + '.webp' : '/assets/img/tile-' + styleOf(brand, row) + '.svg'; }
   var EMAIL_RE = /^[a-z0-9._%+-]+@[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/i;
   function validEmail(v) { var t = String(v == null ? '' : v).trim(); return t.length <= 120 && EMAIL_RE.test(t); }
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var DAYNAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function addDaysIso(iso, n) { var d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+  function dayLabelFor(iso) { var d = new Date(iso + 'T12:00:00Z'); return DAYNAMES[d.getUTCDay()] + ', ' + d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()].slice(0, 3); }
+  /* A month for the calendar picker (weeks start on Sunday). Days before today and beyond maxAhead days are disabled. */
+  function calendarGrid(year, month, todayIso, maxAhead) {
+    var startDow = new Date(Date.UTC(year, month, 1)).getUTCDay(), count = new Date(Date.UTC(year, month + 1, 0)).getUTCDate(), last = addDaysIso(todayIso, maxAhead), cells = [], i;
+    for (i = 0; i < startDow; i++) cells.push(null);
+    for (i = 1; i <= count; i++) { var iso = year + '-' + pad2(month + 1) + '-' + pad2(i); cells.push({ d: i, iso: iso, disabled: iso < todayIso || iso > last, today: iso === todayIso }); }
+    while (cells.length % 7) cells.push(null);
+    var weeks = []; for (i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+    var ty = +todayIso.slice(0, 4), tm = +todayIso.slice(5, 7) - 1, ly = +last.slice(0, 4), lm = +last.slice(5, 7) - 1, cur = year * 12 + month;
+    return { title: MONTHS[month] + ' ' + year, year: year, month: month, weeks: weeks, canPrev: cur > ty * 12 + tm, canNext: cur < ly * 12 + lm };
+  }
+  function h12(x) { return x % 12 === 0 ? 12 : x % 12; }
+  function ampm(x) { return x < 12 ? 'AM' : 'PM'; }
+  function windowLabel(h) { return ampm(h) === ampm(h + 1) ? h12(h) + '–' + h12(h + 1) + ' ' + ampm(h) : h12(h) + ' ' + ampm(h) + '–' + h12(h + 1) + ' ' + ampm(h + 1); }
+  function hourGroup(h) { return h < 12 ? 'morning' : h < 16 ? 'afternoon' : 'evening'; }
+  /* One-hour arrival windows from 9 AM to 8 PM. Today only offers windows that start at least two hours from now. */
+  function timeWindows(dateIso, now) {
+    var ist = new Date(now.getTime() + 330 * 60000), today = ist.toISOString().slice(0, 10), minutes = ist.getUTCHours() * 60 + ist.getUTCMinutes(), earliest = Math.ceil((minutes + 120) / 60), out = [];
+    for (var h = 9; h <= 19; h++) out.push({ hour: h, label: windowLabel(h), group: hourGroup(h), disabled: dateIso < today || (dateIso === today && h < earliest) });
+    return out;
+  }
+  function whenLabel(iso, h) { return dayLabelFor(iso) + ' · ' + windowLabel(h); }
   function cleanReg(v) { var t = String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9]/g, ''); return /^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{1,4}$/.test(t) ? t : null; }
   function b64u(str) { var bytes = new TextEncoder().encode(str), bin = ''; for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]); return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
   function unb64u(t) { var x = String(t).replace(/-/g, '+').replace(/_/g, '/'); while (x.length % 4) x += '='; var bin = atob(x), bytes = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
@@ -150,5 +176,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });

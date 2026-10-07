@@ -8,14 +8,14 @@
     { id: 'basic', kind: 'service', name: 'Basic service', price: 599, description: 'Oil level check, chain lube, brake adjust, wash', includes: ['Engine oil level check', 'Chain clean and lube', 'Brake adjustment', 'Wash and wipe'] },
     { id: 'general', kind: 'service', name: 'General service', price: 1299, description: 'Engine oil change, filter clean, 20-point check', includes: ['Engine oil change (brand of your choice)', 'Air filter clean and spark plug check', 'Chain clean, lube and adjust', 'Brake inspection and adjustment', 'Battery, lights and horn check', 'Tyre pressure and 20-point safety check', 'Wash and wipe'] },
     { id: 'full', kind: 'service', name: 'Full service', price: 1999, description: 'General service plus throttle body clean, brake pads check, polish', includes: ['Everything in the General service', 'Throttle body clean', 'Brake pads check', 'Polish'] },
-    { id: 'repair', kind: 'service', name: 'Repair or problem check', price: 199, description: 'Inspection visit; repair quoted before work starts', includes: ['Inspection visit at your location', 'Diagnosis of the problem', 'Itemised quote before any work starts'] },
+    { id: 'repair', kind: 'service', name: 'Repair or problem check', price: 349, description: 'Checkup and quote visit; repair quoted before work starts', includes: ['Inspection visit at your location', 'Diagnosis of the problem', 'Itemised quote before any work starts', 'The fee is adjusted in your final bill if you go ahead with the service'] },
     { id: 'sos', kind: 'service', name: 'Roadside emergency', price: 349, description: 'Puncture, battery or breakdown; mechanic dispatched now', includes: ['Mechanic dispatched to your location now', 'Puncture repair or battery help', 'Breakdown check and advice'] },
     { id: 'wash', kind: 'addon', name: 'Foam wash', price: 199 },
     { id: 'chain', kind: 'addon', name: 'Chain clean and lube', price: 149 },
     { id: 'brake', kind: 'addon', name: 'Brake tuning', price: 99 },
     { id: 'tyre', kind: 'addon', name: 'Tyre and puncture check', price: 49 },
     { id: 'battery', kind: 'addon', name: 'Battery health test', price: 0 },
-    { id: 'advance', kind: 'fee', name: 'Booking advance', price: 199 },
+    { id: 'advance', kind: 'fee', name: 'Checkup and quote fee', price: 349 },
     { id: 'bigbike', kind: 'fee', name: 'Above-180cc surcharge', price: 300 }
   ];
   var ICONS = {
@@ -29,7 +29,6 @@
   var BIKES = window.MXP_BIKES || {};
   var BRANDS = Object.keys(BIKES).length ? Object.keys(BIKES) : ['Honda', 'Hero', 'TVS', 'Bajaj', 'Royal Enfield', 'Yamaha', 'Suzuki', 'KTM', 'Other'];
   var AREAS = ['HSR Layout', 'Koramangala', 'BTM Layout', 'Bellandur', 'Sarjapur Road', 'Electronic City', 'Marathahalli', 'Bommanahalli', 'JP Nagar', 'Other area'];
-  var SLOTS = [['morning', 'Morning', '9 AM – 12 PM'], ['afternoon', 'Afternoon', '12 – 4 PM'], ['evening', 'Evening', '4 – 8 PM']];
   var STEPS = ['Your bike', 'What it needs', 'Your package', 'When & where'];
   var KM = [['new', 'New bike, first service'], ['lt3', 'Under 3,000 km'], ['mid', '3,000 – 6,000 km'], ['gt6', 'Over 6,000 km'], ['unsure', 'Not sure']];
   var ISSUES = [['start', 'Hard to start'], ['pickup', 'Low pickup or mileage'], ['brake', 'Brakes weak or noisy'], ['chain', 'Chain noise or loose chain'], ['clutch', 'Clutch hard or slipping'], ['gear', 'Gear shifting problem'], ['battery', 'Battery or self-start'], ['tyre', 'Puncture or worn tyre'], ['leak', 'Oil leak'], ['heat', 'Engine heating'], ['elec', 'Lights, horn or wiring'], ['susp', 'Suspension noise'], ['rain', 'Pre-monsoon check']];
@@ -52,15 +51,36 @@
   function services() { return items.filter(function (x) { return x.kind === 'service' && !(isEV() && ['basic', 'general', 'full'].indexOf(x.id) > -1); }); }
   function addons() { return items.filter(function (x) { return x.kind === 'addon'; }); }
   function load() {
-    var d = { reg: '', reminder: false, requestType: 'quote', email: '', emailOffers: false, coupon: '', address: '', lat: null, lng: null, contact: 'whatsapp', step: 0, brand: '', model: '', type: '', cc: 'std', nick: '', km: '', issues: [], note: '', service: 'general', picked: false, addons: [], place: 'home', area: '', date: 1, slot: '', name: '', phone: '', consent: true };
+    var d = { reg: '', reminder: false, requestType: 'quote', email: '', emailOffers: false, coupon: '', address: '', lat: null, lng: null, contact: 'whatsapp', step: 0, brand: '', model: '', type: '', cc: 'std', nick: '', km: '', issues: [], note: '', service: 'general', picked: false, addons: [], place: 'home', area: '', dateIso: '', hour: null, slot: '', name: '', phone: '', consent: true };
     try { var s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s === 'object') for (var k in d) if (k in s) d[k] = s[k]; } catch (e) {}
     return d;
   }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
-  function days() { var out = [], t = new Date(); for (var i = 0; i < 6; i++) { var x = new Date(t); x.setDate(t.getDate() + i); out.push(x); } return out; }
-  function dayLabel(x, i) { return i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : x.toLocaleDateString('en-IN', { weekday: 'short' }); }
-  function dayStr(x) { return x.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }); }
-  function isoDate(x) { return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); }
+  function todayIso() { return new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10); }
+  var calY = 0, calM = 0, clockMode = 'am';
+  /* Calendar and clock: the visitor picks a real day and a one-hour arrival window. */
+  function schedulePicker() {
+    var g = L.calendarGrid(calY, calM, todayIso(), 30), h = '';
+    h += '<span class="label">Preferred day</span><div class="cal" role="group" aria-label="Choose a day"><div class="cal-head"><button type="button" class="cal-nav" data-act="calPrev" aria-label="Previous month"' + (g.canPrev ? '' : ' disabled') + '>‹</button><b>' + esc(g.title) + '</b><button type="button" class="cal-nav" data-act="calNext" aria-label="Next month"' + (g.canNext ? '' : ' disabled') + '>›</button></div>';
+    h += '<div class="cal-dow">' + ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(function (d) { return '<span>' + d + '</span>'; }).join('') + '</div><div class="cal-grid">';
+    g.weeks.forEach(function (w) { w.forEach(function (c) {
+      if (!c) { h += '<span></span>'; return; }
+      h += '<button type="button" class="cal-day' + (c.today ? ' today' : '') + '" data-act="pickDay" data-v="' + c.iso + '" aria-pressed="' + (st.dateIso === c.iso) + '" aria-label="' + esc(L.dayLabelFor(c.iso) + ' ' + g.year) + (c.today ? ', today' : '') + '"' + (c.disabled ? ' disabled' : '') + '>' + c.d + '</button>';
+    }); });
+    h += '</div></div>';
+    var win = st.dateIso ? L.timeWindows(st.dateIso, new Date()) : [], byHour = {}; win.forEach(function (x) { byHour[x.hour] = x; });
+    var sel = st.hour != null && byHour[st.hour] ? byHour[st.hour] : null;
+    h += '<span class="label">Preferred time</span><div class="clock" role="group" aria-label="Choose an arrival time"><div class="clock-face">';
+    if (sel && ((clockMode === 'am') === (st.hour < 12))) h += '<i class="clock-hand" style="--a:' + ((st.hour % 12) * 30) + 'deg"></i>';
+    for (var n = 1; n <= 12; n++) {
+      var hr = clockMode === 'am' ? n : (n === 12 ? 12 : n + 12), w2 = byHour[hr], off = !w2 || w2.disabled || (clockMode === 'am' && n === 12);
+      h += '<button type="button" class="clock-num" data-act="pickHour" data-v="' + hr + '" style="--a:' + ((n % 12) * 30) + 'deg" aria-pressed="' + (st.hour === hr) + '" aria-label="' + (w2 ? esc(w2.label) : n + (clockMode === 'am' ? ' AM' : ' PM')) + '"' + (off ? ' disabled' : '') + '>' + n + '</button>';
+    }
+    h += '<div class="clock-center"><b>' + (sel ? esc(sel.label) : (st.dateIso ? 'Pick an hour' : 'Pick a day first')) + '</b><small>1-hour arrival window</small></div></div>';
+    h += '<div class="seg" role="group" aria-label="AM or PM"><button type="button" data-act="ampm" data-v="am" aria-pressed="' + (clockMode === 'am') + '">AM</button><button type="button" data-act="ampm" data-v="pm" aria-pressed="' + (clockMode === 'pm') + '">PM</button></div>';
+    h += '<p class="tiny muted" style="margin:8px 0 0">Our mechanic arrives within your chosen hour. For today, only times at least 2 hours away are shown.</p></div>';
+    return h;
+  }
 
   function fee(id, d) { var x = svc(id); return x ? x.price : d; }
   function cfg() { return { bigBikeSurcharge: fee('bigbike', 300), bookingAdvance: fee('advance', 199) }; }
@@ -150,11 +170,8 @@
       if (locMsg || hasPin) h += '<p class="small locmsg" role="status">' + esc(locMsg || ('Location saved. Nearest area: ' + (st.area || 'Other area') + '.')) + '</p>';
       h += '<label class="label" for="f-area">Area</label><select id="f-area" data-f="area"><option value="">Choose your area</option>' + AREAS.map(function (a) { return '<option' + (st.area === a ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + '</select>';
       h += '<label class="label" for="f-address">Flat, street or landmark <span class="muted" style="font-weight:400">(helps the mechanic find you)</span></label><input id="f-address" data-f="address" maxlength="200" autocomplete="street-address" placeholder="e.g. Flat 4B, Green Apartments, 27th Main" value="' + esc(st.address) + '">';
-      if (st.place !== 'road') {
-        var ds = days();
-        h += '<span class="label" id="lb-day">Preferred day</span><div class="chips" role="group" aria-labelledby="lb-day">' + ds.map(function (x, i) { return '<button type="button" class="chip" data-act="date" data-v="' + i + '" aria-pressed="' + (st.date === i) + '">' + dayLabel(x, i) + ' · ' + dayStr(x) + '</button>'; }).join('') + '</div>';
-        h += '<span class="label" id="lb-slot">Preferred time</span><div class="chips" role="group" aria-labelledby="lb-slot">' + SLOTS.map(function (x) { return '<button type="button" class="chip" data-act="slot" data-v="' + x[0] + '" aria-pressed="' + (st.slot === x[0]) + '">' + x[1] + ' <span class="tiny">' + x[2] + '</span></button>'; }).join('') + '</div>';
-      } else h += '<p class="small" style="margin:14px 0 0"><b>Stuck on the road?</b> Send this and share your live location on WhatsApp. We send the nearest mechanic.</p>';
+      if (st.place !== 'road') h += schedulePicker();
+      else h += '<p class="small" style="margin:14px 0 0"><b>Stuck on the road?</b> Send this and share your live location on WhatsApp. We send the nearest mechanic.</p>';
       h += '<label class="label" for="f-name">Your name</label><input id="f-name" data-f="name" autocomplete="name" maxlength="60" value="' + esc(st.name) + '">';
       h += '<label class="label" for="f-phone">Mobile number</label><input id="f-phone" data-f="phone" inputmode="numeric" autocomplete="tel-national" maxlength="10" placeholder="10-digit number" value="' + esc(st.phone) + '">';
       h += '<span class="label" id="lb-contact">How should our expert reach you?</span><div class="chips" role="group" aria-labelledby="lb-contact"><button type="button" class="chip" data-act="contact" data-v="whatsapp" aria-pressed="' + (st.contact !== 'call') + '">WhatsApp chat</button><button type="button" class="chip" data-act="contact" data-v="call" aria-pressed="' + (st.contact === 'call') + '">Phone call</button></div>';
@@ -196,7 +213,8 @@
     if (st.step === 2 && !svc(st.service)) errMsg = 'Choose a service.';
     if (st.step === 3) {
       if (!st.area) errMsg = 'Choose your area.';
-      else if (st.place !== 'road' && !st.slot) errMsg = 'Pick a preferred time.';
+      else if (st.place !== 'road' && !st.dateIso) errMsg = 'Pick a day on the calendar.';
+      else if (st.place !== 'road' && st.hour == null) errMsg = 'Pick an arrival time on the clock.';
       else if (st.name.trim().length < 2) errMsg = 'Enter your name.';
       else if (!/^[6-9]\d{9}$/.test(st.phone)) errMsg = 'Enter a valid 10-digit mobile number.';
       else if (st.email.trim() && !L.validEmail(st.email)) errMsg = 'That email address does not look right. Fix it or leave it empty.';
@@ -209,8 +227,7 @@
   function waNumber() { return String(C.whatsapp || '').replace(/\D/g, ''); }
   function waLink(text) { return 'https://wa.me/' + waNumber() + '?text=' + encodeURIComponent(text); }
   function buildMessage(ref) {
-    var ds = days()[st.date], slot = SLOTS.filter(function (x) { return x[0] === st.slot; })[0];
-    var when = dayLabel(ds, st.date) + ', ' + dayStr(ds) + ' · ' + (slot ? slot[1] + ' (' + slot[2] + ')' : '');
+    var when = st.dateIso && st.hour != null ? L.whenLabel(st.dateIso, st.hour) : '';
     return L.buildMessage(st, items, cfg(), when, ref);
   }
   function utm() {
@@ -228,8 +245,7 @@
   }
   function submitLead() {
     if (!C.supabaseUrl || !C.supabaseAnonKey) return Promise.resolve(null);
-    var ds = days()[st.date];
-    var body = Object.assign(L.leadPayload(st, isoDate(ds), isoDate(new Date())), { utm: utm(), turnstile_token: tsToken, page: location.pathname });
+    var body = Object.assign(L.leadPayload(st, st.dateIso || todayIso(), todayIso()), { utm: utm(), turnstile_token: tsToken, page: location.pathname });
     var ctrl = 'AbortController' in window ? new AbortController() : null, t = setTimeout(function () { if (ctrl) ctrl.abort(); }, 6000);
     return fetch(C.supabaseUrl.replace(/\/$/, '') + '/functions/v1/submit-lead', {
       method: 'POST', headers: { 'Content-Type': 'application/json', apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey },
@@ -334,8 +350,10 @@
       else if (a === 'clearloc') { st.lat = null; st.lng = null; locMsg = ''; }
       else if (a === 'place') { st.place = v; }
       else if (a === 'issue') { var ix = st.issues.indexOf(v); if (ix > -1) st.issues.splice(ix, 1); else st.issues.push(v); }
-      else if (a === 'date') st.date = +v;
-      else if (a === 'slot') st.slot = v;
+      else if (a === 'pickDay') { st.dateIso = v; calY = +v.slice(0, 4); calM = +v.slice(5, 7) - 1; var ok = L.timeWindows(v, new Date()).filter(function (x) { return x.hour === st.hour && !x.disabled; }).length; if (!ok) { st.hour = null; st.slot = ''; } }
+      else if (a === 'calPrev' || a === 'calNext') { var g0 = L.calendarGrid(calY, calM, todayIso(), 30), dir = a === 'calPrev' ? -1 : 1; if (dir < 0 ? g0.canPrev : g0.canNext) { calM += dir; if (calM < 0) { calM = 11; calY--; } if (calM > 11) { calM = 0; calY++; } } }
+      else if (a === 'pickHour') { st.hour = +v; st.slot = L.hourGroup(+v); }
+      else if (a === 'ampm') { clockMode = v; }
       else if (a === 'next') { if (validate()) { st.step++; errMsg = ''; if (st.step === 2 && !st.picked) st.service = recommend(); scrollToBuilder(); } }
       else if (a === 'back') { st.step = Math.max(0, st.step - 1); errMsg = ''; }
       else if (a === 'send') { save(); return send(); }
@@ -411,7 +429,7 @@
     var rows = sv ? '<div><dt>' + esc(sv.name) + '</dt><dd>' + rupee(sv.price) + '</dd></div>' : '';
     if (extra) rows += '<div><dt>Above 180cc</dt><dd>+' + rupee(extra) + '</dd></div>';
     st.addons.forEach(function (a) { var x = svc(a); if (x) rows += '<div><dt>' + esc(x.name) + '</dt><dd>' + (x.price ? '+' + rupee(x.price) : 'Free') + '</dd></div>'; });
-    el.innerHTML = '<div class="card"><small>Your package for</small><h3>' + esc(bikeTitle().replace(/^./, function (c) { return c.toUpperCase(); })) + '</h3><dl>' + rows + '</dl>' + includedBox(sv, 'Included') + '<div class="tot tear"><span>Starting estimate, GST included</span><b>' + rupee(total()) + '</b></div><p>' + '₹' + fee('advance', 199) + ' booking advance locks your slot after you approve the quote, and is adjusted in your final bill. Final quote comes on WhatsApp.</p></div>';
+    el.innerHTML = '<div class="card"><small>Your package for</small><h3>' + esc(bikeTitle().replace(/^./, function (c) { return c.toUpperCase(); })) + '</h3><dl>' + rows + '</dl>' + includedBox(sv, 'Included') + '<div class="tot tear"><span>Starting estimate, GST included</span><b>' + rupee(total()) + '</b></div><p>' + '₹' + fee('advance', 199) + ' checkup and quote fee confirms your booking and is adjusted in your final bill if you go ahead. Final quote comes on WhatsApp.</p></div>';
   }
   function loadPrices() {
     if (!C.supabaseUrl || !C.supabaseAnonKey) return;
@@ -443,6 +461,10 @@
     if (pre.brand) { if (st.brand !== pre.brand) { st.brand = pre.brand; st.model = ''; } if (pre.model) st.model = pre.model; st.step = 0; }
     if (service && svc(service)) st.service = service;
     if (st.step > 3) st.step = 0;
+    var t0 = todayIso(); calY = +t0.slice(0, 4); calM = +t0.slice(5, 7) - 1;
+    if (st.dateIso && st.dateIso < t0) { st.dateIso = ''; st.hour = null; st.slot = ''; }
+    if (st.dateIso) { calY = +st.dateIso.slice(0, 4); calM = +st.dateIso.slice(5, 7) - 1; }
+    if (st.hour != null && st.hour >= 12) clockMode = 'pm';
     applyModel();
     render(); renderPrices(); loadPrices(); armIdle();
     var phoneEls = document.querySelectorAll('[data-phone]'); for (var i = 0; i < phoneEls.length; i++) if (C.phoneDisplay) phoneEls[i].textContent = C.phoneDisplay;
