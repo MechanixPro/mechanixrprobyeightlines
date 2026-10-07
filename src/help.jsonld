@@ -1,0 +1,6 @@
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Do you service bikes at home in Bengaluru?","acceptedAnswer":{"@type":"Answer","text":"Yes. A certified Mechanix Pro mechanic comes to your home, office or roadside in our service areas. If a job needs workshop tools, we pick up the bike with your OTP consent and bring it back."}},
+{"@type":"Question","name":"How much does a bike service cost?","acceptedAnswer":{"@type":"Answer","text":"Basic service is ₹799, General service ₹1,299 and Full service ₹1,999 for bikes and scooters up to 180cc. Bikes above 180cc add ₹300. Prices include GST. Your exact quote comes on WhatsApp after our expert checks your bike, and parts are charged only after you approve them."}},
+{"@type":"Question","name":"How do I get a quote and confirm my booking?","acceptedAnswer":{"@type":"Answer","text":"Build your service on the website and send it to us on WhatsApp. Our expert calls or messages you, confirms what is needed and sends your quote. Once you approve, we confirm your slot and send a secure link to pay ₹199, which is adjusted in your final bill."}},
+{"@type":"Question","name":"Is there a warranty?","acceptedAnswer":{"@type":"Answer","text":"Labour is covered for 15 days. Parts carry the manufacturer's warranty."}}
+]}

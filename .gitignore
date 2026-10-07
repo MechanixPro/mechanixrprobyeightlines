@@ -4,3 +4,4 @@ node_modules/
 .env.*
 supabase/.temp/
 supabase/.branches/
+dist-admin/

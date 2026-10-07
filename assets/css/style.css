@@ -260,3 +260,25 @@ textarea{resize:vertical;min-height:84px}
 ::selection{background:var(--ember);color:#1F1206}
 input,textarea{caret-color:var(--ember)}
 h1,h2{text-wrap:balance}
+
+/* multi-page: mobile menu, page headers, brief steps, tick list */
+.menu{position:relative;margin-left:auto}
+.menu summary{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;cursor:pointer;list-style:none;min-height:44px;padding:0}
+.menu summary::after{content:none}.menu summary:hover{background:var(--soft)}.menu svg{width:24px;height:24px}
+.menu[open] summary{background:var(--soft)}
+.menu-panel{position:absolute;right:0;top:52px;min-width:220px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:8px;box-shadow:0 18px 40px -12px rgba(16,24,40,.25);z-index:60}
+.menu-panel a{display:block;padding:12px 14px;border-radius:10px;color:var(--ink);text-decoration:none;font-weight:500;min-height:44px}
+.menu-panel a:hover{background:var(--soft)}
+.nav .cta{margin-left:0}
+@media(min-width:900px){.menu{display:none}.nav .cta{margin-left:8px}.nav .links{margin-left:auto}}
+.page-head{padding:56px 0 8px}.page-head h1{font-size:clamp(36px,6vw,60px);margin-bottom:12px}.page-head p{font-size:20px;color:var(--ink-2);max-width:34em;margin:0}
+.steps3{list-style:none;margin:0;padding:0;display:grid;gap:28px}
+@media(min-width:760px){.steps3{grid-template-columns:repeat(3,1fr);gap:40px}}
+.steps3 li{border-top:2px solid var(--ember);padding-top:14px}.steps3 b{display:block;font-size:21px;letter-spacing:-.02em;margin-bottom:6px}.steps3 span{color:var(--ink-2)}
+.tick{list-style:none;margin:0;padding:0;columns:1;column-gap:32px}@media(min-width:760px){.tick{columns:2}}
+.tick li{padding:10px 0 10px 32px;position:relative;break-inside:avoid;border-bottom:1px solid var(--line)}
+.tick li::before{content:"";position:absolute;left:4px;top:15px;width:14px;height:8px;border-left:2.5px solid var(--ok);border-bottom:2.5px solid var(--ok);transform:rotate(-45deg)}
+.bill.plain li{grid-template-columns:1fr auto;padding:14px 0}.bill.plain h3{grid-column:1;font-size:18px}.bill.plain .pr{grid-column:2;font-size:20px}
+.page-book .mbar{display:none}
+.page-services .band,.page-help .band{margin:0}
+main.page .final{margin-top:32px}

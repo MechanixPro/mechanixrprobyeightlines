@@ -3,20 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Contact Mechanix Pro | Mechanix Pro</title>
-<meta name="description" content="Reach Mechanix Pro for bookings, support and partnerships in Bengaluru.">
-<link rel="canonical" href="https://mechanixpro.in/contact/">
+<title>Build Your Bike Service and Get a Quote | Mechanix Pro</title>
+<meta name="description" content="Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.">
+<link rel="canonical" href="https://mechanixpro.in/book/">
 <meta name="theme-color" content="#14295A">
-<meta property="og:title" content="Contact Mechanix Pro | Mechanix Pro"><meta property="og:description" content="Reach Mechanix Pro for bookings, support and partnerships in Bengaluru."><meta property="og:url" content="https://mechanixpro.in/contact/"><meta property="og:image" content="https://mechanixpro.in/assets/img/og.png"><meta property="og:type" content="website"><meta property="og:site_name" content="Mechanix Pro"><meta name="twitter:card" content="summary_large_image">
+<meta property="og:title" content="Build Your Bike Service and Get a Quote | Mechanix Pro"><meta property="og:description" content="Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru."><meta property="og:url" content="https://mechanixpro.in/book/"><meta property="og:image" content="https://mechanixpro.in/assets/img/og.png"><meta property="og:type" content="website"><meta property="og:site_name" content="Mechanix Pro"><meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32"><link rel="icon" href="/assets/img/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/assets/css/style.css">
 
 <script src="/assets/js/config.js" defer></script>
-<script src="/assets/js/page.js" defer></script>
+<script src="/assets/js/bikes.js" defer></script>
+<script src="/assets/js/app.js" defer></script>
 </head>
-<body class="">
+<body class="page-book">
 <a class="skip" href="#main">Skip to content</a>
 <header class="nav"><div class="wrap">
   <a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="29">MECHANIX PRO</a>
@@ -25,14 +26,17 @@
     <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/contact/">Contact</a></div></details>
   <a class="btn btn-primary btn-sm cta" href="/book/">Get a quote</a>
 </div></header>
-<main id="main" class="page">
-<h1 style="font-size:40px">Contact Mechanix Pro</h1>
-
-<p class="muted" style="font-size:20px">Fastest: message us on WhatsApp. We reply from 8 AM to 9 PM, every day.</p>
-<p><a class="btn btn-wa" href="#" data-wa="Contact">Chat on WhatsApp</a></p>
-<div class="card" style="margin-top:20px"><div class="price-row"><span>Phone</span><b data-phone>+91 XXXXX XXXXX</b></div><div class="price-row"><span>Email</span><b>support@mechanixpro.in</b></div><div class="price-row"><span>Areas</span><b>South-East Bengaluru</b></div></div>
-<h2>Garage partners</h2><p>Run a two-wheeler workshop in Bengaluru and want more jobs? Email us with your garage name, area and number of mechanics.</p>
-<p class="tiny muted">[Registered business name], [registered address], Bengaluru, Karnataka. GSTIN [GSTIN].</p></main>
+<main id="main" class="">
+<section id="build" aria-labelledby="build-h">
+  <div class="wrap">
+    <div class="sec-head"><h1 id="build-h">Build your service.</h1><ol class="marker" aria-label="Three steps"><li><b>1</b> Your bike</li><li><b>2</b> Your package</li><li><b>3</b> Quote on WhatsApp</li></ol><p>Pick your bike model, tell us what it needs, and see a starting price. <b>No phone number needed</b> until you send it. Your quote comes on WhatsApp. Your build is saved on this phone.</p></div>
+    <div class="build-grid">
+      <div class="card builder" id="builder" aria-live="polite"><noscript><div class="b-body">Please enable JavaScript to build your service, or message us on WhatsApp.</div></noscript></div>
+      <aside class="aside" id="summary" aria-label="Price summary"></aside>
+    </div>
+  </div>
+</section>
+</main>
 <footer>
   <div class="wrap cols">
     <div>
@@ -45,5 +49,7 @@
   </div>
   <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p></div>
 </footer>
+<a class="wa-fab" href="#" data-wa="general" aria-label="Chat on WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp us</a>
+<div class="mbar" id="mbar"><a class="btn btn-wa" href="#" data-wa="general">WhatsApp</a><a class="btn btn-primary" href="/book/">Get a quote</a></div>
 </body>
 </html>

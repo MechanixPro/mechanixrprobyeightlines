@@ -5,6 +5,28 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = 'https://mechanixpro.in'
 TODAY = datetime.date.today().isoformat()
 
+NAV = '''<a class="skip" href="#main">Skip to content</a>
+<header class="nav"><div class="wrap">
+  <a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="29">MECHANIX PRO</a>
+  <nav class="links" aria-label="Main"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a></nav>
+  <details class="menu"><summary aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
+    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/contact/">Contact</a></div></details>
+  <a class="btn btn-primary btn-sm cta" href="/book/">Get a quote</a>
+</div></header>
+'''
+FOOTER = '''<footer>
+  <div class="wrap cols">
+    <div>
+      <a class="brand" href="/" style="margin-bottom:8px"><img src="/assets/img/logo.svg" alt="" width="22" height="24">MECHANIX PRO</a>
+      <p>Your roadside first responders. Doorstep bike service and breakdown help in Bengaluru.</p>
+      <p><span data-phone>+91 XXXXX XXXXX</span> · <a href="mailto:support@mechanixpro.in" style="display:inline">support@mechanixpro.in</a></p>
+    </div>
+    <div><b>Areas</b>{area_links}</div>
+    <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a></div>
+  </div>
+  <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p></div>
+</footer>
+'''
 HEAD = '''<!doctype html>
 <html lang="en-IN">
 <head>
@@ -13,23 +35,27 @@ HEAD = '''<!doctype html>
 <title>{title}</title>
 <meta name="description" content="{desc}">
 <link rel="canonical" href="{url}">
-<meta property="og:title" content="{title}"><meta property="og:description" content="{desc}"><meta property="og:url" content="{url}"><meta property="og:image" content="{site}/assets/img/og.png"><meta property="og:type" content="website">
-<link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32"><link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#14295A">
+<meta property="og:title" content="{title}"><meta property="og:description" content="{desc}"><meta property="og:url" content="{url}"><meta property="og:image" content="{site}/assets/img/og.png"><meta property="og:type" content="website"><meta property="og:site_name" content="Mechanix Pro"><meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32"><link rel="icon" href="/assets/img/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/assets/css/style.css">
 {schema}
 <script src="/assets/js/config.js" defer></script>
-<script src="/assets/js/page.js" defer></script>
+{scripts}
 </head>
-<body>
-<header class="nav"><div class="wrap"><a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="29">MECHANIX PRO</a><a class="btn btn-primary btn-sm cta" href="{book}">Book now</a></div></header>
-<main class="page">
+<body class="{body}">
+{nav}<main id="main" class="{main}">
 '''
 FOOT = '''</main>
-<footer><div class="wrap"><p class="tiny"><a href="/" style="display:inline">Home</a> · <a href="/terms/" style="display:inline">Terms</a> · <a href="/privacy/" style="display:inline">Privacy</a> · <a href="/refund-policy/" style="display:inline">Refund policy</a> · <a href="/contact/" style="display:inline">Contact</a></p><p class="tiny">© 2026 Mechanix Pro, Bengaluru.</p></div></footer>
-</body>
+{footer}{extra}</body>
 </html>
+'''
+LEGAL_JS = '<script src="/assets/js/page.js" defer></script>'
+APP_JS = '<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/app.js" defer></script>'
+FLOAT = '''<a class="wa-fab" href="#" data-wa="general" aria-label="Chat on WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp us</a>
+<div class="mbar" id="mbar"><a class="btn btn-wa" href="#" data-wa="general">WhatsApp</a><a class="btn btn-primary" href="/book/">Get a quote</a></div>
 '''
 
 AREAS = [
@@ -42,6 +68,10 @@ AREAS = [
 ]
 PRICES = [('Basic service', 799), ('General service', 1299), ('Full service', 1999), ('Repair or problem check', 199), ('Roadside emergency', 349)]
 
+AREA_LINKS = ''.join(f'<a href="/bike-service-{slug}/">{name}</a>' for slug, name, *_ in AREAS)
+def foot(extra=''):
+    return FOOT.format(footer=FOOTER.format(area_links=AREA_LINKS), extra=extra)
+
 def write(path, content):
     full = os.path.join(ROOT, path); os.makedirs(os.path.dirname(full), exist_ok=True)
     open(full, 'w', encoding='utf-8').write(content)
@@ -51,7 +81,7 @@ for slug, name, pins, locs, why in AREAS:
     url = f'{SITE}/bike-service-{slug}/'
     title = f'Doorstep Bike Service in {name}, Bengaluru | Mechanix Pro'
     desc = f'Bike and scooter service at your home or office in {name} ({pins}). Prices from ₹799, certified mechanics, 15-day labour warranty. Get a quote on WhatsApp.'
-    book = f'/?area={html.escape(name)}#build'
+    book = f'/book/?area={html.escape(name)}'
     faq = [
       (f'Do you come to my home in {name}?', f'Yes. Our mechanics cover {locs}. We service your bike at home, at your office parking or at the roadside.'),
       (f'How much is a bike service in {name}?', 'Basic service from ₹799, General from ₹1,299, Full from ₹1,999 for bikes up to 180cc; above 180cc add ₹300. GST included. Your exact quote comes on WhatsApp, and parts only after your approval.'),
@@ -78,7 +108,7 @@ for slug, name, pins, locs, why in AREAS:
 {''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in faq)}
 <div class="final" style="margin-top:32px"><h2>Book a service in {name}.</h2><p>Takes under a minute.</p><a class="btn btn-primary" href="{book}">Build your service</a></div>
 '''
-    write(f'bike-service-{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, book=book) + body + FOOT)
+    write(f'bike-service-{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=LEGAL_JS, body='', nav=NAV, main='page') + body + foot())
     urls.append((f'/bike-service-{slug}/', '0.8'))
 
 LEGAL = {
@@ -122,8 +152,23 @@ LEGAL = {
 }
 for slug, (title, desc, body) in LEGAL.items():
     url = f'{SITE}/{slug}/'
-    write(f'{slug}/index.html', HEAD.format(title=html.escape(title + ' | Mechanix Pro'), desc=html.escape(desc), url=url, site=SITE, schema='', book='/#build') + f'<h1 style="font-size:40px">{title}</h1>\n' + body + FOOT)
+    write(f'{slug}/index.html', HEAD.format(title=html.escape(title + ' | Mechanix Pro'), desc=html.escape(desc), url=url, site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='page') + f'<h1 style="font-size:40px">{title}</h1>\n' + body + foot())
     urls.append((f'/{slug}/', '0.3'))
+
+MAIN = [
+  ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from ₹799, certified mechanics, 15-day labour warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>', '1.0'),
+  ('book', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.9'),
+  ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from ₹799, General from ₹1,299, Full from ₹1,999. GST included. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
+  ('help', 'help', 'How Doorstep Bike Service Works and FAQ | Mechanix Pro', 'How Mechanix Pro works: build your service, get a WhatsApp quote, approve, and we service your bike at your door in Bengaluru. Answers to common questions.', 'help.jsonld', 'page-help', APP_JS, '0.8'),
+]
+for slug, src, title, desc, ld, body, scripts, prio in MAIN:
+    url = f'{SITE}/{slug}/' if slug else f'{SITE}/'
+    schema = ('<script type="application/ld+json">' + open(os.path.join(ROOT, 'src', ld), encoding='utf-8').read() + '</script>') if ld else ''
+    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read()
+    out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(FLOAT)
+    write(f'{slug}/index.html' if slug else 'index.html', out)
+    if slug: urls.append((f'/{slug}/', prio))
+urls[0] = ('/', '1.0')
 
 sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + ''.join(f'  <url><loc>{SITE}{u}</loc><lastmod>{TODAY}</lastmod><priority>{p}</priority></url>\n' for u, p in urls) + '</urlset>\n'
 write('sitemap.xml', sm)

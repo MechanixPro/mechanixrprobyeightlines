@@ -258,7 +258,7 @@
       save(); render(); return;
     }
     var pk = e.target.closest('[data-pick]');
-    if (pk && svc(pk.getAttribute('data-pick'))) { st.service = pk.getAttribute('data-pick'); st.picked = true; save(); render(); }
+    if (pk && svc(pk.getAttribute('data-pick'))) { st.service = pk.getAttribute('data-pick'); st.picked = true; save(); if (!$('#builder')) { e.preventDefault(); location.href = '/book/'; return; } render(); }
     var w = e.target.closest('[data-wa]');
     if (w) { e.preventDefault(); if (!/^\d{12}$/.test(waNumber())) return toast('WhatsApp number not set yet.'); location.href = waLink('Hi Mechanix Pro, I need help with my bike.'); }
   });
@@ -293,7 +293,7 @@
 
   function renderPrices() {
     var el = $('#priceList'); if (!el) return;
-    el.innerHTML = services().map(function (x) { return '<li' + (x.id === 'sos' ? ' class="sos-row"' : '') + '>' + icon(x.id) + '<h3>' + esc(x.name) + '</h3><span class="pr">' + rupee(x.price) + '</span><p>' + esc(x.description || '') + '</p><a class="go" href="#build" data-pick="' + esc(x.id) + '">Build with this</a></li>'; }).join('');
+    el.innerHTML = services().map(function (x) { return '<li' + (x.id === 'sos' ? ' class="sos-row"' : '') + '>' + icon(x.id) + '<h3>' + esc(x.name) + '</h3><span class="pr">' + rupee(x.price) + '</span><p>' + esc(x.description || '') + '</p><a class="go" href="/book/" data-pick="' + esc(x.id) + '">Build with this</a></li>'; }).join('');
   }
   function renderSummary() {
     var el = $('#summary'); if (!el) return;
