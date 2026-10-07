@@ -17,8 +17,7 @@ test('the contact email is hello@mechanixpro.in everywhere, never the old suppor
   assert.match(read('index.html'), /hello@mechanixpro\.in/);
 });
 test('no Wikimedia photos or credits page remain', () => {
-  for (const f of [...pages(), ...sources]) assert.doesNotMatch(read(f), /wikimedia|wikipedia|\/credits\/|assets\/img\/photos\//i, f);
-  assert.equal(fs.existsSync(path.join(root, 'assets/img/photos')), false);
+  for (const f of [...pages(), ...sources]) assert.doesNotMatch(read(f), /wikimedia|wikipedia|\/credits\//i, f);
   assert.equal(fs.existsSync(path.join(root, 'credits')), false);
   assert.equal(fs.existsSync(path.join(root, 'scripts/fetch_images.py')), false);
 });
@@ -26,3 +25,18 @@ test('every image the pages reference exists on disk', () => {
   for (const f of pages()) for (const m of read(f).matchAll(/(?:src|href)="(\/assets\/[^"#?]+\.(?:svg|webp|png|jpg))"/g)) assert.ok(fs.existsSync(path.join(root, m[1])), f + ' -> ' + m[1]);
 });
 test('the sitemap lists no removed page', () => assert.doesNotMatch(read('sitemap.xml'), /credits/));
+
+test('every page credits the free-licence images it was given (Freepik author and Vecteezy)', () => {
+  for (const f of pages().filter((x) => x !== '404.html' && x !== 'offline.html')) {
+    const h = read(f);
+    assert.match(h, /Designed by <a href="http:\/\/www\.freepik\.com"[^>]*>macrovector \/ Freepik<\/a>/, f);
+    assert.match(h, /<a href="https:\/\/www\.vecteezy\.com"[^>]*>Vecteezy<\/a>/, f);
+  }
+});
+test('the licensed images are used where intended, with real alt text', () => {
+  assert.match(read('index.html'), /photos\/cruiser-illustration\.webp/);
+  assert.match(read('help/index.html'), /photos\/garage-illustration\.webp/);
+  assert.match(read('services/index.html'), /photos\/oil-change\.webp/);
+  for (const f of ['index.html', 'help/index.html', 'services/index.html']) for (const m of read(f).matchAll(/<img[^>]*photos\/[^>]*>/g)) assert.match(m[0], /alt="[^"]{12,}"/, m[0]);
+});
+test('the hero is the darker charcoal-to-navy look', () => assert.match(fs.readFileSync(path.join(root, 'assets/css/style.css'), 'utf8'), /\.hero\{[^}]*#0B1220/));

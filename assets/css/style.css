@@ -224,7 +224,7 @@ footer .tiny,footer p{color:#AEB9D0}
 .band{background:var(--card);border-block:1px solid var(--line)}
 
 /* brand hero: navy field, ember accent */
-.hero{background:radial-gradient(900px 420px at 85% -10%,rgba(242,128,31,.28),transparent 60%),linear-gradient(160deg,#18316B 0%,var(--navy-2) 100%);color:#fff;border-radius:0 0 40px 40px;padding-bottom:56px}
+.hero{background:radial-gradient(900px 420px at 85% -10%,rgba(242,128,31,.28),transparent 60%),linear-gradient(160deg,#0B1220 0%,#14295A 135%);color:#fff;border-radius:0 0 40px 40px;padding-bottom:56px}
 @media(min-width:960px){.hero{padding:72px 0 80px}}
 .hero h1{color:#fff}
 .hero p.lead{color:#D5DDF0}
@@ -246,7 +246,7 @@ textarea{resize:vertical;min-height:84px}
 .preview{color:var(--ink)}.preview .pv-pack{color:#fff}
 
 /* backgrounds and the one orchestrated hero moment: the bike rolls in once */
-.hero{background-image:url(/assets/img/pattern-grid.svg),radial-gradient(900px 420px at 85% -10%,rgba(242,128,31,.28),transparent 60%),linear-gradient(160deg,#18316B 0%,var(--navy-2) 100%)}
+.hero{background-image:url(/assets/img/pattern-grid.svg),radial-gradient(900px 420px at 85% -10%,rgba(242,128,31,.28),transparent 60%),linear-gradient(160deg,#0B1220 0%,#14295A 135%)}
 .hero-road{grid-column:1/-1;margin:8px -20px -56px;overflow:hidden;pointer-events:none}
 .hero-road img{width:min(560px,92%);height:auto;margin-left:3%;animation:roll 1.4s cubic-bezier(.2,.8,.2,1) both}
 @keyframes roll{from{transform:translateX(-60%);opacity:0}to{transform:none;opacity:1}}
@@ -327,3 +327,8 @@ main.page .final{margin-top:32px}
 @media(hover:hover){.model-tile:hover{border-color:var(--ember-2)}}
 .brand{white-space:nowrap}
 @media(max-width:480px){.brand{font-size:14px;gap:7px}.brand img{width:22px}.nav .cta{padding:8px 14px;font-size:14px;white-space:nowrap}.nav .wrap{gap:8px}}
+
+.bike-card img.light{background:#fff;object-fit:contain;padding:8px}
+.head-split{display:grid;gap:24px;align-items:center}@media(min-width:900px){.head-split{grid-template-columns:1.1fr .9fr}}
+.head-art,.side-photo{width:100%;height:auto;border-radius:var(--r-lg);display:block}
+.side-photo{max-width:520px}

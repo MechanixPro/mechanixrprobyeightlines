@@ -25,7 +25,7 @@ FOOTER = '''<footer>
     <div><b>Areas</b>{area_links}</div>
     <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a></div>
   </div>
-  <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p></div>
+  <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Designed by <a href="http://www.freepik.com" rel="noopener" style="display:inline">macrovector / Freepik</a>. Oil change photo from <a href="https://www.vecteezy.com" rel="noopener" style="display:inline">Vecteezy</a>.</p></div>
 </footer>
 '''
 HEAD = '''<!doctype html>
