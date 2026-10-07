@@ -238,7 +238,7 @@
 
   function renderPrices() {
     var el = $('#priceList'); if (!el) return;
-    el.innerHTML = services().map(function (x) { return '<div class="svc">' + icon(x.id) + '<h3>' + esc(x.name) + '</h3><p>' + esc(x.description || '') + '</p><div class="pr">' + rupee(x.price) + '</div><a class="btn btn-ghost btn-sm" href="#build" data-pick="' + esc(x.id) + '">Build with this</a></div>'; }).join('');
+    el.innerHTML = services().map(function (x) { return '<li' + (x.id === 'sos' ? ' class="sos-row"' : '') + '>' + icon(x.id) + '<h3>' + esc(x.name) + '</h3><span class="pr">' + rupee(x.price) + '</span><p>' + esc(x.description || '') + '</p><a class="go" href="#build" data-pick="' + esc(x.id) + '">Build with this</a></li>'; }).join('');
   }
   function renderSummary() {
     var el = $('#summary'); if (!el) return;
@@ -246,7 +246,7 @@
     var rows = sv ? '<div><dt>' + esc(sv.name) + '</dt><dd>' + rupee(sv.price) + '</dd></div>' : '';
     if (extra) rows += '<div><dt>Above 180cc</dt><dd>+' + rupee(extra) + '</dd></div>';
     st.addons.forEach(function (a) { var x = svc(a); if (x) rows += '<div><dt>' + esc(x.name) + '</dt><dd>' + (x.price ? '+' + rupee(x.price) : 'Free') + '</dd></div>'; });
-    el.innerHTML = '<div class="card"><small>Your package for</small><h3>' + esc(bikeTitle().replace(/^./, function (c) { return c.toUpperCase(); })) + '</h3><dl>' + rows + '</dl><div class="tot"><span>Estimate, GST included</span><b>' + rupee(total()) + '</b></div><p>' + '₹' + (C.bookingAdvance || 199) + ' locks your slot and is adjusted in your final bill. Parts are charged only after you approve.</p></div>';
+    el.innerHTML = '<div class="card"><small>Your package for</small><h3>' + esc(bikeTitle().replace(/^./, function (c) { return c.toUpperCase(); })) + '</h3><dl>' + rows + '</dl><div class="tot tear"><span>Estimate, GST included</span><b>' + rupee(total()) + '</b></div><p>' + '₹' + (C.bookingAdvance || 199) + ' locks your slot and is adjusted in your final bill. Parts are charged only after you approve.</p></div>';
   }
   function loadPrices() {
     if (!C.supabaseUrl || !C.supabaseAnonKey) return;
