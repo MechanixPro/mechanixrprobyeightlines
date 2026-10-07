@@ -27,3 +27,15 @@ test('submit-lead works out the coupon on the server and saves code and discount
   assert.match(src, /coupon_code/);
   assert.match(src, /coupon_discount/);
 });
+
+test('submit-lead sends the confirmation email after saving, logs it, and can never block the booking', () => {
+  assert.match(src, /import \{ sendEmail \} from '\.\.\/_shared\/resend\.ts'/);
+  assert.match(src, /import \{ bookingReceived \} from '\.\.\/_shared\/email-templates\.ts'/);
+  assert.match(src, /import \{ formatWhen \} from '\.\.\/_shared\/when\.ts'/);
+  const afterInsert = src.slice(src.indexOf("from('leads').insert("));
+  assert.match(afterInsert, /if \(extra\.email\)/);
+  assert.match(afterInsert, /try \{[\s\S]*sendEmail\([\s\S]*\} catch/);
+  assert.match(afterInsert, /from\('email_log'\)\.insert/);
+  assert.match(afterInsert, /email_marketing_consent/);
+  assert.ok(afterInsert.indexOf('sendEmail(') < afterInsert.indexOf('return json(req, { ok: true, ref: lead.ref'), 'email is sent before the response is returned');
+});

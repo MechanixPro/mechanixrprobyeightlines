@@ -4,6 +4,9 @@ import { adminDb, env, json, corsHeaders, sha256Hex, priceBooking, respectQuietH
 import { whatsappReady, sendTemplate, TPL } from '../_shared/whatsapp.ts';
 import { cleanLeadFields } from '../_shared/lead-fields.ts';
 import { applyCoupon, normalizeCode } from '../_shared/coupons.ts';
+import { sendEmail } from '../_shared/resend.ts';
+import { bookingReceived } from '../_shared/email-templates.ts';
+import { formatWhen } from '../_shared/when.ts';
 
 const SLOTS = ['morning', 'afternoon', 'evening', 'asap'];
 const clean = (v: unknown, max: number) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, max);
@@ -83,6 +86,23 @@ Deno.serve(async (req) => {
     next_followup_at: consent ? respectQuietHours(new Date(now + 15 * 60_000)).toISOString() : null,
   }).select('id, ref').single();
   if (error) { console.error(error); return json(req, { error: 'Could not save. Please message us on WhatsApp.' }, 500); }
+
+  // Confirmation email (optional, only when the customer gave an address). It can never block or fail the booking.
+  if (extra.email) {
+    try {
+      const upd: Record<string, unknown> = { email: extra.email };
+      if (extra.email_marketing) { upd.email_marketing_consent = true; upd.email_unsubscribed_at = null; }
+      await db.from('customers').update(upd).eq('id', cust.id);
+      const mail = bookingReceived({
+        siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 97430 31301'), phoneTel: env('PHONE_TEL', '+919743031301'),
+        whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/919743031301'), email: 'hello@mechanixpro.in',
+        name, ref: lead.ref, bike: [clean(b.bike_brand, 30), clean(b.bike_model, 40)].filter((x) => x && x !== 'Other').join(' ') || 'Your bike',
+        service: priced.service.name, area: clean(b.area, 40) || 'Bengaluru', whenText: formatWhen(date, slot), estimate: priced.total,
+      });
+      const r = await sendEmail({ to: extra.email, subject: mail.subject, html: mail.html, text: mail.text, tags: { template: 'booking_received' } });
+      await db.from('email_log').insert({ lead_id: lead.id, to_email: extra.email, template: 'booking_received', status: r.ok ? 'sent' : r.skipped ? 'skipped' : 'failed', provider_id: r.id ?? null, error: r.error ?? null });
+    } catch (e) { console.error('email failed', e); }
+  }
 
   // 6) Optional instant confirmation template (only if enabled and consented).
   if (consent && whatsappReady() && env('SEND_RECEIVED_TEMPLATE') === 'true') {

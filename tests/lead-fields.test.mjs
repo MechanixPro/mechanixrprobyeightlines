@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { cleanLeadFields } from '../supabase/functions/_shared/lead-fields.ts';
 
 test('empty body gives safe defaults', () => {
-  assert.deepEqual(cleanLeadFields({}), { km_band: null, issues: [], note: null, place: 'home', contact_pref: 'whatsapp', bike_type: null, ref_code: null, campaign: null, address: null, lat: null, lng: null });
+  assert.deepEqual(cleanLeadFields({}), { km_band: null, issues: [], note: null, place: 'home', contact_pref: 'whatsapp', bike_type: null, ref_code: null, campaign: null, address: null, lat: null, lng: null, email: null, email_marketing: false });
 });
 test('known values pass through', () => {
   const r = cleanLeadFields({ km_band: 'mid', issues: ['brake', 'chain'], note: 'rattle', place: 'road', contact_pref: 'call', bike_type: 's', ref_code: 'asha', campaign: 'Monsoon-Check' });
-  assert.deepEqual(r, { km_band: 'mid', issues: ['brake', 'chain'], note: 'rattle', place: 'road', contact_pref: 'call', bike_type: 's', ref_code: 'ASHA', campaign: 'monsoon-check', address: null, lat: null, lng: null });
+  assert.deepEqual(r, { km_band: 'mid', issues: ['brake', 'chain'], note: 'rattle', place: 'road', contact_pref: 'call', bike_type: 's', ref_code: 'ASHA', campaign: 'monsoon-check', address: null, lat: null, lng: null, email: null, email_marketing: false });
 });
 test('unknown enum values are rejected to defaults', () => {
   const r = cleanLeadFields({ km_band: 'huge', place: 'moon', contact_pref: 'fax', bike_type: 'x' });
@@ -43,3 +43,13 @@ test('lat and lng are kept only when both are valid numbers inside India', () =>
   }
 });
 test('lat and lng are rounded to 5 decimals', () => assert.equal(cleanLeadFields({ lat: 12.912345678, lng: 77.644412345 }).lat, 12.91235));
+
+test('email is trimmed, lowercased and kept only when it looks valid', () => {
+  assert.equal(cleanLeadFields({ email: '  Asha.K@Gmail.COM ' }).email, 'asha.k@gmail.com');
+  for (const bad of ['', 'asha', 'asha@', '@gmail.com', 'a b@c.in', 'a@b', 'a@b..in', 'x'.repeat(130) + '@a.in', null, 42]) assert.equal(cleanLeadFields({ email: bad }).email, null, String(bad));
+});
+test('email marketing consent counts only with an email and an explicit yes', () => {
+  assert.equal(cleanLeadFields({ email: 'a@b.in', email_marketing: true }).email_marketing, true);
+  assert.equal(cleanLeadFields({ email: 'a@b.in', email_marketing: 'yes' }).email_marketing, false);
+  assert.equal(cleanLeadFields({ email_marketing: true }).email_marketing, false);
+});

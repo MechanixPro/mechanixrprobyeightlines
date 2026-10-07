@@ -1,4 +1,5 @@
 // Validates the extra booking details sent by the website. No Deno APIs here so Node can test it.
+import { cleanEmail } from './email-address.ts';
 const KM = ['new', 'lt3', 'mid', 'gt6', 'unsure'];
 const ISSUES = ['start', 'pickup', 'brake', 'chain', 'clutch', 'gear', 'battery', 'tyre', 'leak', 'heat', 'elec', 'susp', 'rain', 'range', 'sw'];
 const PLACES = ['home', 'road', 'unsure'];
@@ -26,5 +27,7 @@ export function cleanLeadFields(b: Record<string, unknown>) {
     address: strip(b.address, 200) || null,
     lat: geo ? r5(lat) : null,
     lng: geo ? r5(lng) : null,
+    email: cleanEmail(b.email),
+    email_marketing: cleanEmail(b.email) !== null && b.email_marketing === true,
   };
 }

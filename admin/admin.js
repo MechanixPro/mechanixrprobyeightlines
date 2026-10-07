@@ -32,6 +32,24 @@ $('#loginForm').addEventListener('submit', async (e) => {
   if (error) { $('#loginErr').textContent = 'Wrong email or password.'; return; }
   boot();
 });
+let codeEmail = '';
+$('#sendCode').addEventListener('click', async () => {
+  const email = $('#em').value.trim(); $('#loginErr').textContent = '';
+  if (!email) { $('#loginErr').textContent = 'Enter your email first.'; return; }
+  $('#sendCode').disabled = true;
+  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+  $('#sendCode').disabled = false;
+  if (error) { $('#loginErr').textContent = /rate|seconds|too many/i.test(error.message) ? 'Please wait a minute before asking for another code.' : 'Could not send a code. Check the email address, or use your password.'; return; }
+  codeEmail = email; $('#codeBox').hidden = false; $('#sendCode').textContent = 'Send a new code'; $('#code').focus();
+  $('#loginInfo').textContent = 'We sent a 6-digit code to ' + email + '. It works for 10 minutes.';
+});
+$('#verifyCode').addEventListener('click', async () => {
+  const token = $('#code').value.replace(/\D/g, ''); $('#loginErr').textContent = '';
+  if (token.length < 6) { $('#loginErr').textContent = 'Enter the 6-digit code.'; return; }
+  const { error } = await sb.auth.verifyOtp({ email: codeEmail || $('#em').value.trim(), token, type: 'email' });
+  if (error) { $('#loginErr').textContent = 'That code is wrong or has expired. Ask for a new one.'; return; }
+  boot();
+});
 $('#signOut').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
 
 async function boot() {

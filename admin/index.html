@@ -36,9 +36,17 @@
     <h1 style="font-size:28px;text-align:center">Mechanix Pro Admin</h1>
     <form id="loginForm" novalidate>
       <label class="label" for="em">Email</label><input id="em" type="email" autocomplete="username" required>
-      <label class="label" for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" required>
+      <p class="small muted" id="loginInfo" style="margin:10px 0 0"></p>
+      <div id="codeBox" hidden>
+        <label class="label" for="code">6-digit code from your email</label><input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456">
+        <button class="btn btn-primary" style="width:100%;margin-top:12px" type="button" id="verifyCode">Sign in</button>
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:14px" type="button" id="sendCode">Email me a code</button>
+      <details style="margin-top:16px"><summary style="font-weight:500;font-size:15px">Use a password instead</summary>
+        <label class="label" for="pw">Password</label><input id="pw" type="password" autocomplete="current-password">
+        <button class="btn btn-ghost" style="width:100%;margin-top:12px" type="submit">Sign in with password</button>
+      </details>
       <p class="err" id="loginErr" role="alert"></p>
-      <button class="btn btn-primary" style="width:100%;margin-top:14px" type="submit">Sign in</button>
     </form>
     <p class="tiny muted" style="text-align:center;margin-top:14px">Protected by Supabase Auth and Cloudflare Access.</p>
   </div>
