@@ -3,6 +3,7 @@
    it is downloaded by every visitor. Secrets live in Supabase Edge Function secrets. */
 window.MXP = {
   whatsapp: '91XXXXXXXXXX',        // Business WhatsApp number: 91 + 10 digits, no spaces or +
+  callNumber: '91XXXXXXXXXX',      // Number customers call (91 + 10 digits). Leave as is to reuse the WhatsApp number
   phoneDisplay: '+91 XXXXX XXXXX', // Shown on the site
   email: 'support@mechanixpro.in',
 

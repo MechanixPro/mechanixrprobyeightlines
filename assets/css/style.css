@@ -282,3 +282,21 @@ h1,h2{text-wrap:balance}
 .page-book .mbar{display:none}
 .page-services .band,.page-help .band{margin:0}
 main.page .final{margin-top:32px}
+
+.call-btn{display:none}.call-btn svg{width:18px;height:18px}
+@media(min-width:900px){.call-btn{display:inline-flex}}
+.mbar .btn{padding-inline:14px}.mbar .btn svg{width:18px;height:18px}
+
+/* loading: logo + road line on the first page of a visit; spinner on busy buttons */
+.loader{position:fixed;inset:0;z-index:100;display:grid;place-content:center;justify-items:center;gap:22px;background:linear-gradient(160deg,#18316B,#0F1F45);animation:loaderOut .45s ease 1s forwards}
+.loader img{width:84px;height:auto;animation:markIn .7s cubic-bezier(.2,.8,.2,1) both}
+.loader i{display:block;width:120px;height:4px;border-radius:4px;background:rgba(255,255,255,.18);position:relative;overflow:hidden}
+.loader i::after{content:"";position:absolute;inset:0;width:100%;background:var(--ember);transform-origin:left;animation:roadFill 1s cubic-bezier(.4,0,.2,1) both}
+.seen .loader{display:none}
+@keyframes markIn{from{opacity:0;transform:translateY(12px) scale(.9)}to{opacity:1;transform:none}}
+@keyframes roadFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes loaderOut{to{opacity:0;visibility:hidden}}
+.btn[disabled]:not(.btn-wa)::before{content:none}
+.btn-wa[disabled]::before{content:"";width:16px;height:16px;border-radius:50%;border:2.5px solid rgba(6,59,28,.3);border-top-color:var(--wa-ink);animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.loader{display:none}}

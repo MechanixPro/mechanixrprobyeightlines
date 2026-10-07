@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#0F1F45"/>
-  <g transform="translate(131,113) scale(2.5)">
-  <path d="M50 3 L93 17 Q95 63 50 107 Q5 63 7 17 Z" fill="#14295A"/>
-  <path d="M50 11 L85 22.5 Q86 61 50 97 Q14 61 15 22.5 Z" fill="none" stroke="#F2801F" stroke-width="5"/>
-  <g transform="rotate(-45 50 55)"><rect x="46" y="40" width="8" height="36" rx="3" fill="#fff"/><circle cx="50" cy="36" r="10" fill="#fff"/><rect x="46.5" y="24" width="7" height="12" fill="#14295A"/></g>
-  <polygon points="60,22 41,58 52,58 45,90 66,50 55,50 63,22" fill="#F2801F"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 132" role="img" aria-label="Mechanix Pro">
+  <path d="M60 4 112 22v44c0 30-22 52-52 62C30 118 8 96 8 66V22z" fill="#14295A"/>
+  <path d="M60 13 103 28v38c0 25-18 43-43 52-25-9-43-27-43-52V28z" fill="none" stroke="#F2801F" stroke-width="3.5" stroke-linejoin="round"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="11">
+    <path d="M36 88V50M84 88V50" stroke="#fff"/>
+    <path d="M36 50 60 76 84 50" stroke="#F2801F"/>
   </g>
+  <path d="M60 30 52 42h6l-3 9 11-13h-6z" fill="#fff"/>
 </svg>
