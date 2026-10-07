@@ -87,8 +87,10 @@
       h += '<span class="label" id="lb-brand">Brand</span><div class="chips" role="group" aria-labelledby="lb-brand">' + BRANDS.map(function (b) { return '<button type="button" class="chip" data-act="brand" data-v="' + esc(b) + '" aria-pressed="' + (st.brand === b) + '">' + esc(b) + '</button>'; }).join('') + '</div>';
       var list = BIKES[st.brand] || [];
       if (list.length) {
+        if (list.length > 12) h += '<input id="mfilter" type="search" placeholder="Search your model" aria-label="Search your model" autocomplete="off" style="margin-bottom:10px">';
         h += '<span class="label" id="lb-model">Choose your model</span><div class="model-grid" role="group" aria-labelledby="lb-model">' + list.map(function (m) {
-          return '<button type="button" class="model-tile" data-act="model" data-v="' + esc(m[0]) + '" aria-pressed="' + (st.model.trim().toLowerCase() === m[0].toLowerCase()) + '"><img src="' + L.tileImage(st.brand, m) + '" alt="" width="300" height="210" loading="lazy" decoding="async"><span>' + esc(m[0]) + '</span></button>';
+          var img = L.tileImage(st.brand, m, window.MXP_MODEL_PHOTOS || {});
+          return '<button type="button" class="model-tile" data-act="model" data-name="' + esc(m[0].toLowerCase()) + '" data-v="' + esc(m[0]) + '" aria-pressed="' + (st.model.trim().toLowerCase() === m[0].toLowerCase()) + '"><img' + (img.indexOf('/models/') > -1 ? ' class="photo"' : '') + ' src="' + img + '" alt="" width="300" height="210" loading="lazy" decoding="async"><span>' + esc(m[0]) + '</span></button>';
         }).join('') + '</div>';
       }
       h += '<label class="label" for="f-model">' + (list.length ? 'Not listed? Type your model' : 'Model') + '</label><input id="f-model" data-f="model" list="models" maxlength="40" placeholder="' + (st.brand && st.brand !== 'Other' ? 'Pick from the list or type your model' : 'Type your bike model') + '" value="' + esc(st.model) + '" autocomplete="off"><datalist id="models">' + (BIKES[st.brand] || []).map(function (m) { return '<option value="' + esc(m[0]) + '">'; }).join('') + '</datalist>';
@@ -258,7 +260,9 @@
     if (t.getAttribute('data-f') === 'area') { st.area = t.value; save(); }
   });
   document.addEventListener('input', function (e) {
-    var t = e.target, f = t.getAttribute && t.getAttribute('data-f');
+    var t = e.target;
+    if (t.id === 'mfilter') { var q = t.value.trim().toLowerCase(); document.querySelectorAll('.model-tile').forEach(function (b) { b.hidden = q !== '' && b.getAttribute('data-name').indexOf(q) === -1; }); return; }
+    var f = t.getAttribute && t.getAttribute('data-f');
     if (!f || !t.closest('#builder')) return;
     st[f] = f === 'phone' ? t.value.replace(/\D/g, '').slice(0, 10) : f === 'coupon' ? L.cleanCoupon(t.value) : t.value;
     if (f === 'phone' && t.value !== st.phone) t.value = st.phone;

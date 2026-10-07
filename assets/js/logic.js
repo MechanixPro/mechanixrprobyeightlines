@@ -82,15 +82,19 @@
   }
   function mapsLink(lat, lng) { return 'https://maps.google.com/?q=' + lat.toFixed(5) + ',' + lng.toFixed(5); }
   var CRUISER_NAMES = /Avenger|Dominar|Intruder|Thunderbird|Bullet|Classic|Meteor|Himalayan|Scram|Interceptor|Continental|Shotgun|Guerrilla|Hunter|CB350|H.ness/i;
-  var SPORTS_NAMES = /Apache|Pulsar|FZ|Gixxer|R15|MT-15|Xtreme|Raider|Hornet|Duke|^RC|CB200X|CB300F|Karizma|Xpulse|Ronin|Adventure|V-Strom/i;
+  var SPORTS_NAMES = /Apache|Pulsar|FZ|Gixxer|R15|MT-15|Xtreme|Raider|Hornet|Duke|^RC|CB200X|CB300F|Karizma|Xpulse|Ronin|Adventure|V-Strom|CBZ|Impulse|Hunk|Achiever|Ignitor|Stunner|Twister|Fazer|SZ|Gladiator|GS ?150|Ninja|Panigale|Monster/i;
+  var CRUISER_BRANDS = ['Royal Enfield', 'Jawa / Yezdi', 'Harley-Davidson', 'Benelli'];
+  var SPORTS_BRANDS = ['Kawasaki', 'Triumph', 'BMW Motorrad', 'Ducati', 'Husqvarna', 'Aprilia', 'KTM'];
+  var RETRO_NAMES = /Bonneville|Thruxton|Speed Twin|Scrambler Icon|Eliminator|Vulcan|W175|Electra/i;
   function styleOf(brand, row) {
     if (row[1] === 'e') return 'electric';
     if (row[1] === 's') return 'scooter';
-    if (brand === 'Royal Enfield' || brand === 'Jawa / Yezdi' || CRUISER_NAMES.test(row[0])) return 'cruiser';
-    if (SPORTS_NAMES.test(row[0])) return 'sports';
+    if (CRUISER_BRANDS.indexOf(brand) > -1 || CRUISER_NAMES.test(row[0]) || RETRO_NAMES.test(row[0])) return 'cruiser';
+    if (SPORTS_BRANDS.indexOf(brand) > -1 || SPORTS_NAMES.test(row[0])) return 'sports';
     return 'commuter';
   }
-  function tileImage(brand, row) { return '/assets/img/tile-' + styleOf(brand, row) + '.svg'; }
+  function modelSlug(brand, name) { return (brand + ' ' + name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+  function tileImage(brand, row, photos) { return photos && photos[modelSlug(brand, row[0])] ? '/assets/img/models/' + modelSlug(brand, row[0]) + '.webp' : '/assets/img/tile-' + styleOf(brand, row) + '.svg'; }
   function cleanCoupon(v) { return String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 20); }
   function prefillFromQuery(search, bikes) {
     var p = new URLSearchParams(search || ''), out = { brand: '', model: '' };
@@ -110,5 +114,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });

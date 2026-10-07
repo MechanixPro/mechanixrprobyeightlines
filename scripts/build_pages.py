@@ -1,6 +1,6 @@
 """Generates area landing pages, legal pages and sitemap.xml.
 Run:  python3 scripts/build_pages.py   (from the repo root). Edit AREAS / legal text below, then re-run."""
-import html, json, os, datetime
+import html, json, os, re, datetime, urllib.parse
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = 'https://mechanixpro.in'
 TODAY = datetime.date.today().isoformat()
@@ -23,7 +23,7 @@ FOOTER = '''<footer>
       <p><span data-phone>+91 XXXXX XXXXX</span> · <a href="mailto:hello@mechanixpro.in" style="display:inline">hello@mechanixpro.in</a></p>
     </div>
     <div><b>Areas</b>{area_links}</div>
-    <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a></div>
+    <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
   </div>
   <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Designed by <a href="http://www.freepik.com" rel="noopener" style="display:inline">macrovector / Freepik</a>. Oil change photo from <a href="https://www.vecteezy.com" rel="noopener" style="display:inline">Vecteezy</a>.</p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p></div>
 </footer>
@@ -56,7 +56,7 @@ FOOT = '''</main>
 </html>
 '''
 LEGAL_JS = '<script src="/assets/js/page.js" defer></script>'
-APP_JS = '<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/app.js" defer></script>'
+APP_JS = '<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/model-photos.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/app.js" defer></script>'
 FLOAT = '''<a class="wa-fab" href="#" data-wa="general" aria-label="Chat on WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp us</a>
 <div class="mbar" id="mbar"><a class="btn btn-ghost" href="#" data-call aria-label="Call us"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call</a><a class="btn btn-wa" href="#" data-wa="general">WhatsApp</a><a class="btn btn-primary" href="/book/">Get a quote</a></div>
 '''
@@ -153,6 +153,20 @@ LEGAL = {
 <h2>Garage partners</h2><p>Run a two-wheeler workshop in Bengaluru and want more jobs? Email us with your garage name, area and number of mechanics.</p>
 <p class="tiny muted">[Registered business name], [registered address], Bengaluru, Karnataka. GSTIN [GSTIN].</p>'''),
 }
+def brand_chips():
+    src = open(os.path.join(ROOT, 'assets', 'js', 'bikes.js'), encoding='utf-8').read()
+    names = [n for n in re.findall(r"^  '([^']+)': \[", src, flags=re.M) if n != 'Other']
+    return ''.join(f'<a href="/book/?brand={urllib.parse.quote(n, safe="")}">{html.escape(n)}</a>' for n in names)
+
+def credits_html():
+    rows = []
+    mp = os.path.join(ROOT, 'src', 'model-photos.json')
+    if os.path.exists(mp):
+        for c in json.load(open(mp, encoding='utf-8')).values():
+            rows.append(f'<li>{html.escape(c["brand"])} {html.escape(c["model"])}: "{html.escape(c["title"])}" by {html.escape(c["author"])}, <a href="{html.escape(c["license_url"])}" rel="noopener">{html.escape(c["license"])}</a>, <a href="{html.escape(c["source"])}" rel="noopener">source on Wikimedia Commons</a></li>')
+    return ('<h2 id="credits">Photo and image credits</h2><p>Bike photos shown while choosing a model come from the Wikimedia Commons community and are used under their free licences, listed below. They show example bikes, not our customers. Illustrations are designed by macrovector / Freepik. The oil change photo is from Vecteezy. Brand and model names belong to their owners.</p><ul>' + ''.join(rows) + '</ul>')
+
+LEGAL['terms'] = (LEGAL['terms'][0], LEGAL['terms'][1], LEGAL['terms'][2] + credits_html())
 for slug, (title, desc, body) in LEGAL.items():
     url = f'{SITE}/{slug}/'
     write(f'{slug}/index.html', HEAD.format(title=html.escape(title + ' | Mechanix Pro'), desc=html.escape(desc), url=url, site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='page') + f'<h1 style="font-size:40px">{title}</h1>\n' + body + foot())
@@ -167,7 +181,7 @@ MAIN = [
 for slug, src, title, desc, ld, body, scripts, prio in MAIN:
     url = f'{SITE}/{slug}/' if slug else f'{SITE}/'
     schema = ('<script type="application/ld+json">' + open(os.path.join(ROOT, 'src', ld), encoding='utf-8').read() + '</script>') if ld else ''
-    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read()
+    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--BRAND_CHIPS-->', brand_chips())
     out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(FLOAT)
     write(f'{slug}/index.html' if slug else 'index.html', out)
     if slug: urls.append((f'/{slug}/', prio))

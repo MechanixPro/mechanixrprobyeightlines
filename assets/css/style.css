@@ -332,3 +332,4 @@ main.page .final{margin-top:32px}
 .head-split{display:grid;gap:24px;align-items:center}@media(min-width:900px){.head-split{grid-template-columns:1.1fr .9fr}}
 .head-art,.side-photo{width:100%;height:auto;border-radius:var(--r-lg);display:block}
 .side-photo{max-width:520px}
+.model-tile[hidden]{display:none}.model-tile img.photo{object-fit:cover;border-radius:10px;background:var(--soft)}
