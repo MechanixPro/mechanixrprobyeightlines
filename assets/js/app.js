@@ -1,0 +1,278 @@
+/* Mechanix Pro — booking builder, WhatsApp hand-off, lead capture. No framework, no build step. */
+(function () {
+  'use strict';
+  var C = window.MXP || {};
+  var KEY = 'mxp_build_v1';
+  var DEFAULT_ITEMS = [
+    { id: 'basic',   kind: 'service', name: 'Basic service',   price: 799,  description: 'Oil level check, chain lube, brake adjust, wash' },
+    { id: 'general', kind: 'service', name: 'General service', price: 1299, description: 'Engine oil change, filter clean, 20-point check' },
+    { id: 'full',    kind: 'service', name: 'Full service',    price: 1999, description: 'General service plus throttle body clean, brake pads check, polish' },
+    { id: 'repair',  kind: 'service', name: 'Repair or problem check', price: 199, description: 'Inspection visit; repair quoted before work starts' },
+    { id: 'sos',     kind: 'service', name: 'Roadside emergency', price: 349, description: 'Puncture, battery or breakdown; mechanic dispatched now' },
+    { id: 'wash',    kind: 'addon', name: 'Foam wash',             price: 199 },
+    { id: 'chain',   kind: 'addon', name: 'Chain clean and lube',  price: 149 },
+    { id: 'brake',   kind: 'addon', name: 'Brake tuning',          price: 99 },
+    { id: 'tyre',    kind: 'addon', name: 'Tyre and puncture check', price: 49 },
+    { id: 'battery', kind: 'addon', name: 'Battery health test',   price: 0 }
+  ];
+  var BRANDS = ['Honda', 'TVS', 'Hero', 'Bajaj', 'Royal Enfield', 'Yamaha', 'Suzuki', 'KTM', 'Ather', 'Ola', 'Other'];
+  var AREAS = ['HSR Layout', 'Koramangala', 'BTM Layout', 'Bellandur', 'Sarjapur Road', 'Electronic City', 'Marathahalli', 'Bommanahalli', 'JP Nagar', 'Other area'];
+  var SLOTS = [['morning', 'Morning', '9 AM – 12 PM'], ['afternoon', 'Afternoon', '12 – 4 PM'], ['evening', 'Evening', '4 – 8 PM']];
+  var ICONS = {
+    basic: '<path d="M12 3s6 6.2 6 10.5a6 6 0 0 1-12 0C6 9.2 12 3 12 3z"/>',
+    general: '<path d="M14.7 6.3a4 4 0 0 0-5 5L4 17l3 3 5.7-5.7a4 4 0 0 0 5-5l-2.4 2.4-2.6-.6-.6-2.6z"/>',
+    full: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/>',
+    repair: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>',
+    sos: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>'
+  };
+  function icon(id) { return '<span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24">' + (ICONS[id] || ICONS.general) + '</svg></span>'; }
+  var STEPS = ['Your bike', 'Service', 'Your package', 'When & where'];
+  var items = DEFAULT_ITEMS.slice();
+  var st = load();
+  var errMsg = '';
+  var sending = false;
+
+  function $(s, r) { return (r || document).querySelector(s); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function rupee(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+  function svc(id) { for (var i = 0; i < items.length; i++) if (items[i].id === id) return items[i]; return null; }
+  function services() { return items.filter(function (x) { return x.kind === 'service'; }); }
+  function addons() { return items.filter(function (x) { return x.kind === 'addon'; }); }
+  function load() {
+    var d = { step: 0, brand: '', model: '', cc: 'std', nick: '', service: 'general', addons: [], area: '', date: 1, slot: '', name: '', phone: '', consent: true };
+    try { var s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s === 'object') for (var k in d) if (k in s) d[k] = s[k]; } catch (e) {}
+    return d;
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+  function days() { var out = [], t = new Date(); for (var i = 0; i < 6; i++) { var x = new Date(t); x.setDate(t.getDate() + i); out.push(x); } return out; }
+  function dayLabel(x, i) { return i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : x.toLocaleDateString('en-IN', { weekday: 'short' }); }
+  function dayStr(x) { return x.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }); }
+  function isoDate(x) { return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); }
+
+  function total() {
+    var s = svc(st.service); if (!s) return 0;
+    var t = s.price;
+    if (st.cc === 'big' && ['basic', 'general', 'full'].indexOf(s.id) > -1) t += (C.bigBikeSurcharge || 0);
+    st.addons.forEach(function (a) { var x = svc(a); if (x) t += x.price; });
+    return t;
+  }
+  function bikeTitle() {
+    var b = (st.brand && st.brand !== 'Other' ? st.brand + ' ' : '') + (st.model || 'your bike');
+    return st.nick ? '"' + st.nick + '" (' + b.trim() + ')' : b.trim();
+  }
+
+  /* ---------- builder render ---------- */
+  function render() {
+    var el = $('#builder'); if (!el) return;
+    var s = st.step, h = '';
+    h += '<div class="b-top"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><b>Step ' + (s + 1) + ' of 4 · ' + STEPS[s] + '</b><span class="saved">Saved on this phone</span></div>';
+    h += '<div class="progress" aria-hidden="true">' + STEPS.map(function (_, i) { return '<i class="' + (i <= s ? 'on' : '') + '"></i>'; }).join('') + '</div></div><div class="b-body fade">';
+    if (s === 0) {
+      h += '<span class="label" id="lb-brand">Brand</span><div class="chips" role="group" aria-labelledby="lb-brand">' + BRANDS.map(function (b) { return '<button type="button" class="chip" data-act="brand" data-v="' + esc(b) + '" aria-pressed="' + (st.brand === b) + '">' + esc(b) + '</button>'; }).join('') + '</div>';
+      h += '<label class="label" for="f-model">Model</label><input id="f-model" data-f="model" maxlength="40" placeholder="e.g. Activa 6G, Classic 350" value="' + esc(st.model) + '" autocomplete="off">';
+      h += '<span class="label" id="lb-cc">Engine size</span><div class="seg" role="group" aria-labelledby="lb-cc"><button type="button" data-act="cc" data-v="std" aria-pressed="' + (st.cc === 'std') + '">Up to 180cc</button><button type="button" data-act="cc" data-v="big" aria-pressed="' + (st.cc === 'big') + '">Above 180cc</button></div>';
+      h += '<label class="label" for="f-nick">Give your bike a name <span class="muted" style="font-weight:400">(optional)</span></label><input id="f-nick" data-f="nick" maxlength="24" placeholder="e.g. Bullet Raja" value="' + esc(st.nick) + '">';
+      h += '<p class="tiny muted" style="margin-top:6px">We use it on your service card and reminders.</p>';
+    }
+    if (s === 1) {
+      services().forEach(function (x) {
+        var p = x.price + (st.cc === 'big' && ['basic', 'general', 'full'].indexOf(x.id) > -1 ? (C.bigBikeSurcharge || 0) : 0);
+        h += '<button type="button" class="opt" data-act="service" data-v="' + esc(x.id) + '" aria-pressed="' + (st.service === x.id) + '">' + icon(x.id) + '<span class="t"><b>' + esc(x.name) + '</b><span>' + esc(x.description || '') + '</span></span><span class="p">' + rupee(p) + '</span></button>';
+      });
+    }
+    if (s === 2) {
+      h += '<p class="small muted" style="margin:0 0 6px">Add what ' + esc(st.nick || 'your bike') + ' needs.</p>';
+      addons().forEach(function (a) {
+        var on = st.addons.indexOf(a.id) > -1;
+        h += '<label class="toggle-row"><span class="t">' + esc(a.name) + '</span><span class="p">' + (a.price ? '+' + rupee(a.price) : 'Free') + '</span><span class="switch"><input type="checkbox" role="switch" data-act="addon" data-v="' + esc(a.id) + '"' + (on ? ' checked' : '') + ' aria-label="' + esc(a.name) + '"><i></i></span></label>';
+      });
+      var sv = svc(st.service);
+      h += '<div class="package"><div class="nm">Your package for ' + esc(bikeTitle()) + '</div><b>' + esc(sv ? sv.name : '') + '</b><ul>' + st.addons.map(function (a) { var x = svc(a); return x ? '<li>' + esc(x.name) + '</li>' : ''; }).join('') + '</ul></div>';
+    }
+    if (s === 3) {
+      if (st.service === 'sos') h += '<p class="small" style="margin:0"><b>Emergency:</b> we dispatch the nearest mechanic as soon as you send this.</p>';
+      h += '<label class="label" for="f-area">Area</label><select id="f-area" data-f="area"><option value="">Choose your area</option>' + AREAS.map(function (a) { return '<option' + (st.area === a ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + '</select>';
+      if (st.service !== 'sos') {
+        var ds = days();
+        h += '<span class="label" id="lb-day">Day</span><div class="chips" role="group" aria-labelledby="lb-day">' + ds.map(function (x, i) { return '<button type="button" class="chip" data-act="date" data-v="' + i + '" aria-pressed="' + (st.date === i) + '">' + dayLabel(x, i) + ' · ' + dayStr(x) + '</button>'; }).join('') + '</div>';
+        h += '<span class="label" id="lb-slot">Time</span><div class="chips" role="group" aria-labelledby="lb-slot">' + SLOTS.map(function (x) { return '<button type="button" class="chip" data-act="slot" data-v="' + x[0] + '" aria-pressed="' + (st.slot === x[0]) + '">' + x[1] + ' <span class="tiny">' + x[2] + '</span></button>'; }).join('') + '</div>';
+      }
+      h += '<label class="label" for="f-name">Your name</label><input id="f-name" data-f="name" autocomplete="name" maxlength="60" value="' + esc(st.name) + '">';
+      h += '<label class="label" for="f-phone">Mobile number</label><input id="f-phone" data-f="phone" inputmode="numeric" autocomplete="tel-national" maxlength="10" placeholder="10-digit number" value="' + esc(st.phone) + '">';
+      h += '<label class="check"><input type="checkbox" data-act="consent"' + (st.consent ? ' checked' : '') + '><span>Send me booking updates and reminders on WhatsApp. Reply STOP anytime. See our <a href="/privacy/">Privacy Policy</a>.</span></label>';
+      if (C.turnstileSiteKey) h += '<div id="ts" style="margin-top:12px"></div>';
+    }
+    if (errMsg) h += '<p class="err" role="alert">' + esc(errMsg) + '</p>';
+    h += '</div><div class="b-foot"><div class="sum"><b>' + rupee(total()) + '</b><span>Estimate, GST included · ₹' + (C.bookingAdvance || 199) + ' locks your slot</span></div>';
+    if (s > 0) h += '<button class="btn btn-ghost btn-sm" type="button" data-act="back">Back</button>';
+    h += s < 3 ? '<button class="btn btn-primary" type="button" data-act="next">Continue</button>' : '<button class="btn btn-wa" type="button" data-act="send"' + (sending ? ' disabled' : '') + '>' + (sending ? 'Sending…' : 'Book on WhatsApp') + '</button>';
+    h += '</div>';
+    el.innerHTML = h;
+    if (s === 3 && C.turnstileSiteKey) mountTurnstile();
+    renderSummary();
+  }
+
+  function validate() {
+    errMsg = '';
+    if (st.step === 0) {
+      if (!st.brand) errMsg = 'Choose your bike brand.';
+      else if (st.model.trim().length < 2) errMsg = 'Enter your bike model.';
+    }
+    if (st.step === 1 && !svc(st.service)) errMsg = 'Choose a service.';
+    if (st.step === 3) {
+      if (!st.area) errMsg = 'Choose your area.';
+      else if (st.service !== 'sos' && !st.slot) errMsg = 'Pick a time.';
+      else if (st.name.trim().length < 2) errMsg = 'Enter your name.';
+      else if (!/^[6-9]\d{9}$/.test(st.phone)) errMsg = 'Enter a valid 10-digit mobile number.';
+    }
+    return !errMsg;
+  }
+
+  /* ---------- WhatsApp hand-off ---------- */
+  function waNumber() { return String(C.whatsapp || '').replace(/\D/g, ''); }
+  function waLink(text) { return 'https://wa.me/' + waNumber() + '?text=' + encodeURIComponent(text); }
+  function buildMessage(ref) {
+    var sv = svc(st.service), ds = days()[st.date], slot = SLOTS.filter(function (x) { return x[0] === st.slot; })[0];
+    var lines = ['Hi Mechanix Pro, I would like to book:', '',
+      'Bike: ' + bikeTitle() + (st.cc === 'big' ? ' (above 180cc)' : ''),
+      'Service: ' + (sv ? sv.name : '') + (st.addons.length ? ' + ' + st.addons.map(function (a) { var x = svc(a); return x ? x.name : ''; }).join(', ') : ''),
+      'Area: ' + st.area,
+      'When: ' + (st.service === 'sos' ? 'Now (emergency)' : dayLabel(ds, st.date) + ', ' + dayStr(ds) + ' · ' + (slot ? slot[1] + ' (' + slot[2] + ')' : '')),
+      'Estimate: ' + rupee(total()),
+      'Name: ' + st.name.trim()];
+    if (ref) lines.push('Booking ref: ' + ref);
+    return lines.join('\n');
+  }
+  function utm() {
+    try {
+      var p = new URLSearchParams(location.search), o = JSON.parse(sessionStorage.getItem('mxp_utm') || '{}');
+      ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'].forEach(function (k) { if (p.get(k)) o[k] = p.get(k).slice(0, 100); });
+      sessionStorage.setItem('mxp_utm', JSON.stringify(o)); return o;
+    } catch (e) { return {}; }
+  }
+  var tsToken = '';
+  function mountTurnstile() {
+    function go() { if (window.turnstile && $('#ts')) window.turnstile.render('#ts', { sitekey: C.turnstileSiteKey, callback: function (t) { tsToken = t; } }); }
+    if (window.turnstile) return go();
+    if (!document.getElementById('ts-js')) { var s = document.createElement('script'); s.id = 'ts-js'; s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'; s.async = true; s.onload = go; document.head.appendChild(s); }
+  }
+  function submitLead() {
+    if (!C.supabaseUrl || !C.supabaseAnonKey) return Promise.resolve(null);
+    var ds = days()[st.date];
+    var body = { name: st.name.trim(), phone: st.phone, area: st.area, bike_brand: st.brand, bike_model: st.model.trim(), bike_nickname: st.nick.trim(), big_bike: st.cc === 'big', service_id: st.service, addons: st.addons, preferred_date: st.service === 'sos' ? isoDate(new Date()) : isoDate(ds), preferred_slot: st.service === 'sos' ? 'asap' : st.slot, consent_whatsapp: !!st.consent, utm: utm(), turnstile_token: tsToken, page: location.pathname };
+    var ctrl = 'AbortController' in window ? new AbortController() : null, t = setTimeout(function () { if (ctrl) ctrl.abort(); }, 6000);
+    return fetch(C.supabaseUrl.replace(/\/$/, '') + '/functions/v1/submit-lead', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey },
+      body: JSON.stringify(body), signal: ctrl ? ctrl.signal : undefined
+    }).then(function (r) { clearTimeout(t); return r.json().then(function (j) { if (!r.ok) throw Object.assign(new Error(j.error || 'Failed'), { status: r.status }); return j; }); });
+  }
+  function track(name, params) {
+    try { if (window.gtag) { window.gtag('event', name, params || {}); if (name === 'generate_lead' && C.googleAdsSendTo) window.gtag('event', 'conversion', { send_to: C.googleAdsSendTo, value: total(), currency: 'INR' }); } } catch (e) {}
+  }
+  function send() {
+    if (!validate()) return render();
+    if (!/^\d{12}$/.test(waNumber())) { errMsg = 'Booking is not set up yet: the business WhatsApp number is missing in config.js.'; return render(); }
+    sending = true; render();
+    submitLead().then(function (r) { finish(r && r.ref); }).catch(function (e) {
+      if (e && e.status === 429) { sending = false; errMsg = 'Too many requests from this number. Please wait a few minutes or message us directly on WhatsApp.'; return render(); }
+      if (e && e.status === 403) { sending = false; errMsg = 'Please complete the security check above and try again.'; return render(); }
+      finish(null); // network/server issue: never lose the customer, go to WhatsApp anyway
+    });
+  }
+  function finish(ref) {
+    track('generate_lead', { service: st.service, area: st.area, value: total() });
+    var url = waLink(buildMessage(ref));
+    sending = false; render();
+    toast(ref ? 'Booking ' + ref + ' saved. Opening WhatsApp…' : 'Opening WhatsApp…');
+    setTimeout(function () { location.href = url; }, 400);
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]');
+    if (b && b.closest('#builder')) {
+      var a = b.getAttribute('data-act'), v = b.getAttribute('data-v');
+      if (a === 'brand') st.brand = v;
+      else if (a === 'cc') st.cc = v;
+      else if (a === 'service') { st.service = v; }
+      else if (a === 'date') st.date = +v;
+      else if (a === 'slot') st.slot = v;
+      else if (a === 'next') { if (validate()) { st.step++; errMsg = ''; scrollToBuilder(); } }
+      else if (a === 'back') { st.step = Math.max(0, st.step - 1); errMsg = ''; }
+      else if (a === 'send') { save(); return send(); }
+      else return;
+      save(); render(); return;
+    }
+    var pk = e.target.closest('[data-pick]');
+    if (pk && svc(pk.getAttribute('data-pick'))) { st.service = pk.getAttribute('data-pick'); st.step = Math.max(st.step, 0); if (st.step > 1) st.step = 1; save(); render(); }
+    var w = e.target.closest('[data-wa]');
+    if (w) { e.preventDefault(); if (!/^\d{12}$/.test(waNumber())) return toast('WhatsApp number not set yet.'); location.href = waLink('Hi Mechanix Pro, I need help with my bike.'); }
+  });
+  document.addEventListener('change', function (e) {
+    var t = e.target; if (!t.closest('#builder')) return;
+    var a = t.getAttribute('data-act');
+    if (a === 'addon') { var v = t.getAttribute('data-v'), i = st.addons.indexOf(v); if (t.checked && i < 0) st.addons.push(v); if (!t.checked && i > -1) st.addons.splice(i, 1); save(); render(); }
+    if (a === 'consent') { st.consent = t.checked; save(); }
+    if (t.getAttribute('data-f') === 'area') { st.area = t.value; save(); }
+  });
+  document.addEventListener('input', function (e) {
+    var t = e.target, f = t.getAttribute && t.getAttribute('data-f');
+    if (!f || !t.closest('#builder')) return;
+    st[f] = f === 'phone' ? t.value.replace(/\D/g, '').slice(0, 10) : t.value;
+    if (f === 'phone' && t.value !== st.phone) t.value = st.phone;
+    save();
+  });
+  function scrollToBuilder() { var b = $('#build'); if (b && b.getBoundingClientRect().top < 0) b.scrollIntoView({ behavior: 'smooth' }); }
+
+  /* SOS: share location on WhatsApp */
+  function sos() {
+    if (!/^\d{12}$/.test(waNumber())) return toast('WhatsApp number not set yet.');
+    var base = 'SOS: my bike needs help right now.';
+    function go(extra) { track('generate_lead', { service: 'sos' }); location.href = waLink(base + (extra ? '\nMy location: ' + extra : '\nMy area: ')); }
+    if (!navigator.geolocation) return go('');
+    toast('Getting your location…');
+    navigator.geolocation.getCurrentPosition(function (p) { go('https://maps.google.com/?q=' + p.coords.latitude.toFixed(5) + ',' + p.coords.longitude.toFixed(5)); }, function () { go(''); }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
+  }
+
+  function toast(m) { var t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2600); }
+
+  function renderPrices() {
+    var el = $('#priceList'); if (!el) return;
+    el.innerHTML = services().map(function (x) { return '<div class="svc">' + icon(x.id) + '<h3>' + esc(x.name) + '</h3><p>' + esc(x.description || '') + '</p><div class="pr">' + rupee(x.price) + '</div><a class="btn btn-ghost btn-sm" href="#build" data-pick="' + esc(x.id) + '">Build with this</a></div>'; }).join('');
+  }
+  function renderSummary() {
+    var el = $('#summary'); if (!el) return;
+    var sv = svc(st.service), extra = (st.cc === 'big' && sv && ['basic', 'general', 'full'].indexOf(sv.id) > -1) ? (C.bigBikeSurcharge || 0) : 0;
+    var rows = sv ? '<div><dt>' + esc(sv.name) + '</dt><dd>' + rupee(sv.price) + '</dd></div>' : '';
+    if (extra) rows += '<div><dt>Above 180cc</dt><dd>+' + rupee(extra) + '</dd></div>';
+    st.addons.forEach(function (a) { var x = svc(a); if (x) rows += '<div><dt>' + esc(x.name) + '</dt><dd>' + (x.price ? '+' + rupee(x.price) : 'Free') + '</dd></div>'; });
+    el.innerHTML = '<div class="card"><small>Your package for</small><h3>' + esc(bikeTitle()) + '</h3><dl>' + rows + '</dl><div class="tot"><span>Estimate, GST included</span><b>' + rupee(total()) + '</b></div><p>' + '₹' + (C.bookingAdvance || 199) + ' locks your slot and is adjusted in your final bill. Parts are charged only after you approve.</p></div>';
+  }
+  function loadPrices() {
+    if (!C.supabaseUrl || !C.supabaseAnonKey) return;
+    fetch(C.supabaseUrl.replace(/\/$/, '') + '/rest/v1/services?select=id,kind,name,price,description&active=eq.true&order=sort.asc', { headers: { apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (rows) { if (Array.isArray(rows) && rows.length) { items = rows; if (!svc(st.service)) st.service = services()[0].id; st.addons = st.addons.filter(svc); render(); renderPrices(); } })
+      .catch(function () {});
+  }
+  function analytics() {
+    if (!C.gaId) return;
+    var s = document.createElement('script'); s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(C.gaId); document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || []; window.gtag = function () { window.dataLayer.push(arguments); };
+    window.gtag('js', new Date()); window.gtag('config', C.gaId); if (C.googleAdsSendTo) window.gtag('config', C.googleAdsSendTo.split('/')[0]);
+  }
+
+  function init() {
+    utm(); analytics();
+    var p = new URLSearchParams(location.search), area = p.get('area'), service = p.get('service');
+    if (area && AREAS.indexOf(area) > -1) st.area = area;
+    if (service && svc(service)) st.service = service;
+    if (st.step > 3) st.step = 0;
+    render(); renderPrices(); loadPrices();
+    var phoneEls = document.querySelectorAll('[data-phone]'); for (var i = 0; i < phoneEls.length; i++) if (C.phoneDisplay) phoneEls[i].textContent = C.phoneDisplay;
+    var sb = $('#sosBtn'); if (sb) sb.addEventListener('click', sos);
+    var mb = $('#mbar'); if (mb) { var onS = function () { mb.classList.toggle('show', window.scrollY > 480); }; window.addEventListener('scroll', onS, { passive: true }); onS(); }
+    if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/sw.js').catch(function () {});
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();

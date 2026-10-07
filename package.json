@@ -1,0 +1,9 @@
+{
+  "name": "mechanixpro",
+  "private": true,
+  "scripts": {
+    "dev": "npx --yes serve . -l 3000",
+    "pages": "python3 scripts/build_pages.py",
+    "check": "node --check assets/js/app.js && node --check assets/js/page.js && node --check admin/admin.js"
+  }
+}

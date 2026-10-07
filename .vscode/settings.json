@@ -1,0 +1,6 @@
+{
+  "deno.enablePaths": ["supabase/functions"],
+  "editor.formatOnSave": false,
+  "liveServer.settings.port": 3000,
+  "files.exclude": { "**/.DS_Store": true }
+}

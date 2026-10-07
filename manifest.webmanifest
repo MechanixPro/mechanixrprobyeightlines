@@ -1,0 +1,16 @@
+{
+  "name": "Mechanix Pro — Bike service at your doorstep",
+  "short_name": "Mechanix Pro",
+  "description": "Doorstep bike service and roadside help in Bengaluru.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F5F5F7",
+  "theme_color": "#14295A",
+  "lang": "en-IN",
+  "categories": ["auto & vehicles", "lifestyle"],
+  "icons": [
+    { "src": "/assets/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/assets/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

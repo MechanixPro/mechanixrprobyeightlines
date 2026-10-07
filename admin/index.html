@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Mechanix Pro · Admin</title>
+<link rel="icon" href="/assets/img/favicon-32.png">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/assets/css/style.css">
+<link rel="stylesheet" href="/admin/admin.css">
+<script src="/assets/js/config.js"></script>
+<script type="module" src="/admin/admin.js"></script>
+</head>
+<body class="admin">
+<header class="nav"><div class="wrap" style="max-width:1280px">
+  <a class="brand" href="/admin/"><img src="/assets/img/logo.svg" alt="" width="24" height="27">Admin</a>
+  <nav class="tabs" id="tabs" aria-label="Admin sections" hidden>
+    <button type="button" data-tab="dash" aria-current="page">Dashboard</button>
+    <button type="button" data-tab="leads">Bookings</button>
+    <button type="button" data-tab="prices">Prices</button>
+    <button type="button" data-tab="settings">Settings</button>
+    <button type="button" data-tab="activity">Activity</button>
+  </nav>
+  <button class="btn btn-ghost btn-sm" type="button" id="signOut" hidden>Sign out</button>
+</div></header>
+<main class="wrap" style="max-width:1280px;padding-top:24px;padding-bottom:80px" id="app">
+  <div class="card login" id="login">
+    <img src="/assets/img/logo.svg" alt="" width="48" height="53" style="margin:0 auto 12px">
+    <h1 style="font-size:28px;text-align:center">Mechanix Pro Admin</h1>
+    <form id="loginForm" novalidate>
+      <label class="label" for="em">Email</label><input id="em" type="email" autocomplete="username" required>
+      <label class="label" for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" required>
+      <p class="err" id="loginErr" role="alert"></p>
+      <button class="btn btn-primary" style="width:100%;margin-top:14px" type="submit">Sign in</button>
+    </form>
+    <p class="tiny muted" style="text-align:center;margin-top:14px">Protected by Supabase Auth and Cloudflare Access.</p>
+  </div>
+  <div id="view" hidden></div>
+</main>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden><div class="sheet-panel" id="sheetPanel"></div></div>
+</body>
+</html>
