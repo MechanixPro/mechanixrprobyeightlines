@@ -246,7 +246,7 @@
     var rows = sv ? '<div><dt>' + esc(sv.name) + '</dt><dd>' + rupee(sv.price) + '</dd></div>' : '';
     if (extra) rows += '<div><dt>Above 180cc</dt><dd>+' + rupee(extra) + '</dd></div>';
     st.addons.forEach(function (a) { var x = svc(a); if (x) rows += '<div><dt>' + esc(x.name) + '</dt><dd>' + (x.price ? '+' + rupee(x.price) : 'Free') + '</dd></div>'; });
-    el.innerHTML = '<div class="card"><small>Your package for</small><h3>' + esc(bikeTitle()) + '</h3><dl>' + rows + '</dl><div class="tot"><span>Estimate, GST included</span><b>' + rupee(total()) + '</b></div><p>' + '₹' + (C.bookingAdvance || 199) + ' locks your slot and is adjusted in your final bill. Parts are charged only after you approve.</p></div>';
+    el.innerHTML = '<div class="card"><small>Your package for</small><h3>' + esc(bikeTitle().replace(/^./, function (c) { return c.toUpperCase(); })) + '</h3><dl>' + rows + '</dl><div class="tot"><span>Estimate, GST included</span><b>' + rupee(total()) + '</b></div><p>' + '₹' + (C.bookingAdvance || 199) + ' locks your slot and is adjusted in your final bill. Parts are charged only after you approve.</p></div>';
   }
   function loadPrices() {
     if (!C.supabaseUrl || !C.supabaseAnonKey) return;
