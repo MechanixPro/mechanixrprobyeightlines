@@ -321,6 +321,8 @@
     st.ref_code = attr.ref_code; st.campaign = attr.campaign;
     var p = new URLSearchParams(location.search), area = p.get('area'), service = p.get('service');
     if (area && AREAS.indexOf(area) > -1) st.area = area;
+    var pre = L.prefillFromQuery(location.search, BIKES);
+    if (pre.brand) { if (st.brand !== pre.brand) { st.brand = pre.brand; st.model = ''; } if (pre.model) st.model = pre.model; st.step = 0; }
     if (service && svc(service)) st.service = service;
     if (st.step > 3) st.step = 0;
     applyModel();

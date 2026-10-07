@@ -23,7 +23,7 @@ FOOTER = '''<footer>
       <p><span data-phone>+91 XXXXX XXXXX</span> · <a href="mailto:support@mechanixpro.in" style="display:inline">support@mechanixpro.in</a></p>
     </div>
     <div><b>Areas</b>{area_links}</div>
-    <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a></div>
+    <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/credits/">Photo credits</a></div>
   </div>
   <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p></div>
 </footer>
@@ -157,6 +157,12 @@ for slug, (title, desc, body) in LEGAL.items():
     url = f'{SITE}/{slug}/'
     write(f'{slug}/index.html', HEAD.format(title=html.escape(title + ' | Mechanix Pro'), desc=html.escape(desc), url=url, site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='page') + f'<h1 style="font-size:40px">{title}</h1>\n' + body + foot())
     urls.append((f'/{slug}/', '0.3'))
+
+# Photo credits page, built from src/credits.json (written by scripts/fetch_images.py)
+_cr = json.load(open(os.path.join(ROOT, 'src', 'credits.json'), encoding='utf-8'))
+_rows = ''.join(f'<li><b>{html.escape(c["caption"])}</b>: "{html.escape(c["title"])}" by {html.escape(c["author"])}, <a href="{html.escape(c["license_url"])}" rel="noopener">{html.escape(c["license"])}</a>, <a href="{html.escape(c["source"])}" rel="noopener">source on Wikimedia Commons</a></li>' for c in _cr)
+write('credits/index.html', HEAD.format(title='Photo credits | Mechanix Pro', desc='Credits and licences for the bike and part photos used on the Mechanix Pro website.', url=f'{SITE}/credits/', site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='page') + '<h1 style="font-size:40px">Photo credits</h1>\n<p class="muted">The bike and part photos on this site come from the Wikimedia Commons community and are used under their free licences. They show example bikes and parts, not our customers. Photos of our own work will replace them.</p><ul>' + _rows + '</ul>' + foot())
+urls.append(('/credits/', '0.2'))
 
 MAIN = [
   ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from ₹799, certified mechanics, 15-day labour warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>', '1.0'),

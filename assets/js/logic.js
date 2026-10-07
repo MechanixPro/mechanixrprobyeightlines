@@ -80,6 +80,14 @@
     return bd <= 5 ? best : 'Other area';
   }
   function mapsLink(lat, lng) { return 'https://maps.google.com/?q=' + lat.toFixed(5) + ',' + lng.toFixed(5); }
+  function prefillFromQuery(search, bikes) {
+    var p = new URLSearchParams(search || ''), out = { brand: '', model: '' };
+    var wantB = (p.get('brand') || '').trim().toLowerCase(), wantM = (p.get('model') || '').trim().toLowerCase();
+    var brands = Object.keys(bikes || {});
+    for (var i = 0; i < brands.length; i++) if (brands[i].toLowerCase() === wantB) { out.brand = brands[i]; break; }
+    if (out.brand && wantM) { var list = bikes[out.brand]; for (var j = 0; j < list.length; j++) if (list[j][0].toLowerCase() === wantM) { out.model = list[j][0]; break; } }
+    return out;
+  }
   function captureAttribution(search, store) {
     var p = new URLSearchParams(search || ''), saved = {};
     try { saved = JSON.parse(store.getItem('mxp_attr') || '{}') || {}; } catch (e) { saved = {}; }
@@ -90,5 +98,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });

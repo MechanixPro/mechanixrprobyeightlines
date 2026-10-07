@@ -301,3 +301,17 @@ main.page .final{margin-top:32px}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.loader{display:none}}
 .locate{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}.locate svg{width:18px;height:18px}.locmsg{margin:6px 0 0;color:var(--ink-2)}
+
+/* real photos: bike row and parts grid */
+.brand-chips a{font-weight:600}
+.bike-row{list-style:none;margin:0;padding:0 20px 8px;display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;margin-inline:-20px}
+.bike-row li{flex:0 0 min(78%,300px);scroll-snap-align:start}
+@media(min-width:960px){.bike-row{display:grid;grid-template-columns:repeat(4,1fr);overflow:visible;margin-inline:0;padding:0}.bike-row li{flex:none}}
+.bike-card{display:block;color:var(--ink);text-decoration:none}
+.bike-card img{width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:var(--r-md);background:var(--soft)}
+.bike-card .nm{display:block;font-weight:700;font-size:18px;letter-spacing:-.02em;margin-top:10px}
+.bike-card .pr{display:block;color:var(--muted);font-size:14px}
+.bike-card:hover .nm{color:var(--ember-2)}
+.part-grid{list-style:none;margin:0;padding:0;display:grid;gap:28px 20px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.part-grid img{width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:var(--r-md);background:var(--soft)}
+.part-grid h3{margin:12px 0 4px;font-size:19px}.part-grid p{margin:0;color:var(--muted);font-size:15px}
