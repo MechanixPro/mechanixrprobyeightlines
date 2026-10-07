@@ -7,7 +7,7 @@ window.MXP = {
   phoneDisplay: '+91 XXXXX XXXXX', // Shown on the site
   email: 'support@mechanixpro.in',
 
-  supabaseUrl: '',                 // e.g. https://abcdefgh.supabase.co  (leave empty = WhatsApp-only mode)
+  supabaseUrl: 'https://mejdxsbpyscujpvbwvmg.supabase.co', // Supabase project URL (public). Booking saves leads only once supabaseAnonKey is also set
   supabaseAnonKey: '',             // Supabase "anon public" key (safe to expose; protected by RLS)
   turnstileSiteKey: '',            // Cloudflare Turnstile site key (bot protection on the booking form)
 

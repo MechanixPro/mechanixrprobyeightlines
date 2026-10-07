@@ -49,6 +49,7 @@ The site now works: the builder sends a pre-filled booking message to WhatsApp. 
 
 **A. Supabase (database + admin login)**
 1. Supabase → your project → SQL Editor → paste `supabase/migrations/20261006000000_init.sql` → **Run**.
+   Then paste `supabase/migrations/20261007000000_lead_details.sql` and run it too. It adds the booking details, referral and campaign columns.
 2. Authentication → Users → **Add user** (owner email + strong password). Then in SQL Editor:
    ```sql
    insert into public.admins (user_id, name, role)
