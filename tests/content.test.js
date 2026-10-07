@@ -40,3 +40,9 @@ test('the licensed images are used where intended, with real alt text', () => {
   for (const f of ['index.html', 'help/index.html', 'services/index.html']) for (const m of read(f).matchAll(/<img[^>]*photos\/[^>]*>/g)) assert.match(m[0], /alt="[^"]{12,}"/, m[0]);
 });
 test('the hero is the darker charcoal-to-navy look', () => assert.match(fs.readFileSync(path.join(root, 'assets/css/style.css'), 'utf8'), /\.hero\{[^}]*#0B1220/));
+
+test('every page says brand names are used only to show which bikes are serviced, and that Mechanix Pro is independent', () => {
+  for (const f of pages().filter((x) => x !== '404.html' && x !== 'offline.html')) {
+    assert.match(read(f), /Brand and model names belong to their owners[^<]*independent service and is not affiliated with or endorsed by them\./, f);
+  }
+});
