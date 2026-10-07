@@ -402,3 +402,11 @@ main.page .final{margin-top:32px}
 .show-dots button::after{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--line);transition:width .25s,background .25s,margin .25s}
 .show-dots button[aria-pressed="true"]::after{width:22px;margin-left:-11px;border-radius:8px;background:var(--ember)}
 @media(prefers-reduced-motion:reduce){.slide{transition:none;transform:none}}
+
+/* motion: price tick, chips, FAQ, card lift (all switched off by the reduced-motion rule above) */
+.sum b.tick{color:var(--ember-2)}
+.chip{transition:background .18s,transform .18s,box-shadow .18s}.chip:active{transform:scale(.96)}.chip[aria-pressed="true"]{animation:chipPop .28s ease}
+@keyframes chipPop{0%{transform:scale(.94)}60%{transform:scale(1.04)}100%{transform:none}}
+details>p{animation:faqOpen .3s ease}details[open]>summary{color:var(--ember-2)}
+@keyframes faqOpen{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@media(hover:hover){.bike-card{transition:transform .25s ease,box-shadow .25s ease}.bike-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(20,41,90,.14)}}

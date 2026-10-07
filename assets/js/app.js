@@ -114,11 +114,21 @@
   }
 
   /* ---------- builder render ---------- */
+  var lastStep = -1, lastTotal = null;
+  var calmMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  /* The estimate counts to its new value when a choice changes it, so the visitor sees the effect of what they picked. */
+  function tickTotal(from, to) {
+    var b = document.querySelector('.b-foot .sum b'); if (!b || from === null || from === to || calmMotion) return;
+    var small = '<small>from</small> ', t0 = null;
+    b.classList.add('tick');
+    function step(t) { if (t0 === null) t0 = t; var k = Math.min(1, (t - t0) / 380); b.innerHTML = small + rupee(Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)))); if (k < 1) requestAnimationFrame(step); else b.classList.remove('tick'); }
+    requestAnimationFrame(step);
+  }
   function render() {
     var el = $('#builder'); if (!el) return;
     var s = st.step, h = '';
     h += '<div class="b-top"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><b>Step ' + (s + 1) + ' of 4: ' + STEPS[s] + '</b><span class="saved">Saved on this phone</span></div>';
-    h += '<div class="progress" aria-hidden="true">' + STEPS.map(function (_, i) { return '<i class="' + (i <= s ? 'on' : '') + '"></i>'; }).join('') + '</div></div><div class="b-body fade">';
+    h += '<div class="progress" aria-hidden="true">' + STEPS.map(function (_, i) { return '<i class="' + (i <= s ? 'on' : '') + '"></i>'; }).join('') + '</div></div><div class="b-body' + (s !== lastStep ? ' fade' : '') + '">';
     if (s === 0) {
       h += '<span class="label" id="lb-brand">Brand</span><div class="chips" role="group" aria-labelledby="lb-brand">' + BRANDS.map(function (b) { return '<button type="button" class="chip" data-act="brand" data-v="' + esc(b) + '" aria-pressed="' + (st.brand === b) + '">' + esc(b) + '</button>'; }).join('') + '</div>';
       var list = BIKES[st.brand] || [];
@@ -190,6 +200,7 @@
     h += s < 3 ? '<button class="btn btn-primary" type="button" data-act="next">Continue</button>' : '<button class="btn btn-wa" type="button" data-act="send"' + (sending ? ' disabled' : '') + '>' + (sending ? 'Opening…' : 'Send on WhatsApp') + '</button>';
     h += '</div>';
     el.innerHTML = h;
+    var nowTotal = total(); tickTotal(lastTotal, nowTotal); lastTotal = nowTotal; lastStep = s;
     if (s === 3 && C.turnstileSiteKey) mountTurnstile();
     renderSummary();
   }

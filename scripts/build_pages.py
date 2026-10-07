@@ -205,6 +205,11 @@ for slug, (title, desc, body) in LEGAL.items():
     write(f'{slug}/index.html', HEAD.format(title=html.escape(title + ' | Mechanix Pro'), desc=html.escape(desc), url=url, site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='page') + f'<h1 style="font-size:40px">{title}</h1>\n' + body + foot())
     urls.append((f'/{slug}/', '0.3'))
 
+# Unsubscribe page: linked from marketing emails, kept out of search results and the sitemap.
+_ub = HEAD.format(title='Unsubscribe from offer emails | Mechanix Pro', desc='Stop offer emails from Mechanix Pro.', url=f'{SITE}/unsubscribe/', site=SITE, schema='', scripts='<script src="/assets/js/unsub.js" defer></script>', body='', nav=NAV, main='page')
+_ub = _ub.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
+write('unsubscribe/index.html', _ub + '<h1 style="font-size:40px">Unsubscribe from offer emails</h1>\n<p class="muted" style="font-size:18px">Tap the button to stop offer emails from Mechanix Pro. Updates about a booking you made will still reach you.</p>\n<p><button class="btn btn-primary" type="button" id="unsubGo">Stop offer emails</button></p><p role="status" id="unsubMsg" class="small"></p>' + foot())
+
 MAIN = [
   ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from {{text:basic}}, Mechanix Pro-certified mechanics, OEM-certified parts, {{days}}-day service warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n<script src="/assets/js/showcase.js" defer></script>', '1.0'),
   ('book', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.9'),
