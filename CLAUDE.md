@@ -23,7 +23,7 @@ Competitors to beat: ridenrepair.com, drivex.in/bike-services-in-bangalore, read
 Brief:
 - Apple-level polish: system font stack (SF Pro on Apple, Inter fallback), large confident type, generous whitespace,
   frosted-glass nav, 24px radii, subtle depth, smooth but restrained motion (respect prefers-reduced-motion).
-- Brand: navy #14295A, ember #F2801F, logo in `assets/img/logo.svg` (no "8-Lines Group" text anywhere).
+- Brand: navy #14295A, ember #F2801F, logo is the client's exact artwork (`assets/img/brand-src/logo-original.png`) — never redraw it. Regenerate every logo file with `python3 scripts/make_logo.py` (needs Pillow + numpy). The "An 8-Lines Group Company" line is cut out; no "8-Lines Group" text anywhere. Owner confirmed the "10,000+ services done" claim on the home page.
 - Hero with a real product moment: animated preview of the "Build your service" card (bike name → package → price).
 - Keep the IKEA effect: customer names the bike, builds the package, sees "Your package for <bike>", build is saved.
 - Add: sticky price summary, trust strip (only TRUE claims — no fake reviews, ratings or "10,000 bikes serviced"),

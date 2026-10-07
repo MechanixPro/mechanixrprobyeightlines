@@ -26,7 +26,7 @@ p{margin:0 0 1em}.muted{color:var(--muted)}.small{font-size:15px}.tiny{font-size
 .nav{position:sticky;top:0;z-index:40;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(22px);backdrop-filter:saturate(180%) blur(22px);border-bottom:1px solid var(--glass-line);padding-top:env(safe-area-inset-top,0px)}
 .nav .wrap{display:flex;align-items:center;gap:14px;height:56px}
 .brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink);font-weight:700;letter-spacing:.02em;font-size:16px;min-height:44px}
-.brand img{width:26px;height:auto}
+.brand img{width:26px;height:auto}.brand img.wm{width:auto;height:12px}
 .nav .links{display:none;gap:6px;margin-left:auto;font-size:14px}
 .nav .links a{color:var(--ink-2);text-decoration:none;padding:10px 12px;border-radius:980px}.nav .links a:hover{color:var(--ink);background:var(--soft)}
 @media(min-width:900px){.nav .links{display:flex}}
@@ -288,9 +288,9 @@ main.page .final{margin-top:32px}
 .mbar .btn{padding-inline:14px}.mbar .btn svg{width:18px;height:18px}
 
 /* loading: logo + road line on the first page of a visit; spinner on busy buttons */
-.loader{position:fixed;inset:0;z-index:100;display:grid;place-content:center;justify-items:center;gap:22px;background:linear-gradient(160deg,#18316B,#0F1F45);animation:loaderOut .45s ease 1s forwards}
-.loader img{width:84px;height:auto;animation:markIn .7s cubic-bezier(.2,.8,.2,1) both}
-.loader i{display:block;width:120px;height:4px;border-radius:4px;background:rgba(255,255,255,.18);position:relative;overflow:hidden}
+.loader{position:fixed;inset:0;z-index:100;display:grid;place-content:center;justify-items:center;gap:22px;background:#fff;animation:loaderOut .45s ease 1s forwards}
+.loader img{width:min(220px,60vw);height:auto;animation:markIn .7s cubic-bezier(.2,.8,.2,1) both}
+.loader i{display:block;width:120px;height:4px;border-radius:4px;background:rgba(20,41,90,.12);position:relative;overflow:hidden}
 .loader i::after{content:"";position:absolute;inset:0;width:100%;background:var(--ember);transform-origin:left;animation:roadFill 1s cubic-bezier(.4,0,.2,1) both}
 .seen .loader{display:none}
 @keyframes markIn{from{opacity:0;transform:translateY(12px) scale(.9)}to{opacity:1;transform:none}}
