@@ -2,6 +2,7 @@
 // Validates input, blocks bots (Turnstile) and spam (rate limits), prices on the server, saves the lead.
 import { adminDb, env, json, corsHeaders, sha256Hex, priceBooking, respectQuietHours, rupee } from '../_shared/util.ts';
 import { whatsappReady, sendTemplate, TPL } from '../_shared/whatsapp.ts';
+import { cleanLeadFields } from '../_shared/lead-fields.ts';
 
 const SLOTS = ['morning', 'afternoon', 'evening', 'asap'];
 const clean = (v: unknown, max: number) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, max);
@@ -30,6 +31,7 @@ Deno.serve(async (req) => {
   const addons = Array.isArray(b.addons) ? b.addons.map((a) => clean(a, 30)).slice(0, 10) : [];
   const slot = clean(b.preferred_slot, 12);
   const date = clean(b.preferred_date, 10);
+  const extra = cleanLeadFields(b);
   if (name.length < 2) return json(req, { error: 'Enter your name' }, 400);
   if (!/^[6-9]\d{9}$/.test(phone)) return json(req, { error: 'Enter a valid mobile number' }, 400);
   if (!SLOTS.includes(slot)) return json(req, { error: 'Pick a time slot' }, 400);
@@ -61,7 +63,7 @@ Deno.serve(async (req) => {
 
   const consent = b.consent_whatsapp === true;
   const { data: lead, error } = await db.from('leads').insert({
-    customer_id: cust.id, bike_id: bike?.id ?? null, name, phone,
+    customer_id: cust.id, bike_id: bike?.id ?? null, ...extra, name, phone,
     area: clean(b.area, 40), service_id: priced.service.id, addons: priced.addons.map((a) => a.id), est_total: priced.total,
     preferred_date: date, preferred_slot: slot, source: 'website', page: clean(b.page, 120),
     utm: typeof b.utm === 'object' && b.utm ? b.utm : {}, consent_whatsapp: consent, ip_hash: ipHash,
