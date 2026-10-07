@@ -34,10 +34,9 @@ test('every page credits the free-licence images it was given (Freepik author an
   }
 });
 test('the licensed images are used where intended, with real alt text', () => {
-  assert.match(read('index.html'), /photos\/cruiser-illustration\.webp/);
   assert.match(read('help/index.html'), /photos\/garage-illustration\.webp/);
   assert.match(read('services/index.html'), /photos\/oil-change\.webp/);
-  for (const f of ['index.html', 'help/index.html', 'services/index.html']) for (const m of read(f).matchAll(/<img[^>]*photos\/[^>]*>/g)) assert.match(m[0], /alt="[^"]{12,}"/, m[0]);
+  for (const f of ['index.html', 'help/index.html', 'services/index.html']) for (const m of read(f).matchAll(/<img[^>]*(?:photos|models|parts)\/[^>]*>/g)) assert.match(m[0], /alt="[^"]{12,}"/, m[0]);
 });
 test('the hero is the darker charcoal-to-navy look', () => assert.match(fs.readFileSync(path.join(root, 'assets/css/style.css'), 'utf8'), /\.hero\{[^}]*#0B1220/));
 
@@ -69,4 +68,26 @@ test('every model photo file is listed in the credits data and nothing else is s
   const credits = JSON.parse(fs.readFileSync(path.join(root, 'src/model-photos.json'), 'utf8'));
   const files = fs.readdirSync(dir).filter((x) => x.endsWith('.webp')).map((x) => x.replace('.webp', '')).sort();
   assert.deepEqual(files, Object.keys(credits).sort());
+});
+
+test('the home page shows real photos for the hero and the five bike types, not drawings', () => {
+  const h = read('index.html');
+  assert.match(h, /class="hero-photo"[\s\S]*models\/honda-activa-6g\.webp/);
+  for (const slug of ['tvs-jupiter', 'hero-splendor-plus', 'bajaj-pulsar-ns160', 'royal-enfield-classic-500', 'ola-electric-s1-pro']) assert.ok(h.includes('/assets/img/models/' + slug + '.webp'), slug);
+  assert.doesNotMatch(h, /hero-bike\.svg|type-(scooter|commuter|sports|cruiser|electric)\.svg/);
+});
+test('the services page shows real photos of the parts', () => {
+  const s = read('services/index.html');
+  for (const p of ['oilfilter', 'sparkplug', 'airfilter', 'brake', 'tyre']) assert.ok(s.includes('/assets/img/parts/part-' + p + '.webp'), p);
+  assert.doesNotMatch(s, /assets\/img\/part-[a-z]+\.svg/);
+});
+test('the photos used on the home page are credited with author, licence and source on the Terms page', () => {
+  const terms = read('terms/index.html');
+  const credits = JSON.parse(fs.readFileSync(path.join(root, 'src/model-photos.json'), 'utf8'));
+  for (const slug of ['honda-activa-6g', 'tvs-jupiter', 'hero-splendor-plus', 'bajaj-pulsar-ns160', 'royal-enfield-classic-500', 'ola-electric-s1-pro']) assert.ok(credits[slug] && terms.includes(credits[slug].source), slug);
+  for (const c of Object.values(JSON.parse(fs.readFileSync(path.join(root, 'src/part-photos.json'), 'utf8')))) { assert.ok(terms.includes(c.source), c.source); assert.ok(terms.includes(c.license), c.license); }
+});
+test('every part photo file is listed in the credits data', () => {
+  const files = fs.readdirSync(path.join(root, 'assets/img/parts')).filter((x) => x.endsWith('.webp')).map((x) => x.replace('.webp', '')).sort();
+  assert.deepEqual(files, Object.keys(JSON.parse(fs.readFileSync(path.join(root, 'src/part-photos.json'), 'utf8'))).sort());
 });

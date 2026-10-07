@@ -164,7 +164,11 @@ def credits_html():
     if os.path.exists(mp):
         for c in json.load(open(mp, encoding='utf-8')).values():
             rows.append(f'<li>{html.escape(c["brand"])} {html.escape(c["model"])}: "{html.escape(c["title"])}" by {html.escape(c["author"])}, <a href="{html.escape(c["license_url"])}" rel="noopener">{html.escape(c["license"])}</a>, <a href="{html.escape(c["source"])}" rel="noopener">source on Wikimedia Commons</a></li>')
-    return ('<h2 id="credits">Photo and image credits</h2><p>Bike photos shown while choosing a model come from the Wikimedia Commons community and are used under their free licences, listed below. They show example bikes, not our customers. Illustrations are designed by macrovector / Freepik. The oil change photo is from Vecteezy. Brand and model names belong to their owners.</p><ul>' + ''.join(rows) + '</ul>')
+    pp = os.path.join(ROOT, 'src', 'part-photos.json')
+    if os.path.exists(pp):
+        for c in json.load(open(pp, encoding='utf-8')).values():
+            rows.append(f'<li>{html.escape(c["caption"])}: "{html.escape(c["title"])}" by {html.escape(c["author"])}, <a href="{html.escape(c["license_url"])}" rel="noopener">{html.escape(c["license"])}</a>, <a href="{html.escape(c["source"])}" rel="noopener">source on Wikimedia Commons</a></li>')
+    return ('<h2 id="credits">Photo and image credits</h2><p>Bike and part photos come from the Wikimedia Commons community and are used under their free licences, listed below. They show example bikes, not our customers. Illustrations are designed by macrovector / Freepik. The oil change photo is from Vecteezy. Brand and model names belong to their owners.</p><ul>' + ''.join(rows) + '</ul>')
 
 LEGAL['terms'] = (LEGAL['terms'][0], LEGAL['terms'][1], LEGAL['terms'][2] + credits_html())
 for slug, (title, desc, body) in LEGAL.items():

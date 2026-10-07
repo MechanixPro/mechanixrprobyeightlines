@@ -57,7 +57,6 @@ def w(name, content):
 
 # hero bike on a road
 road = f'<rect x="0" y="318" width="640" height="5" fill="{EMBER}" opacity=".9"/><line x1="0" y1="338" x2="640" y2="338" stroke="#fff" stroke-width="3" stroke-dasharray="26 22" opacity=".5"/>'
-w('hero-bike.svg', svg(640, 350, f'<g transform="translate(20 0)">{motorcycle()}</g>{road}'))
 
 # gallery scenes (placeholders until real photos): bike illustration on tinted scene
 def scene(name, art, label, c1, c2):
@@ -98,38 +97,9 @@ def motorcycle_variant(body, tank, fairing=False, cruiser=False):
     m = motorcycle(body=body, tank=tank)
     if fairing: m = m.replace('<g>', f'<g><path d="M432 100 L506 122 L474 176 L440 150 Z" fill="{body}"/>', 1)
     return m
-card_scene('type-scooter.svg', scooter_art(), dx=-35, dy=-45, sc=1.1)
-card_scene('type-commuter.svg', motorcycle_variant('#F2F5FB', '#5E9BFF'), dx=0, dy=105, sc=1.3)
-card_scene('type-sports.svg', motorcycle_variant('#F2F5FB', '#E5412D', fairing=True), dx=0, dy=105, sc=1.3)
-card_scene('type-cruiser.svg', motorcycle_variant('#2F4A8C', '#F2801F'), dx=0, dy=105, sc=1.3, c1='#1D3A7A')
-card_scene('type-electric.svg', scooter_art(body='#3DDC84', trim='#F2F5FB', bolt=True), dx=-35, dy=-45, sc=1.1, c1='#14295A')
 
 def part_scene(name, art):
     card_scene(name, f'<g transform="translate(0 0)">{art}</g>', c1='#1D3A7A', c2='#0F1F45')
-part_scene('part-oilfilter.svg', f'''<rect x="290" y="190" width="220" height="250" rx="26" fill="{EMBER}"/>
-<rect x="290" y="190" width="220" height="40" rx="20" fill="#C9650F"/><rect x="270" y="420" width="260" height="30" rx="12" fill="{STEEL}"/>
-<rect x="318" y="268" width="164" height="92" rx="10" fill="#fff"/><path d="M400 282 q-22 30 0 52 q22 -22 0 -52z" fill="{NAVY}"/>
-<ellipse cx="400" cy="190" rx="110" ry="14" fill="#F5A25C"/>''')
-part_scene('part-sparkplug.svg', f'''<rect x="382" y="100" width="36" height="46" rx="8" fill="{STEEL}"/>
-<rect x="364" y="140" width="72" height="170" rx="14" fill="#F4EBD8"/>
-{''.join(f'<rect x="358" y="{160+i*24}" width="84" height="10" rx="5" fill="#E2D5BA"/>' for i in range(5))}
-<path d="M350 310 H450 L462 350 H338 Z" fill="{STEEL}"/>
-<rect x="372" y="350" width="56" height="100" fill="#9FB0D2"/>{''.join(f'<line x1="372" y1="{362+i*14}" x2="428" y2="{358+i*14}" stroke="#6E80A6" stroke-width="3"/>' for i in range(6))}
-<path d="M400 450 v16 h30 v-12" fill="none" stroke="{EMBER}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>''')
-part_scene('part-airfilter.svg', f'''<rect x="250" y="210" width="300" height="220" rx="22" fill="{EMBER}"/>
-<rect x="276" y="236" width="248" height="168" rx="12" fill="#F4EBD8"/>
-{''.join(f'<path d="M{296+i*24} 244 v152" stroke="#C9B68F" stroke-width="6" stroke-linecap="round"/>' for i in range(10))}
-<rect x="250" y="210" width="300" height="22" rx="11" fill="#C9650F"/>''')
-part_scene('part-brake.svg', f'''<circle cx="400" cy="320" r="150" fill="{STEEL}"/><circle cx="400" cy="320" r="116" fill="#1D3A7A"/>
-{''.join(f'<circle cx="{400+82*__import__("math").cos(i*0.5236):.0f}" cy="{320+82*__import__("math").sin(i*0.5236):.0f}" r="9" fill="{STEEL}" opacity=".9"/>' for i in range(12))}
-<circle cx="400" cy="320" r="46" fill="{STEEL}"/><circle cx="400" cy="320" r="16" fill="#1D3A7A"/>
-<path d="M505 200 q60 20 66 120 q-6 100 -66 120 l-28 -40 q28 -40 0 -160 z" fill="{EMBER}"/>
-<rect x="540" y="296" width="24" height="48" rx="6" fill="#C9650F"/>''')
-part_scene('part-tyre.svg', f'''<circle cx="400" cy="320" r="170" fill="#0A1530" stroke="#5E78B5" stroke-width="4"/>
-{''.join(f'<rect x="394" y="146" width="12" height="26" rx="4" fill="#2B406F" transform="rotate({i*15} 400 320)"/>' for i in range(24))}
-<circle cx="400" cy="320" r="104" fill="none" stroke="{STEEL}" stroke-width="10"/><circle cx="400" cy="320" r="92" fill="#16294F"/>
-{''.join(f'<line x1="400" y1="320" x2="{400+92*__import__("math").cos(i*0.7854):.0f}" y2="{320+92*__import__("math").sin(i*0.7854):.0f}" stroke="{STEEL}" stroke-width="7"/>' for i in range(8))}
-<circle cx="400" cy="320" r="22" fill="{EMBER}"/>''')
 
 # ---------- model picker tiles: one clean bike per style on a transparent background ----------
 def tile(name, art, dx, dy, sc):

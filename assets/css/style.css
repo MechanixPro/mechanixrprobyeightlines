@@ -333,3 +333,9 @@ main.page .final{margin-top:32px}
 .head-art,.side-photo{width:100%;height:auto;border-radius:var(--r-lg);display:block}
 .side-photo{max-width:520px}
 .model-tile[hidden]{display:none}.model-tile img.photo{object-fit:cover;border-radius:10px;background:var(--soft)}
+
+.hero-photo{grid-column:1/-1;margin:20px 0 0;max-width:560px}
+.hero-photo img{width:100%;height:auto;aspect-ratio:10/7;object-fit:cover;border-radius:var(--r-lg);display:block;background:rgba(255,255,255,.06)}
+.hero-photo figcaption{margin-top:8px;font-size:13px;color:#AEB9D0}
+@media(min-width:960px){.hero-photo{grid-column:1}}
+.bike-card img.photo{object-fit:cover;padding:0;background:var(--soft)}
