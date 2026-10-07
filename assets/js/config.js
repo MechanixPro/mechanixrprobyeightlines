@@ -3,8 +3,8 @@
    it is downloaded by every visitor. Secrets live in Supabase Edge Function secrets. */
 window.MXP = {
   whatsapp: '91XXXXXXXXXX',        // Business WhatsApp number: 91 + 10 digits, no spaces or +
-  callNumber: '91XXXXXXXXXX',      // Number customers call (91 + 10 digits). Leave as is to reuse the WhatsApp number
-  phoneDisplay: '+91 XXXXX XXXXX', // Shown on the site
+  callNumber: '919743031301',      // Number customers call (91 + 10 digits). Leave as is to reuse the WhatsApp number
+  phoneDisplay: '+91 97430 31301', // Shown on the site
   email: 'support@mechanixpro.in',
 
   supabaseUrl: 'https://mejdxsbpyscujpvbwvmg.supabase.co', // Supabase project URL (public). Booking saves leads only once supabaseAnonKey is also set

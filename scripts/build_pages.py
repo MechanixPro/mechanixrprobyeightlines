@@ -92,7 +92,7 @@ for slug, name, pins, locs, why in AREAS:
     ]
     schema = '<script type="application/ld+json">' + json.dumps({
       "@context": "https://schema.org", "@type": "AutoRepair", "name": f"Mechanix Pro — {name}", "url": url,
-      "image": f"{SITE}/assets/img/og.png", "telephone": "+91-XXXXXXXXXX", "priceRange": "₹199–₹1999",
+      "image": f"{SITE}/assets/img/og.png", "telephone": "+91-9743031301", "priceRange": "₹199–₹1999",
       "areaServed": {"@type": "Place", "name": f"{name}, Bengaluru"},
       "address": {"@type": "PostalAddress", "addressLocality": "Bengaluru", "addressRegion": "Karnataka", "addressCountry": "IN"}}, ensure_ascii=False) + '</script>\n<script type="application/ld+json">' + json.dumps({
       "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]}, ensure_ascii=False) + '</script>'
