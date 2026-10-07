@@ -26,7 +26,7 @@ export function mechanicStats(mechanics, leads) {
     const jobs = leads.filter((l) => l.mechanic_id === m.id && l.status !== 'lost');
     const done = jobs.filter((l) => l.status === 'completed');
     const revenue = done.reduce((s, l) => s + (l.paid_amount || 0), 0);
-    return { id: m.id, name: m.name, active: m.active !== false, rate: m.payout_rate || 0, completed: done.length, open: jobs.length - done.length, revenue, payout: Math.round((revenue * (m.payout_rate || 0)) / 100) };
+    return { id: m.id, name: m.name, active: m.active !== false, rate: m.payout_rate || 0, city: m.city || 'Bengaluru', specialties: m.specialties || '', years: m.experience_years || 0, certified: m.certified !== false, completed: done.length, open: jobs.length - done.length, revenue, payout: Math.round((revenue * (m.payout_rate || 0)) / 100) };
   });
   return rows.sort((a, b) => Number(b.active) - Number(a.active) || b.completed - a.completed || a.name.localeCompare(b.name));
 }

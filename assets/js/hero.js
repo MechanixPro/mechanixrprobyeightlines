@@ -5,6 +5,18 @@
   function $(s, r) { return (r || document).querySelector(s); }
   function rupee(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
 
+  function counters() {
+    var els = document.querySelectorAll('[data-count]');
+    function run(el) {
+      var to = parseInt(el.getAttribute('data-count'), 10), t0 = null;
+      function tick(t) { if (t0 === null) t0 = t; var k = Math.min(1, (t - t0) / 1400); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))).toLocaleString('en-IN'); if (k < 1) requestAnimationFrame(tick); }
+      requestAnimationFrame(tick);
+    }
+    if (reduce || !('IntersectionObserver' in window)) return;
+    var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { run(e.target); io.unobserve(e.target); } }); });
+    for (var i = 0; i < els.length; i++) io.observe(els[i]);
+  }
+
   function reveals() {
     var els = document.querySelectorAll('.reveal');
     if (reduce || !('IntersectionObserver' in window)) { for (var i = 0; i < els.length; i++) els[i].classList.add('in'); return; }
@@ -46,6 +58,6 @@
     document.addEventListener('visibilitychange', function () { if (document.hidden) { timers.forEach(function (t) { clearTimeout(t); cancelAnimationFrame(t); }); timers = []; } else if (!timers.length) run(); });
   }
 
-  function init() { reveals(); preview(); }
+  function init() { reveals(); counters(); preview(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

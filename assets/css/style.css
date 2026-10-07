@@ -378,3 +378,14 @@ main.page .final{margin-top:32px}
 .clock-center b{font-size:15px;line-height:1.2}.clock-center small{font-size:11px;color:var(--muted)}
 @keyframes handIn{from{transform:rotate(calc(var(--a) + 150deg));opacity:.4}to{transform:rotate(calc(var(--a) + 180deg));opacity:1}}
 @media(prefers-reduced-motion:reduce){.clock-hand{animation:none}.cal-day,.clock-num{transition:none}}
+
+/* stories + cities */
+.stories{display:grid;gap:16px;align-items:center;margin-bottom:24px}
+.story-num{display:flex;flex-direction:column}.story-num b{font-size:clamp(48px,12vw,84px);line-height:1;letter-spacing:-.03em;color:var(--navy);font-variant-numeric:tabular-nums}
+.story-num span:last-child{font-size:17px;font-weight:600;color:var(--ember-2)}
+.story-copy{margin:0;max-width:52ch;color:var(--muted);font-size:17px}
+.cities{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.cities li{border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;background:var(--bg,#fff);display:flex;flex-direction:column;gap:2px}
+.cities li b{font-size:18px}.cities li span{font-size:13px;color:var(--muted)}
+.cities li.live{border-color:var(--ember);box-shadow:inset 0 0 0 1px var(--ember)}.cities li.live span{color:#1A7F4B;font-weight:600}
+@media(min-width:720px){.stories{grid-template-columns:auto 1fr;gap:40px}}

@@ -162,10 +162,10 @@ function openCustomer(id) {
 function mechanics() {
   const rows = mechanicStats(S.mechanics, S.leads);
   return `<div class="toolbar"><p class="small muted" style="margin:0;flex:1">Assign a mechanic from a booking. Payout is the share of money collected on completed jobs, at the rate you set for each mechanic.</p>${isOwner() ? '<button class="btn btn-primary btn-sm" type="button" data-act="newMechanic">Add mechanic</button>' : ''}</div>
-  <div class="list">${rows.length ? rows.map((m) => `<button class="row mrow" data-mech="${m.id}"><span>${esc(m.name)} ${m.active ? '' : '<span class="pill off">Inactive</span>'}<br><span class="meta">Rate ${m.rate}%</span></span><span class="meta">${m.open} open</span><span class="meta">${m.completed} done · ${rupee(m.revenue)}</span><b>${rupee(m.payout)}</b></button>`).join('') : '<p class="muted" style="padding:16px">No mechanics yet. Add your first one to start assigning jobs.</p>'}</div>`;
+  <div class="list">${rows.length ? rows.map((m) => `<button class="row mrow" data-mech="${m.id}"><span>${esc(m.name)} ${m.active ? '' : '<span class="pill off">Inactive</span>'}<br><span class="meta">${esc(m.city)} · ${m.years} yr · Rate ${m.rate}%${m.certified ? ' · Certified' : ''}${m.specialties ? '<br>' + esc(m.specialties) : ''}</span></span><span class="meta">${m.open} open</span><span class="meta">${m.completed} done · ${rupee(m.revenue)}</span><b>${rupee(m.payout)}</b></button>`).join('') : '<p class="muted" style="padding:16px">No mechanics yet. Add your first one to start assigning jobs.</p>'}</div>`;
 }
 function openMechanic(id) {
-  const m = id === 'new' ? { id: 'new', name: '', phone: '', area: '', active: true, payout_rate: 0 } : S.mechanics.find((x) => x.id === id); if (!m) return;
+  const m = id === 'new' ? { id: 'new', name: '', phone: '', area: '', active: true, payout_rate: 0, city: 'Bengaluru', specialties: '', experience_years: 0, certified: true, notes: '' } : S.mechanics.find((x) => x.id === id); if (!m) return;
   const st = id === 'new' ? null : mechanicStats(S.mechanics, S.leads).find((x) => x.id === id);
   const ro = isOwner() ? '' : ' disabled';
   S.open = null; S.openCust = null; S.openMech = id;
@@ -175,6 +175,11 @@ function openMechanic(id) {
     <label class="label" for="mp">Mobile number</label><input id="mp" inputmode="numeric" maxlength="10" value="${esc(m.phone)}"${ro}>
     <label class="label" for="ma">Area they cover (optional)</label><input id="ma" maxlength="40" value="${esc(m.area || '')}"${ro}>
     <label class="label" for="mr">Payout rate, % of collected amount</label><input id="mr" inputmode="numeric" maxlength="3" value="${esc(m.payout_rate)}"${ro}>
+    <label class="label" for="mcity">City</label><input id="mcity" maxlength="40" value="${esc(m.city || 'Bengaluru')}"${ro}>
+    <label class="label" for="msp">Specialties (for example: scooters, Royal Enfield, EV)</label><input id="msp" maxlength="120" value="${esc(m.specialties || '')}"${ro}>
+    <label class="label" for="mexp">Years of experience</label><input id="mexp" inputmode="numeric" maxlength="2" value="${esc(m.experience_years || 0)}"${ro}>
+    <label class="label" for="mnotes">Private notes (not shown to customers)</label><input id="mnotes" maxlength="500" value="${esc(m.notes || '')}"${ro}>
+    <label class="check"><input type="checkbox" id="mcert"${m.certified !== false ? ' checked' : ''}${ro}><span>Mechanix Pro certified (shown to the customer in the confirmation)</span></label>
     <label class="check"><input type="checkbox" id="mc"${m.active ? ' checked' : ''}${ro}><span>Active (can be assigned new jobs)</span></label>
     ${isOwner() ? '<button class="btn btn-primary" style="margin-top:8px" type="button" data-act="saveMechanic">Save</button>' : '<p class="tiny muted">Only the owner can change mechanics.</p>'}</div></div>
   ${st ? `<div class="card" style="margin-top:12px"><h3>Jobs</h3><dl class="kv"><dt>Open</dt><dd>${st.open}</dd><dt>Completed</dt><dd>${st.completed}</dd><dt>Collected</dt><dd>${rupee(st.revenue)}</dd><dt>Payout due</dt><dd>${rupee(st.payout)}</dd></dl></div>` : ''}`;
@@ -252,7 +257,7 @@ async function openLead(id, silent) {
     <button class="btn btn-primary" style="margin-top:14px" type="button" data-act="save">Save changes</button></div>
   <div class="card" style="margin-top:12px"><h3>Payment</h3>${l.payment_link ? `<p class="small">Link sent: <a href="${esc(l.payment_link)}" target="_blank" rel="noopener">${esc(l.payment_link)}</a> (${rupee(l.amount_due)})</p>` : ''}
     <label class="label" for="pa">Amount</label><input id="pa" inputmode="numeric" value="${esc(l.amount_due || fee('advance', 199))}">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-dark btn-sm" type="button" data-act="payLink">Create & send payment link</button><button class="btn btn-ghost btn-sm" type="button" data-act="markPaid">Mark paid manually</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-primary btn-sm" type="button" data-act="confirmBooking">Confirm booking and email customer</button><button class="btn btn-dark btn-sm" type="button" data-act="payLink">Create & send payment link</button><button class="btn btn-ghost btn-sm" type="button" data-act="markPaid">Mark paid manually</button></div>
     <p class="tiny muted">Paid bookings stop all automatic reminders.</p></div>
   <div class="card" style="margin-top:12px"><h3>WhatsApp conversation</h3><div class="chat">${(msgs ?? []).map((m) => `<div class="bubble ${m.direction}">${esc(m.body)}<small>${m.direction === 'in' ? 'Customer' : m.sender === 'ai' ? 'AI assistant' : m.sender === 'staff' ? 'Team' : 'Automatic'} · ${when(m.created_at)}</small></div>`).join('') || '<p class="muted small">No messages yet. The conversation appears here once WhatsApp automation is connected.</p>'}</div></div>`;
   $('#sheet').hidden = false; if (!silent) $('#sheetPanel').scrollTop = 0;
@@ -292,7 +297,7 @@ const ACT = {
   },
   newMechanic() { openMechanic('new'); },
   async saveMechanic() {
-    const row = { name: $('#mn').value.trim(), phone: $('#mp').value.replace(/\D/g, '').slice(-10), area: $('#ma').value.trim() || null, payout_rate: parseInt($('#mr').value, 10) || 0, active: $('#mc').checked };
+    const row = { name: $('#mn').value.trim(), phone: $('#mp').value.replace(/\D/g, '').slice(-10), area: $('#ma').value.trim() || null, payout_rate: parseInt($('#mr').value, 10) || 0, active: $('#mc').checked, city: $('#mcity').value.trim() || 'Bengaluru', specialties: $('#msp').value.trim() || null, experience_years: Math.min(60, Math.max(0, parseInt($('#mexp').value, 10) || 0)), certified: $('#mcert').checked, notes: $('#mnotes').value.trim() || null };
     if (row.name.length < 2) return toast('Enter the mechanic\'s name');
     if (!/^[6-9]\d{9}$/.test(row.phone)) return toast('Enter a valid 10-digit mobile number');
     if (row.payout_rate < 0 || row.payout_rate > 100) return toast('Payout rate must be 0 to 100');
@@ -308,6 +313,14 @@ const ACT = {
     const { error } = await sb.from('leads').update(upd).eq('id', l.id);
     if (error) return toast('Could not save: ' + error.message);
     await audit('lead_updated', { ref: l.ref, ...upd, notes: undefined }); toast('Saved'); await loadLeads(); renderList(); openLead(l.id, true);
+  },
+  async confirmBooking() {
+    const l = S.leads.find((x) => x.id === S.open);
+    if (!l.mechanic_id && !confirm('No mechanic is assigned yet. Confirm without one?')) return;
+    const { data, error } = await sb.functions.invoke('confirm-booking', { body: { lead_id: l.id } });
+    if (error || !data || data.error) return toast('Could not confirm: ' + ((data && data.error) || (error && error.message) || 'try again'));
+    toast(data.emailed ? 'Confirmed. Email sent to the customer.' : data.has_email ? 'Confirmed. Email could not be sent.' : 'Confirmed. This customer gave no email.');
+    await loadLeads(); renderList(); openLead(l.id, true);
   },
   async payLink() {
     const l = S.leads.find((x) => x.id === S.open), amount = parseInt($('#pa').value, 10);
