@@ -300,3 +300,4 @@ main.page .final{margin-top:32px}
 .btn-wa[disabled]::before{content:"";width:16px;height:16px;border-radius:50%;border:2.5px solid rgba(6,59,28,.3);border-top-color:var(--wa-ink);animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.loader{display:none}}
+.locate{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}.locate svg{width:18px;height:18px}.locmsg{margin:6px 0 0;color:var(--ink-2)}

@@ -30,3 +30,11 @@ test('sourceReport counts leads by source, campaign and referrer', () => {
 test('sourceReport on no leads gives empty lists', () => {
   assert.deepEqual(sourceReport([]), { source: [], campaign: [], referrer: [] });
 });
+
+test('shows the address and a map link when the customer shared a location', () => {
+  const rows = leadDetailRows({ address: 'Flat 4B, 27th Main', lat: 12.9121, lng: 77.6446 });
+  assert.deepEqual(rows, [['Address', 'Flat 4B, 27th Main'], ['Map pin', 'https://maps.google.com/?q=12.91210,77.64460']]);
+});
+test('shows no map link without both coordinates', () => {
+  assert.deepEqual(leadDetailRows({ lat: 12.9 }), []);
+});

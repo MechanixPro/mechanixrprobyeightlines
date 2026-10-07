@@ -37,6 +37,8 @@
   var st = load();
   var errMsg = '';
   var sending = false;
+  var locating = false;
+  var locMsg = '';
 
   function $(s, r) { return (r || document).querySelector(s); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -46,7 +48,7 @@
   function services() { return items.filter(function (x) { return x.kind === 'service' && !(isEV() && ['basic', 'general', 'full'].indexOf(x.id) > -1); }); }
   function addons() { return items.filter(function (x) { return x.kind === 'addon'; }); }
   function load() {
-    var d = { contact: 'whatsapp', step: 0, brand: '', model: '', type: '', cc: 'std', nick: '', km: '', issues: [], note: '', service: 'general', picked: false, addons: [], place: 'home', area: '', date: 1, slot: '', name: '', phone: '', consent: true };
+    var d = { address: '', lat: null, lng: null, contact: 'whatsapp', step: 0, brand: '', model: '', type: '', cc: 'std', nick: '', km: '', issues: [], note: '', service: 'general', picked: false, addons: [], place: 'home', area: '', date: 1, slot: '', name: '', phone: '', consent: true };
     try { var s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s === 'object') for (var k in d) if (k in s) d[k] = s[k]; } catch (e) {}
     return d;
   }
@@ -114,7 +116,11 @@
       if (st.service === 'sos') st.place = 'road';
       h += '<span class="label" id="lb-place">Where will the work happen?</span><div class="chips" role="group" aria-labelledby="lb-place">' + PLACES.map(function (k) { return '<button type="button" class="chip" data-act="place" data-v="' + k[0] + '" aria-pressed="' + (st.place === k[0]) + '">' + k[1] + '</button>'; }).join('') + '</div>';
       h += '<p class="tiny muted" style="margin:8px 0 0">Most routine services are done at your doorstep. If a job needs workshop tools, we pick up the bike only after you share a one-time code.</p>';
+      var hasPin = L.validGeo(st.lat, st.lng);
+      h += '<div class="locate"><button type="button" class="btn btn-ghost btn-sm" data-act="locate"' + (locating ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg>' + (locating ? 'Finding you…' : hasPin ? 'Update my location' : 'Use my current location') + '</button>' + (hasPin ? '<button type="button" class="btn btn-ghost btn-sm" data-act="clearloc">Remove</button>' : '') + '</div>';
+      if (locMsg || hasPin) h += '<p class="small locmsg" role="status">' + esc(locMsg || ('Location saved. Nearest area: ' + (st.area || 'Other area') + '.')) + '</p>';
       h += '<label class="label" for="f-area">Area</label><select id="f-area" data-f="area"><option value="">Choose your area</option>' + AREAS.map(function (a) { return '<option' + (st.area === a ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + '</select>';
+      h += '<label class="label" for="f-address">Flat, street or landmark <span class="muted" style="font-weight:400">(helps the mechanic find you)</span></label><input id="f-address" data-f="address" maxlength="200" autocomplete="street-address" placeholder="e.g. Flat 4B, Green Apartments, 27th Main" value="' + esc(st.address) + '">';
       if (st.place !== 'road') {
         var ds = days();
         h += '<span class="label" id="lb-day">Preferred day</span><div class="chips" role="group" aria-labelledby="lb-day">' + ds.map(function (x, i) { return '<button type="button" class="chip" data-act="date" data-v="' + i + '" aria-pressed="' + (st.date === i) + '">' + dayLabel(x, i) + ' · ' + dayStr(x) + '</button>'; }).join('') + '</div>';
@@ -217,6 +223,8 @@
       else if (a === 'service') { st.service = v; st.picked = true; }
       else if (a === 'km') { st.km = v; }
       else if (a === 'contact') { st.contact = v; }
+      else if (a === 'locate') { locate(); return; }
+      else if (a === 'clearloc') { st.lat = null; st.lng = null; locMsg = ''; }
       else if (a === 'place') { st.place = v; }
       else if (a === 'issue') { var ix = st.issues.indexOf(v); if (ix > -1) st.issues.splice(ix, 1); else st.issues.push(v); }
       else if (a === 'date') st.date = +v;
@@ -250,6 +258,24 @@
     save();
   });
   function scrollToBuilder() { var b = $('#build'); if (b && b.getBoundingClientRect().top < 0) b.scrollIntoView({ behavior: 'smooth' }); }
+
+  /* Use the phone's location: pick the nearest service area and attach a map pin. No third-party lookup, so nothing leaves the site. */
+  function locate() {
+    if (!navigator.geolocation) { locMsg = 'Your browser cannot share location. Type your address below.'; return render(); }
+    locating = true; locMsg = ''; render();
+    navigator.geolocation.getCurrentPosition(function (p) {
+      locating = false;
+      st.lat = Math.round(p.coords.latitude * 1e5) / 1e5; st.lng = Math.round(p.coords.longitude * 1e5) / 1e5;
+      var area = L.nearestArea(st.lat, st.lng);
+      if (!area) { st.lat = null; st.lng = null; locMsg = 'That location looks wrong. Choose your area below.'; }
+      else { st.area = area; locMsg = area === 'Other area' ? 'You are outside our current areas. Send it anyway and we will tell you when we reach you.' : 'Location saved. Nearest area: ' + area + '.'; }
+      save(); render();
+    }, function (err) {
+      locating = false;
+      locMsg = err && err.code === 1 ? 'Location is blocked. Allow it in your browser settings, or type your address below.' : 'Could not get your location. Choose your area and type your address below.';
+      render();
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+  }
 
   /* SOS: share location on WhatsApp */
   function sos() {

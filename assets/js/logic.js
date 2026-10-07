@@ -47,6 +47,8 @@
     if (st.issues.length) lines.push('Problems: ' + st.issues.map(function (i) { return ISSUE_TXT[i] || i; }).join(', '));
     if (String(st.note || '').trim()) lines.push('Note: ' + st.note.trim());
     lines.push('Where: ' + placeTxt, 'Area: ' + st.area);
+    if (String(st.address || '').trim()) lines.push('Address: ' + st.address.trim());
+    if (validGeo(st.lat, st.lng)) lines.push('Map pin: ' + mapsLink(st.lat, st.lng));
     if (!road) lines.push('Preferred time: ' + whenText);
     lines.push('Contact me by: ' + (st.contact === 'call' ? 'Phone call' : 'WhatsApp chat'));
     if (st.ref_code) lines.push('Referred by: ' + st.ref_code);
@@ -60,9 +62,24 @@
       name: st.name.trim(), phone: st.phone, area: st.area, bike_brand: st.brand, bike_model: st.model.trim(), bike_nickname: st.nick.trim(),
       big_bike: st.cc === 'big', bike_type: st.type, service_id: st.service, addons: st.addons, km_band: st.km, issues: st.issues,
       note: String(st.note || '').trim(), place: st.place, contact_pref: st.contact === 'call' ? 'call' : 'whatsapp', ref_code: st.ref_code || null, campaign: st.campaign || null,
+      address: String(st.address || '').trim() || null, lat: validGeo(st.lat, st.lng) ? st.lat : null, lng: validGeo(st.lat, st.lng) ? st.lng : null,
       preferred_date: asap ? (todayIso || dateIso) : dateIso, preferred_slot: asap ? 'asap' : st.slot, consent_whatsapp: !!st.consent
     };
   }
+  var AREA_COORDS = { 'HSR Layout': [12.9116, 77.6389], 'Koramangala': [12.9352, 77.6245], 'BTM Layout': [12.9166, 77.6101], 'Bellandur': [12.9304, 77.6784], 'Sarjapur Road': [12.9100, 77.6870], 'Electronic City': [12.8452, 77.6602], 'Marathahalli': [12.9569, 77.7011], 'Bommanahalli': [12.9081, 77.6247], 'JP Nagar': [12.9063, 77.5857] };
+  function validGeo(lat, lng) { return typeof lat === 'number' && typeof lng === 'number' && isFinite(lat) && isFinite(lng) && lat >= 6 && lat <= 38 && lng >= 68 && lng <= 98; }
+  function distanceKm(lat1, lng1, lat2, lng2) {
+    var R = 6371, rad = Math.PI / 180, dLat = (lat2 - lat1) * rad, dLng = (lng2 - lng1) * rad;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * R * Math.asin(Math.sqrt(a));
+  }
+  function nearestArea(lat, lng) {
+    if (!validGeo(lat, lng)) return null;
+    var best = null, bd = Infinity;
+    Object.keys(AREA_COORDS).forEach(function (name) { var d = distanceKm(lat, lng, AREA_COORDS[name][0], AREA_COORDS[name][1]); if (d < bd) { bd = d; best = name; } });
+    return bd <= 5 ? best : 'Other area';
+  }
+  function mapsLink(lat, lng) { return 'https://maps.google.com/?q=' + lat.toFixed(5) + ',' + lng.toFixed(5); }
   function captureAttribution(search, store) {
     var p = new URLSearchParams(search || ''), saved = {};
     try { saved = JSON.parse(store.getItem('mxp_attr') || '{}') || {}; } catch (e) { saved = {}; }
@@ -73,5 +90,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });

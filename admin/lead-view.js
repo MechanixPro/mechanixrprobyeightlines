@@ -13,6 +13,8 @@ export function leadDetailRows(l) {
   if (l.note) rows.push(['Note', l.note]);
   if (l.place) rows.push(['Where', PLACE[l.place] ?? l.place]);
   if (l.contact_pref) rows.push(['Contact by', CONTACT[l.contact_pref] ?? l.contact_pref]);
+  if (l.address) rows.push(['Address', l.address]);
+  if (l.lat != null && l.lng != null) rows.push(['Map pin', 'https://maps.google.com/?q=' + Number(l.lat).toFixed(5) + ',' + Number(l.lng).toFixed(5)]);
   if (l.ref_code) rows.push(['Referred by', l.ref_code]);
   if (l.campaign) rows.push(['Campaign', l.campaign]);
   return rows;
