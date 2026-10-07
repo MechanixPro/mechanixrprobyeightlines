@@ -55,8 +55,10 @@ Deno.serve(async (req) => {
   if (!priced) return json(req, { error: 'Choose a valid service' }, 400);
 
   // 5) Customer + bike (shared with the future app)
-  const { data: cust, error: cErr } = await db.from('customers').upsert({ phone, name }, { onConflict: 'phone' }).select('id').single();
+  const { data: cust, error: cErr } = await db.from('customers').upsert({ phone, name }, { onConflict: 'phone' }).select('id, blocked').single();
   if (cErr) { console.error(cErr); return json(req, { error: 'Could not save. Please message us on WhatsApp.' }, 500); }
+  // A blocked customer's booking is not saved. They still reach WhatsApp from the website, so nobody is left stuck.
+  if (cust.blocked) return json(req, { ok: true, ref: null, total: priced.total });
   const { data: bike } = await db.from('bikes').insert({
     customer_id: cust.id, brand: clean(b.bike_brand, 30), model: clean(b.bike_model, 40), nickname: clean(b.bike_nickname, 24) || null, big_bike: b.big_bike === true,
   }).select('id').single();

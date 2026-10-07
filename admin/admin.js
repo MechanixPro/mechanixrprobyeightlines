@@ -1,6 +1,7 @@
 // Mechanix Pro admin panel — Supabase Auth + Row Level Security. All data access is checked in the database.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import { leadDetailRows, sourceReport } from './lead-view.js';
+import { customerRows, searchCustomers, mechanicStats } from './people.js';
 
 const C = window.MXP || {};
 const $ = (s, r = document) => r.querySelector(s);
@@ -16,7 +17,7 @@ if (!C.supabaseUrl || !C.supabaseAnonKey) {
   throw new Error('Supabase not configured');
 }
 const sb = createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
-const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, q: '', status: 'open', open: null, channel: null };
+const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
 
 function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
@@ -38,7 +39,7 @@ async function boot() {
   if (!me) { $('#loginErr').textContent = 'This account is not an admin. Ask the owner to add you.'; await sb.auth.signOut(); return; }
   S.me = me;
   $('#login').hidden = true; $('#view').hidden = false; $('#tabs').hidden = false; $('#signOut').hidden = false;
-  await Promise.all([loadLeads(), loadServices(), loadSettings()]);
+  await Promise.all([loadLeads(), loadServices(), loadSettings(), loadPeople()]);
   render();
   S.channel = sb.channel('mxp-admin')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async (p) => { if (p.eventType === 'INSERT') toast('New booking ' + (p.new?.ref ?? '')); await loadLeads(); if (S.tab !== 'prices' && S.tab !== 'settings') render(); if (S.open) openLead(S.open, true); })
@@ -51,6 +52,11 @@ async function loadLeads() {
   const { data, error } = await sb.from('leads').select('*').order('created_at', { ascending: false }).limit(500);
   if (error) toast('Could not load bookings'); else S.leads = data;
 }
+async function loadPeople() {
+  const [c, b, m] = await Promise.all([sb.from('customers').select('*').order('created_at', { ascending: false }).limit(1000), sb.from('bikes').select('*').limit(2000), sb.from('mechanics').select('*').order('name')]);
+  S.customers = c.data ?? []; S.bikes = b.data ?? []; S.mechanics = m.data ?? [];
+  if (c.error || b.error || m.error) toast('Could not load customers or mechanics');
+}
 async function loadServices() { const { data } = await sb.from('services').select('*').order('sort'); S.services = data ?? []; }
 async function loadSettings() { const { data } = await sb.from('settings').select('*'); S.settings = Object.fromEntries((data ?? []).map((r) => [r.key, r.value])); }
 const svcName = (id) => S.services.find((s) => s.id === id)?.name ?? id ?? '—';
@@ -59,14 +65,16 @@ const svcName = (id) => S.services.find((s) => s.id === id)?.name ?? id ?? '—'
 document.addEventListener('click', (e) => {
   const t = e.target.closest('[data-tab]'); if (t) { S.tab = t.dataset.tab; document.querySelectorAll('#tabs button').forEach((b) => b.toggleAttribute('aria-current', b === t)); document.querySelectorAll('#tabs button').forEach((b) => b === t ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')); render(); return; }
   const r = e.target.closest('[data-lead]'); if (r) { openLead(r.dataset.lead); return; }
+  const cu = e.target.closest('[data-cust]'); if (cu) { openCustomer(cu.dataset.cust); return; }
+  const me = e.target.closest('[data-mech]'); if (me) { openMechanic(me.dataset.mech); return; }
   const a = e.target.closest('[data-act]'); if (a && ACT[a.dataset.act]) ACT[a.dataset.act](a);
 });
-document.addEventListener('input', (e) => { if (e.target.id === 'q') { S.q = e.target.value; renderList(); } });
+document.addEventListener('input', (e) => { if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
 document.addEventListener('change', (e) => { if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet(); });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
-function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, prices, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'activity') loadActivity(); }
+function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, prices, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -101,6 +109,56 @@ function leads() {
   <select id="fs" aria-label="Filter by status"><option value="open"${S.status === 'open' ? ' selected' : ''}>Open (needs action)</option><option value="all"${S.status === 'all' ? ' selected' : ''}>All</option>${STATUSES.map((s) => `<option value="${s}"${S.status === s ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
   <button class="btn btn-ghost btn-sm" type="button" data-act="csv">Export CSV</button><button class="btn btn-primary btn-sm" type="button" data-act="newLead">Add booking</button></div><div class="list" id="list"></div>`;
 }
+
+/* ---------- customers ---------- */
+function customers() {
+  return `<div class="toolbar"><input id="cq" type="search" placeholder="Search name, phone or bike" value="${esc(S.cq)}" aria-label="Search customers"></div><div class="list" id="clist"></div>`;
+}
+function renderCustomers() {
+  const el = $('#clist'); if (!el) return;
+  const rows = searchCustomers(customerRows(S.customers, S.bikes, S.leads), S.cq);
+  el.innerHTML = rows.length ? rows.map((r) => `<button class="row crow" data-cust="${r.id}"><span>${esc(r.name)} ${r.blocked ? '<span class="pill lost">Blocked</span>' : ''}<br><span class="meta">+91 ${esc(r.phone)}</span></span><span class="meta">${esc(r.bikes.join(', ') || 'No bike saved')}</span><span class="meta">${r.bookings} booking${r.bookings === 1 ? '' : 's'}${r.paidTotal ? ' · ' + rupee(r.paidTotal) : ''}</span></button>`).join('') : '<p class="muted" style="padding:16px">No customers yet. They appear when someone books on the website.</p>';
+}
+function openCustomer(id) {
+  const r = customerRows(S.customers, S.bikes, S.leads).find((x) => x.id === id); if (!r) return;
+  S.openCust = id; S.open = null;
+  const mine = S.leads.filter((l) => l.customer_id === id).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${esc(r.name)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  <p>${r.blocked ? '<span class="pill lost">Blocked</span>' : ''}</p>
+  <div class="card"><dl class="kv"><dt>Phone</dt><dd><a href="tel:+91${esc(r.phone)}">+91 ${esc(r.phone)}</a></dd><dt>Bikes</dt><dd>${esc(r.bikes.join(', ') || 'None saved')}</dd><dt>Bookings</dt><dd>${r.bookings}</dd><dt>Paid so far</dt><dd>${rupee(r.paidTotal)}</dd></dl>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><a class="btn btn-wa btn-sm" href="https://wa.me/91${esc(r.phone)}" target="_blank" rel="noopener">Open WhatsApp chat</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(r.phone)}">Call</a></div></div>
+  <div class="card" style="margin-top:12px"><h3>Notes and blocking</h3>
+    <label class="label" for="cn">Notes</label><textarea id="cn" rows="3" maxlength="1000">${esc(r.notes || '')}</textarea>
+    <label class="check"><input type="checkbox" id="cb"${r.blocked ? ' checked' : ''}><span>Block this customer. New website bookings from this number are not saved. They can still message you on WhatsApp.</span></label>
+    <label class="label" for="cr">Reason (private)</label><input id="cr" maxlength="200" value="${esc(r.blockedReason || '')}">
+    <button class="btn btn-primary" style="margin-top:14px" type="button" data-act="saveCustomer">Save</button></div>
+  <div class="card" style="margin-top:12px"><h3>Booking history</h3>${mine.length ? mine.map((l) => `<button class="row" data-lead="${l.id}" style="border-radius:12px"><span class="ref">${esc(l.ref)}</span><span>${esc(svcName(l.service_id))}<br><span class="meta">${when(l.created_at)}</span></span><span class="pill ${l.status}">${LABEL[l.status]}</span></button>`).join('') : '<p class="small muted">No bookings yet.</p>'}</div>`;
+  $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
+}
+
+/* ---------- mechanics ---------- */
+function mechanics() {
+  const rows = mechanicStats(S.mechanics, S.leads);
+  return `<div class="toolbar"><p class="small muted" style="margin:0;flex:1">Assign a mechanic from a booking. Payout is the share of money collected on completed jobs, at the rate you set for each mechanic.</p>${isOwner() ? '<button class="btn btn-primary btn-sm" type="button" data-act="newMechanic">Add mechanic</button>' : ''}</div>
+  <div class="list">${rows.length ? rows.map((m) => `<button class="row mrow" data-mech="${m.id}"><span>${esc(m.name)} ${m.active ? '' : '<span class="pill off">Inactive</span>'}<br><span class="meta">Rate ${m.rate}%</span></span><span class="meta">${m.open} open</span><span class="meta">${m.completed} done · ${rupee(m.revenue)}</span><b>${rupee(m.payout)}</b></button>`).join('') : '<p class="muted" style="padding:16px">No mechanics yet. Add your first one to start assigning jobs.</p>'}</div>`;
+}
+function openMechanic(id) {
+  const m = id === 'new' ? { id: 'new', name: '', phone: '', area: '', active: true, payout_rate: 0 } : S.mechanics.find((x) => x.id === id); if (!m) return;
+  const st = id === 'new' ? null : mechanicStats(S.mechanics, S.leads).find((x) => x.id === id);
+  const ro = isOwner() ? '' : ' disabled';
+  S.open = null; S.openCust = null; S.openMech = id;
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${id === 'new' ? 'New mechanic' : esc(m.name)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  <div class="card" style="margin-top:12px"><div class="inline-form">
+    <label class="label" for="mn">Name</label><input id="mn" maxlength="60" value="${esc(m.name)}"${ro}>
+    <label class="label" for="mp">Mobile number</label><input id="mp" inputmode="numeric" maxlength="10" value="${esc(m.phone)}"${ro}>
+    <label class="label" for="ma">Area they cover (optional)</label><input id="ma" maxlength="40" value="${esc(m.area || '')}"${ro}>
+    <label class="label" for="mr">Payout rate, % of collected amount</label><input id="mr" inputmode="numeric" maxlength="3" value="${esc(m.payout_rate)}"${ro}>
+    <label class="check"><input type="checkbox" id="mc"${m.active ? ' checked' : ''}${ro}><span>Active (can be assigned new jobs)</span></label>
+    ${isOwner() ? '<button class="btn btn-primary" style="margin-top:8px" type="button" data-act="saveMechanic">Save</button>' : '<p class="tiny muted">Only the owner can change mechanics.</p>'}</div></div>
+  ${st ? `<div class="card" style="margin-top:12px"><h3>Jobs</h3><dl class="kv"><dt>Open</dt><dd>${st.open}</dd><dt>Completed</dt><dd>${st.completed}</dd><dt>Collected</dt><dd>${rupee(st.revenue)}</dd><dt>Payout due</dt><dd>${rupee(st.payout)}</dd></dl></div>` : ''}`;
+  $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
+}
+
 function filtered() {
   const q = S.q.trim().toLowerCase();
   return S.leads.filter((l) => (S.status === 'all' || (S.status === 'open' ? ['new', 'contacted', 'quoted', 'payment_sent'].includes(l.status) : l.status === S.status)) &&
@@ -121,7 +179,8 @@ async function openLead(id, silent) {
   <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">Open WhatsApp chat</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a></div></div>
   <div class="card" style="margin-top:12px"><h3>Update</h3>
     <label class="label" for="ls">Status</label><select id="ls">${STATUSES.map((s) => `<option value="${s}"${s === l.status ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
-    <label class="label" for="la">Assigned mechanic / garage</label><input id="la" value="${esc(l.assigned_to || '')}" maxlength="60">
+    <label class="label" for="lm">Mechanic</label><select id="lm"><option value="">Not assigned</option>${S.mechanics.filter((m) => m.active || m.id === l.mechanic_id).map((m) => `<option value="${m.id}"${m.id === l.mechanic_id ? ' selected' : ''}>${esc(m.name)}${m.active ? '' : ' (inactive)'}</option>`).join('')}</select>
+    <label class="label" for="la">Garage or outside partner (if not on your mechanic list)</label><input id="la" value="${esc(l.assigned_to || '')}" maxlength="60">
     <label class="label" for="ln">Notes</label><textarea id="ln" rows="3" maxlength="1000">${esc(l.notes || '')}</textarea>
     <label class="check"><input type="checkbox" id="lai"${l.ai_enabled ? ' checked' : ''}><span>AI assistant replies and automatic reminders for this booking</span></label>
     <button class="btn btn-primary" style="margin-top:14px" type="button" data-act="save">Save changes</button></div>
@@ -133,13 +192,33 @@ async function openLead(id, silent) {
   $('#sheet').hidden = false; if (!silent) $('#sheetPanel').scrollTop = 0;
   const chat = $('.chat'); if (chat) chat.scrollTop = chat.scrollHeight;
 }
-function closeSheet() { $('#sheet').hidden = true; S.open = null; }
+function closeSheet() { $('#sheet').hidden = true; S.open = null; S.openCust = null; S.openMech = null; }
 
 const ACT = {
   close: closeSheet,
+  async saveCustomer() {
+    const r = S.customers.find((x) => x.id === S.openCust); if (!r) return;
+    const upd = { notes: $('#cn').value.trim() || null, blocked: $('#cb').checked, blocked_reason: $('#cb').checked ? ($('#cr').value.trim() || null) : null };
+    const { error } = await sb.from('customers').update(upd).eq('id', r.id);
+    if (error) return toast('Could not save: ' + error.message);
+    await audit(upd.blocked && !r.blocked ? 'customer_blocked' : !upd.blocked && r.blocked ? 'customer_unblocked' : 'customer_updated', { phone_last4: r.phone.slice(-4) });
+    toast('Saved'); await loadPeople(); if (S.tab === 'customers') renderCustomers(); openCustomer(r.id);
+  },
+  newMechanic() { openMechanic('new'); },
+  async saveMechanic() {
+    const row = { name: $('#mn').value.trim(), phone: $('#mp').value.replace(/\D/g, '').slice(-10), area: $('#ma').value.trim() || null, payout_rate: parseInt($('#mr').value, 10) || 0, active: $('#mc').checked };
+    if (row.name.length < 2) return toast('Enter the mechanic\'s name');
+    if (!/^[6-9]\d{9}$/.test(row.phone)) return toast('Enter a valid 10-digit mobile number');
+    if (row.payout_rate < 0 || row.payout_rate > 100) return toast('Payout rate must be 0 to 100');
+    const q = S.openMech === 'new' ? sb.from('mechanics').insert(row) : sb.from('mechanics').update(row).eq('id', S.openMech);
+    const { error } = await q; if (error) return toast('Could not save: ' + error.message);
+    await audit(S.openMech === 'new' ? 'mechanic_added' : 'mechanic_updated', { name: row.name });
+    toast('Saved'); await loadPeople(); closeSheet(); render();
+  },
   async save() {
     const l = S.leads.find((x) => x.id === S.open);
-    const upd = { status: $('#ls').value, assigned_to: $('#la').value.trim() || null, notes: $('#ln').value.trim() || null, ai_enabled: $('#lai').checked };
+    const mid = $('#lm').value || null, mech = S.mechanics.find((m) => m.id === mid);
+    const upd = { status: $('#ls').value, mechanic_id: mid, assigned_to: $('#la').value.trim() || (mech ? mech.name : null), notes: $('#ln').value.trim() || null, ai_enabled: $('#lai').checked };
     const { error } = await sb.from('leads').update(upd).eq('id', l.id);
     if (error) return toast('Could not save: ' + error.message);
     await audit('lead_updated', { ref: l.ref, ...upd, notes: undefined }); toast('Saved'); await loadLeads(); renderList(); openLead(l.id, true);

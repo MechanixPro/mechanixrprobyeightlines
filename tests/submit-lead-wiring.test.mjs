@@ -14,3 +14,9 @@ test('submit-lead stores every validated field on the lead row', () => {
   const insertBlock = src.slice(src.indexOf("from('leads').insert("));
   for (const key of Object.keys(cleanLeadFields({}))) assert.match(insertBlock, new RegExp('\\.\\.\\.extra|\\b' + key + '\\b'), 'not stored: ' + key);
 });
+
+test('submit-lead does not save a booking for a blocked customer', () => {
+  assert.match(src, /\.select\('id, blocked'\)/);
+  assert.match(src, /if \(cust\.blocked\)/);
+  assert.ok(src.indexOf('if (cust.blocked)') < src.indexOf("from('leads').insert("), 'block check must come before the lead is saved');
+});

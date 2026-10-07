@@ -15,7 +15,6 @@
 .row .ref{font-weight:700;font-size:15px}.row .meta{font-size:13px;color:var(--muted)}
 .pill{display:inline-block;padding:3px 10px;border-radius:980px;font-size:12.5px;font-weight:600;background:var(--soft);white-space:nowrap}
 .pill.new{background:#FFE8D1;color:#9A4A00}.pill.payment_sent{background:#E3EDFF;color:#1F4FB8}.pill.paid,.pill.scheduled,.pill.completed{background:#DDF5E4;color:#14692F}.pill.lost{background:#FBE3E0;color:#A3261A}
-@media (prefers-color-scheme:dark){.pill.new{background:#4A2A0A;color:#FFB370}.pill.payment_sent{background:#132A55;color:#8DB3FF}.pill.paid,.pill.scheduled,.pill.completed{background:#0F3A1E;color:#6FE09A}.pill.lost{background:#4A1510;color:#FF9A8F}}
 .bars .b{display:grid;grid-template-columns:130px 1fr 40px;gap:10px;align-items:center;font-size:14px;margin:8px 0}
 .bars .t{height:10px;border-radius:6px;background:var(--soft);overflow:hidden}.bars .t i{display:block;height:100%;background:var(--ember)}
 .split2{display:grid;gap:16px}@media(min-width:900px){.split2{grid-template-columns:1fr 1fr}}
@@ -27,7 +26,12 @@
 .bubble{max-width:82%;padding:9px 12px;border-radius:16px;font-size:14.5px;white-space:pre-wrap;word-break:break-word}
 .bubble.in{align-self:flex-start;background:var(--card);box-shadow:var(--shadow)}
 .bubble.out{align-self:flex-end;background:#DCF8C6;color:#102A13}
-@media (prefers-color-scheme:dark){.bubble.out{background:#005C4B;color:#E9FFF6}}
 .bubble small{display:block;font-size:11px;opacity:.65;margin-top:3px}
 .ptable{width:100%;border-collapse:collapse;font-size:15px}.ptable td,.ptable th{padding:10px;border-bottom:1px solid var(--line);text-align:left}
 .ptable input{padding:8px 10px}
+.crow{grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) auto}
+@media(max-width:640px){.crow{grid-template-columns:1fr auto}.crow>:nth-child(2){display:none}}
+.mrow{grid-template-columns:minmax(0,1.4fr) repeat(3,auto)}
+@media(max-width:640px){.mrow{grid-template-columns:1fr auto}}
+.pill.off{background:var(--soft);color:var(--muted)}
+.inline-form{display:grid;gap:8px}
