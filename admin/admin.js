@@ -19,7 +19,7 @@ if (!C.supabaseUrl || !C.supabaseAnonKey) {
   throw new Error('Supabase not configured');
 }
 const sb = createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
-const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
+const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
 
 function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
@@ -60,7 +60,7 @@ async function boot() {
   if (!me) { $('#loginErr').textContent = 'This account is not an admin. Ask the owner to add you.'; await sb.auth.signOut(); return; }
   S.me = me;
   $('#login').hidden = true; $('#view').hidden = false; $('#tabs').hidden = false; $('#signOut').hidden = false;
-  await Promise.all([loadLeads(), loadServices(), loadSettings(), loadPeople()]);
+  await Promise.all([loadLeads(), loadServices(), loadSettings(), loadPeople(), loadHome()]);
   render();
   S.channel = sb.channel('mxp-admin')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async (p) => { if (p.eventType === 'INSERT') toast('New booking ' + (p.new?.ref ?? '')); await loadLeads(); if (S.tab !== 'prices' && S.tab !== 'settings') render(); if (S.open) openLead(S.open, true); })
@@ -78,6 +78,7 @@ async function loadPeople() {
   S.customers = c.data ?? []; S.bikes = b.data ?? []; S.mechanics = m.data ?? []; S.coupons = cp.data ?? [];
   if (c.error || b.error || m.error || cp.error) toast('Could not load customers or mechanics');
 }
+async function loadHome() { const { data } = await sb.from('home_images').select('*').order('position').order('created_at'); S.homeimgs = data ?? []; }
 async function loadServices() { const { data } = await sb.from('services').select('*').order('sort'); S.services = data ?? []; }
 async function loadSettings() { const { data } = await sb.from('settings').select('*'); S.settings = Object.fromEntries((data ?? []).map((r) => [r.key, r.value])); }
 const svcName = (id) => S.services.find((s) => s.id === id)?.name ?? id ?? '—';
@@ -92,11 +93,11 @@ document.addEventListener('click', (e) => {
   const a = e.target.closest('[data-act]'); if (a && ACT[a.dataset.act]) ACT[a.dataset.act](a);
 });
 document.addEventListener('input', (e) => { if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
-document.addEventListener('change', (e) => { if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
+document.addEventListener('change', (e) => { if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet(); });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
-function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, reports, prices, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, reports, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -314,6 +315,38 @@ const ACT = {
     if (error) return toast('Could not save: ' + error.message);
     await audit('lead_updated', { ref: l.ref, ...upd, notes: undefined }); toast('Saved'); await loadLeads(); renderList(); openLead(l.id, true);
   },
+  async uploadHome(input) {
+    const f = input.files && input.files[0]; if (!f) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) { input.value = ''; return toast('Use a JPG, PNG or WebP picture'); }
+    if (f.size > 2 * 1024 * 1024) { input.value = ''; return toast('That picture is over 2 MB. Make it smaller and try again.'); }
+    if (S.homeimgs.length >= 12) { input.value = ''; return toast('You can have up to 12 pictures'); }
+    const ext = f.type === 'image/png' ? 'png' : f.type === 'image/webp' ? 'webp' : 'jpg', path = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+    const up = await sb.storage.from('home').upload(path, f, { contentType: f.type, cacheControl: '31536000' });
+    if (up.error) { input.value = ''; return toast('Could not upload: ' + up.error.message); }
+    const url = sb.storage.from('home').getPublicUrl(path).data.publicUrl;
+    const { error } = await sb.from('home_images').insert({ url, caption: ($('#hc').value || '').trim() || null, position: S.homeimgs.length });
+    if (error) return toast('Could not save: ' + error.message);
+    await audit('home_image_added', { path }); toast('Added'); await loadHome(); render();
+  },
+  async homeMove(el, dir) {
+    const i = S.homeimgs.findIndex((r) => r.id === el.dataset.id), j = i + dir; if (i < 0 || j < 0 || j >= S.homeimgs.length) return;
+    const a = S.homeimgs[i], b = S.homeimgs[j];
+    const r1 = await sb.from('home_images').update({ position: j }).eq('id', a.id), r2 = await sb.from('home_images').update({ position: i }).eq('id', b.id);
+    if (r1.error || r2.error) return toast('Could not reorder'); await loadHome(); render();
+  },
+  homeUp(el) { return ACT.homeMove(el, -1); },
+  homeDown(el) { return ACT.homeMove(el, 1); },
+  async homeToggle(el) {
+    const r = S.homeimgs.find((x) => x.id === el.dataset.id); if (!r) return;
+    const { error } = await sb.from('home_images').update({ active: !r.active }).eq('id', r.id); if (error) return toast('Could not save');
+    await audit('home_image_toggled', { id: r.id, active: !r.active }); await loadHome(); render();
+  },
+  async homeDelete(el) {
+    const r = S.homeimgs.find((x) => x.id === el.dataset.id); if (!r || !confirm('Delete this picture from the home page?')) return;
+    const { error } = await sb.from('home_images').delete().eq('id', r.id); if (error) return toast('Could not delete');
+    const m = r.url.match(/\/object\/public\/home\/(.+)$/); if (m) await sb.storage.from('home').remove([decodeURIComponent(m[1])]);
+    await audit('home_image_deleted', { id: r.id }); toast('Deleted'); await loadHome(); render();
+  },
   async confirmBooking() {
     const l = S.leads.find((x) => x.id === S.open);
     if (!l.mechanic_id && !confirm('No mechanic is assigned yet. Confirm without one?')) return;
@@ -387,6 +420,13 @@ function settings() {
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="label" for="st-q1">No messages after (hour)</label><input id="st-q1" type="number" min="0" max="23" value="${q.start}"${dis}></div><div><label class="label" for="st-q2">Resume at (hour)</label><input id="st-q2" type="number" min="0" max="23" value="${q.end}"${dis}></div></div></div>
   <div class="card"><h3>What the AI tells customers</h3><label class="label" for="st-hours">Hours</label><input id="st-hours" value="${esc(bi.hours || '')}"${dis}><label class="label" for="st-areas">Areas served</label><textarea id="st-areas" rows="3"${dis}>${esc(bi.areas || '')}</textarea><label class="label" for="st-war">Warranty</label><input id="st-war" value="${esc(bi.warranty || '')}"${dis}></div></div>
   ${isOwner() ? '<button class="btn btn-primary" style="margin-top:16px" type="button" data-act="saveSettings">Save settings</button>' : '<p class="muted">Only the owner can change settings.</p>'}`;
+}
+function homeimgs() {
+  const rows = S.homeimgs;
+  return `<h1 style="font-size:34px">Home images</h1><p class="muted">These pictures shuffle on the home page. Add up to 12. JPG, PNG or WebP, under 2 MB, wide pictures look best. With none added, the built-in bike pictures show.</p>
+  <div class="card"><label class="label" for="hc">Caption (optional, shown on the picture)</label><input id="hc" maxlength="80" placeholder="For example: Doorstep service in HSR Layout">
+  <label class="label" for="hf">Choose a picture to upload</label><input id="hf" type="file" accept="image/jpeg,image/png,image/webp"${rows.length >= 12 ? ' disabled' : ''}></div>
+  <div class="list" style="margin-top:12px">${rows.length ? rows.map((r, i) => `<div class="row"><img src="${esc(r.url)}" alt="" width="96" height="54" style="object-fit:cover;border-radius:10px;background:#eee"><span>${esc(r.caption || 'No caption')}<br><span class="meta">${r.active ? 'Showing' : 'Hidden'} · position ${i + 1}</span></span><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" type="button" data-act="homeUp" data-id="${r.id}"${i === 0 ? ' disabled' : ''} aria-label="Move earlier">Up</button><button class="btn btn-ghost btn-sm" type="button" data-act="homeDown" data-id="${r.id}"${i === rows.length - 1 ? ' disabled' : ''} aria-label="Move later">Down</button><button class="btn btn-ghost btn-sm" type="button" data-act="homeToggle" data-id="${r.id}">${r.active ? 'Hide' : 'Show'}</button><button class="btn btn-ghost btn-sm" type="button" data-act="homeDelete" data-id="${r.id}">Delete</button></span></div>`).join('') : '<p class="muted" style="padding:16px">No pictures added yet. The built-in bike pictures are showing.</p>'}</div>`;
 }
 function activity() { return '<h1 style="font-size:34px">Activity</h1><p class="muted">Every admin action, newest first.</p><div class="list" id="act"><p class="muted" style="padding:16px">Loading…</p></div>'; }
 async function loadActivity() {

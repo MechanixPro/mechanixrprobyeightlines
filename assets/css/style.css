@@ -389,3 +389,16 @@ main.page .final{margin-top:32px}
 .cities li b{font-size:18px}.cities li span{font-size:13px;color:var(--muted)}
 .cities li.live{border-color:var(--ember);box-shadow:inset 0 0 0 1px var(--ember)}.cities li.live span{color:#1A7F4B;font-weight:600}
 @media(min-width:720px){.stories{grid-template-columns:auto 1fr;gap:40px}}
+
+/* home picture shuffle */
+#showcase{padding-top:8px}
+.show{position:relative;max-width:760px;margin:0 auto;aspect-ratio:16/9;border-radius:24px;overflow:hidden;background:var(--soft);border:1px solid var(--line)}
+.slide{position:absolute;inset:0;margin:0;opacity:0;transform:scale(1.03);transition:opacity .9s ease,transform 5s ease;pointer-events:none}
+.slide.on{opacity:1;transform:scale(1);pointer-events:auto}
+.slide img{width:100%;height:100%;object-fit:cover;object-position:center 60%;display:block;background:#fff}
+.slide figcaption{position:absolute;left:14px;bottom:14px;padding:6px 12px;border-radius:980px;background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:14px;font-weight:600;color:var(--ink)}
+.show-dots{display:flex;justify-content:center;gap:2px;margin-top:6px}
+.show-dots button{width:44px;height:44px;border:0;background:transparent;cursor:pointer;position:relative}
+.show-dots button::after{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--line);transition:width .25s,background .25s,margin .25s}
+.show-dots button[aria-pressed="true"]::after{width:22px;margin-left:-11px;border-radius:8px;background:var(--ember)}
+@media(prefers-reduced-motion:reduce){.slide{transition:none;transform:none}}
