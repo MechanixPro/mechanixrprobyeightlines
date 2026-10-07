@@ -85,7 +85,13 @@
     h += '<div class="progress" aria-hidden="true">' + STEPS.map(function (_, i) { return '<i class="' + (i <= s ? 'on' : '') + '"></i>'; }).join('') + '</div></div><div class="b-body fade">';
     if (s === 0) {
       h += '<span class="label" id="lb-brand">Brand</span><div class="chips" role="group" aria-labelledby="lb-brand">' + BRANDS.map(function (b) { return '<button type="button" class="chip" data-act="brand" data-v="' + esc(b) + '" aria-pressed="' + (st.brand === b) + '">' + esc(b) + '</button>'; }).join('') + '</div>';
-      h += '<label class="label" for="f-model">Model</label><input id="f-model" data-f="model" list="models" maxlength="40" placeholder="' + (st.brand && st.brand !== 'Other' ? 'Pick from the list or type your model' : 'Type your bike model') + '" value="' + esc(st.model) + '" autocomplete="off"><datalist id="models">' + (BIKES[st.brand] || []).map(function (m) { return '<option value="' + esc(m[0]) + '">'; }).join('') + '</datalist>';
+      var list = BIKES[st.brand] || [];
+      if (list.length) {
+        h += '<span class="label" id="lb-model">Choose your model</span><div class="model-grid" role="group" aria-labelledby="lb-model">' + list.map(function (m) {
+          return '<button type="button" class="model-tile" data-act="model" data-v="' + esc(m[0]) + '" aria-pressed="' + (st.model.trim().toLowerCase() === m[0].toLowerCase()) + '"><img src="' + L.tileImage(st.brand, m) + '" alt="" width="300" height="210" loading="lazy" decoding="async"><span>' + esc(m[0]) + '</span></button>';
+        }).join('') + '</div>';
+      }
+      h += '<label class="label" for="f-model">' + (list.length ? 'Not listed? Type your model' : 'Model') + '</label><input id="f-model" data-f="model" list="models" maxlength="40" placeholder="' + (st.brand && st.brand !== 'Other' ? 'Pick from the list or type your model' : 'Type your bike model') + '" value="' + esc(st.model) + '" autocomplete="off"><datalist id="models">' + (BIKES[st.brand] || []).map(function (m) { return '<option value="' + esc(m[0]) + '">'; }).join('') + '</datalist>';
       h += '<p class="tiny muted" id="modelInfo" style="margin:6px 0 0">' + esc(modelNote()) + '</p>';
       h += '<span class="label" id="lb-cc">Engine size</span><div class="seg" id="ccSeg" role="group" aria-labelledby="lb-cc">' + ccSeg() + '</div>';
       h += '<label class="label" for="f-nick">Give your bike a name <span class="muted" style="font-weight:400">(optional)</span></label><input id="f-nick" data-f="nick" maxlength="24" placeholder="e.g. Bullet Raja" value="' + esc(st.nick) + '">';
@@ -222,6 +228,7 @@
       else if (a === 'cc') st.cc = v;
       else if (a === 'service') { st.service = v; st.picked = true; }
       else if (a === 'km') { st.km = v; }
+      else if (a === 'model') { st.model = v; applyModel(); }
       else if (a === 'contact') { st.contact = v; }
       else if (a === 'locate') { locate(); return; }
       else if (a === 'clearloc') { st.lat = null; st.lng = null; locMsg = ''; }

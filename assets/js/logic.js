@@ -80,6 +80,16 @@
     return bd <= 5 ? best : 'Other area';
   }
   function mapsLink(lat, lng) { return 'https://maps.google.com/?q=' + lat.toFixed(5) + ',' + lng.toFixed(5); }
+  var CRUISER_NAMES = /Avenger|Dominar|Intruder|Thunderbird|Bullet|Classic|Meteor|Himalayan|Scram|Interceptor|Continental|Shotgun|Guerrilla|Hunter|CB350|H.ness/i;
+  var SPORTS_NAMES = /Apache|Pulsar|FZ|Gixxer|R15|MT-15|Xtreme|Raider|Hornet|Duke|^RC|CB200X|CB300F|Karizma|Xpulse|Ronin|Adventure|V-Strom/i;
+  function styleOf(brand, row) {
+    if (row[1] === 'e') return 'electric';
+    if (row[1] === 's') return 'scooter';
+    if (brand === 'Royal Enfield' || brand === 'Jawa / Yezdi' || CRUISER_NAMES.test(row[0])) return 'cruiser';
+    if (SPORTS_NAMES.test(row[0])) return 'sports';
+    return 'commuter';
+  }
+  function tileImage(brand, row) { return '/assets/img/tile-' + styleOf(brand, row) + '.svg'; }
   function prefillFromQuery(search, bikes) {
     var p = new URLSearchParams(search || ''), out = { brand: '', model: '' };
     var wantB = (p.get('brand') || '').trim().toLowerCase(), wantM = (p.get('model') || '').trim().toLowerCase();
@@ -98,5 +108,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });

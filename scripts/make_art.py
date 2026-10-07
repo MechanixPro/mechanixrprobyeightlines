@@ -131,6 +131,17 @@ part_scene('part-tyre.svg', f'''<circle cx="400" cy="320" r="170" fill="#0A1530"
 {''.join(f'<line x1="400" y1="320" x2="{400+92*__import__("math").cos(i*0.7854):.0f}" y2="{320+92*__import__("math").sin(i*0.7854):.0f}" stroke="{STEEL}" stroke-width="7"/>' for i in range(8))}
 <circle cx="400" cy="320" r="22" fill="{EMBER}"/>''')
 
+# ---------- model picker tiles: one clean bike per style on a transparent background ----------
+def tile(name, art, dx, dy, sc):
+    inner = (f'<ellipse cx="300" cy="372" rx="190" ry="14" fill="#14295A" opacity=".12"/>'
+             f'<g transform="translate({dx} {dy}) scale({sc})">{art}</g>')
+    w(name, svg(600, 420, inner))
+tile('tile-commuter.svg', motorcycle(body='#14295A', tank='#F2801F', INK='#1D3A7A'), -41, 29, 1.12)
+tile('tile-sports.svg', motorcycle_variant('#E5412D', '#14295A', fairing=True).replace('#2F4A8C', '#1D3A7A'), -41, 29, 1.12)
+tile('tile-cruiser.svg', motorcycle(body='#2F4A8C', tank='#C9650F', INK='#14295A'), -41, 29, 1.12)
+tile('tile-scooter.svg', scooter_art(body='#F2801F', trim='#C9D4EA', ink='#1D3A7A'), -77, -84, .95)
+tile('tile-electric.svg', scooter_art(body='#2BB673', trim='#C9D4EA', ink='#1D3A7A', bolt=True), -77, -84, .95)
+
 # background textures
 w('pattern-dots.svg', svg(24, 24, f'<circle cx="2" cy="2" r="1.4" fill="{NAVY}" opacity=".13"/>'))
 w('pattern-grid.svg', svg(48, 48, f'<path d="M48 0H0V48" fill="none" stroke="#fff" stroke-width="1" opacity=".07"/>'))

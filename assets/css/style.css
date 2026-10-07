@@ -317,3 +317,13 @@ main.page .final{margin-top:32px}
 .part-grid h3{margin:12px 0 4px;font-size:19px}.part-grid p{margin:0;color:var(--muted);font-size:15px}
 .bike-row li{flex:0 0 min(78%,280px)}@media(min-width:960px){.bike-row{grid-template-columns:repeat(5,1fr)}}
 .bike-card .pr{line-height:1.35}
+
+/* visual model picker */
+.model-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:560px){.model-grid{grid-template-columns:repeat(3,1fr)}}
+.model-tile{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 8px 12px;border:1.5px solid var(--line);border-radius:var(--r-md);background:var(--card);color:var(--ink);font:600 15px/1.25 var(--font);cursor:pointer;min-height:44px;text-align:center;transition:border-color .2s,box-shadow .2s}
+.model-tile img{width:100%;height:auto;aspect-ratio:10/7;object-fit:contain}
+.model-tile[aria-pressed="true"]{border-color:var(--ember);box-shadow:0 0 0 4px rgba(242,128,31,.14)}
+@media(hover:hover){.model-tile:hover{border-color:var(--ember-2)}}
+.brand{white-space:nowrap}
+@media(max-width:480px){.brand{font-size:14px;gap:7px}.brand img{width:22px}.nav .cta{padding:8px 14px;font-size:14px;white-space:nowrap}.nav .wrap{gap:8px}}
