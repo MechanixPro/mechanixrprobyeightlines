@@ -291,6 +291,8 @@
 
   function init() {
     utm(); analytics();
+    var attr = L.captureAttribution(location.search, (function () { try { return sessionStorage; } catch (e) { return { getItem: function () { return null; }, setItem: function () {} }; } })());
+    st.ref_code = attr.ref_code; st.campaign = attr.campaign;
     var p = new URLSearchParams(location.search), area = p.get('area'), service = p.get('service');
     if (area && AREAS.indexOf(area) > -1) st.area = area;
     if (service && svc(service)) st.service = service;
