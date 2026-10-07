@@ -4,6 +4,7 @@ import { leadDetailRows, sourceReport } from './lead-view.js';
 import { customerRows, searchCustomers, mechanicStats } from './people.js';
 import { couponRows } from './coupon-view.js';
 import { rangeFor, buildReport, reportCsv } from './report.js';
+import { buildInvoice } from './invoice.js';
 
 const C = window.MXP || {};
 const $ = (s, r = document) => r.querySelector(s);
@@ -94,7 +95,7 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('input', (e) => { if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
 document.addEventListener('change', (e) => { if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if ($('#inv')) $('#inv').remove(); else if (!$('#sheet').hidden) closeSheet(); } });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
 function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, reports, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
@@ -258,7 +259,7 @@ async function openLead(id, silent) {
     <button class="btn btn-primary" style="margin-top:14px" type="button" data-act="save">Save changes</button></div>
   <div class="card" style="margin-top:12px"><h3>Payment</h3>${l.payment_link ? `<p class="small">Link sent: <a href="${esc(l.payment_link)}" target="_blank" rel="noopener">${esc(l.payment_link)}</a> (${rupee(l.amount_due)})</p>` : ''}
     <label class="label" for="pa">Amount</label><input id="pa" inputmode="numeric" value="${esc(l.amount_due || fee('advance', 199))}">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-primary btn-sm" type="button" data-act="confirmBooking">Confirm booking and email customer</button><button class="btn btn-dark btn-sm" type="button" data-act="payLink">Create & send payment link</button><button class="btn btn-ghost btn-sm" type="button" data-act="markPaid">Mark paid manually</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button><button class="btn btn-primary btn-sm" type="button" data-act="confirmBooking">Confirm booking and email customer</button><button class="btn btn-dark btn-sm" type="button" data-act="payLink">Create & send payment link</button><button class="btn btn-ghost btn-sm" type="button" data-act="markPaid">Mark paid manually</button></div>
     <p class="tiny muted">Paid bookings stop all automatic reminders.</p></div>
   <div class="card" style="margin-top:12px"><h3>WhatsApp conversation</h3><div class="chat">${(msgs ?? []).map((m) => `<div class="bubble ${m.direction}">${esc(m.body)}<small>${m.direction === 'in' ? 'Customer' : m.sender === 'ai' ? 'AI assistant' : m.sender === 'staff' ? 'Team' : 'Automatic'} · ${when(m.created_at)}</small></div>`).join('') || '<p class="muted small">No messages yet. The conversation appears here once WhatsApp automation is connected.</p>'}</div></div>`;
   $('#sheet').hidden = false; if (!silent) $('#sheetPanel').scrollTop = 0;
@@ -347,6 +348,9 @@ const ACT = {
     const m = r.url.match(/\/object\/public\/home\/(.+)$/); if (m) await sb.storage.from('home').remove([decodeURIComponent(m[1])]);
     await audit('home_image_deleted', { id: r.id }); toast('Deleted'); await loadHome(); render();
   },
+  invoice() { const l = S.leads.find((x) => x.id === S.open); if (l) openInvoice(l); },
+  invPrint() { window.print(); },
+  invClose() { $('#inv')?.remove(); },
   async confirmBooking() {
     const l = S.leads.find((x) => x.id === S.open);
     if (!l.mechanic_id && !confirm('No mechanic is assigned yet. Confirm without one?')) return;
@@ -427,6 +431,42 @@ function homeimgs() {
   <div class="card"><label class="label" for="hc">Caption (optional, shown on the picture)</label><input id="hc" maxlength="80" placeholder="For example: Doorstep service in HSR Layout">
   <label class="label" for="hf">Choose a picture to upload</label><input id="hf" type="file" accept="image/jpeg,image/png,image/webp"${rows.length >= 12 ? ' disabled' : ''}></div>
   <div class="list" style="margin-top:12px">${rows.length ? rows.map((r, i) => `<div class="row"><img src="${esc(r.url)}" alt="" width="96" height="54" style="object-fit:cover;border-radius:10px;background:#eee"><span>${esc(r.caption || 'No caption')}<br><span class="meta">${r.active ? 'Showing' : 'Hidden'} · position ${i + 1}</span></span><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" type="button" data-act="homeUp" data-id="${r.id}"${i === 0 ? ' disabled' : ''} aria-label="Move earlier">Up</button><button class="btn btn-ghost btn-sm" type="button" data-act="homeDown" data-id="${r.id}"${i === rows.length - 1 ? ' disabled' : ''} aria-label="Move later">Down</button><button class="btn btn-ghost btn-sm" type="button" data-act="homeToggle" data-id="${r.id}">${r.active ? 'Hide' : 'Show'}</button><button class="btn btn-ghost btn-sm" type="button" data-act="homeDelete" data-id="${r.id}">Delete</button></span></div>`).join('') : '<p class="muted" style="padding:16px">No pictures added yet. The built-in bike pictures are showing.</p>'}</div>`;
+}
+/* ---------- invoice (with a short "generating" animation) ---------- */
+const inr = (n) => '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+let companyCache = null;
+async function loadCompany() {
+  if (companyCache) return companyCache;
+  for (const u of ['/company.json', '/src/company.json']) { try { const r = await fetch(u); if (r.ok) { companyCache = await r.json(); return companyCache; } } catch (e) {} }
+  return (companyCache = { legalName: 'NOVA VENTURES', brand: 'Mechanix Pro', addressLines: [], city: 'Bengaluru', state: 'Karnataka', pincode: '', gstin: '' });
+}
+function countUp(el, to, ms) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = inr(to); return; }
+  let t0 = null; const tick = (t) => { if (t0 === null) t0 = t; const k = Math.min(1, (t - t0) / ms); el.textContent = inr(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); }; requestAnimationFrame(tick);
+}
+async function openInvoice(lead) {
+  const co = await loadCompany(), v = buildInvoice(lead, S.services), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  $('#inv')?.remove();
+  const addr = [...(co.addressLines || []), [co.city, co.state, co.pincode].filter(Boolean).join(' ')].filter(Boolean).map(esc).join('<br>');
+  const el = document.createElement('div'); el.id = 'inv'; el.className = 'inv-wrap'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Invoice ' + v.number);
+  el.innerHTML = `<div class="inv-gen" aria-live="polite"><img src="/assets/img/logo.svg" alt="" width="56" height="58"><b>Generating invoice</b>
+    <ol><li style="--d:.1s">Collecting booking ${esc(v.ref)}</li><li style="--d:.6s">Adding services and add-ons</li><li style="--d:1.1s">Splitting GST</li></ol><i></i></div>
+  <div class="inv-paper" hidden>
+    <div class="inv-head"><div><img src="/assets/img/logo.svg" alt="" width="40" height="42"><b class="inv-co">${esc(co.legalName)}</b><span class="inv-sub">Trading as ${esc(co.brand)}<br>${addr}${co.gstin ? '<br>GSTIN ' + esc(co.gstin) : ''}</span></div>
+      <div class="inv-meta"><h2>TAX INVOICE</h2><span>${esc(v.number)}</span><span>${esc(v.dateLabel)}</span></div></div>
+    <p class="inv-to"><span>Billed to</span><b>${esc(v.customer.name)}</b> · ${esc(v.customer.phone)}</p>
+    <table class="inv-table"><thead><tr><th>Item</th><th class="num">Amount (incl. GST)</th></tr></thead><tbody>
+      ${v.lines.length ? v.lines.map((l, i) => `<tr class="inv-line" style="--i:${i}"><td>${esc(l.name)}</td><td class="num">${inr(l.amount)}</td></tr>`).join('') : '<tr><td colspan="2" class="muted">No priced items on this booking.</td></tr>'}
+      ${v.discount ? `<tr class="inv-line" style="--i:${v.lines.length}"><td>Coupon discount</td><td class="num">− ${inr(v.discount)}</td></tr>` : ''}</tbody></table>
+    <dl class="inv-tot"><dt>Taxable value</dt><dd data-to="${v.taxable}">${inr(v.taxable)}</dd><dt>CGST @ 9%</dt><dd data-to="${v.cgst}">${inr(v.cgst)}</dd><dt>SGST @ 9%</dt><dd data-to="${v.sgst}">${inr(v.sgst)}</dd>
+      <dt class="grand">Total</dt><dd class="grand" data-to="${v.total}">${inr(v.total)}</dd>${v.paid ? `<dt>Paid so far</dt><dd data-to="${v.paid}">${inr(v.paid)}</dd><dt class="grand">Balance due</dt><dd class="grand" data-to="${v.balance}">${inr(v.balance)}</dd>` : ''}</dl>
+    <div class="inv-stamp ${v.balance === 0 && v.total > 0 ? 'paid' : 'due'}" aria-hidden="true">${v.balance === 0 && v.total > 0 ? 'PAID' : 'DUE'}</div>
+    <p class="inv-foot">Prices include 18% GST. Parts are OEM certified, work is done by Mechanix Pro certified mechanics, and every service carries a 30-day warranty. Computer-generated invoice.</p>
+    <div class="inv-actions"><button class="btn btn-primary btn-sm" type="button" data-act="invPrint">Print or save as PDF</button><button class="btn btn-ghost btn-sm" type="button" data-act="invClose">Close</button></div>
+  </div>`;
+  document.body.appendChild(el);
+  const reveal = () => { const g = el.querySelector('.inv-gen'); if (g) g.remove(); const paper = el.querySelector('.inv-paper'); paper.hidden = false; paper.classList.add('in'); el.querySelectorAll('.inv-tot [data-to]').forEach((d) => countUp(d, +d.dataset.to, 900)); el.querySelector('[data-act="invPrint"]').focus(); };
+  if (reduce) reveal(); else setTimeout(reveal, 1900);
 }
 function activity() { return '<h1 style="font-size:34px">Activity</h1><p class="muted">Every admin action, newest first.</p><div class="list" id="act"><p class="muted" style="padding:16px">Loading…</p></div>'; }
 async function loadActivity() {
