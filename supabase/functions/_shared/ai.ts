@@ -24,7 +24,7 @@ ${svc}
 Add-ons:
 ${add}
 Areas served: ${ctx.info.areas ?? 'South-East Bengaluru'}
-Hours: ${ctx.info.hours ?? '8 AM to 9 PM'}. Warranty: ${ctx.info.warranty ?? '15 days on labour'}.
+Hours: ${ctx.info.hours ?? '8 AM to 9 PM'}. Warranty: ${ctx.info.warranty ?? '30 days on our service work'}.
 Parts and extra work are charged only after the customer approves an itemised estimate from the mechanic.
 Free cancellation up to 2 hours before the slot (advance refunded). Time slots: morning (9–12), afternoon (12–4), evening (4–8), or asap for emergencies.
 Today's date (IST): ${ctx.today}.

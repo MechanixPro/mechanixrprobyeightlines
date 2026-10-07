@@ -26,11 +26,13 @@ test('every image the pages reference exists on disk', () => {
 });
 test('the sitemap lists no removed page', () => assert.doesNotMatch(read('sitemap.xml'), /credits/));
 
-test('every page credits the free-licence images it was given (Freepik author and Vecteezy)', () => {
-  for (const f of pages().filter((x) => x !== '404.html' && x !== 'offline.html')) {
-    const h = read(f);
-    assert.match(h, /Designed by <a href="http:\/\/www\.freepik\.com"[^>]*>macrovector \/ Freepik<\/a>/, f);
-    assert.match(h, /<a href="https:\/\/www\.vecteezy\.com"[^>]*>Vecteezy<\/a>/, f);
+test('the Freepik author and Vecteezy credits sit in the Credits section of the Terms page, not in every footer', () => {
+  const terms = read('terms/index.html');
+  assert.match(terms, /id="credits"[\s\S]*<a href="http:\/\/www\.freepik\.com"[^>]*>Designed by macrovector \/ Freepik<\/a>/);
+  assert.match(terms, /<a href="https:\/\/www\.vecteezy\.com"[^>]*>Vecteezy<\/a>/);
+  for (const f of pages().filter((x) => x !== '404.html' && x !== 'offline.html' && x !== 'terms/index.html')) {
+    assert.doesNotMatch(read(f), /Designed by/, f);
+    assert.match(read(f), /<a href="\/terms\/#credits">Credits<\/a>/, f);
   }
 });
 test('the licensed images are used where intended, with real alt text', () => {

@@ -1,0 +1,65 @@
+{
+  "warrantyDays": 30,
+  "advance": 199,
+  "bigBike": 300,
+  "services": {
+    "basic": {
+      "name": "Basic service",
+      "price": 599,
+      "includes": [
+        "Engine oil level check",
+        "Chain clean and lube",
+        "Brake adjustment",
+        "Wash and wipe"
+      ]
+    },
+    "general": {
+      "name": "General service",
+      "price": 1299,
+      "includes": [
+        "Engine oil change (brand of your choice)",
+        "Air filter clean and spark plug check",
+        "Chain clean, lube and adjust",
+        "Brake inspection and adjustment",
+        "Battery, lights and horn check",
+        "Tyre pressure and 20-point safety check",
+        "Wash and wipe"
+      ]
+    },
+    "full": {
+      "name": "Full service",
+      "price": 1999,
+      "includes": [
+        "Everything in the General service",
+        "Throttle body clean",
+        "Brake pads check",
+        "Polish"
+      ]
+    },
+    "repair": {
+      "name": "Repair or problem check",
+      "price": 199,
+      "includes": [
+        "Inspection visit at your location",
+        "Diagnosis of the problem",
+        "Itemised quote before any work starts"
+      ]
+    },
+    "sos": {
+      "name": "Roadside emergency",
+      "price": 349,
+      "includes": [
+        "Mechanic dispatched to your location now",
+        "Puncture repair or battery help",
+        "Breakdown check and advice"
+      ]
+    }
+  },
+  "addons": {
+    "wash": 199,
+    "chain": 149,
+    "brake": 99,
+    "tyre": 49,
+    "battery": 0
+  }
+}

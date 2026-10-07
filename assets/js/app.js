@@ -5,16 +5,18 @@
   var L = window.MXP_LOGIC;
   var KEY = 'mxp_build_v1';
   var DEFAULT_ITEMS = [
-    { id: 'basic',   kind: 'service', name: 'Basic service',   price: 799,  description: 'Oil level check, chain lube, brake adjust, wash' },
-    { id: 'general', kind: 'service', name: 'General service', price: 1299, description: 'Engine oil change, filter clean, 20-point check' },
-    { id: 'full',    kind: 'service', name: 'Full service',    price: 1999, description: 'General service plus throttle body clean, brake pads check, polish' },
-    { id: 'repair',  kind: 'service', name: 'Repair or problem check', price: 199, description: 'Inspection visit; repair quoted before work starts' },
-    { id: 'sos',     kind: 'service', name: 'Roadside emergency', price: 349, description: 'Puncture, battery or breakdown; mechanic dispatched now' },
-    { id: 'wash',    kind: 'addon', name: 'Foam wash',             price: 199 },
-    { id: 'chain',   kind: 'addon', name: 'Chain clean and lube',  price: 149 },
-    { id: 'brake',   kind: 'addon', name: 'Brake tuning',          price: 99 },
-    { id: 'tyre',    kind: 'addon', name: 'Tyre and puncture check', price: 49 },
-    { id: 'battery', kind: 'addon', name: 'Battery health test',   price: 0 }
+    { id: 'basic', kind: 'service', name: 'Basic service', price: 599, description: 'Oil level check, chain lube, brake adjust, wash', includes: ['Engine oil level check', 'Chain clean and lube', 'Brake adjustment', 'Wash and wipe'] },
+    { id: 'general', kind: 'service', name: 'General service', price: 1299, description: 'Engine oil change, filter clean, 20-point check', includes: ['Engine oil change (brand of your choice)', 'Air filter clean and spark plug check', 'Chain clean, lube and adjust', 'Brake inspection and adjustment', 'Battery, lights and horn check', 'Tyre pressure and 20-point safety check', 'Wash and wipe'] },
+    { id: 'full', kind: 'service', name: 'Full service', price: 1999, description: 'General service plus throttle body clean, brake pads check, polish', includes: ['Everything in the General service', 'Throttle body clean', 'Brake pads check', 'Polish'] },
+    { id: 'repair', kind: 'service', name: 'Repair or problem check', price: 199, description: 'Inspection visit; repair quoted before work starts', includes: ['Inspection visit at your location', 'Diagnosis of the problem', 'Itemised quote before any work starts'] },
+    { id: 'sos', kind: 'service', name: 'Roadside emergency', price: 349, description: 'Puncture, battery or breakdown; mechanic dispatched now', includes: ['Mechanic dispatched to your location now', 'Puncture repair or battery help', 'Breakdown check and advice'] },
+    { id: 'wash', kind: 'addon', name: 'Foam wash', price: 199 },
+    { id: 'chain', kind: 'addon', name: 'Chain clean and lube', price: 149 },
+    { id: 'brake', kind: 'addon', name: 'Brake tuning', price: 99 },
+    { id: 'tyre', kind: 'addon', name: 'Tyre and puncture check', price: 49 },
+    { id: 'battery', kind: 'addon', name: 'Battery health test', price: 0 },
+    { id: 'advance', kind: 'fee', name: 'Booking advance', price: 199 },
+    { id: 'bigbike', kind: 'fee', name: 'Above-180cc surcharge', price: 300 }
   ];
   var ICONS = {
     basic: '<path d="M12 3s6 6.2 6 10.5a6 6 0 0 1-12 0C6 9.2 12 3 12 3z"/>',
@@ -58,7 +60,19 @@
   function dayStr(x) { return x.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }); }
   function isoDate(x) { return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); }
 
-  function total() { return L.total(st, items, C); }
+  function fee(id, d) { var x = svc(id); return x ? x.price : d; }
+  function cfg() { return { bigBikeSurcharge: fee('bigbike', 300), bookingAdvance: fee('advance', 199) }; }
+  function priceLabel(n) { return n === 0 ? 'Free' : '\u20b9' + n.toLocaleString('en-IN'); }
+  /* Prices typed on the pages are build-time defaults. Once the live prices load, every [data-price] and [data-fee] shows the live number. */
+  function applyLivePrices() {
+    document.querySelectorAll('[data-price]').forEach(function (el) { var x = svc(el.getAttribute('data-price')); if (x) el.textContent = priceLabel(x.price); });
+    document.querySelectorAll('[data-fee]').forEach(function (el) { var x = svc(el.getAttribute('data-fee')); if (x) el.textContent = priceLabel(x.price); });
+  }
+  function includedBox(x, title) {
+    var list = x && x.includes; if (!list || !list.length) return '';
+    return '<div class="included"><b>' + esc(title || 'What is included') + '</b><ul>' + list.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>';
+  }
+  function total() { return L.total(st, items, cfg()); }
   function bikeTitle() { return L.bikeTitle(st); }
   function findModel(brand, name) { return L.findModel(BIKES, brand, name); }
   function applyModel() {
@@ -73,7 +87,7 @@
   }
   function recommend() { return L.recommend(st); }
   function priceTxt(x) {
-    var p = x.price + (st.cc === 'big' && ['basic', 'general', 'full'].indexOf(x.id) > -1 ? (C.bigBikeSurcharge || 0) : 0);
+    var p = x.price + (st.cc === 'big' && ['basic', 'general', 'full'].indexOf(x.id) > -1 ? fee('bigbike', 300) : 0);
     return rupee(p);
   }
 
@@ -112,6 +126,7 @@
       services().forEach(function (x) {
         h += '<button type="button" class="opt" data-act="service" data-v="' + esc(x.id) + '" aria-pressed="' + (st.service === x.id) + '">' + icon(x.id) + '<span class="t"><b>' + esc(x.name) + (x.id === rec ? ' <i class="tag">Suggested</i>' : '') + '</b><span>' + esc(x.description || '') + '</span></span><span class="p"><small>from</small> ' + priceTxt(x) + '</span></button>';
       });
+      h += includedBox(svc(st.service), 'What is included in ' + (svc(st.service) ? svc(st.service).name : 'this service'));
       h += '<span class="label" style="margin-top:20px">Add-ons</span>';
       addons().forEach(function (a) {
         var on = st.addons.indexOf(a.id) > -1;
@@ -122,6 +137,7 @@
     }
     if (s === 3) {
       if (st.service === 'sos') st.place = 'road';
+      h += includedBox(svc(st.service), 'Your package: ' + (svc(st.service) ? svc(st.service).name : ''));
       h += '<span class="label" id="lb-place">Where will the work happen?</span><div class="chips" role="group" aria-labelledby="lb-place">' + PLACES.map(function (k) { return '<button type="button" class="chip" data-act="place" data-v="' + k[0] + '" aria-pressed="' + (st.place === k[0]) + '">' + k[1] + '</button>'; }).join('') + '</div>';
       h += '<p class="tiny muted" style="margin:8px 0 0">Most routine services are done at your doorstep. If a job needs workshop tools, we pick up the bike only after you share a one-time code.</p>';
       var hasPin = L.validGeo(st.lat, st.lng);
@@ -179,7 +195,7 @@
   function buildMessage(ref) {
     var ds = days()[st.date], slot = SLOTS.filter(function (x) { return x[0] === st.slot; })[0];
     var when = dayLabel(ds, st.date) + ', ' + dayStr(ds) + ' · ' + (slot ? slot[1] + ' (' + slot[2] + ')' : '');
-    return L.buildMessage(st, items, C, when, ref);
+    return L.buildMessage(st, items, cfg(), when, ref);
   }
   function utm() {
     try {
@@ -312,17 +328,17 @@
   }
   function renderSummary() {
     var el = $('#summary'); if (!el) return;
-    var sv = svc(st.service), extra = (st.cc === 'big' && sv && ['basic', 'general', 'full'].indexOf(sv.id) > -1) ? (C.bigBikeSurcharge || 0) : 0;
+    var sv = svc(st.service), extra = (st.cc === 'big' && sv && ['basic', 'general', 'full'].indexOf(sv.id) > -1) ? fee('bigbike', 300) : 0;
     var rows = sv ? '<div><dt>' + esc(sv.name) + '</dt><dd>' + rupee(sv.price) + '</dd></div>' : '';
     if (extra) rows += '<div><dt>Above 180cc</dt><dd>+' + rupee(extra) + '</dd></div>';
     st.addons.forEach(function (a) { var x = svc(a); if (x) rows += '<div><dt>' + esc(x.name) + '</dt><dd>' + (x.price ? '+' + rupee(x.price) : 'Free') + '</dd></div>'; });
-    el.innerHTML = '<div class="card"><small>Your package for</small><h3>' + esc(bikeTitle().replace(/^./, function (c) { return c.toUpperCase(); })) + '</h3><dl>' + rows + '</dl><div class="tot tear"><span>Starting estimate, GST included</span><b>' + rupee(total()) + '</b></div><p>' + '₹' + (C.bookingAdvance || 199) + ' booking advance locks your slot after you approve the quote, and is adjusted in your final bill. Final quote comes on WhatsApp.</p></div>';
+    el.innerHTML = '<div class="card"><small>Your package for</small><h3>' + esc(bikeTitle().replace(/^./, function (c) { return c.toUpperCase(); })) + '</h3><dl>' + rows + '</dl>' + includedBox(sv, 'Included') + '<div class="tot tear"><span>Starting estimate, GST included</span><b>' + rupee(total()) + '</b></div><p>' + '₹' + fee('advance', 199) + ' booking advance locks your slot after you approve the quote, and is adjusted in your final bill. Final quote comes on WhatsApp.</p></div>';
   }
   function loadPrices() {
     if (!C.supabaseUrl || !C.supabaseAnonKey) return;
-    fetch(C.supabaseUrl.replace(/\/$/, '') + '/rest/v1/services?select=id,kind,name,price,description&active=eq.true&order=sort.asc', { headers: { apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey } })
+    fetch(C.supabaseUrl.replace(/\/$/, '') + '/rest/v1/services?select=id,kind,name,price,description,includes&active=eq.true&order=sort.asc', { headers: { apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey } })
       .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (rows) { if (Array.isArray(rows) && rows.length) { items = rows; if (!svc(st.service)) st.service = services()[0].id; st.addons = st.addons.filter(svc); render(); renderPrices(); } })
+      .then(function (rows) { if (Array.isArray(rows) && rows.length) { items = rows; if (!svc(st.service)) st.service = services()[0].id; st.addons = st.addons.filter(svc); render(); renderPrices(); applyLivePrices(); } })
       .catch(function () {});
   }
   function analytics() {

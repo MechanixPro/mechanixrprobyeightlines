@@ -65,12 +65,14 @@ export async function getSetting<T>(db: SupabaseClient, key: string, fallback: T
 
 /** Recompute a booking estimate on the server from the database price list (never trust browser totals). */
 export async function priceBooking(db: SupabaseClient, serviceId: string, addons: string[], bigBike: boolean) {
-  const ids = [serviceId, ...addons];
+  const ids = [serviceId, ...addons, 'bigbike'];
   const { data, error } = await db.from('services').select('id,kind,name,price').in('id', ids).eq('active', true);
   if (error) throw error;
   const svc = data?.find((r) => r.id === serviceId && r.kind === 'service');
   if (!svc) return null;
-  const surcharge = bigBike && ['basic', 'general', 'full'].includes(serviceId) ? Number(await getSetting(db, 'big_bike_surcharge', 300)) : 0;
+  // The big-bike surcharge is a fee row in the same table as the prices, so one edit in the admin changes it everywhere.
+  const bigFee = data?.find((r) => r.id === 'bigbike' && r.kind === 'fee');
+  const surcharge = bigBike && ['basic', 'general', 'full'].includes(serviceId) ? Number(bigFee?.price ?? 300) : 0;
   const validAddons = (data ?? []).filter((r) => r.kind === 'addon' && addons.includes(r.id));
   const total = svc.price + surcharge + validAddons.reduce((s, r) => s + r.price, 0);
   return { service: svc, addons: validAddons, total };

@@ -16,7 +16,8 @@
     var root = $('#heroPreview'); if (!root) return;
     var name = $('#pvName'), input = $('#pvInput'), pack = $('#pvPack'), add = $('#pvAdd'), price = $('#pvPrice');
     var opts = root.querySelectorAll('.pv-opt'), bars = root.querySelectorAll('.pv-bar i');
-    var NICK = 'Bullet Raja', PRICE = { basic: 799, general: 1299, full: 1999 }, WASH = 199;
+    var NICK = 'Bullet Raja';
+    function priceOf(id) { var el = document.querySelector('[data-price="' + id + '"]'); return el ? parseInt(el.textContent.replace(/\D/g, ''), 10) || 0 : 0; }
     var timers = [], cur = 0;
     function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
     function bar(n) { for (var i = 0; i < bars.length; i++) bars[i].classList.toggle('on', i < n); }
@@ -28,15 +29,15 @@
     }
     function final() {
       name.textContent = NICK; input.classList.remove('on'); pick('general'); bar(3);
-      pack.textContent = '"' + NICK + '"'; add.textContent = 'General service + Foam wash'; cur = PRICE.general + WASH; price.textContent = rupee(cur);
+      pack.textContent = '"' + NICK + '"'; add.textContent = 'General service + Foam wash'; cur = priceOf('general') + priceOf('wash'); price.textContent = rupee(cur);
     }
     function reset() { name.textContent = ''; pick(''); bar(1); cur = 0; price.textContent = rupee(0); pack.textContent = 'Your bike'; add.textContent = 'Choose a service'; input.classList.add('on'); }
     function run() {
       reset(); var i = 0;
       (function type() {
         if (i < NICK.length) { name.textContent = NICK.slice(0, ++i); return later(type, 85); }
-        later(function () { input.classList.remove('on'); bar(2); pick('general'); pack.textContent = '"' + NICK + '"'; add.textContent = 'General service'; count(PRICE.general, 600); }, 500);
-        later(function () { bar(3); add.textContent = 'General service + Foam wash'; count(PRICE.general + WASH, 500); }, 1900);
+        later(function () { input.classList.remove('on'); bar(2); pick('general'); pack.textContent = '"' + NICK + '"'; add.textContent = 'General service'; count(priceOf('general'), 600); }, 500);
+        later(function () { bar(3); add.textContent = 'General service + Foam wash'; count(priceOf('general') + priceOf('wash'), 500); }, 1900);
         later(run, 5200);
       })();
     }

@@ -77,11 +77,14 @@ async function handleMessage(db: ReturnType<typeof adminDb>, msg: any, profileNa
   const { count } = await db.from('messages').select('id', { count: 'exact', head: true }).eq('lead_id', lead.id).eq('sender', 'ai').gte('created_at', new Date(Date.now() - 86400_000).toISOString());
   if ((count ?? 0) >= 40) return;
 
-  const [{ data: services }, { data: history }, advance, surcharge, info] = await Promise.all([
+  const [{ data: allRows }, { data: history }, info] = await Promise.all([
     db.from('services').select('id,kind,name,price,description').eq('active', true).order('sort'),
     db.from('messages').select('direction,body').eq('lead_id', lead.id).order('created_at', { ascending: false }).limit(20),
-    getSetting(db, 'booking_advance', 199), getSetting(db, 'big_bike_surcharge', 300), getSetting(db, 'business_info', {} as Record<string, string>),
+    getSetting(db, 'business_info', {} as Record<string, string>),
   ]);
+  const services = (allRows ?? []).filter((r) => r.kind !== 'fee');
+  const feeOf = (id: string, d: number) => Number((allRows ?? []).find((r) => r.id === id && r.kind === 'fee')?.price ?? d);
+  const advance = feeOf('advance', 199), surcharge = feeOf('bigbike', 300);
   const today = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
   const view = { ref: lead.ref, name: lead.name, area: lead.area, service_id: lead.service_id, addons: lead.addons, estimate: lead.est_total, preferred_date: lead.preferred_date, preferred_slot: lead.preferred_slot, status: lead.status, payment_link_sent: !!lead.payment_link };
   const ai = await aiReply(systemPrompt({ services: services ?? [], lead: view, advance: Number(advance), surcharge: Number(surcharge), info, today }), (history ?? []).reverse());

@@ -13,7 +13,4 @@ window.MXP = {
 
   gaId: '',                        // Google Analytics 4, e.g. G-ABC123
   googleAdsSendTo: '',             // Google Ads conversion, e.g. AW-1234567890/AbCdEfGh
-
-  bookingAdvance: 199,             // Advance to lock a slot (adjusted in the final bill)
-  bigBikeSurcharge: 300            // Added to service packages for bikes above 180cc
 };

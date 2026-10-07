@@ -21,9 +21,9 @@
         <div class="pv-input" id="pvInput"><span id="pvName"></span><u class="caret"></u></div>
         <span class="pv-label">Package</span>
         <div class="pv-opts">
-          <div class="pv-opt" data-id="basic"><b>Basic service</b><span>₹799</span></div>
-          <div class="pv-opt" data-id="general"><b>General service</b><span>₹1,299</span></div>
-          <div class="pv-opt" data-id="full"><b>Full service</b><span>₹1,999</span></div>
+          <div class="pv-opt" data-id="basic"><b>Basic service</b><span data-price="basic">{{text:basic}}</span></div>
+          <div class="pv-opt" data-id="general"><b>General service</b><span data-price="general">{{text:general}}</span></div>
+          <div class="pv-opt" data-id="full"><b>Full service</b><span data-price="full">{{text:full}}</span><span hidden data-price="wash">{{text:wash}}</span></div>
         </div>
         <div class="pv-pack"><small>Your package for</small><b id="pvPack">Your bike</b><span id="pvAdd">Choose a service</span></div>
         <div class="pv-total tear"><span>Estimate, GST included</span><b id="pvPrice">₹0</b></div>
@@ -36,7 +36,7 @@
   <div class="wrap"><ul>
     <li><span class="ico" style="width:auto;height:auto;background:none;margin:0"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-3-2-3 2-3-2-3 2z"/><path d="M9 9h6M9 13h4"/></svg></span>Quote first, work after your OK</li>
     <li><span class="ico" style="width:auto;height:auto;background:none;margin:0"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 7.8-8 9-4.6-1.2-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span>Parts fitted only after approval</li>
-    <li><span class="ico" style="width:auto;height:auto;background:none;margin:0"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>15-day labour warranty</li>
+    <li><span class="ico" style="width:auto;height:auto;background:none;margin:0"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>{{days}}-day service warranty</li>
     <li><span class="ico" style="width:auto;height:auto;background:none;margin:0"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>OTP-safe bike handover</li>
   </ul></div>
 </section>

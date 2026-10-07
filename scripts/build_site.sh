@@ -6,6 +6,7 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 out="$root/dist-site"
 rm -rf "$out"; mkdir -p "$out"
 cd "$root"
+python3 scripts/sync_prices.py || echo "(price sync skipped)"
 python3 scripts/build_pages.py >/dev/null
 cp index.html 404.html offline.html sw.js manifest.webmanifest robots.txt sitemap.xml _headers _redirects "$out/"
 cp -R assets "$out/assets"
