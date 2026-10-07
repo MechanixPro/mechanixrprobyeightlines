@@ -9,6 +9,9 @@ cp -R "$root/admin" "$out/admin"
 cp "$root/assets/css/style.css" "$out/assets/css/"
 cp "$root/assets/js/config.js" "$out/assets/js/"
 cp "$root/assets/img/logo.svg" "$root/assets/img/favicon-32.png" "$root/assets/img/apple-touch-icon.png" "$out/assets/img/"
+cat > "$out/index.html" <<'I'
+<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/admin/"><title>Mechanix Pro Admin</title><a href="/admin/">Open admin</a>
+I
 cat > "$out/_redirects" <<'R'
 / /admin/ 302
 R
