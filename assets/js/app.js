@@ -15,9 +15,6 @@
     { id: 'tyre',    kind: 'addon', name: 'Tyre and puncture check', price: 49 },
     { id: 'battery', kind: 'addon', name: 'Battery health test',   price: 0 }
   ];
-  var BRANDS = ['Honda', 'TVS', 'Hero', 'Bajaj', 'Royal Enfield', 'Yamaha', 'Suzuki', 'KTM', 'Ather', 'Ola', 'Other'];
-  var AREAS = ['HSR Layout', 'Koramangala', 'BTM Layout', 'Bellandur', 'Sarjapur Road', 'Electronic City', 'Marathahalli', 'Bommanahalli', 'JP Nagar', 'Other area'];
-  var SLOTS = [['morning', 'Morning', '9 AM – 12 PM'], ['afternoon', 'Afternoon', '12 – 4 PM'], ['evening', 'Evening', '4 – 8 PM']];
   var ICONS = {
     basic: '<path d="M12 3s6 6.2 6 10.5a6 6 0 0 1-12 0C6 9.2 12 3 12 3z"/>',
     general: '<path d="M14.7 6.3a4 4 0 0 0-5 5L4 17l3 3 5.7-5.7a4 4 0 0 0 5-5l-2.4 2.4-2.6-.6-.6-2.6z"/>',
@@ -26,7 +23,16 @@
     sos: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>'
   };
   function icon(id) { return '<span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24">' + (ICONS[id] || ICONS.general) + '</svg></span>'; }
-  var STEPS = ['Your bike', 'Service', 'Your package', 'When & where'];
+  var BIKES = window.MXP_BIKES || {};
+  var BRANDS = Object.keys(BIKES).length ? Object.keys(BIKES) : ['Honda', 'Hero', 'TVS', 'Bajaj', 'Royal Enfield', 'Yamaha', 'Suzuki', 'KTM', 'Other'];
+  var AREAS = ['HSR Layout', 'Koramangala', 'BTM Layout', 'Bellandur', 'Sarjapur Road', 'Electronic City', 'Marathahalli', 'Bommanahalli', 'JP Nagar', 'Other area'];
+  var SLOTS = [['morning', 'Morning', '9 AM – 12 PM'], ['afternoon', 'Afternoon', '12 – 4 PM'], ['evening', 'Evening', '4 – 8 PM']];
+  var STEPS = ['Your bike', 'What it needs', 'Your package', 'When & where'];
+  var KM = [['new', 'New bike, first service'], ['lt3', 'Under 3,000 km'], ['mid', '3,000 – 6,000 km'], ['gt6', 'Over 6,000 km'], ['unsure', 'Not sure']];
+  var KM_TXT = { 'new': 'New bike (first service)', lt3: 'Under 3,000 km since last service', mid: '3,000–6,000 km since last service', gt6: 'Over 6,000 km since last service', unsure: 'Not sure' };
+  var ISSUES = [['start', 'Hard to start'], ['pickup', 'Low pickup or mileage'], ['brake', 'Brakes weak or noisy'], ['chain', 'Chain noise or loose chain'], ['clutch', 'Clutch hard or slipping'], ['gear', 'Gear shifting problem'], ['battery', 'Battery or self-start'], ['tyre', 'Puncture or worn tyre'], ['leak', 'Oil leak'], ['heat', 'Engine heating'], ['elec', 'Lights, horn or wiring'], ['susp', 'Suspension noise'], ['rain', 'Pre-monsoon check']];
+  var ISSUES_EV = [['range', 'Range dropped or charging problem'], ['brake', 'Brakes weak or noisy'], ['tyre', 'Puncture or worn tyre'], ['elec', 'Lights, horn or wiring'], ['susp', 'Suspension noise'], ['sw', 'Display or app problem'], ['rain', 'Pre-monsoon check']];
+  var PLACES = [['home', 'At my home or office'], ['road', 'I am stuck on the road'], ['unsure', 'Not sure, expert will advise']];
   var items = DEFAULT_ITEMS.slice();
   var st = load();
   var errMsg = '';
@@ -36,10 +42,11 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function rupee(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
   function svc(id) { for (var i = 0; i < items.length; i++) if (items[i].id === id) return items[i]; return null; }
-  function services() { return items.filter(function (x) { return x.kind === 'service'; }); }
+  function isEV() { return st.type === 'e'; }
+  function services() { return items.filter(function (x) { return x.kind === 'service' && !(isEV() && ['basic', 'general', 'full'].indexOf(x.id) > -1); }); }
   function addons() { return items.filter(function (x) { return x.kind === 'addon'; }); }
   function load() {
-    var d = { step: 0, brand: '', model: '', cc: 'std', nick: '', service: 'general', addons: [], area: '', date: 1, slot: '', name: '', phone: '', consent: true };
+    var d = { step: 0, brand: '', model: '', type: '', cc: 'std', nick: '', km: '', issues: [], note: '', service: 'general', picked: false, addons: [], place: 'home', area: '', date: 1, slot: '', name: '', phone: '', consent: true };
     try { var s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s === 'object') for (var k in d) if (k in s) d[k] = s[k]; } catch (e) {}
     return d;
   }
@@ -60,57 +67,97 @@
     var b = (st.brand && st.brand !== 'Other' ? st.brand + ' ' : '') + (st.model || 'your bike');
     return st.nick ? '"' + st.nick + '" (' + b.trim() + ')' : b.trim();
   }
+  function findModel(brand, name) {
+    var list = BIKES[brand] || [], n = String(name || '').trim().toLowerCase();
+    if (!n) return null;
+    for (var i = 0; i < list.length; i++) if (list[i][0].toLowerCase() === n) return list[i];
+    return null;
+  }
+  function applyModel() {
+    var m = findModel(st.brand, st.model);
+    if (m) { st.type = m[1]; st.cc = m[2] ? 'big' : 'std'; } else st.type = '';
+    if (isEV() && !svc(st.service) || (isEV() && ['basic', 'general', 'full'].indexOf(st.service) > -1)) { st.service = 'repair'; }
+  }
+  function modelNote() {
+    var m = findModel(st.brand, st.model);
+    if (!m) return st.model.trim().length > 1 ? 'Not in our list. No problem, our expert will confirm the details.' : '';
+    return (m[1] === 's' ? 'Scooter' : m[1] === 'e' ? 'Electric scooter' : 'Motorcycle') + (m[2] && m[1] !== 'e' ? ', above 180cc' : m[1] === 'e' ? '' : ', up to 180cc');
+  }
+  function recommend() {
+    if (isEV()) return 'repair';
+    var r = { 'new': 'basic', lt3: 'basic', mid: 'general', gt6: 'full', unsure: 'general', '': 'general' }[st.km] || 'general';
+    if (st.issues.length && r === 'basic') r = 'general';
+    if (st.issues.length >= 4 && r === 'general') r = 'full';
+    if (!st.km && st.issues.length) r = 'repair';
+    return r;
+  }
+  function priceTxt(x) {
+    var p = x.price + (st.cc === 'big' && ['basic', 'general', 'full'].indexOf(x.id) > -1 ? (C.bigBikeSurcharge || 0) : 0);
+    return rupee(p);
+  }
 
   /* ---------- builder render ---------- */
   function render() {
     var el = $('#builder'); if (!el) return;
     var s = st.step, h = '';
-    h += '<div class="b-top"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><b>Step ' + (s + 1) + ' of 4 · ' + STEPS[s] + '</b><span class="saved">Saved on this phone</span></div>';
+    h += '<div class="b-top"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><b>Step ' + (s + 1) + ' of 4: ' + STEPS[s] + '</b><span class="saved">Saved on this phone</span></div>';
     h += '<div class="progress" aria-hidden="true">' + STEPS.map(function (_, i) { return '<i class="' + (i <= s ? 'on' : '') + '"></i>'; }).join('') + '</div></div><div class="b-body fade">';
     if (s === 0) {
       h += '<span class="label" id="lb-brand">Brand</span><div class="chips" role="group" aria-labelledby="lb-brand">' + BRANDS.map(function (b) { return '<button type="button" class="chip" data-act="brand" data-v="' + esc(b) + '" aria-pressed="' + (st.brand === b) + '">' + esc(b) + '</button>'; }).join('') + '</div>';
-      h += '<label class="label" for="f-model">Model</label><input id="f-model" data-f="model" maxlength="40" placeholder="e.g. Activa 6G, Classic 350" value="' + esc(st.model) + '" autocomplete="off">';
-      h += '<span class="label" id="lb-cc">Engine size</span><div class="seg" role="group" aria-labelledby="lb-cc"><button type="button" data-act="cc" data-v="std" aria-pressed="' + (st.cc === 'std') + '">Up to 180cc</button><button type="button" data-act="cc" data-v="big" aria-pressed="' + (st.cc === 'big') + '">Above 180cc</button></div>';
+      h += '<label class="label" for="f-model">Model</label><input id="f-model" data-f="model" list="models" maxlength="40" placeholder="' + (st.brand && st.brand !== 'Other' ? 'Pick from the list or type your model' : 'Type your bike model') + '" value="' + esc(st.model) + '" autocomplete="off"><datalist id="models">' + (BIKES[st.brand] || []).map(function (m) { return '<option value="' + esc(m[0]) + '">'; }).join('') + '</datalist>';
+      h += '<p class="tiny muted" id="modelInfo" style="margin:6px 0 0">' + esc(modelNote()) + '</p>';
+      h += '<span class="label" id="lb-cc">Engine size</span><div class="seg" id="ccSeg" role="group" aria-labelledby="lb-cc">' + ccSeg() + '</div>';
       h += '<label class="label" for="f-nick">Give your bike a name <span class="muted" style="font-weight:400">(optional)</span></label><input id="f-nick" data-f="nick" maxlength="24" placeholder="e.g. Bullet Raja" value="' + esc(st.nick) + '">';
-      h += '<p class="tiny muted" style="margin-top:6px">We use it on your service card and reminders.</p>';
+      h += '<p class="tiny muted" style="margin-top:6px">We use it on your quote and service reminders.</p>';
     }
     if (s === 1) {
-      services().forEach(function (x) {
-        var p = x.price + (st.cc === 'big' && ['basic', 'general', 'full'].indexOf(x.id) > -1 ? (C.bigBikeSurcharge || 0) : 0);
-        h += '<button type="button" class="opt" data-act="service" data-v="' + esc(x.id) + '" aria-pressed="' + (st.service === x.id) + '">' + icon(x.id) + '<span class="t"><b>' + esc(x.name) + '</b><span>' + esc(x.description || '') + '</span></span><span class="p">' + rupee(p) + '</span></button>';
-      });
+      if (isEV()) h += '<p class="note"><b>Electric bike.</b> No oil or spark plug work. Our expert checks brakes, tyres, suspension, wiring and battery health, and quotes anything else on WhatsApp.</p>';
+      h += '<span class="label" id="lb-km">' + (isEV() ? 'Last service' : 'Kilometres since your last service') + '</span><div class="chips" role="group" aria-labelledby="lb-km">' + KM.map(function (k) { return '<button type="button" class="chip" data-act="km" data-v="' + k[0] + '" aria-pressed="' + (st.km === k[0]) + '">' + k[1] + '</button>'; }).join('') + '</div>';
+      h += '<span class="label" id="lb-iss">Anything wrong? <span class="muted" style="font-weight:400">(pick all that apply)</span></span><div class="chips" role="group" aria-labelledby="lb-iss">' + (isEV() ? ISSUES_EV : ISSUES).map(function (k) { return '<button type="button" class="chip" data-act="issue" data-v="' + k[0] + '" aria-pressed="' + (st.issues.indexOf(k[0]) > -1) + '">' + k[1] + '</button>'; }).join('') + '</div>';
+      h += '<label class="label" for="f-note">Tell us more <span class="muted" style="font-weight:400">(optional)</span></label><textarea id="f-note" data-f="note" rows="3" maxlength="300" placeholder="e.g. Makes a rattling sound at low speed">' + esc(st.note) + '</textarea>';
+      h += '<p class="tiny muted" style="margin-top:6px">Not sure what it needs? Skip this. Our expert will ask you on WhatsApp.</p>';
     }
     if (s === 2) {
-      h += '<p class="small muted" style="margin:0 0 6px">Add what ' + esc(st.nick || 'your bike') + ' needs.</p>';
+      var rec = recommend();
+      h += '<p class="small muted" style="margin:0 0 10px">Our suggestion for ' + esc(st.nick || 'your bike') + ' is marked. Change it any time. Your exact quote comes on WhatsApp after our expert checks the details.</p>';
+      services().forEach(function (x) {
+        h += '<button type="button" class="opt" data-act="service" data-v="' + esc(x.id) + '" aria-pressed="' + (st.service === x.id) + '">' + icon(x.id) + '<span class="t"><b>' + esc(x.name) + (x.id === rec ? ' <i class="tag">Suggested</i>' : '') + '</b><span>' + esc(x.description || '') + '</span></span><span class="p"><small>from</small> ' + priceTxt(x) + '</span></button>';
+      });
+      h += '<span class="label" style="margin-top:20px">Add-ons</span>';
       addons().forEach(function (a) {
         var on = st.addons.indexOf(a.id) > -1;
         h += '<label class="toggle-row"><span class="t">' + esc(a.name) + '</span><span class="p">' + (a.price ? '+' + rupee(a.price) : 'Free') + '</span><span class="switch"><input type="checkbox" role="switch" data-act="addon" data-v="' + esc(a.id) + '"' + (on ? ' checked' : '') + ' aria-label="' + esc(a.name) + '"><i></i></span></label>';
       });
-      var sv = svc(st.service);
-      h += '<div class="package"><div class="nm">Your package for ' + esc(bikeTitle()) + '</div><b>' + esc(sv ? sv.name : '') + '</b><ul>' + st.addons.map(function (a) { var x = svc(a); return x ? '<li>' + esc(x.name) + '</li>' : ''; }).join('') + '</ul></div>';
+      var sv = svc(st.service), isl = st.issues.map(issueName).filter(Boolean);
+      h += '<div class="package"><div class="nm">Your package for ' + esc(bikeTitle()) + '</div><b>' + esc(sv ? sv.name : '') + '</b><ul>' + st.addons.map(function (a) { var x = svc(a); return x ? '<li>' + esc(x.name) + '</li>' : ''; }).join('') + isl.map(function (t) { return '<li>Check: ' + esc(t) + '</li>'; }).join('') + '</ul></div>';
     }
     if (s === 3) {
-      if (st.service === 'sos') h += '<p class="small" style="margin:0"><b>Emergency:</b> we dispatch the nearest mechanic as soon as you send this.</p>';
+      if (st.service === 'sos') st.place = 'road';
+      h += '<span class="label" id="lb-place">Where will the work happen?</span><div class="chips" role="group" aria-labelledby="lb-place">' + PLACES.map(function (k) { return '<button type="button" class="chip" data-act="place" data-v="' + k[0] + '" aria-pressed="' + (st.place === k[0]) + '">' + k[1] + '</button>'; }).join('') + '</div>';
+      h += '<p class="tiny muted" style="margin:8px 0 0">Most routine services are done at your doorstep. If a job needs workshop tools, we pick up the bike only after you share a one-time code.</p>';
       h += '<label class="label" for="f-area">Area</label><select id="f-area" data-f="area"><option value="">Choose your area</option>' + AREAS.map(function (a) { return '<option' + (st.area === a ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + '</select>';
-      if (st.service !== 'sos') {
+      if (st.place !== 'road') {
         var ds = days();
-        h += '<span class="label" id="lb-day">Day</span><div class="chips" role="group" aria-labelledby="lb-day">' + ds.map(function (x, i) { return '<button type="button" class="chip" data-act="date" data-v="' + i + '" aria-pressed="' + (st.date === i) + '">' + dayLabel(x, i) + ' · ' + dayStr(x) + '</button>'; }).join('') + '</div>';
-        h += '<span class="label" id="lb-slot">Time</span><div class="chips" role="group" aria-labelledby="lb-slot">' + SLOTS.map(function (x) { return '<button type="button" class="chip" data-act="slot" data-v="' + x[0] + '" aria-pressed="' + (st.slot === x[0]) + '">' + x[1] + ' <span class="tiny">' + x[2] + '</span></button>'; }).join('') + '</div>';
-      }
+        h += '<span class="label" id="lb-day">Preferred day</span><div class="chips" role="group" aria-labelledby="lb-day">' + ds.map(function (x, i) { return '<button type="button" class="chip" data-act="date" data-v="' + i + '" aria-pressed="' + (st.date === i) + '">' + dayLabel(x, i) + ' · ' + dayStr(x) + '</button>'; }).join('') + '</div>';
+        h += '<span class="label" id="lb-slot">Preferred time</span><div class="chips" role="group" aria-labelledby="lb-slot">' + SLOTS.map(function (x) { return '<button type="button" class="chip" data-act="slot" data-v="' + x[0] + '" aria-pressed="' + (st.slot === x[0]) + '">' + x[1] + ' <span class="tiny">' + x[2] + '</span></button>'; }).join('') + '</div>';
+      } else h += '<p class="small" style="margin:14px 0 0"><b>Stuck on the road?</b> Send this and share your live location on WhatsApp. We send the nearest mechanic.</p>';
       h += '<label class="label" for="f-name">Your name</label><input id="f-name" data-f="name" autocomplete="name" maxlength="60" value="' + esc(st.name) + '">';
       h += '<label class="label" for="f-phone">Mobile number</label><input id="f-phone" data-f="phone" inputmode="numeric" autocomplete="tel-national" maxlength="10" placeholder="10-digit number" value="' + esc(st.phone) + '">';
-      h += '<label class="check"><input type="checkbox" data-act="consent"' + (st.consent ? ' checked' : '') + '><span>Send me booking updates and reminders on WhatsApp. Reply STOP anytime. See our <a href="/privacy/">Privacy Policy</a>.</span></label>';
+      h += '<label class="check"><input type="checkbox" data-act="consent"' + (st.consent ? ' checked' : '') + '><span>Send me my quote, booking updates and reminders on WhatsApp. Reply STOP anytime. See our <a href="/privacy/">Privacy Policy</a>.</span></label>';
+      h += '<p class="note" style="margin-top:14px"><b>What happens next:</b> you send this on WhatsApp. Our expert calls or messages you, checks what is needed, and sends your quote. Work starts only after you approve it.</p>';
       if (C.turnstileSiteKey) h += '<div id="ts" style="margin-top:12px"></div>';
     }
     if (errMsg) h += '<p class="err" role="alert">' + esc(errMsg) + '</p>';
-    h += '</div><div class="b-foot"><div class="sum"><b>' + rupee(total()) + '</b><span>Estimate, GST included · ₹' + (C.bookingAdvance || 199) + ' locks your slot</span></div>';
+    h += '</div><div class="b-foot"><div class="sum"><b><small>from</small> ' + rupee(total()) + '</b><span>Starting estimate, GST included. Final quote on WhatsApp.</span></div>';
     if (s > 0) h += '<button class="btn btn-ghost btn-sm" type="button" data-act="back">Back</button>';
-    h += s < 3 ? '<button class="btn btn-primary" type="button" data-act="next">Continue</button>' : '<button class="btn btn-wa" type="button" data-act="send"' + (sending ? ' disabled' : '') + '>' + (sending ? 'Sending…' : 'Book on WhatsApp') + '</button>';
+    h += s < 3 ? '<button class="btn btn-primary" type="button" data-act="next">Continue</button>' : '<button class="btn btn-wa" type="button" data-act="send"' + (sending ? ' disabled' : '') + '>' + (sending ? 'Opening…' : 'Send on WhatsApp') + '</button>';
     h += '</div>';
     el.innerHTML = h;
     if (s === 3 && C.turnstileSiteKey) mountTurnstile();
     renderSummary();
   }
+  function ccSeg() { return '<button type="button" data-act="cc" data-v="std" aria-pressed="' + (st.cc === 'std') + '">Up to 180cc</button><button type="button" data-act="cc" data-v="big" aria-pressed="' + (st.cc === 'big') + '">Above 180cc</button>'; }
+  function issueName(id) { var l = ISSUES.concat(ISSUES_EV); for (var i = 0; i < l.length; i++) if (l[i][0] === id) return l[i][1]; return ''; }
 
   function validate() {
     errMsg = '';
@@ -118,10 +165,10 @@
       if (!st.brand) errMsg = 'Choose your bike brand.';
       else if (st.model.trim().length < 2) errMsg = 'Enter your bike model.';
     }
-    if (st.step === 1 && !svc(st.service)) errMsg = 'Choose a service.';
+    if (st.step === 2 && !svc(st.service)) errMsg = 'Choose a service.';
     if (st.step === 3) {
       if (!st.area) errMsg = 'Choose your area.';
-      else if (st.service !== 'sos' && !st.slot) errMsg = 'Pick a time.';
+      else if (st.place !== 'road' && !st.slot) errMsg = 'Pick a preferred time.';
       else if (st.name.trim().length < 2) errMsg = 'Enter your name.';
       else if (!/^[6-9]\d{9}$/.test(st.phone)) errMsg = 'Enter a valid 10-digit mobile number.';
     }
@@ -133,13 +180,17 @@
   function waLink(text) { return 'https://wa.me/' + waNumber() + '?text=' + encodeURIComponent(text); }
   function buildMessage(ref) {
     var sv = svc(st.service), ds = days()[st.date], slot = SLOTS.filter(function (x) { return x[0] === st.slot; })[0];
-    var lines = ['Hi Mechanix Pro, I would like to book:', '',
+    var road = st.place === 'road' || st.service === 'sos';
+    var placeTxt = { home: 'At my home or office', road: 'Stuck on the road (I will share my live location)', unsure: 'Not sure, please advise' }[road ? 'road' : st.place];
+    var lines = ['Hi Mechanix Pro, I would like a quote for my bike:', '',
       'Bike: ' + bikeTitle() + (st.cc === 'big' ? ' (above 180cc)' : ''),
-      'Service: ' + (sv ? sv.name : '') + (st.addons.length ? ' + ' + st.addons.map(function (a) { var x = svc(a); return x ? x.name : ''; }).join(', ') : ''),
-      'Area: ' + st.area,
-      'When: ' + (st.service === 'sos' ? 'Now (emergency)' : dayLabel(ds, st.date) + ', ' + dayStr(ds) + ' · ' + (slot ? slot[1] + ' (' + slot[2] + ')' : '')),
-      'Estimate: ' + rupee(total()),
-      'Name: ' + st.name.trim()];
+      'Service: ' + (sv ? sv.name : '') + (st.addons.length ? ' + ' + st.addons.map(function (a) { var x = svc(a); return x ? x.name : ''; }).join(', ') : '')];
+    if (st.km) lines.push('Last service: ' + KM_TXT[st.km]);
+    if (st.issues.length) lines.push('Problems: ' + st.issues.map(issueName).join(', '));
+    if (st.note.trim()) lines.push('Note: ' + st.note.trim());
+    lines.push('Where: ' + placeTxt, 'Area: ' + st.area);
+    if (!road) lines.push('Preferred time: ' + dayLabel(ds, st.date) + ', ' + dayStr(ds) + ' · ' + (slot ? slot[1] + ' (' + slot[2] + ')' : ''));
+    lines.push('Starting estimate: ' + rupee(total()), 'Name: ' + st.name.trim(), '', 'Please send me the quote. I will approve before work starts.');
     if (ref) lines.push('Booking ref: ' + ref);
     return lines.join('\n');
   }
@@ -159,7 +210,7 @@
   function submitLead() {
     if (!C.supabaseUrl || !C.supabaseAnonKey) return Promise.resolve(null);
     var ds = days()[st.date];
-    var body = { name: st.name.trim(), phone: st.phone, area: st.area, bike_brand: st.brand, bike_model: st.model.trim(), bike_nickname: st.nick.trim(), big_bike: st.cc === 'big', service_id: st.service, addons: st.addons, preferred_date: st.service === 'sos' ? isoDate(new Date()) : isoDate(ds), preferred_slot: st.service === 'sos' ? 'asap' : st.slot, consent_whatsapp: !!st.consent, utm: utm(), turnstile_token: tsToken, page: location.pathname };
+    var body = { name: st.name.trim(), phone: st.phone, area: st.area, bike_brand: st.brand, bike_model: st.model.trim(), bike_nickname: st.nick.trim(), big_bike: st.cc === 'big', service_id: st.service, addons: st.addons, km_band: st.km, issues: st.issues, note: st.note.trim(), place: st.place, bike_type: st.type, preferred_date: (st.service === 'sos' || st.place === 'road') ? isoDate(new Date()) : isoDate(ds), preferred_slot: (st.service === 'sos' || st.place === 'road') ? 'asap' : st.slot, consent_whatsapp: !!st.consent, utm: utm(), turnstile_token: tsToken, page: location.pathname };
     var ctrl = 'AbortController' in window ? new AbortController() : null, t = setTimeout(function () { if (ctrl) ctrl.abort(); }, 6000);
     return fetch(C.supabaseUrl.replace(/\/$/, '') + '/functions/v1/submit-lead', {
       method: 'POST', headers: { 'Content-Type': 'application/json', apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey },
@@ -192,19 +243,22 @@
     var b = e.target.closest('[data-act]');
     if (b && b.closest('#builder')) {
       var a = b.getAttribute('data-act'), v = b.getAttribute('data-v');
-      if (a === 'brand') st.brand = v;
+      if (a === 'brand') { if (st.brand !== v) { st.brand = v; st.model = ''; st.type = ''; } }
       else if (a === 'cc') st.cc = v;
-      else if (a === 'service') { st.service = v; }
+      else if (a === 'service') { st.service = v; st.picked = true; }
+      else if (a === 'km') { st.km = v; }
+      else if (a === 'place') { st.place = v; }
+      else if (a === 'issue') { var ix = st.issues.indexOf(v); if (ix > -1) st.issues.splice(ix, 1); else st.issues.push(v); }
       else if (a === 'date') st.date = +v;
       else if (a === 'slot') st.slot = v;
-      else if (a === 'next') { if (validate()) { st.step++; errMsg = ''; scrollToBuilder(); } }
+      else if (a === 'next') { if (validate()) { st.step++; errMsg = ''; if (st.step === 2 && !st.picked) st.service = recommend(); scrollToBuilder(); } }
       else if (a === 'back') { st.step = Math.max(0, st.step - 1); errMsg = ''; }
       else if (a === 'send') { save(); return send(); }
       else return;
       save(); render(); return;
     }
     var pk = e.target.closest('[data-pick]');
-    if (pk && svc(pk.getAttribute('data-pick'))) { st.service = pk.getAttribute('data-pick'); st.step = Math.max(st.step, 0); if (st.step > 1) st.step = 1; save(); render(); }
+    if (pk && svc(pk.getAttribute('data-pick'))) { st.service = pk.getAttribute('data-pick'); st.picked = true; save(); render(); }
     var w = e.target.closest('[data-wa]');
     if (w) { e.preventDefault(); if (!/^\d{12}$/.test(waNumber())) return toast('WhatsApp number not set yet.'); location.href = waLink('Hi Mechanix Pro, I need help with my bike.'); }
   });
@@ -220,6 +274,7 @@
     if (!f || !t.closest('#builder')) return;
     st[f] = f === 'phone' ? t.value.replace(/\D/g, '').slice(0, 10) : t.value;
     if (f === 'phone' && t.value !== st.phone) t.value = st.phone;
+    if (f === 'model') { applyModel(); var mi = $('#modelInfo'), cs = $('#ccSeg'); if (mi) mi.textContent = modelNote(); if (cs) cs.innerHTML = ccSeg(); }
     save();
   });
   function scrollToBuilder() { var b = $('#build'); if (b && b.getBoundingClientRect().top < 0) b.scrollIntoView({ behavior: 'smooth' }); }
@@ -246,7 +301,7 @@
     var rows = sv ? '<div><dt>' + esc(sv.name) + '</dt><dd>' + rupee(sv.price) + '</dd></div>' : '';
     if (extra) rows += '<div><dt>Above 180cc</dt><dd>+' + rupee(extra) + '</dd></div>';
     st.addons.forEach(function (a) { var x = svc(a); if (x) rows += '<div><dt>' + esc(x.name) + '</dt><dd>' + (x.price ? '+' + rupee(x.price) : 'Free') + '</dd></div>'; });
-    el.innerHTML = '<div class="card"><small>Your package for</small><h3>' + esc(bikeTitle().replace(/^./, function (c) { return c.toUpperCase(); })) + '</h3><dl>' + rows + '</dl><div class="tot tear"><span>Estimate, GST included</span><b>' + rupee(total()) + '</b></div><p>' + '₹' + (C.bookingAdvance || 199) + ' locks your slot and is adjusted in your final bill. Parts are charged only after you approve.</p></div>';
+    el.innerHTML = '<div class="card"><small>Your package for</small><h3>' + esc(bikeTitle().replace(/^./, function (c) { return c.toUpperCase(); })) + '</h3><dl>' + rows + '</dl><div class="tot tear"><span>Starting estimate, GST included</span><b>' + rupee(total()) + '</b></div><p>' + '₹' + (C.bookingAdvance || 199) + ' booking advance locks your slot after you approve the quote, and is adjusted in your final bill. Final quote comes on WhatsApp.</p></div>';
   }
   function loadPrices() {
     if (!C.supabaseUrl || !C.supabaseAnonKey) return;
@@ -268,6 +323,7 @@
     if (area && AREAS.indexOf(area) > -1) st.area = area;
     if (service && svc(service)) st.service = service;
     if (st.step > 3) st.step = 0;
+    applyModel();
     render(); renderPrices(); loadPrices();
     var phoneEls = document.querySelectorAll('[data-phone]'); for (var i = 0; i < phoneEls.length; i++) if (C.phoneDisplay) phoneEls[i].textContent = C.phoneDisplay;
     var sb = $('#sosBtn'); if (sb) sb.addEventListener('click', sos);

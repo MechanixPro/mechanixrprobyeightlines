@@ -8,9 +8,8 @@
   --shadow-lg:0 2px 4px rgba(0,0,0,.04),0 24px 60px rgba(20,41,90,.16);
   --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Inter","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  color-scheme:light dark;
+  color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root{--bg:#0B1220;--card:#131C30;--ink:#F2F5FB;--ink-2:#CBD3E3;--muted:#97A2B8;--line:#27324A;--soft:#1B2640;--ok:#30D158;--bad:#FF6961;--ember-2:#FF9F45;--glass:rgba(11,18,32,.78);--glass-line:rgba(255,255,255,.08);--shadow:none;--shadow-lg:0 24px 60px rgba(0,0,0,.6)}}
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:72px}
 body{margin:0;overflow-x:hidden;background:var(--bg);color:var(--ink);font:17px/1.47 var(--font);letter-spacing:-.022em;-webkit-font-smoothing:antialiased}
@@ -223,3 +222,25 @@ footer{background:var(--navy-2);color:#AEB9D0;margin-top:40px}
 footer a,footer .brand{color:#E6ECF8}
 footer .tiny,footer p{color:#AEB9D0}
 .band{background:var(--card);border-block:1px solid var(--line)}
+
+/* brand hero: navy field, ember accent */
+.hero{background:radial-gradient(900px 420px at 85% -10%,rgba(242,128,31,.28),transparent 60%),linear-gradient(160deg,#18316B 0%,var(--navy-2) 100%);color:#fff;border-radius:0 0 40px 40px;padding-bottom:56px}
+@media(min-width:960px){.hero{padding:72px 0 80px}}
+.hero h1{color:#fff}
+.hero p.lead{color:#D5DDF0}
+.hero .btn-ghost{color:#fff;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.45)}.hero .btn-ghost:hover{background:rgba(255,255,255,.1)}
+.hero .sos{background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
+.hero .preview{box-shadow:0 30px 70px rgba(0,0,0,.35);border:0}
+.strip{margin-top:28px}
+.btn-wa:hover{background:#2BE070}
+/* builder additions */
+.note{background:var(--ember-soft);border-radius:var(--r-sm);padding:12px 14px;font-size:15px;margin:0 0 14px;color:var(--ink)}
+.tag{font-style:normal;font-size:12px;font-weight:700;color:#1F1206;background:var(--ember);border-radius:980px;padding:2px 9px;margin-left:6px;vertical-align:middle}
+textarea{resize:vertical;min-height:84px}
+.opt .p small,.b-foot .sum small{font-size:12px;font-weight:600;color:var(--muted)}
+.opt .p{text-align:right}
+/* floating WhatsApp: most leads should land here */
+.wa-fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:45;display:none;align-items:center;gap:10px;background:var(--wa);color:var(--wa-ink);font-weight:700;text-decoration:none;border-radius:980px;padding:14px 20px;min-height:52px;box-shadow:0 10px 30px rgba(6,59,28,.35)}
+.wa-fab svg{width:22px;height:22px}
+@media(min-width:900px){.wa-fab{display:inline-flex}}
+.preview{color:var(--ink)}.preview .pv-pack{color:#fff}

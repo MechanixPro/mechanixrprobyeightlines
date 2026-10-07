@@ -50,11 +50,11 @@ urls = [('/', '1.0')]
 for slug, name, pins, locs, why in AREAS:
     url = f'{SITE}/bike-service-{slug}/'
     title = f'Doorstep Bike Service in {name}, Bengaluru | Mechanix Pro'
-    desc = f'Bike and scooter service at your home or office in {name} ({pins}). Fixed prices from ₹799, genuine parts, 15-day warranty. Book on WhatsApp.'
+    desc = f'Bike and scooter service at your home or office in {name} ({pins}). Prices from ₹799, certified mechanics, 15-day labour warranty. Get a quote on WhatsApp.'
     book = f'/?area={html.escape(name)}#build'
     faq = [
       (f'Do you come to my home in {name}?', f'Yes. Our mechanics cover {locs}. We service your bike at home, at your office parking or at the roadside.'),
-      (f'How much is a bike service in {name}?', 'Basic service ₹799, General ₹1,299, Full ₹1,999 for bikes up to 180cc; above 180cc add ₹300. GST included. Parts only after your approval.'),
+      (f'How much is a bike service in {name}?', 'Basic service from ₹799, General from ₹1,299, Full from ₹1,999 for bikes up to 180cc; above 180cc add ₹300. GST included. Your exact quote comes on WhatsApp, and parts only after your approval.'),
       ('How fast can a mechanic reach me?', 'Scheduled services are done in your chosen slot. For breakdowns, use the Get help button and we send the nearest available mechanic.'),
     ]
     schema = '<script type="application/ld+json">' + json.dumps({
@@ -65,15 +65,15 @@ for slug, name, pins, locs, why in AREAS:
       "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]}, ensure_ascii=False) + '</script>'
     body = f'''<p class="breadcrumb"><a href="/">Home</a> › Bike service in {name}</p>
 <h1 style="font-size:clamp(34px,6vw,52px)">Doorstep bike service in {name}.</h1>
-<p class="muted" style="font-size:20px">Certified mechanics at your home or office across {locs}. Fixed prices, genuine parts, and nothing extra without your OK.</p>
-<p><a class="btn btn-primary" href="{book}">Build your service</a> <a class="btn btn-ghost" href="#" data-wa="{html.escape(name)}">WhatsApp us</a></p>
+<p class="muted" style="font-size:20px">Certified mechanics at your home or office across {locs}. Get a quote on WhatsApp, and nothing starts without your OK.</p>
+<p><a class="btn btn-primary" href="{book}">Build your service</a> <a class="btn btn-wa" href="#" data-wa="{html.escape(name)}">Get a quote on WhatsApp</a></p>
 <h2>Why riders in {name} service at home</h2>
 <p>{why} Instead of losing half a day at a garage, a Mechanix Pro mechanic services your bike where it is parked, usually in 60 to 90 minutes.</p>
-<h2>Prices in {name}</h2>
+<h2>Starting prices in {name}</h2>
 <div class="card">{''.join(f'<div class="price-row"><span>{n}</span><b>₹{p:,}</b></div>' for n, p in PRICES)}</div>
 <p class="tiny muted" style="margin-top:8px">Bikes and scooters up to 180cc; above 180cc add ₹300 to service packages. GST included. Pincodes: {pins}.</p>
 <h2>How it works</h2>
-<ol><li>Build your service on the website and send it on WhatsApp.</li><li>We confirm your slot and send a secure link to pay ₹199 (adjusted in your bill).</li><li>The mechanic arrives, shows you any extra work, and starts only after your OK.</li></ol>
+<ol><li>Build your service on the website and send it on WhatsApp.</li><li>Our expert checks what is needed, confirms if it can be done at home, and sends your quote.</li><li>You approve, we lock your slot (₹199 advance, adjusted in your bill), and the mechanic arrives.</li></ol>
 <h2>Questions from {name} riders</h2>
 {''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in faq)}
 <div class="final" style="margin-top:32px"><h2>Book a service in {name}.</h2><p>Takes under a minute.</p><a class="btn btn-primary" href="{book}">Build your service</a></div>
