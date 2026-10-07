@@ -38,3 +38,9 @@ test('shows the address and a map link when the customer shared a location', () 
 test('shows no map link without both coordinates', () => {
   assert.deepEqual(leadDetailRows({ lat: 12.9 }), []);
 });
+
+test('shows the coupon and the discount worked out for it', () => {
+  assert.deepEqual(leadDetailRows({ coupon_code: 'MONSOON10', coupon_discount: 129 }), [['Coupon', 'MONSOON10 (₹129 off)']]);
+  assert.deepEqual(leadDetailRows({ coupon_code: 'BADCODE', coupon_discount: 0 }), [['Coupon', 'BADCODE (not valid, no discount)']]);
+  assert.deepEqual(leadDetailRows({ coupon_code: null }), []);
+});

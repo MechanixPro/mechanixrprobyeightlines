@@ -52,6 +52,7 @@
     if (!road) lines.push('Preferred time: ' + whenText);
     lines.push('Contact me by: ' + (st.contact === 'call' ? 'Phone call' : 'WhatsApp chat'));
     if (st.ref_code) lines.push('Referred by: ' + st.ref_code);
+    if (cleanCoupon(st.coupon)) lines.push('Coupon code: ' + cleanCoupon(st.coupon));
     lines.push('Starting estimate: ' + rupee(total(st, items, cfg)), 'Name: ' + st.name.trim(), '', 'Please send me the quote. I will approve before work starts.');
     if (ref) lines.push('Booking ref: ' + ref);
     return lines.join('\n');
@@ -61,7 +62,7 @@
     return {
       name: st.name.trim(), phone: st.phone, area: st.area, bike_brand: st.brand, bike_model: st.model.trim(), bike_nickname: st.nick.trim(),
       big_bike: st.cc === 'big', bike_type: st.type, service_id: st.service, addons: st.addons, km_band: st.km, issues: st.issues,
-      note: String(st.note || '').trim(), place: st.place, contact_pref: st.contact === 'call' ? 'call' : 'whatsapp', ref_code: st.ref_code || null, campaign: st.campaign || null,
+      note: String(st.note || '').trim(), place: st.place, contact_pref: st.contact === 'call' ? 'call' : 'whatsapp', ref_code: st.ref_code || null, coupon_code: cleanCoupon(st.coupon) || null, campaign: st.campaign || null,
       address: String(st.address || '').trim() || null, lat: validGeo(st.lat, st.lng) ? st.lat : null, lng: validGeo(st.lat, st.lng) ? st.lng : null,
       preferred_date: asap ? (todayIso || dateIso) : dateIso, preferred_slot: asap ? 'asap' : st.slot, consent_whatsapp: !!st.consent
     };
@@ -90,6 +91,7 @@
     return 'commuter';
   }
   function tileImage(brand, row) { return '/assets/img/tile-' + styleOf(brand, row) + '.svg'; }
+  function cleanCoupon(v) { return String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 20); }
   function prefillFromQuery(search, bikes) {
     var p = new URLSearchParams(search || ''), out = { brand: '', model: '' };
     var wantB = (p.get('brand') || '').trim().toLowerCase(), wantM = (p.get('model') || '').trim().toLowerCase();
@@ -108,5 +110,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });

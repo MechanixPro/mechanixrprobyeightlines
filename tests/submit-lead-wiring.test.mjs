@@ -20,3 +20,10 @@ test('submit-lead does not save a booking for a blocked customer', () => {
   assert.match(src, /if \(cust\.blocked\)/);
   assert.ok(src.indexOf('if (cust.blocked)') < src.indexOf("from('leads').insert("), 'block check must come before the lead is saved');
 });
+
+test('submit-lead works out the coupon on the server and saves code and discount', () => {
+  assert.match(src, /import \{ applyCoupon, normalizeCode \} from '\.\.\/_shared\/coupons\.ts'/);
+  assert.match(src, /applyCoupon\(/);
+  assert.match(src, /coupon_code/);
+  assert.match(src, /coupon_discount/);
+});

@@ -2,6 +2,7 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import { leadDetailRows, sourceReport } from './lead-view.js';
 import { customerRows, searchCustomers, mechanicStats } from './people.js';
+import { couponRows } from './coupon-view.js';
 
 const C = window.MXP || {};
 const $ = (s, r = document) => r.querySelector(s);
@@ -17,7 +18,7 @@ if (!C.supabaseUrl || !C.supabaseAnonKey) {
   throw new Error('Supabase not configured');
 }
 const sb = createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
-const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
+const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
 
 function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
@@ -53,9 +54,9 @@ async function loadLeads() {
   if (error) toast('Could not load bookings'); else S.leads = data;
 }
 async function loadPeople() {
-  const [c, b, m] = await Promise.all([sb.from('customers').select('*').order('created_at', { ascending: false }).limit(1000), sb.from('bikes').select('*').limit(2000), sb.from('mechanics').select('*').order('name')]);
-  S.customers = c.data ?? []; S.bikes = b.data ?? []; S.mechanics = m.data ?? [];
-  if (c.error || b.error || m.error) toast('Could not load customers or mechanics');
+  const [c, b, m, cp] = await Promise.all([sb.from('customers').select('*').order('created_at', { ascending: false }).limit(1000), sb.from('bikes').select('*').limit(2000), sb.from('mechanics').select('*').order('name'), sb.from('coupons').select('*').order('code')]);
+  S.customers = c.data ?? []; S.bikes = b.data ?? []; S.mechanics = m.data ?? []; S.coupons = cp.data ?? [];
+  if (c.error || b.error || m.error || cp.error) toast('Could not load customers or mechanics');
 }
 async function loadServices() { const { data } = await sb.from('services').select('*').order('sort'); S.services = data ?? []; }
 async function loadSettings() { const { data } = await sb.from('settings').select('*'); S.settings = Object.fromEntries((data ?? []).map((r) => [r.key, r.value])); }
@@ -67,6 +68,7 @@ document.addEventListener('click', (e) => {
   const r = e.target.closest('[data-lead]'); if (r) { openLead(r.dataset.lead); return; }
   const cu = e.target.closest('[data-cust]'); if (cu) { openCustomer(cu.dataset.cust); return; }
   const me = e.target.closest('[data-mech]'); if (me) { openMechanic(me.dataset.mech); return; }
+  const co = e.target.closest('[data-coupon]'); if (co) { openCoupon(co.dataset.coupon); return; }
   const a = e.target.closest('[data-act]'); if (a && ACT[a.dataset.act]) ACT[a.dataset.act](a);
 });
 document.addEventListener('input', (e) => { if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
@@ -74,7 +76,7 @@ document.addEventListener('change', (e) => { if (e.target.id === 'fs') { S.statu
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet(); });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
-function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, prices, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, prices, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -159,6 +161,32 @@ function openMechanic(id) {
   $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
 }
 
+/* ---------- coupons ---------- */
+function coupons() {
+  const rows = couponRows(S.coupons, S.leads);
+  return `<div class="toolbar"><p class="small muted" style="margin:0;flex:1">Customers type a code on the booking form. The server works out the discount, and your expert applies it on the WhatsApp quote. A code counts as used once its booking is paid, scheduled or completed.</p>${isOwner() ? '<button class="btn btn-primary btn-sm" type="button" data-act="newCoupon">New coupon</button>' : ''}</div>
+  <div class="list">${rows.length ? rows.map((c) => `<button class="row mrow" data-coupon="${c.id}"><span><b>${esc(c.code)}</b> <span class="pill ${c.status === 'Active' ? 'paid' : 'off'}">${c.status}</span><br><span class="meta">${esc(c.offer)}</span></span><span class="meta">${c.requested} asked</span><span class="meta">${c.used}${c.maxUses ? ' of ' + c.maxUses : ''} used</span><b>${rupee(c.given)}</b></button>`).join('') : '<p class="muted" style="padding:16px">No coupons yet. Create your first one to run an offer.</p>'}</div>`;
+}
+function openCoupon(id) {
+  const c = id === 'new' ? { id: 'new', code: '', kind: 'percent', value: 10, minAmount: 0, maxUses: null, startsOn: '', endsOn: '', active: true, note: '' } : couponRows(S.coupons, S.leads).find((x) => x.id === id); if (!c) return;
+  const ro = isOwner() ? '' : ' disabled';
+  S.open = null; S.openCust = null; S.openMech = null; S.openCoupon = id;
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${id === 'new' ? 'New coupon' : esc(c.code)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  <div class="card" style="margin-top:12px"><div class="inline-form">
+    <label class="label" for="cc">Code (letters, numbers, dash)</label><input id="cc" maxlength="20" autocapitalize="characters" value="${esc(c.code)}"${id === 'new' ? ro : ' disabled'}>
+    <label class="label" for="ck">Type</label><select id="ck"${ro}><option value="percent"${c.kind === 'percent' ? ' selected' : ''}>Percent off</option><option value="flat"${c.kind === 'flat' ? ' selected' : ''}>Rupees off</option></select>
+    <label class="label" for="cv">Amount (percent, or rupees)</label><input id="cv" inputmode="numeric" maxlength="5" value="${esc(c.value)}"${ro}>
+    <label class="label" for="cm">Minimum order, rupees (0 for none)</label><input id="cm" inputmode="numeric" maxlength="6" value="${esc(c.minAmount)}"${ro}>
+    <label class="label" for="cu">Use limit (leave empty for none)</label><input id="cu" inputmode="numeric" maxlength="5" value="${esc(c.maxUses ?? '')}"${ro}>
+    <label class="label" for="cs">Starts on</label><input id="cs" type="date" value="${esc(c.startsOn || '')}"${ro}>
+    <label class="label" for="ce">Ends on</label><input id="ce" type="date" value="${esc(c.endsOn || '')}"${ro}>
+    <label class="label" for="cn2">Private note</label><input id="cn2" maxlength="200" value="${esc(c.note || '')}"${ro}>
+    <label class="check"><input type="checkbox" id="ca"${c.active ? ' checked' : ''}${ro}><span>Switched on</span></label>
+    ${isOwner() ? '<button class="btn btn-primary" style="margin-top:8px" type="button" data-act="saveCoupon">Save</button>' : '<p class="tiny muted">Only the owner can change coupons.</p>'}</div></div>
+  ${id === 'new' ? '' : `<div class="card" style="margin-top:12px"><h3>Use so far</h3><dl class="kv"><dt>Asked for</dt><dd>${c.requested}</dd><dt>Went ahead</dt><dd>${c.used}</dd><dt>Discount given</dt><dd>${rupee(c.given)}</dd></dl></div>`}`;
+  $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
+}
+
 function filtered() {
   const q = S.q.trim().toLowerCase();
   return S.leads.filter((l) => (S.status === 'all' || (S.status === 'open' ? ['new', 'contacted', 'quoted', 'payment_sent'].includes(l.status) : l.status === S.status)) &&
@@ -192,7 +220,7 @@ async function openLead(id, silent) {
   $('#sheet').hidden = false; if (!silent) $('#sheetPanel').scrollTop = 0;
   const chat = $('.chat'); if (chat) chat.scrollTop = chat.scrollHeight;
 }
-function closeSheet() { $('#sheet').hidden = true; S.open = null; S.openCust = null; S.openMech = null; }
+function closeSheet() { $('#sheet').hidden = true; S.open = null; S.openCust = null; S.openMech = null; S.openCoupon = null; }
 
 const ACT = {
   close: closeSheet,
@@ -203,6 +231,21 @@ const ACT = {
     if (error) return toast('Could not save: ' + error.message);
     await audit(upd.blocked && !r.blocked ? 'customer_blocked' : !upd.blocked && r.blocked ? 'customer_unblocked' : 'customer_updated', { phone_last4: r.phone.slice(-4) });
     toast('Saved'); await loadPeople(); if (S.tab === 'customers') renderCustomers(); openCustomer(r.id);
+  },
+
+  newCoupon() { openCoupon('new'); },
+  async saveCoupon() {
+    const num = (v) => (String(v).trim() === '' ? null : parseInt(v, 10));
+    const row = { kind: $('#ck').value, value: num($('#cv').value), min_amount: num($('#cm').value) || 0, max_uses: num($('#cu').value), starts_on: $('#cs').value || null, ends_on: $('#ce').value || null, note: $('#cn2').value.trim() || null, active: $('#ca').checked };
+    if (S.openCoupon === 'new') { row.code = $('#cc').value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''); if (!/^[A-Z0-9_-]{3,20}$/.test(row.code)) return toast('Code needs 3 to 20 letters, numbers or dashes'); }
+    if (!(row.value > 0)) return toast('Enter the discount amount');
+    if (row.kind === 'percent' && row.value > 100) return toast('Percent cannot be more than 100');
+    if (row.max_uses !== null && !(row.max_uses > 0)) return toast('Use limit must be 1 or more');
+    if (row.starts_on && row.ends_on && row.starts_on > row.ends_on) return toast('The end date is before the start date');
+    const q = S.openCoupon === 'new' ? sb.from('coupons').insert(row) : sb.from('coupons').update(row).eq('id', S.openCoupon);
+    const { error } = await q; if (error) return toast(/duplicate|unique/i.test(error.message) ? 'That code already exists' : 'Could not save: ' + error.message);
+    await audit(S.openCoupon === 'new' ? 'coupon_created' : 'coupon_updated', { code: row.code ?? S.coupons.find((c) => c.id === S.openCoupon)?.code });
+    toast('Saved'); await loadPeople(); closeSheet(); render();
   },
   newMechanic() { openMechanic('new'); },
   async saveMechanic() {

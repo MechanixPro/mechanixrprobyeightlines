@@ -16,6 +16,7 @@ export function leadDetailRows(l) {
   if (l.address) rows.push(['Address', l.address]);
   if (l.lat != null && l.lng != null) rows.push(['Map pin', 'https://maps.google.com/?q=' + Number(l.lat).toFixed(5) + ',' + Number(l.lng).toFixed(5)]);
   if (l.ref_code) rows.push(['Referred by', l.ref_code]);
+  if (l.coupon_code) rows.push(['Coupon', l.coupon_discount > 0 ? `${l.coupon_code} (₹${Number(l.coupon_discount).toLocaleString('en-IN')} off)` : `${l.coupon_code} (not valid, no discount)`]);
   if (l.campaign) rows.push(['Campaign', l.campaign]);
   return rows;
 }

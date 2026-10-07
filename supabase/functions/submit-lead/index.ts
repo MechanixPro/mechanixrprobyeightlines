@@ -3,6 +3,7 @@
 import { adminDb, env, json, corsHeaders, sha256Hex, priceBooking, respectQuietHours, rupee } from '../_shared/util.ts';
 import { whatsappReady, sendTemplate, TPL } from '../_shared/whatsapp.ts';
 import { cleanLeadFields } from '../_shared/lead-fields.ts';
+import { applyCoupon, normalizeCode } from '../_shared/coupons.ts';
 
 const SLOTS = ['morning', 'afternoon', 'evening', 'asap'];
 const clean = (v: unknown, max: number) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, max);
@@ -63,9 +64,18 @@ Deno.serve(async (req) => {
     customer_id: cust.id, brand: clean(b.bike_brand, 30), model: clean(b.bike_model, 40), nickname: clean(b.bike_nickname, 24) || null, big_bike: b.big_bike === true,
   }).select('id').single();
 
+  // Coupon: checked here, never trusted from the browser. A bad code simply gives no discount.
+  const couponCode = normalizeCode(b.coupon_code);
+  let couponDiscount = 0;
+  if (couponCode) {
+    const { data: coupon } = await db.from('coupons').select('*').eq('code', couponCode).maybeSingle();
+    const { count: usedCount } = coupon ? await db.from('leads').select('id', { count: 'exact', head: true }).eq('coupon_code', couponCode).in('status', ['paid', 'scheduled', 'completed']) : { count: 0 };
+    couponDiscount = applyCoupon(coupon, priced.total, usedCount ?? 0).discount;
+  }
+
   const consent = b.consent_whatsapp === true;
   const { data: lead, error } = await db.from('leads').insert({
-    customer_id: cust.id, bike_id: bike?.id ?? null, ...extra, name, phone,
+    customer_id: cust.id, bike_id: bike?.id ?? null, ...extra, coupon_code: couponCode || null, coupon_discount: couponDiscount, name, phone,
     area: clean(b.area, 40), service_id: priced.service.id, addons: priced.addons.map((a) => a.id), est_total: priced.total,
     preferred_date: date, preferred_slot: slot, source: 'website', page: clean(b.page, 120),
     utm: typeof b.utm === 'object' && b.utm ? b.utm : {}, consent_whatsapp: consent, ip_hash: ipHash,
@@ -79,5 +89,5 @@ Deno.serve(async (req) => {
     const id = await sendTemplate(phone, TPL.received(), [name.split(' ')[0], lead.ref, priced.service.name]);
     await db.from('messages').insert({ lead_id: lead.id, phone, direction: 'out', sender: 'system', body: `Template ${TPL.received()}: booking ${lead.ref} received (${priced.service.name}, ${rupee(priced.total)})`, wa_message_id: id });
   }
-  return json(req, { ok: true, ref: lead.ref, total: priced.total });
+  return json(req, { ok: true, ref: lead.ref, total: priced.total, coupon_discount: couponDiscount });
 });

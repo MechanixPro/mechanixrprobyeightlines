@@ -48,7 +48,7 @@
   function services() { return items.filter(function (x) { return x.kind === 'service' && !(isEV() && ['basic', 'general', 'full'].indexOf(x.id) > -1); }); }
   function addons() { return items.filter(function (x) { return x.kind === 'addon'; }); }
   function load() {
-    var d = { address: '', lat: null, lng: null, contact: 'whatsapp', step: 0, brand: '', model: '', type: '', cc: 'std', nick: '', km: '', issues: [], note: '', service: 'general', picked: false, addons: [], place: 'home', area: '', date: 1, slot: '', name: '', phone: '', consent: true };
+    var d = { coupon: '', address: '', lat: null, lng: null, contact: 'whatsapp', step: 0, brand: '', model: '', type: '', cc: 'std', nick: '', km: '', issues: [], note: '', service: 'general', picked: false, addons: [], place: 'home', area: '', date: 1, slot: '', name: '', phone: '', consent: true };
     try { var s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s === 'object') for (var k in d) if (k in s) d[k] = s[k]; } catch (e) {}
     return d;
   }
@@ -135,6 +135,7 @@
       h += '<label class="label" for="f-name">Your name</label><input id="f-name" data-f="name" autocomplete="name" maxlength="60" value="' + esc(st.name) + '">';
       h += '<label class="label" for="f-phone">Mobile number</label><input id="f-phone" data-f="phone" inputmode="numeric" autocomplete="tel-national" maxlength="10" placeholder="10-digit number" value="' + esc(st.phone) + '">';
       h += '<span class="label" id="lb-contact">How should our expert reach you?</span><div class="chips" role="group" aria-labelledby="lb-contact"><button type="button" class="chip" data-act="contact" data-v="whatsapp" aria-pressed="' + (st.contact !== 'call') + '">WhatsApp chat</button><button type="button" class="chip" data-act="contact" data-v="call" aria-pressed="' + (st.contact === 'call') + '">Phone call</button></div>';
+      h += '<label class="label" for="f-coupon">Coupon code <span class="muted" style="font-weight:400">(optional)</span></label><input id="f-coupon" data-f="coupon" maxlength="20" autocapitalize="characters" autocomplete="off" placeholder="e.g. MONSOON10" value="' + esc(st.coupon) + '"><p class="tiny muted" style="margin:6px 0 0">Your expert applies it to your quote on WhatsApp.</p>';
       h += '<label class="check"><input type="checkbox" data-act="consent"' + (st.consent ? ' checked' : '') + '><span>Send me my quote, booking updates and reminders on WhatsApp. Reply STOP anytime. See our <a href="/privacy/">Privacy Policy</a>.</span></label>';
       h += '<p class="note" style="margin-top:14px"><b>What happens next:</b> you send this on WhatsApp. Our expert calls or messages you, checks what is needed, and sends your quote. Work starts only after you approve it.</p>';
       if (C.turnstileSiteKey) h += '<div id="ts" style="margin-top:12px"></div>';
@@ -259,8 +260,9 @@
   document.addEventListener('input', function (e) {
     var t = e.target, f = t.getAttribute && t.getAttribute('data-f');
     if (!f || !t.closest('#builder')) return;
-    st[f] = f === 'phone' ? t.value.replace(/\D/g, '').slice(0, 10) : t.value;
+    st[f] = f === 'phone' ? t.value.replace(/\D/g, '').slice(0, 10) : f === 'coupon' ? L.cleanCoupon(t.value) : t.value;
     if (f === 'phone' && t.value !== st.phone) t.value = st.phone;
+    if (f === 'coupon' && t.value !== st.coupon) t.value = st.coupon;
     if (f === 'model') { applyModel(); var mi = $('#modelInfo'), cs = $('#ccSeg'); if (mi) mi.textContent = modelNote(); if (cs) cs.innerHTML = ccSeg(); }
     save();
   });
