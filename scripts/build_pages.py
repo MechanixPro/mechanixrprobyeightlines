@@ -20,10 +20,10 @@ FOOTER = '''<footer>
     <div>
       <a class="brand" href="/" style="margin-bottom:8px"><img src="/assets/img/logo.svg" alt="" width="22" height="24">MECHANIX PRO</a>
       <p>Your roadside first responders. Doorstep bike service and breakdown help in Bengaluru.</p>
-      <p><span data-phone>+91 XXXXX XXXXX</span> · <a href="mailto:support@mechanixpro.in" style="display:inline">support@mechanixpro.in</a></p>
+      <p><span data-phone>+91 XXXXX XXXXX</span> · <a href="mailto:hello@mechanixpro.in" style="display:inline">hello@mechanixpro.in</a></p>
     </div>
     <div><b>Areas</b>{area_links}</div>
-    <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/credits/">Photo credits</a></div>
+    <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a></div>
   </div>
   <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p></div>
 </footer>
@@ -125,7 +125,7 @@ LEGAL = {
 <h2>How long we keep it</h2><p>Booking records and invoices for 8 years (tax law). Leads that do not become bookings are deleted or anonymised after 12 months. Chat logs for up to 24 months.</p>
 <h2>Security</h2><p>Encrypted connections, access limited by role, bot and attack protection by Cloudflare, and audit logs of staff actions.</p>
 <h2>Your rights</h2><p>You can ask to access, correct or delete your data, withdraw consent, or raise a complaint by writing to our Grievance Officer below. We respond within the time set by law.</p>
-<h2>Grievance Officer</h2><p>[Name], [Registered business name], [address]. Email: support@mechanixpro.in</p>'''),
+<h2>Grievance Officer</h2><p>[Name], [Registered business name], [address]. Email: hello@mechanixpro.in</p>'''),
  'terms': ('Terms & Conditions', 'Terms for booking and using Mechanix Pro doorstep bike services.', '''
 <p class="muted">Last updated: [date]. Draft — to be reviewed by a lawyer before launch.</p>
 <h2>1. Service</h2><p>Mechanix Pro, operated by [Registered business name] (GSTIN [GSTIN]), provides two-wheeler service and repair at your location in our service areas in Bengaluru, through trained mechanics from our partner workshops.</p>
@@ -138,18 +138,18 @@ LEGAL = {
 <h2>8. Your responsibilities</h2><p>Give accurate details, provide safe access to the vehicle, and be reachable during your slot. Abuse towards our staff may lead to cancellation.</p>
 <h2>9. Liability</h2><p>We are liable for loss or damage caused by our negligence during service, up to the invoice value of that booking, except where the law does not allow such a limit. We are not liable for pre-existing defects or normal wear.</p>
 <h2>10. Law</h2><p>These terms are governed by Indian law. Courts in Bengaluru, Karnataka have jurisdiction.</p>
-<h2>11. Contact</h2><p>support@mechanixpro.in · <span data-phone>+91 XXXXX XXXXX</span></p>'''),
+<h2>11. Contact</h2><p>hello@mechanixpro.in · <span data-phone>+91 XXXXX XXXXX</span></p>'''),
  'refund-policy': ('Refund & Cancellation Policy', 'How cancellations and refunds work for Mechanix Pro bookings.', '''
 <p class="muted">Last updated: [date].</p>
 <h2>Cancelling a booking</h2><ul><li><b>More than 2 hours before your slot:</b> free. Your ₹199 advance is refunded in full.</li><li><b>Less than 2 hours before, or after the mechanic has left:</b> the ₹199 advance covers the visit and is not refunded.</li><li><b>Emergency (SOS) visits:</b> cancellable free until a mechanic is assigned.</li></ul>
 <h2>If we cancel</h2><p>If we cannot reach you in your slot, we offer another slot or a full refund — your choice.</p>
 <h2>Service issues</h2><p>If something we fixed fails within 15 days, we redo the labour free. If we cannot fix it, we refund the labour charge for that item.</p>
 <h2>How refunds are paid</h2><p>Refunds go to your original payment method through Razorpay within 5–7 working days of approval.</p>
-<h2>Contact</h2><p>Write to support@mechanixpro.in or message us on WhatsApp with your booking reference.</p>'''),
+<h2>Contact</h2><p>Write to hello@mechanixpro.in or message us on WhatsApp with your booking reference.</p>'''),
  'contact': ('Contact Mechanix Pro', 'Reach Mechanix Pro for bookings, support and partnerships in Bengaluru.', '''
 <p class="muted" style="font-size:20px">Fastest: message us on WhatsApp. We reply from 8 AM to 9 PM, every day.</p>
 <p><a class="btn btn-wa" href="#" data-wa="Contact">Chat on WhatsApp</a></p>
-<div class="card" style="margin-top:20px"><div class="price-row"><span>Phone</span><b data-phone>+91 XXXXX XXXXX</b></div><div class="price-row"><span>Email</span><b>support@mechanixpro.in</b></div><div class="price-row"><span>Areas</span><b>South-East Bengaluru</b></div></div>
+<div class="card" style="margin-top:20px"><div class="price-row"><span>Phone</span><b data-phone>+91 XXXXX XXXXX</b></div><div class="price-row"><span>Email</span><b>hello@mechanixpro.in</b></div><div class="price-row"><span>Areas</span><b>South-East Bengaluru</b></div></div>
 <h2>Garage partners</h2><p>Run a two-wheeler workshop in Bengaluru and want more jobs? Email us with your garage name, area and number of mechanics.</p>
 <p class="tiny muted">[Registered business name], [registered address], Bengaluru, Karnataka. GSTIN [GSTIN].</p>'''),
 }
@@ -157,12 +157,6 @@ for slug, (title, desc, body) in LEGAL.items():
     url = f'{SITE}/{slug}/'
     write(f'{slug}/index.html', HEAD.format(title=html.escape(title + ' | Mechanix Pro'), desc=html.escape(desc), url=url, site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='page') + f'<h1 style="font-size:40px">{title}</h1>\n' + body + foot())
     urls.append((f'/{slug}/', '0.3'))
-
-# Photo credits page, built from src/credits.json (written by scripts/fetch_images.py)
-_cr = json.load(open(os.path.join(ROOT, 'src', 'credits.json'), encoding='utf-8'))
-_rows = ''.join(f'<li><b>{html.escape(c["caption"])}</b>: "{html.escape(c["title"])}" by {html.escape(c["author"])}, <a href="{html.escape(c["license_url"])}" rel="noopener">{html.escape(c["license"])}</a>, <a href="{html.escape(c["source"])}" rel="noopener">source on Wikimedia Commons</a></li>' for c in _cr)
-write('credits/index.html', HEAD.format(title='Photo credits | Mechanix Pro', desc='Credits and licences for the bike and part photos used on the Mechanix Pro website.', url=f'{SITE}/credits/', site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='page') + '<h1 style="font-size:40px">Photo credits</h1>\n<p class="muted">The bike and part photos on this site come from the Wikimedia Commons community and are used under their free licences. They show example bikes and parts, not our customers. Photos of our own work will replace them.</p><ul>' + _rows + '</ul>' + foot())
-urls.append(('/credits/', '0.2'))
 
 MAIN = [
   ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from ₹799, certified mechanics, 15-day labour warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>', '1.0'),

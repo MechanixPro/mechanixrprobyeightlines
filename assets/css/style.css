@@ -315,3 +315,5 @@ main.page .final{margin-top:32px}
 .part-grid{list-style:none;margin:0;padding:0;display:grid;gap:28px 20px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
 .part-grid img{width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:var(--r-md);background:var(--soft)}
 .part-grid h3{margin:12px 0 4px;font-size:19px}.part-grid p{margin:0;color:var(--muted);font-size:15px}
+.bike-row li{flex:0 0 min(78%,280px)}@media(min-width:960px){.bike-row{grid-template-columns:repeat(5,1fr)}}
+.bike-card .pr{line-height:1.35}
