@@ -131,3 +131,22 @@ Admins see everything live in `/admin/` and can switch AI off per booking or glo
 
 ## Roadmap
 See `docs/ROADMAP.md` for the path from this website to a web app and Play Store / App Store apps on the same database.
+
+
+---
+
+## Deploying on Cloudflare Pages (two projects)
+
+| Project | What | Build command | Output directory | Address |
+|---|---|---|---|---|
+| `mechanixpro-site` | Customer website | `sh scripts/build_site.sh` | `dist-site` | mechanixpro-site.pages.dev, later mechanixpro.in |
+| `mechanixpro-admin` | Admin panel | `sh scripts/build_admin.sh` | `dist-admin` | mechanixpro-admin.pages.dev, later admin.mechanixpro.in |
+
+Publish by hand from this Mac (signed in with `npx wrangler login` as the Mechanix Pro account):
+```bash
+sh scripts/build_site.sh  && npx wrangler pages deploy dist-site  --project-name mechanixpro-site  --branch main
+sh scripts/build_admin.sh && npx wrangler pages deploy dist-admin --project-name mechanixpro-admin --branch main
+```
+Bookings are saved only from the addresses listed in the Supabase secret `ALLOWED_ORIGINS`
+(`npx supabase secrets set ALLOWED_ORIGINS="https://mechanixpro.in,https://www.mechanixpro.in" --project-ref <ref>`).
+Remove any temporary `*.pages.dev` address from it before launch.
