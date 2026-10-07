@@ -10,3 +10,9 @@ test('the displayed phone number matches the call number', () => assert.equal(C.
 test('no placeholder phone number is left in the structured data', () => {
   for (const f of ['src/home.jsonld', 'scripts/build_pages.py']) assert.doesNotMatch(fs.readFileSync(require('node:path').join(__dirname, '..', f), 'utf8'), /XXXXXXXXXX/, f);
 });
+
+test('the WhatsApp number is 91 plus a valid 10-digit mobile number', () => assert.match(C.whatsapp, /^91[6-9]\d{9}$/));
+test('WhatsApp links built from the config open a chat with that number', () => {
+  const href = 'https://wa.me/' + C.whatsapp + '?text=' + encodeURIComponent('Hi');
+  assert.equal(href, 'https://wa.me/919743031301?text=Hi');
+});
