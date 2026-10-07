@@ -25,7 +25,7 @@ FOOTER = '''<footer>
     <div><b>Areas</b>{area_links}</div>
     <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
   </div>
-  <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p></div>
+  <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Mechanix Pro is a brand of {company_name}, {company_addr}. GSTIN {company_gstin}</p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p></div>
 </footer>
 '''
 HEAD = '''<!doctype html>
@@ -73,7 +73,17 @@ PRICES = [(k, v['name']) for k, v in json.load(open(os.path.join(os.path.dirname
 
 AREA_LINKS = ''.join(f'<a href="/bike-service-{slug}/">{name}</a>' for slug, name, *_ in AREAS)
 def foot(extra=''):
-    return FOOT.format(footer=FOOTER.format(area_links=AREA_LINKS), extra=extra)
+    return FOOT.format(footer=FOOTER.format(area_links=AREA_LINKS, company_name=COMPANY['legalName'], company_addr=', '.join(COMPANY['addressLines']) + f", {COMPANY['city']} {COMPANY['pincode']}", company_gstin=COMPANY['gstin']), extra=extra)
+
+COMPANY = json.load(open(os.path.join(ROOT, 'src', 'company.json'), encoding='utf-8'))
+_ADDR = ', '.join(COMPANY['addressLines']) + f", {COMPANY['city']}, {COMPANY['state']} {COMPANY['pincode']}"
+_UPDATED = datetime.date.fromisoformat(COMPANY['updated']).strftime('%-d %B %Y')
+def company_fill(s):
+    """Replaces the fill-in-the-blank placeholders in the legal text with the company record in src/company.json."""
+    return (s.replace('[Name], [Registered business name], [address]', f"Grievance Officer, {COMPANY['legalName']}, {_ADDR}")
+             .replace('[Registered business name], [registered address], Bengaluru, Karnataka', f"{COMPANY['legalName']}, {_ADDR}")
+             .replace('[Registered business name]', COMPANY['legalName']).replace('[registered address]', _ADDR)
+             .replace('[GSTIN]', COMPANY['gstin']).replace('[date]', _UPDATED))
 
 SITE_DATA = json.load(open(os.path.join(ROOT, 'src', 'site.json'), encoding='utf-8'))
 def _inr(n): return 'Free' if n == 0 else '₹' + format(int(n), ',')
@@ -188,6 +198,7 @@ def credits_html():
             rows.append(f'<li>{html.escape(c["caption"])}: "{html.escape(c["title"])}" by {html.escape(c["author"])}, <a href="{html.escape(c["license_url"])}" rel="noopener">{html.escape(c["license"])}</a>, <a href="{html.escape(c["source"])}" rel="noopener">source on Wikimedia Commons</a></li>')
     return ('<h2 id="credits">Photo and image credits</h2><p>Bike and part photos come from the Wikimedia Commons community and are used under their free licences, listed below. They show example bikes, not our customers. Brand and model names belong to their owners.</p><p>Illustration on the How it works page: <a href="http://www.freepik.com" rel="noopener">Designed by macrovector / Freepik</a>. Oil change photo on the Services page: <a href="https://www.vecteezy.com" rel="noopener">Vecteezy</a>.</p><ul>' + ''.join(rows) + '</ul>')
 
+LEGAL = {k: (t, d, company_fill(body)) for k, (t, d, body) in LEGAL.items()}
 LEGAL['terms'] = (LEGAL['terms'][0], LEGAL['terms'][1], LEGAL['terms'][2] + credits_html())
 for slug, (title, desc, body) in LEGAL.items():
     url = f'{SITE}/{slug}/'

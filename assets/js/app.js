@@ -34,11 +34,13 @@
   var KM = [['new', 'New bike, first service'], ['lt3', 'Under 3,000 km'], ['mid', '3,000 – 6,000 km'], ['gt6', 'Over 6,000 km'], ['unsure', 'Not sure']];
   var ISSUES = [['start', 'Hard to start'], ['pickup', 'Low pickup or mileage'], ['brake', 'Brakes weak or noisy'], ['chain', 'Chain noise or loose chain'], ['clutch', 'Clutch hard or slipping'], ['gear', 'Gear shifting problem'], ['battery', 'Battery or self-start'], ['tyre', 'Puncture or worn tyre'], ['leak', 'Oil leak'], ['heat', 'Engine heating'], ['elec', 'Lights, horn or wiring'], ['susp', 'Suspension noise'], ['rain', 'Pre-monsoon check']];
   var ISSUES_EV = [['range', 'Range dropped or charging problem'], ['brake', 'Brakes weak or noisy'], ['tyre', 'Puncture or worn tyre'], ['elec', 'Lights, horn or wiring'], ['susp', 'Suspension noise'], ['sw', 'Display or app problem'], ['rain', 'Pre-monsoon check']];
-  var PLACES = [['home', 'At my home or office'], ['road', 'I am stuck on the road'], ['unsure', 'Not sure, expert will advise']];
+  var PLACES = [['home', 'At my home or office'], ['pickup', 'Pick up and drop (our mechanic collects it)'], ['road', 'I am stuck on the road'], ['unsure', 'Not sure, expert will advise']];
   var items = DEFAULT_ITEMS.slice();
   var st = load();
   var errMsg = '';
   var sending = false;
+  var cbDone = null;       // set after a call-back request is saved
+  var sentFlag = false;    // true once the visitor has sent their request, so we never nag them after that
   var locating = false;
   var locMsg = '';
 
@@ -50,7 +52,7 @@
   function services() { return items.filter(function (x) { return x.kind === 'service' && !(isEV() && ['basic', 'general', 'full'].indexOf(x.id) > -1); }); }
   function addons() { return items.filter(function (x) { return x.kind === 'addon'; }); }
   function load() {
-    var d = { email: '', emailOffers: false, coupon: '', address: '', lat: null, lng: null, contact: 'whatsapp', step: 0, brand: '', model: '', type: '', cc: 'std', nick: '', km: '', issues: [], note: '', service: 'general', picked: false, addons: [], place: 'home', area: '', date: 1, slot: '', name: '', phone: '', consent: true };
+    var d = { reg: '', reminder: false, requestType: 'quote', email: '', emailOffers: false, coupon: '', address: '', lat: null, lng: null, contact: 'whatsapp', step: 0, brand: '', model: '', type: '', cc: 'std', nick: '', km: '', issues: [], note: '', service: 'general', picked: false, addons: [], place: 'home', area: '', date: 1, slot: '', name: '', phone: '', consent: true };
     try { var s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s === 'object') for (var k in d) if (k in s) d[k] = s[k]; } catch (e) {}
     return d;
   }
@@ -134,10 +136,13 @@
       });
       var sv = svc(st.service), isl = st.issues.map(issueName).filter(Boolean);
       h += '<div class="package"><div class="nm">Your package for ' + esc(bikeTitle()) + '</div><b>' + esc(sv ? sv.name : '') + '</b><ul>' + st.addons.map(function (a) { var x = svc(a); return x ? '<li>' + esc(x.name) + '</li>' : ''; }).join('') + isl.map(function (t) { return '<li>Check: ' + esc(t) + '</li>'; }).join('') + '</ul></div>';
+      h += takeawayBox(false);
     }
     if (s === 3) {
       if (st.service === 'sos') st.place = 'road';
+      if (cbDone) h += callbackDone();
       h += includedBox(svc(st.service), 'Your package: ' + (svc(st.service) ? svc(st.service).name : ''));
+      h += takeawayBox(true);
       h += '<span class="label" id="lb-place">Where will the work happen?</span><div class="chips" role="group" aria-labelledby="lb-place">' + PLACES.map(function (k) { return '<button type="button" class="chip" data-act="place" data-v="' + k[0] + '" aria-pressed="' + (st.place === k[0]) + '">' + k[1] + '</button>'; }).join('') + '</div>';
       h += '<p class="tiny muted" style="margin:8px 0 0">Most routine services are done at your doorstep. If a job needs workshop tools, we pick up the bike only after you share a one-time code.</p>';
       var hasPin = L.validGeo(st.lat, st.lng);
@@ -155,6 +160,8 @@
       h += '<span class="label" id="lb-contact">How should our expert reach you?</span><div class="chips" role="group" aria-labelledby="lb-contact"><button type="button" class="chip" data-act="contact" data-v="whatsapp" aria-pressed="' + (st.contact !== 'call') + '">WhatsApp chat</button><button type="button" class="chip" data-act="contact" data-v="call" aria-pressed="' + (st.contact === 'call') + '">Phone call</button></div>';
       h += '<label class="label" for="f-email">Email <span class="muted" style="font-weight:400">(optional, for your booking confirmation)</span></label><input id="f-email" data-f="email" type="email" inputmode="email" autocomplete="email" maxlength="120" placeholder="you@example.com" value="' + esc(st.email) + '">';
       h += '<label class="check"><input type="checkbox" data-act="emailOffers"' + (st.emailOffers ? ' checked' : '') + '><span>Also email me offers and service reminders. You can unsubscribe any time.</span></label>';
+      h += '<label class="label" for="f-reg">Registration number <span class="muted" style="font-weight:400">(optional, helps the mechanic)</span></label><input id="f-reg" data-f="reg" maxlength="14" autocapitalize="characters" autocomplete="off" placeholder="e.g. KA01AB1234" value="' + esc(st.reg) + '">';
+      h += '<label class="check"><input type="checkbox" data-act="reminder"' + (st.reminder ? ' checked' : '') + '><span>Remind me when my next service is due.</span></label>';
       h += '<label class="label" for="f-coupon">Coupon code <span class="muted" style="font-weight:400">(optional)</span></label><input id="f-coupon" data-f="coupon" maxlength="20" autocapitalize="characters" autocomplete="off" placeholder="e.g. MONSOON10" value="' + esc(st.coupon) + '"><p class="tiny muted" style="margin:6px 0 0">Your expert applies it to your quote on WhatsApp.</p>';
       h += '<label class="check"><input type="checkbox" data-act="consent"' + (st.consent ? ' checked' : '') + '><span>Send me my quote, booking updates and reminders on WhatsApp. Reply STOP anytime. See our <a href="/privacy/">Privacy Policy</a>.</span></label>';
       h += '<p class="note" style="margin-top:14px"><b>What happens next:</b> you send this on WhatsApp. Our expert calls or messages you, checks what is needed, and sends your quote. Work starts only after you approve it.</p>';
@@ -168,6 +175,14 @@
     el.innerHTML = h;
     if (s === 3 && C.turnstileSiteKey) mountTurnstile();
     renderSummary();
+  }
+  /* The IKEA effect: the visitor built something, so they never leave with nothing. */
+  function takeawayBox(withCallback) {
+    var canCall = withCallback && C.supabaseUrl && C.supabaseAnonKey;
+    return '<div class="takeaway"><b>Not ready to send? Take your build with you.</b><div class="chips"><button type="button" class="btn btn-ghost btn-sm" data-act="sendDraft">Send to WhatsApp now</button><button type="button" class="btn btn-ghost btn-sm" data-act="copyBuild">Copy link to my build</button><button type="button" class="btn btn-ghost btn-sm" data-act="shareBuild">Share</button>' + (canCall ? '<button type="button" class="btn btn-ghost btn-sm" data-act="callback"' + (sending ? ' disabled' : '') + '>Save my build and call me back</button>' : '') + '</div>' + (canCall ? '<p class="tiny muted" style="margin:8px 0 0">Call-back needs only your name and number below. No day or time.</p>' : '') + '</div>';
+  }
+  function callbackDone() {
+    return '<div class="confirm-panel" role="status"><b>Saved. We will call you soon.</b><p>' + (cbDone.ref ? 'Your reference is <b>' + esc(cbDone.ref) + '</b>. ' : '') + 'Our expert will call you from ' + esc(C.phoneDisplay || 'our number') + '. You can also chat with us now.</p><div class="chips"><button type="button" class="btn btn-wa btn-sm" data-act="sendDraft">Chat on WhatsApp</button><button type="button" class="btn btn-ghost btn-sm" data-act="copyBuild">Copy link to my build</button></div></div>';
   }
   function ccSeg() { return '<button type="button" data-act="cc" data-v="std" aria-pressed="' + (st.cc === 'std') + '">Up to 180cc</button><button type="button" data-act="cc" data-v="big" aria-pressed="' + (st.cc === 'big') + '">Above 180cc</button>'; }
   function issueName(id) { var l = ISSUES.concat(ISSUES_EV); for (var i = 0; i < l.length; i++) if (l[i][0] === id) return l[i][1]; return ''; }
@@ -185,6 +200,7 @@
       else if (st.name.trim().length < 2) errMsg = 'Enter your name.';
       else if (!/^[6-9]\d{9}$/.test(st.phone)) errMsg = 'Enter a valid 10-digit mobile number.';
       else if (st.email.trim() && !L.validEmail(st.email)) errMsg = 'That email address does not look right. Fix it or leave it empty.';
+      else if (st.reg.trim() && !L.cleanReg(st.reg)) errMsg = 'That registration number does not look right. Fix it or leave it empty.';
     }
     return !errMsg;
   }
@@ -233,7 +249,64 @@
       finish(null); // network/server issue: never lose the customer, go to WhatsApp anyway
     });
   }
+  function buildLink() { return location.origin + '/book/?b=' + L.encodeBuild(st); }
+  function sendDraft() {
+    if (!/^\d{12}$/.test(waNumber())) return toast('WhatsApp number not set yet.');
+    sentFlag = true; track('generate_lead', { service: st.service, method: 'draft' });
+    location.href = waLink(L.buildDraftMessage(st, items, cfg(), buildLink()));
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-999px'; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('Link copied. Open it any time to continue your build.'); } catch (e) { toast('Could not copy. Long-press the address bar to copy the link.'); }
+    ta.remove();
+  }
+  function copyBuild() {
+    var link = buildLink();
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(function () { toast('Link copied. Open it any time to continue your build.'); }, function () { fallbackCopy(link); });
+    else fallbackCopy(link);
+  }
+  function shareBuild() {
+    var link = buildLink(), text = 'My bike service build for ' + bikeTitle() + ' on Mechanix Pro: ' + link;
+    if (navigator.share) navigator.share({ title: 'My bike service build', text: text, url: link }).catch(function () {});
+    else window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
+  }
+  /* "Save my build and call me back": an explicit request, so we only save what the visitor chose to send. */
+  function callback() {
+    errMsg = '';
+    if (st.name.trim().length < 2) errMsg = 'Enter your name so we know who to call.';
+    else if (!/^[6-9]\d{9}$/.test(st.phone)) errMsg = 'Enter a valid 10-digit mobile number so we can call you.';
+    else if (st.email.trim() && !L.validEmail(st.email)) errMsg = 'That email address does not look right. Fix it or leave it empty.';
+    if (errMsg) return render();
+    st.requestType = 'callback'; sending = true; render();
+    submitLead().then(function (r) {
+      st.requestType = 'quote'; sending = false;
+      if (!r) { errMsg = 'Call-back is not available right now. Please use Send to WhatsApp now.'; return render(); }
+      cbDone = { ref: r.ref || '' }; sentFlag = true; track('generate_lead', { service: st.service, method: 'callback' }); render();
+    }).catch(function () { st.requestType = 'quote'; sending = false; errMsg = 'Could not save right now. Please use Send to WhatsApp now instead.'; render(); });
+  }
+  /* Leave prompt: shown once per visit, only when the visitor has built something and not sent it. Desktop: pointer leaves through the top. Phone: idle for a while. */
+  var EXIT_KEY = 'mxp_exit_prompted', idleTimer = null;
+  function hasBuild() { return !!(st.brand && st.model.trim().length > 1); }
+  function promptedBefore() { try { return sessionStorage.getItem(EXIT_KEY) === '1'; } catch (e) { return false; } }
+  function maybePrompt(trigger) {
+    if (!$('#builder') || $('#exitSheet')) return;
+    if (!L.shouldPromptExit({ hasBuild: hasBuild(), sent: sentFlag, promptedBefore: promptedBefore(), step: st.step, trigger: trigger })) return;
+    try { sessionStorage.setItem(EXIT_KEY, '1'); } catch (e) {}
+    showExit();
+  }
+  function showExit() {
+    var d = document.createElement('div'); d.className = 'sheetx'; d.id = 'exitSheet'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'exitT');
+    d.innerHTML = '<div class="sheetx-panel fade"><h3 id="exitT">Keep your build?</h3><p>You have already built a package for ' + esc(bikeTitle()) + '. Take it with you so you do not have to start again.</p><div class="chips"><button type="button" class="btn btn-wa btn-sm" data-act="sendDraft">Send to WhatsApp now</button><button type="button" class="btn btn-ghost btn-sm" data-act="copyBuild">Copy link</button><button type="button" class="btn btn-ghost btn-sm" data-act="closeExit">Keep browsing</button></div></div>';
+    document.body.appendChild(d); var first = d.querySelector('button'); if (first) first.focus();
+  }
+  function closeExit() { var d = $('#exitSheet'); if (d) d.remove(); }
+  document.addEventListener('mouseout', function (e) { if (!e.relatedTarget && e.clientY <= 0) maybePrompt('exit'); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeExit(); });
+  document.addEventListener('click', function (e) { if (e.target && e.target.id === 'exitSheet') closeExit(); });
+  function armIdle() { clearTimeout(idleTimer); idleTimer = setTimeout(function () { maybePrompt('idle'); }, 45000); }
+  ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(function (ev) { document.addEventListener(ev, armIdle, { passive: true }); });
   function finish(ref) {
+    sentFlag = true;
     track('generate_lead', { service: st.service, area: st.area, value: total() });
     var url = waLink(buildMessage(ref));
     sending = false; render();
@@ -244,7 +317,7 @@
   /* ---------- events ---------- */
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-act]');
-    if (b && b.closest('#builder')) {
+    if (b && (b.closest('#builder') || b.closest('#exitSheet'))) {
       var a = b.getAttribute('data-act'), v = b.getAttribute('data-v');
       if (a === 'brand') { if (st.brand !== v) { st.brand = v; st.model = ''; st.type = ''; } }
       else if (a === 'cc') st.cc = v;
@@ -253,6 +326,11 @@
       else if (a === 'model') { st.model = v; applyModel(); }
       else if (a === 'contact') { st.contact = v; }
       else if (a === 'locate') { locate(); return; }
+      else if (a === 'sendDraft') { sendDraft(); return; }
+      else if (a === 'copyBuild') { copyBuild(); return; }
+      else if (a === 'shareBuild') { shareBuild(); return; }
+      else if (a === 'callback') { callback(); return; }
+      else if (a === 'closeExit') { closeExit(); return; }
       else if (a === 'clearloc') { st.lat = null; st.lng = null; locMsg = ''; }
       else if (a === 'place') { st.place = v; }
       else if (a === 'issue') { var ix = st.issues.indexOf(v); if (ix > -1) st.issues.splice(ix, 1); else st.issues.push(v); }
@@ -277,6 +355,7 @@
     if (a === 'addon') { var v = t.getAttribute('data-v'), i = st.addons.indexOf(v); if (t.checked && i < 0) st.addons.push(v); if (!t.checked && i > -1) st.addons.splice(i, 1); save(); render(); }
     if (a === 'consent') { st.consent = t.checked; save(); }
     if (a === 'emailOffers') { st.emailOffers = t.checked; save(); }
+    if (a === 'reminder') { st.reminder = t.checked; save(); }
     if (t.getAttribute('data-f') === 'area') { st.area = t.value; save(); }
   });
   document.addEventListener('input', function (e) {
@@ -354,12 +433,18 @@
     st.ref_code = attr.ref_code; st.campaign = attr.campaign;
     var p = new URLSearchParams(location.search), area = p.get('area'), service = p.get('service');
     if (area && AREAS.indexOf(area) > -1) st.area = area;
+    var shared = p.get('b');
+    if (shared) {
+      var sb2 = L.decodeBuild(shared, BIKES, items);
+      if (sb2) { st.brand = sb2.brand; st.model = sb2.model; st.cc = sb2.cc; st.nick = sb2.nick; st.km = sb2.km; st.issues = sb2.issues; st.addons = sb2.addons; if (sb2.service) { st.service = sb2.service; st.picked = true; } st.step = sb2.service ? 2 : (sb2.model ? 1 : 0); setTimeout(function () { toast('Your build is back. Pick up where you left off.'); }, 600); }
+      try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    }
     var pre = L.prefillFromQuery(location.search, BIKES);
     if (pre.brand) { if (st.brand !== pre.brand) { st.brand = pre.brand; st.model = ''; } if (pre.model) st.model = pre.model; st.step = 0; }
     if (service && svc(service)) st.service = service;
     if (st.step > 3) st.step = 0;
     applyModel();
-    render(); renderPrices(); loadPrices();
+    render(); renderPrices(); loadPrices(); armIdle();
     var phoneEls = document.querySelectorAll('[data-phone]'); for (var i = 0; i < phoneEls.length; i++) if (C.phoneDisplay) phoneEls[i].textContent = C.phoneDisplay;
     var tel0 = L.callLink(C.callNumber) || L.callLink(C.whatsapp); if (tel0) document.querySelectorAll('[data-call]').forEach(function (a) { a.setAttribute('href', tel0); });
     var sb = $('#sosBtn'); if (sb) sb.addEventListener('click', sos);

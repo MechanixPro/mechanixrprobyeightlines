@@ -1,3 +1,4 @@
+import { COMPANY, companyLine } from './company.ts';
 // Mechanix Pro email designs. Pure functions (no Deno APIs) so Node can test them.
 // Layout: 600px table, navy header with the logo, white card, ember button, plain business footer. Inline CSS only, as email apps require.
 export const escapeHtml = (v: unknown): string => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
@@ -30,7 +31,7 @@ function layout(o: { preheader: string; title: string; body: string; site: Site;
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:20px;overflow:hidden">
 <tr><td bgcolor="${NAVY}" style="padding:22px 32px;border-bottom:4px solid ${EMBER}"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="vertical-align:middle"><img src="${escapeHtml(site.siteUrl)}/assets/img/email-logo.png" width="40" height="44" alt="Mechanix Pro" style="display:block;border:0"></td><td style="padding-left:12px;vertical-align:middle;font:700 17px ${FONT};letter-spacing:1px;color:#ffffff">MECHANIX PRO</td></tr></table></td></tr>
 <tr><td style="padding:32px">${o.body}</td></tr>
-<tr><td style="padding:20px 32px 28px;border-top:1px solid ${LINE};background:#FAFBFD"><p style="margin:0 0 6px;font:13px/1.5 ${FONT};color:${MUTED}">Mechanix Pro · Doorstep bike service, Bengaluru</p><p style="margin:0;font:13px/1.5 ${FONT};color:${MUTED}">${contact}</p>${o.footerNote ? `<p style="margin:12px 0 0;font:12px/1.5 ${FONT};color:${MUTED}">${o.footerNote}</p>` : ''}</td></tr>
+<tr><td style="padding:20px 32px 28px;border-top:1px solid ${LINE};background:#FAFBFD"><p style="margin:0 0 6px;font:13px/1.5 ${FONT};color:${MUTED}">Mechanix Pro · Doorstep bike service, Bengaluru</p><p style="margin:0 0 6px;font:12px/1.5 ${FONT};color:${MUTED}">${escapeHtml(companyLine())} · GSTIN ${escapeHtml(COMPANY.gstin)}</p><p style="margin:0;font:13px/1.5 ${FONT};color:${MUTED}">${contact}</p>${o.footerNote ? `<p style="margin:12px 0 0;font:12px/1.5 ${FONT};color:${MUTED}">${o.footerNote}</p>` : ''}</td></tr>
 </table></td></tr></table></body></html>`;
 }
 const first = (name: string) => escapeHtml(String(name || 'there').trim().split(/\s+/)[0] || 'there');

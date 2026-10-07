@@ -38,7 +38,7 @@
   function isRoad(st) { return st.place === 'road' || st.service === 'sos'; }
   function buildMessage(st, items, cfg, whenText, ref) {
     var sv = find(items, st.service), road = isRoad(st);
-    var placeTxt = { home: 'At my home or office', road: 'Stuck on the road (I will share my live location)', unsure: 'Not sure, please advise' }[road ? 'road' : st.place];
+    var placeTxt = { pickup: 'Pick up and drop (please collect my bike)', home: 'At my home or office', road: 'Stuck on the road (I will share my live location)', unsure: 'Not sure, please advise' }[road ? 'road' : st.place];
     var extras = st.addons.map(function (a) { var x = find(items, a); return x ? x.name : ''; }).filter(Boolean);
     var lines = ['Hi Mechanix Pro, I would like a quote for my bike:', '',
       'Bike: ' + bikeTitle(st) + (st.cc === 'big' ? ' (above 180cc)' : ''),
@@ -48,6 +48,7 @@
     if (String(st.note || '').trim()) lines.push('Note: ' + st.note.trim());
     lines.push('Where: ' + placeTxt, 'Area: ' + st.area);
     if (String(st.address || '').trim()) lines.push('Address: ' + st.address.trim());
+    if (cleanReg(st.reg)) lines.push('Registration: ' + cleanReg(st.reg));
     if (validGeo(st.lat, st.lng)) lines.push('Map pin: ' + mapsLink(st.lat, st.lng));
     if (!road) lines.push('Preferred time: ' + whenText);
     lines.push('Contact me by: ' + (st.contact === 'call' ? 'Phone call' : 'WhatsApp chat'));
@@ -62,7 +63,7 @@
     return {
       name: st.name.trim(), phone: st.phone, area: st.area, bike_brand: st.brand, bike_model: st.model.trim(), bike_nickname: st.nick.trim(),
       big_bike: st.cc === 'big', bike_type: st.type, service_id: st.service, addons: st.addons, km_band: st.km, issues: st.issues,
-      note: String(st.note || '').trim(), place: st.place, contact_pref: st.contact === 'call' ? 'call' : 'whatsapp', ref_code: st.ref_code || null, coupon_code: cleanCoupon(st.coupon) || null,
+      note: String(st.note || '').trim(), place: st.place, contact_pref: st.contact === 'call' ? 'call' : 'whatsapp', ref_code: st.ref_code || null, coupon_code: cleanCoupon(st.coupon) || null, request_type: st.requestType === 'callback' ? 'callback' : 'quote', reg_no: cleanReg(st.reg) || null, reminder_opt_in: st.reminder === true,
       email: validEmail(st.email) ? String(st.email).trim().toLowerCase() : null, email_marketing: validEmail(st.email) && st.emailOffers === true, campaign: st.campaign || null,
       address: String(st.address || '').trim() || null, lat: validGeo(st.lat, st.lng) ? st.lat : null, lng: validGeo(st.lat, st.lng) ? st.lng : null,
       preferred_date: asap ? (todayIso || dateIso) : dateIso, preferred_slot: asap ? 'asap' : st.slot, consent_whatsapp: !!st.consent
@@ -98,6 +99,38 @@
   function tileImage(brand, row, photos) { return photos && photos[modelSlug(brand, row[0])] ? '/assets/img/models/' + modelSlug(brand, row[0]) + '.webp' : '/assets/img/tile-' + styleOf(brand, row) + '.svg'; }
   var EMAIL_RE = /^[a-z0-9._%+-]+@[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/i;
   function validEmail(v) { var t = String(v == null ? '' : v).trim(); return t.length <= 120 && EMAIL_RE.test(t); }
+  function cleanReg(v) { var t = String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9]/g, ''); return /^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{1,4}$/.test(t) ? t : null; }
+  function b64u(str) { var bytes = new TextEncoder().encode(str), bin = ''; for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]); return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function unb64u(t) { var x = String(t).replace(/-/g, '+').replace(/_/g, '/'); while (x.length % 4) x += '='; var bin = atob(x), bytes = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
+  /* A build as a link: bike, package and problems only. Never a name, number, email or address. */
+  function encodeBuild(st) { return b64u(JSON.stringify({ b: st.brand, m: st.model, t: st.type, c: st.cc, n: st.nick, k: st.km, i: st.issues, s: st.service, a: st.addons })); }
+  function decodeBuild(token, bikes, items) {
+    var o; try { o = JSON.parse(unb64u(token)); } catch (e) { return null; }
+    if (!o || typeof o !== 'object' || !bikes || typeof o.b !== 'string' || !Object.prototype.hasOwnProperty.call(bikes, o.b)) return null;
+    var uniq = function (a, ok, max) { var out = []; (Array.isArray(a) ? a : []).forEach(function (x) { if (typeof x === 'string' && ok(x) && out.indexOf(x) < 0 && out.length < max) out.push(x); }); return out; };
+    var kind = function (id, k) { return items.some(function (x) { return x.id === id && x.kind === k; }); };
+    return {
+      brand: o.b, model: String(o.m == null ? '' : o.m).slice(0, 40), type: ['m', 's', 'e'].indexOf(o.t) > -1 ? o.t : '', cc: o.c === 'big' ? 'big' : 'std', nick: String(o.n == null ? '' : o.n).slice(0, 24),
+      km: Object.prototype.hasOwnProperty.call(KM_TXT, o.k) ? o.k : '', issues: uniq(o.i, function (x) { return Object.prototype.hasOwnProperty.call(ISSUE_TXT, x); }, 15),
+      service: typeof o.s === 'string' && kind(o.s, 'service') ? o.s : '', addons: uniq(o.a, function (x) { return kind(x, 'addon'); }, 10)
+    };
+  }
+  function buildDraftMessage(st, items, cfg, link) {
+    var sv = find(items, st.service);
+    var lines = ['Hi Mechanix Pro, I am still choosing and would like help finishing this:', '', 'Bike: ' + bikeTitle(st) + (st.cc === 'big' ? ' (above 180cc)' : '')];
+    if (sv) { var ex = st.addons.map(function (a) { var x = find(items, a); return x ? x.name : ''; }).filter(Boolean); lines.push('Service: ' + sv.name + (ex.length ? ' + ' + ex.join(', ') : '')); }
+    if (st.km) lines.push('Last service: ' + KM_TXT[st.km]);
+    if (st.issues.length) lines.push('Problems: ' + st.issues.map(function (i) { return ISSUE_TXT[i] || i; }).join(', '));
+    if (sv) lines.push('Starting estimate: ' + rupee(total(st, items, cfg || {})));
+    if (link) lines.push('My build: ' + link);
+    lines.push('', 'Please call or message me to finish the booking.');
+    return lines.join('\n');
+  }
+  function shouldPromptExit(o) {
+    if (!o.hasBuild || o.sent || o.promptedBefore) return false;
+    if (o.trigger === 'idle' && o.step < 2) return false;
+    return true;
+  }
   function cleanCoupon(v) { return String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 20); }
   function prefillFromQuery(search, bikes) {
     var p = new URLSearchParams(search || ''), out = { brand: '', model: '' };
@@ -117,5 +150,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });

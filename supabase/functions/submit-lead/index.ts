@@ -36,12 +36,16 @@ Deno.serve(async (req) => {
   const slot = clean(b.preferred_slot, 12);
   const date = clean(b.preferred_date, 10);
   const extra = cleanLeadFields(b);
+  const isCallback = extra.request_type === 'callback'; // a call-back request needs only name, number and service
   if (name.length < 2) return json(req, { error: 'Enter your name' }, 400);
   if (!/^[6-9]\d{9}$/.test(phone)) return json(req, { error: 'Enter a valid mobile number' }, 400);
-  if (!SLOTS.includes(slot)) return json(req, { error: 'Pick a time slot' }, 400);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return json(req, { error: 'Pick a day' }, 400);
-  const day = new Date(date + 'T00:00:00+05:30'), now = Date.now();
-  if (day.getTime() < now - 36 * 3600_000 || day.getTime() > now + 30 * 24 * 3600_000) return json(req, { error: 'Pick a day within the next 30 days' }, 400);
+  const now = Date.now();
+  if (!(isCallback || SLOTS.includes(slot))) return json(req, { error: 'Pick a time slot' }, 400);
+  if (!(isCallback || /^\d{4}-\d{2}-\d{2}$/.test(date))) return json(req, { error: 'Pick a day' }, 400);
+  const day = new Date(date + 'T00:00:00+05:30');
+  if (!isCallback && (day.getTime() < now - 36 * 3600_000 || day.getTime() > now + 30 * 24 * 3600_000)) return json(req, { error: 'Pick a day within the next 30 days' }, 400);
+  const prefDate = isCallback ? new Date(now + 330 * 60_000).toISOString().slice(0, 10) : date;
+  const prefSlot = isCallback ? 'asap' : slot;
 
   const db = adminDb();
   const ipHash = ip ? await sha256Hex(ip + env('IP_SALT', 'mxp')) : null;
@@ -80,7 +84,7 @@ Deno.serve(async (req) => {
   const { data: lead, error } = await db.from('leads').insert({
     customer_id: cust.id, bike_id: bike?.id ?? null, ...extra, coupon_code: couponCode || null, coupon_discount: couponDiscount, name, phone,
     area: clean(b.area, 40), service_id: priced.service.id, addons: priced.addons.map((a) => a.id), est_total: priced.total,
-    preferred_date: date, preferred_slot: slot, source: 'website', page: clean(b.page, 120),
+    preferred_date: prefDate, preferred_slot: prefSlot, source: 'website', page: clean(b.page, 120),
     utm: typeof b.utm === 'object' && b.utm ? b.utm : {}, consent_whatsapp: consent, ip_hash: ipHash,
     // First automated nudge only if the customer does not continue on WhatsApp within 15 minutes.
     next_followup_at: consent ? respectQuietHours(new Date(now + 15 * 60_000)).toISOString() : null,
@@ -97,7 +101,7 @@ Deno.serve(async (req) => {
         siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 97430 31301'), phoneTel: env('PHONE_TEL', '+919743031301'),
         whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/919743031301'), email: 'hello@mechanixpro.in',
         name, ref: lead.ref, bike: [clean(b.bike_brand, 30), clean(b.bike_model, 40)].filter((x) => x && x !== 'Other').join(' ') || 'Your bike',
-        service: priced.service.name, area: clean(b.area, 40) || 'Bengaluru', whenText: formatWhen(date, slot), estimate: priced.total,
+        service: priced.service.name, area: clean(b.area, 40) || 'Bengaluru', whenText: isCallback ? 'We will call you back soon' : formatWhen(date, slot), estimate: priced.total,
       });
       const r = await sendEmail({ to: extra.email, subject: mail.subject, html: mail.html, text: mail.text, tags: { template: 'booking_received' } });
       await db.from('email_log').insert({ lead_id: lead.id, to_email: extra.email, template: 'booking_received', status: r.ok ? 'sent' : r.skipped ? 'skipped' : 'failed', provider_id: r.id ?? null, error: r.error ?? null });

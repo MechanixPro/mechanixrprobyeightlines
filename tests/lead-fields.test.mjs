@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { cleanLeadFields } from '../supabase/functions/_shared/lead-fields.ts';
 
 test('empty body gives safe defaults', () => {
-  assert.deepEqual(cleanLeadFields({}), { km_band: null, issues: [], note: null, place: 'home', contact_pref: 'whatsapp', bike_type: null, ref_code: null, campaign: null, address: null, lat: null, lng: null, email: null, email_marketing: false });
+  assert.deepEqual(cleanLeadFields({}), { km_band: null, issues: [], note: null, place: 'home', contact_pref: 'whatsapp', bike_type: null, ref_code: null, campaign: null, address: null, lat: null, lng: null, email: null, email_marketing: false, request_type: 'quote', reg_no: null, reminder_opt_in: false });
 });
 test('known values pass through', () => {
   const r = cleanLeadFields({ km_band: 'mid', issues: ['brake', 'chain'], note: 'rattle', place: 'road', contact_pref: 'call', bike_type: 's', ref_code: 'asha', campaign: 'Monsoon-Check' });
-  assert.deepEqual(r, { km_band: 'mid', issues: ['brake', 'chain'], note: 'rattle', place: 'road', contact_pref: 'call', bike_type: 's', ref_code: 'ASHA', campaign: 'monsoon-check', address: null, lat: null, lng: null, email: null, email_marketing: false });
+  assert.deepEqual(r, { km_band: 'mid', issues: ['brake', 'chain'], note: 'rattle', place: 'road', contact_pref: 'call', bike_type: 's', ref_code: 'ASHA', campaign: 'monsoon-check', address: null, lat: null, lng: null, email: null, email_marketing: false, request_type: 'quote', reg_no: null, reminder_opt_in: false });
 });
 test('unknown enum values are rejected to defaults', () => {
   const r = cleanLeadFields({ km_band: 'huge', place: 'moon', contact_pref: 'fax', bike_type: 'x' });
@@ -52,4 +52,18 @@ test('email marketing consent counts only with an email and an explicit yes', ()
   assert.equal(cleanLeadFields({ email: 'a@b.in', email_marketing: true }).email_marketing, true);
   assert.equal(cleanLeadFields({ email: 'a@b.in', email_marketing: 'yes' }).email_marketing, false);
   assert.equal(cleanLeadFields({ email_marketing: true }).email_marketing, false);
+});
+
+test('request type is quote unless it is exactly callback', () => {
+  assert.equal(cleanLeadFields({ request_type: 'callback' }).request_type, 'callback');
+  for (const v of ['CALLBACK', 'call', '', null, 7]) assert.equal(cleanLeadFields({ request_type: v }).request_type, 'quote', String(v));
+});
+test('registration numbers are tidied and bad ones dropped', () => {
+  assert.equal(cleanLeadFields({ reg_no: ' ka 01 ab 1234 ' }).reg_no, 'KA01AB1234');
+  for (const v of ['abc', '12345', 'KA01AB123456', '<b>', null]) assert.equal(cleanLeadFields({ reg_no: v }).reg_no, null, String(v));
+});
+test('pick up and drop is an accepted place, and the reminder choice must be an explicit yes', () => {
+  assert.equal(cleanLeadFields({ place: 'pickup' }).place, 'pickup');
+  assert.equal(cleanLeadFields({ reminder_opt_in: true }).reminder_opt_in, true);
+  assert.equal(cleanLeadFields({ reminder_opt_in: 'true' }).reminder_opt_in, false);
 });

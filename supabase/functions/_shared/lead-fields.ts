@@ -2,7 +2,7 @@
 import { cleanEmail } from './email-address.ts';
 const KM = ['new', 'lt3', 'mid', 'gt6', 'unsure'];
 const ISSUES = ['start', 'pickup', 'brake', 'chain', 'clutch', 'gear', 'battery', 'tyre', 'leak', 'heat', 'elec', 'susp', 'rain', 'range', 'sw'];
-const PLACES = ['home', 'road', 'unsure'];
+const PLACES = ['home', 'road', 'unsure', 'pickup'];
 const CONTACT = ['whatsapp', 'call'];
 const TYPES = ['m', 's', 'e'];
 const strip = (v: unknown, max: number) => String(v ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, max);
@@ -10,6 +10,8 @@ const pick = (list: string[], v: unknown) => (list.includes(String(v)) ? String(
 
 const num = (v: unknown) => (typeof v === 'number' || (typeof v === 'string' && v.trim() !== '') ? Number(v) : NaN);
 const r5 = (n: number) => Math.round(n * 1e5) / 1e5;
+
+const cleanReg = (v: unknown): string | null => { const t = String(v ?? '').toUpperCase().replace(/[^A-Z0-9]/g, ''); return /^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{1,4}$/.test(t) ? t : null; };
 
 export function cleanLeadFields(b: Record<string, unknown>) {
   const issues = Array.isArray(b.issues) ? [...new Set(b.issues.map(String))].filter((i) => ISSUES.includes(i)).slice(0, 15) : [];
@@ -29,5 +31,8 @@ export function cleanLeadFields(b: Record<string, unknown>) {
     lng: geo ? r5(lng) : null,
     email: cleanEmail(b.email),
     email_marketing: cleanEmail(b.email) !== null && b.email_marketing === true,
+    request_type: b.request_type === 'callback' ? 'callback' : 'quote',
+    reg_no: cleanReg(b.reg_no),
+    reminder_opt_in: b.reminder_opt_in === true,
   };
 }
