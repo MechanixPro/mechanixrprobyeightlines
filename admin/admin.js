@@ -3,6 +3,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { leadDetailRows, sourceReport } from './lead-view.js';
 import { customerRows, searchCustomers, mechanicStats } from './people.js';
 import { couponRows } from './coupon-view.js';
+import { rangeFor, buildReport, reportCsv } from './report.js';
 
 const C = window.MXP || {};
 const $ = (s, r = document) => r.querySelector(s);
@@ -18,7 +19,7 @@ if (!C.supabaseUrl || !C.supabaseAnonKey) {
   throw new Error('Supabase not configured');
 }
 const sb = createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
-const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
+const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
 
 function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
@@ -72,11 +73,11 @@ document.addEventListener('click', (e) => {
   const a = e.target.closest('[data-act]'); if (a && ACT[a.dataset.act]) ACT[a.dataset.act](a);
 });
 document.addEventListener('input', (e) => { if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
-document.addEventListener('change', (e) => { if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } });
+document.addEventListener('change', (e) => { if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet(); });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
-function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, prices, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, reports, prices, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -187,6 +188,24 @@ function openCoupon(id) {
   $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
 }
 
+/* ---------- reports ---------- */
+const RANGES = [['7d', 'Last 7 days'], ['30d', 'Last 30 days'], ['month', 'This month'], ['90d', 'Last 90 days'], ['all', 'All time']];
+function reportData() { return buildReport(S.leads, { services: S.services, mechanics: S.mechanics }, rangeFor(S.range)); }
+function reports() {
+  const r = reportData(), t = r.totals;
+  const table = (title, rows) => `<div class="card"><h3>${title}</h3>${rows.length ? `<table class="rtable"><thead><tr><th></th><th>Bookings</th><th>Collected</th></tr></thead><tbody>${rows.map((x) => `<tr><td>${esc(x.name)}</td><td>${x.count}</td><td>${rupee(x.collected)}</td></tr>`).join('')}</tbody></table>` : '<p class="small muted">No bookings in this period.</p>'}</div>`;
+  return `<div class="toolbar"><select id="rr" aria-label="Period">${RANGES.map(([k, n]) => `<option value="${k}"${S.range === k ? ' selected' : ''}>${n}</option>`).join('')}</select><button class="btn btn-ghost btn-sm" type="button" data-act="reportCsv">Download CSV</button></div>
+  <div class="kpis">
+    <div class="kpi"><b>${t.bookings}</b><span>Bookings</span></div>
+    <div class="kpi"><b>${t.wentAhead}</b><span>Went ahead (paid, scheduled, completed)</span></div>
+    <div class="kpi"><b>${t.conversion}%</b><span>Share that went ahead</span></div>
+    <div class="kpi"><b>${rupee(t.collected)}</b><span>Collected</span></div>
+    <div class="kpi"><b>${rupee(t.avgOrder)}</b><span>Average paid order</span></div>
+    <div class="kpi"><b>${rupee(t.discount)}</b><span>Coupon discount given</span></div>
+  </div>
+  <div class="split2">${table('By service', r.byService)}${table('By area', r.byArea)}${table('By mechanic', r.byMechanic)}${table('By source', r.bySource)}</div>`;
+}
+
 function filtered() {
   const q = S.q.trim().toLowerCase();
   return S.leads.filter((l) => (S.status === 'all' || (S.status === 'open' ? ['new', 'contacted', 'quoted', 'payment_sent'].includes(l.status) : l.status === S.status)) &&
@@ -233,6 +252,11 @@ const ACT = {
     toast('Saved'); await loadPeople(); if (S.tab === 'customers') renderCustomers(); openCustomer(r.id);
   },
 
+  reportCsv() {
+    const r = reportData(), csv = reportCsv(r.leads, { services: S.services, mechanics: S.mechanics });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'mechanixpro-report-' + S.range + '-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
+    audit('exported_report', { range: S.range, rows: r.leads.length });
+  },
   newCoupon() { openCoupon('new'); },
   async saveCoupon() {
     const num = (v) => (String(v).trim() === '' ? null : parseInt(v, 10));

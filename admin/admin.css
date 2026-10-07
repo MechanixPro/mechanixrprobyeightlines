@@ -35,3 +35,4 @@
 @media(max-width:640px){.mrow{grid-template-columns:1fr auto}}
 .pill.off{background:var(--soft);color:var(--muted)}
 .inline-form{display:grid;gap:8px}
+.rtable{width:100%;border-collapse:collapse;font-size:15px}.rtable th,.rtable td{padding:8px 4px;border-bottom:1px solid var(--line);text-align:right}.rtable th:first-child,.rtable td:first-child{text-align:left}.rtable th{color:var(--muted);font-weight:600;font-size:13px}.rtable tr:last-child td{border-bottom:0}
