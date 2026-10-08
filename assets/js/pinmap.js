@@ -34,11 +34,44 @@
     var pin = sel ? '<g class="pm-sel" transform="translate(' + sel.x + ' ' + sel.y + ')"><circle class="pm-ripple" r="8"/><circle class="pm-ripple pm-r2" r="8"/><g class="pm-pin"><path d="M0 0C-9-13-12-19-12-25a12 12 0 0 1 24 0c0 6-3 12-12 25z"/><circle cy="-25" r="4.6"/></g></g>' : '';
     return '<svg viewBox="0 0 ' + w + ' ' + h + '" role="presentation" aria-hidden="true" focusable="false"><g class="pm-glow">' + glow + '</g>' + dots + pin + '</svg>';
   }
-  /* Draws into an element. A second draw keeps the dots still and only drops the pin again. */
+  /* The Mechanix Pro map: the real outline of every PIN code area. Mechanix Pro sits at its office in HSR Layout; when your PIN is known, a mechanic rides a route to your spot. */
+  var uid = 0;
+  function pj(P, lat, lng) { return { x: P.offX + (lng - P.w) * P.k * P.scale, y: P.offY + (P.n - lat) * P.scale }; }
+  var RIDER = '<g class="pm-rider-art"><ellipse cx="0" cy="3" rx="13" ry="3" fill="rgba(0,0,0,.18)"/><circle cx="-8" cy="-2" r="4.4" fill="#14295A"/><circle cx="8" cy="-2" r="4.4" fill="#14295A"/><circle cx="-8" cy="-2" r="1.6" fill="#fff"/><circle cx="8" cy="-2" r="1.6" fill="#fff"/><path d="M-9 -3h14l4-9h4" fill="none" stroke="#F2801F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M-2 -5l1-9" stroke="#14295A" stroke-width="3" stroke-linecap="round"/><circle cx="-1" cy="-19" r="4.2" fill="#F2801F" stroke="#fff" stroke-width="1.2"/><path d="M-3.5 -20.5h5" stroke="#fff" stroke-width="1.1" stroke-linecap="round"/></g>';
+  function svgMap(S, geo, opts) {
+    opts = opts || {}; var P = S.proj, id = opts.id || ('pm' + (++uid)), hub = pj(P, S.hub[0], S.hub[1]), sel = null, ok = false;
+    if (typeof opts.lat === 'number' && typeof opts.lng === 'number' && opts.lat >= P.s - 0.04 && opts.lat <= P.n + 0.04 && opts.lng >= P.w - 0.04 && opts.lng <= P.e + 0.04) { sel = pj(P, opts.lat, opts.lng); ok = true; }
+    else if (opts.pin && geo && geo[opts.pin]) { sel = pj(P, geo[opts.pin][0], geo[opts.pin][1]); ok = true; }
+    var areas = '', mine = '';
+    Object.keys(S.paths).forEach(function (pin) { if (opts.pin && pin === opts.pin) mine = '<path class="pm-sel-area" d="' + S.paths[pin] + '"/>'; else areas += '<path class="pm-area" d="' + S.paths[pin] + '"/>'; });
+    var hubG = '<g class="pm-hub" transform="translate(' + hub.x.toFixed(1) + ' ' + hub.y.toFixed(1) + ')"><circle r="9" class="pm-hub-ring"/><circle r="5.2" fill="#14295A"/><circle r="2" fill="#F2801F"/><text y="-12" text-anchor="middle">Mechanix Pro</text></g>';
+    var route = '', rider = '', pin = '';
+    if (ok) {
+      var dx = sel.x - hub.x, dy = sel.y - hub.y, dist = Math.sqrt(dx * dx + dy * dy), still = !!opts.still || dist < 8;
+      var cx = (hub.x + sel.x) / 2 - dy * 0.22, cy = (hub.y + sel.y) / 2 + dx * 0.22, d = 'M' + hub.x.toFixed(1) + ' ' + hub.y.toFixed(1) + ' Q' + cx.toFixed(1) + ' ' + cy.toFixed(1) + ' ' + sel.x.toFixed(1) + ' ' + sel.y.toFixed(1);
+      if (dist >= 8) route = '<path id="' + id + 'r" class="pm-route' + (opts.still ? ' pm-route-still' : '') + '" d="' + d + '"/>';
+      var flip = dx < 0 ? -1 : 1, art = '<g transform="scale(' + flip + ' 1)">' + RIDER + '</g>';
+      rider = still ? '<g class="pm-rider" transform="translate(' + sel.x.toFixed(1) + ' ' + sel.y.toFixed(1) + ')">' + art + '</g>'
+        : '<g class="pm-rider" visibility="hidden">' + art + '<set attributeName="visibility" to="visible" begin="0.5s" fill="freeze"/><animateMotion dur="3.2s" begin="0.5s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".45 0 .2 1"><mpath href="#' + id + 'r"/></animateMotion></g>';
+      pin = '<g class="pm-sel' + (still ? '' : ' pm-late') + '" transform="translate(' + sel.x.toFixed(1) + ' ' + sel.y.toFixed(1) + ')"><circle class="pm-ripple" r="8"/><circle class="pm-ripple pm-r2" r="8"/><g class="pm-pin"><path d="M0 0C-9-13-12-19-12-25a12 12 0 0 1 24 0c0 6-3 12-12 25z"/><circle cy="-25" r="4.6"/></g></g>';
+    }
+    return '<svg viewBox="0 0 ' + S.w + ' ' + S.h + '" role="presentation" aria-hidden="true" focusable="false"><g class="pm-land">' + areas + mine + '</g>' + route + hubG + rider + pin + '</svg>';
+  }
+  /* Draws into an element. Uses the real outlines (loaded the first time they are needed); until then, a quick dot map. */
+  var waiting = [], loading = false;
+  function loadShapes() {
+    if (loading || typeof document === 'undefined') return; loading = true;
+    var sc = document.createElement('script'); sc.src = '/assets/js/pinshapes.js'; sc.async = true;
+    sc.onload = function () { waiting.splice(0).forEach(function (w) { if (document.body.contains(w.el)) draw(w.el, w.opts); }); };
+    document.head.appendChild(sc);
+  }
   function draw(el, opts) {
     if (!el || typeof window === 'undefined' || !window.MXP_PIN_GEO) return;
-    el.innerHTML = svg(window.MXP_PIN_GEO, opts);
-    if (el.getAttribute('data-drawn') === '1') el.classList.add('pm-again'); else { el.setAttribute('data-drawn', '1'); }
+    opts = opts || {};
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (window.MXP_PIN_SHAPES) el.innerHTML = svgMap(window.MXP_PIN_SHAPES, window.MXP_PIN_GEO, Object.assign({}, opts, { still: opts.still || opts.again || reduce }));
+    else { el.innerHTML = svg(window.MXP_PIN_GEO, opts); waiting.push({ el: el, opts: opts }); loadShapes(); }
+    if (el.getAttribute('data-drawn') === '1') el.classList.add('pm-again'); else el.setAttribute('data-drawn', '1');
   }
-  return { layout: layout, svg: svg, draw: draw };
+  return { layout: layout, svg: svg, svgMap: svgMap, draw: draw };
 });

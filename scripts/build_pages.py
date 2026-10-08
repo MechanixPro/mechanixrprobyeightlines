@@ -306,6 +306,29 @@ with open(os.path.join(ROOT, 'assets', 'js', 'pincodes.js'), 'w', encoding='utf-
 _geo = {k: [v['lat'], v['lng']] + v['bbox'] for k, v in _pins.items() if 'lat' in v}
 with open(os.path.join(ROOT, 'assets', 'js', 'pingeo.js'), 'w', encoding='utf-8') as _f:
     _f.write('/* Centre point and outline of each Bengaluru PIN code: PIN -> [lat, lng, south, north, west, east]. Map data © OpenStreetMap contributors (ODbL). Written by scripts/build_pages.py from src/pincodes.json. */\nwindow.MXP_PIN_GEO = ' + json.dumps(_geo, separators=(',', ':')) + ';\n')
+# Real PIN code outlines, drawn ahead of time into a 300x300 map frame (the same projection the browser uses for exact places).
+import math as _m
+_W = _H = 300; _PAD = 14
+_shape = {}
+for _k, _v in _pins.items():
+    if 'shape' in _v: _shape[_k] = _v['shape']
+    elif 'bbox' in _v:
+        _s, _n, _w, _e = _v['bbox']; _shape[_k] = [[[_w, _s], [_e, _s], [_e, _n], [_w, _n], [_w, _s]]]
+_lngs = [x for r in _shape.values() for ring in r for x, y in ring]; _lats = [y for r in _shape.values() for ring in r for x, y in ring]
+_b = dict(s=min(_lats), n=max(_lats), w=min(_lngs), e=max(_lngs))
+_k = _m.cos(((_b['s'] + _b['n']) / 2) * _m.pi / 180); _spanx = (_b['e'] - _b['w']) * _k; _spany = _b['n'] - _b['s']
+_scale = min((_W - 2 * _PAD) / _spanx, (_H - 2 * _PAD) / _spany); _offx = (_W - _spanx * _scale) / 2; _offy = (_H - _spany * _scale) / 2
+def _pj(lng, lat): return (round(_offx + (lng - _b['w']) * _k * _scale, 1), round(_offy + (_b['n'] - lat) * _scale, 1))
+_paths = {}
+for _pin, _rings in _shape.items():
+    _d = ''
+    for _ring in _rings:
+        _pts = [_pj(x, y) for x, y in _ring]; _d += 'M' + ' '.join(f'{x:g} {y:g}' for x, y in [_pts[0]]) + ''.join(f'L{x:g} {y:g}' for x, y in _pts[1:]) + 'Z'
+    _paths[_pin] = _d
+_proj = dict(s=_b['s'], n=_b['n'], w=_b['w'], e=_b['e'], k=round(_k, 6), scale=round(_scale, 4), offX=round(_offx, 2), offY=round(_offy, 2))
+_hub = [_pins['560102']['lat'], _pins['560102']['lng']]
+with open(os.path.join(ROOT, 'assets', 'js', 'pinshapes.js'), 'w', encoding='utf-8') as _f:
+    _f.write('/* Outlines of the Bengaluru PIN code areas, pre-drawn for the Mechanix Pro map. Map data \u00a9 OpenStreetMap contributors (ODbL). Written by scripts/build_pages.py from src/pincodes.json. */\nwindow.MXP_PIN_SHAPES = ' + json.dumps(dict(w=_W, h=_H, proj=_proj, hub=_hub, paths=_paths), separators=(',', ':')) + ';\n')
 _rows = ''.join(f'<li class="pin-row"><b>{k}</b><span>{html.escape(v["name"])}</span><small>{html.escape(", ".join(a for a in v["areas"] if a != v["name"])[:140])}</small></li>' for k, v in _pins.items())
 _areas_body = f'''<h1 style="font-size:clamp(34px,6vw,52px)">We serve all of Bengaluru.</h1>
 <p class="muted" style="font-size:20px">Mechanix Pro comes to your home or office in every Bengaluru PIN code, 560001 to 560110. Check yours below, then build your service.</p>

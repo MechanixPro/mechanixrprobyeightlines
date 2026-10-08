@@ -127,7 +127,7 @@
     var el = $('#pinMap'); if (!el || !window.MXP_PINMAP) return;
     var i = L.pinInfo(st.pin, window.MXP_PINS || {}, window.MXP_PINS_OFF || {}), ok = !!(i && i.served && (window.MXP_PIN_GEO || {})[i.pin]);
     var key = (ok ? i.pin : '') + '|' + (st.lat || '') + '|' + (st.lng || '');
-    window.MXP_PINMAP.draw(el, { pin: ok ? i.pin : '', lat: st.lat, lng: st.lng });
+    window.MXP_PINMAP.draw(el, { pin: ok ? i.pin : '', lat: st.lat, lng: st.lng, again: key === lastPinKey });
     el.classList.add('pm-still'); if (key === lastPinKey) el.classList.add('pm-again'); lastPinKey = key;
   }
   var lastStep = -1, lastTotal = null;

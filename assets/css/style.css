@@ -608,3 +608,16 @@ a.soon-card:hover .soon-ico{transform:rotate(-8deg) scale(1.08)}
 @keyframes soonPop{from{transform:scale(0)}to{transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){.soon-glow,.soon-ring,.soon-badge,.soon-copy>*,.soon-art-svg path,.soon-card.in .soon-ico-svg path,.wl-msg.ok::before{animation:none}a.soon-card:hover{transform:none}.soon-feature::before{transform:scaleX(1);transition:none}}
 @media(max-width:520px){.soon-grid{grid-template-columns:1fr 1fr;gap:10px}a.soon-card{padding:14px;gap:6px}.soon-card h3{font-size:16px}.soon-card p{font-size:13px}.soon-ico{width:44px;height:44px}.soon-go{font-size:14px}}
+
+/* the Mechanix Pro map: real PIN areas, a mechanic showing the way */
+.pm-area{fill:#E7ECF5;stroke:#fff;stroke-width:.9;stroke-linejoin:round;transition:fill .3s}
+.pm-sel-area{fill:rgba(242,128,31,.24);stroke:var(--ember);stroke-width:1.8;stroke-linejoin:round;animation:pmPulse 2.4s ease-in-out infinite}
+.pm-hub text{font:700 8px var(--font);fill:#14295A;paint-order:stroke;stroke:#fff;stroke-width:2.4px}.pm-hub-ring{fill:rgba(20,41,90,.14)}
+.pm-route{fill:none;stroke:var(--ember);stroke-width:2.6;stroke-linecap:round;stroke-dasharray:1 7;animation:pmFlow .9s linear infinite}.pm-route-still{animation:none;stroke-dasharray:1 7}
+.pm-rider{pointer-events:none}.pm-rider-art{animation:pmBounce .5s ease-in-out infinite alternate}
+.pm-late .pm-pin{animation-delay:3.5s;opacity:0}.pm-late .pm-ripple{animation-delay:3.9s}.pm-late .pm-r2{animation-delay:5s}
+@keyframes pmFlow{to{stroke-dashoffset:-16}}
+@keyframes pmBounce{from{transform:translateY(0)}to{transform:translateY(-1.5px)}}
+@keyframes pmPulse{0%,100%{fill:rgba(242,128,31,.2)}50%{fill:rgba(242,128,31,.36)}}
+.pm-pin.pm-rm{animation:none}
+@media(prefers-reduced-motion:reduce){.pm-route,.pm-sel-area,.pm-rider-art{animation:none}.pm-late .pm-pin{animation:none;opacity:1}}
