@@ -480,3 +480,10 @@ footer .brand{background:#fff;padding:8px 14px;border-radius:14px;display:inline
 
 /* reserve the builder's space so the footer does not jump when it fills in */
 .builder{min-height:760px}
+
+/* two stats side by side in the stories band */
+.story-stats{display:grid;gap:26px;margin:6px 0 22px}
+.story-stats .odo{font-size:clamp(56px,15vw,110px)}
+.story-stats .odo-plus{font-size:clamp(40px,11vw,80px)}
+.story-dark .story-copy{margin-bottom:34px}
+@media(min-width:760px){.story-stats{grid-template-columns:1fr 1fr;gap:48px}}

@@ -279,7 +279,7 @@ GROUP = {
    ['One quote for all bikes, shown before any work starts', 'Servicing at your parking or hub, so riders lose less time', 'A service record for every bike, kept by registration number', 'Mechanix Pro certified mechanics and OEM-certified parts', '{{days}}-day warranty on the work'],
    'Hi Mechanix Pro, I run a bike fleet and need a fleet service quote. Number of bikes: __. Area: __.', 'Get a fleet quote on WhatsApp'),
  'societies': ('Bike Service for Apartments and Offices in Bengaluru | Mechanix Pro', 'Doorstep bike service days for apartment societies and office parking in Bengaluru. Many bikes in one visit, a group quote on WhatsApp, work starts only after approval.', 'Service days for apartments and offices.',
-   'Gather a few bikes and we come to your society or office parking. Residents and staff book on the same day, so it is easier for everyone.',
+   'Trusted by 1,300+ gated communities. Gather a few bikes and we come to your society or office parking. Residents and staff book on the same day, so it is easier for everyone.',
    ['A set service day in your parking area', 'Each owner gets their own quote and approves for their own bike', 'Group visits mean quicker slots', 'Mechanix Pro certified mechanics and OEM-certified parts', '{{days}}-day warranty on the work'],
    'Hi Mechanix Pro, I would like a bike service day at our apartment or office. Society or office name: __. Area: __. Approximate bikes: __.', 'Plan a service day on WhatsApp'),
 }

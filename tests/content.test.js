@@ -93,3 +93,11 @@ test('every part photo file is listed in the credits data', () => {
   const files = fs.readdirSync(path.join(root, 'assets/img/parts')).filter((x) => x.endsWith('.webp')).map((x) => x.replace('.webp', '')).sort();
   assert.deepEqual(files, Object.keys(JSON.parse(fs.readFileSync(path.join(root, 'src/part-photos.json'), 'utf8'))).sort());
 });
+
+test('the stories section shows both owner-confirmed numbers: services done and gated communities', () => {
+  const h = read('index.html');
+  const s = h.slice(h.indexOf('id="stories"'), h.indexOf('id="areas"'));
+  assert.match(s, /data-odo="10000"/); assert.match(s, /data-odo="1300"/);
+  assert.match(s, /gated communities/i); assert.match(s, /aria-label="1,300 plus gated communities/);
+  assert.match(read('societies/index.html'), /1,300\+ gated communities/);
+});
