@@ -1,3 +1,4 @@
+import { splitJob } from './split.js';
 // admin/people.js — pure helpers for the Customers and Mechanics tabs (no DOM, no Supabase), so they can be tested in Node.
 const bikeLabel = (b) => [b.brand && b.brand !== 'Other' ? b.brand : '', b.model].filter(Boolean).join(' ') + (b.nickname ? ` "${b.nickname}"` : '');
 
@@ -21,12 +22,19 @@ export function searchCustomers(rows, q) {
   return rows.filter((r) => [r.name, r.phone, ...r.bikes].some((v) => String(v ?? '').toLowerCase().includes(n)));
 }
 
-export function mechanicStats(mechanics, leads) {
+export function mechanicStats(mechanics, leads, { basis = 'collected' } = {}) {
   const rows = mechanics.map((m) => {
     const jobs = leads.filter((l) => l.mechanic_id === m.id && l.status !== 'lost');
     const done = jobs.filter((l) => l.status === 'completed');
-    const revenue = done.reduce((s, l) => s + (l.paid_amount || 0), 0);
-    return { id: m.id, name: m.name, active: m.active !== false, rate: m.payout_rate || 0, city: m.city || 'Bengaluru', specialties: m.specialties || '', years: m.experience_years || 0, certified: m.certified !== false, completed: done.length, open: jobs.length - done.length, revenue, payout: Math.round((revenue * (m.payout_rate || 0)) / 100) };
+    const rate = m.payout_rate || 0;
+    const revenue = done.reduce((t, l) => t + (l.paid_amount || 0), 0);
+    const base = done.reduce((t, l) => t + splitJob(l.paid_amount || 0, rate, basis).base, 0);
+    const sp = splitJob(base, rate, 'collected'); // one rounding for the whole total, so rows and totals agree
+    return {
+      id: m.id, name: m.name, active: m.active !== false, rate, companyRate: 100 - Math.min(100, Math.max(0, rate)),
+      city: m.city || 'Bengaluru', specialties: m.specialties || '', years: m.experience_years || 0, certified: m.certified !== false,
+      completed: done.length, open: jobs.length - done.length, revenue, payout: sp.mechanic, companyShare: sp.company, gst: revenue - base,
+    };
   });
   return rows.sort((a, b) => Number(b.active) - Number(a.active) || b.completed - a.completed || a.name.localeCompare(b.name));
 }

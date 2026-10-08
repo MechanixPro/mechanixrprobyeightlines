@@ -3,7 +3,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { leadDetailRows, sourceReport } from './lead-view.js';
 import { customerRows, searchCustomers, mechanicStats } from './people.js';
 import { couponRows } from './coupon-view.js';
-import { rangeFor, buildReport, reportCsv } from './report.js';
+import { rangeFor, buildReport, reportCsv, payoutReport } from './report.js';
+import { splitJob } from './split.js';
 import { buildInvoice } from './invoice.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
@@ -25,6 +26,7 @@ const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, custom
 
 function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
+const basis = () => (S.settings.payout_basis === 'before_gst' ? 'before_gst' : 'collected');
 const fee = (id, d) => S.services.find((x) => x.id === id)?.price ?? d;
 const isOwner = () => S.me?.role === 'owner';
 
@@ -96,7 +98,7 @@ document.addEventListener('click', (e) => {
   const co = e.target.closest('[data-coupon]'); if (co) { openCoupon(co.dataset.coupon); return; }
   const a = e.target.closest('[data-act]'); if (a && ACT[a.dataset.act]) ACT[a.dataset.act](a);
 });
-document.addEventListener('input', (e) => { if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
+document.addEventListener('input', (e) => { if (e.target.id === 'mr-range' || e.target.id === 'mr') { const v = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)); if (e.target.id === 'mr-range') $('#mr').value = v; else $('#mr-range').value = v; updateSplitPreview(); }  if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
 document.addEventListener('change', (e) => { if (e.target.id === 'il') { const l = S.leads.find((x) => x.id === e.target.value), w = warrantyInfo(l, WARRANTY_DAYS); $('#iw').textContent = l ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''; } if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'ifs') { S.ifilter = e.target.value; render(); } if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if ($('#inv')) $('#inv').remove(); else if (!$('#sheet').hidden) closeSheet(); } });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
@@ -167,13 +169,21 @@ function openCustomer(id) {
 
 /* ---------- mechanics ---------- */
 function mechanics() {
-  const rows = mechanicStats(S.mechanics, S.leads);
+  const rows = mechanicStats(S.mechanics, S.leads, { basis: basis() });
   return `<div class="toolbar"><p class="small muted" style="margin:0;flex:1">Assign a mechanic from a booking. Payout is the share of money collected on completed jobs, at the rate you set for each mechanic.</p>${isOwner() ? '<button class="btn btn-primary btn-sm" type="button" data-act="newMechanic">Add mechanic</button>' : ''}</div>
-  <div class="list">${rows.length ? rows.map((m) => `<button class="row mrow" data-mech="${m.id}"><span>${esc(m.name)} ${m.active ? '' : '<span class="pill off">Inactive</span>'}<br><span class="meta">${esc(m.city)} · ${m.years} yr · Rate ${m.rate}%${m.certified ? ' · Certified' : ''}${m.specialties ? '<br>' + esc(m.specialties) : ''}</span></span><span class="meta">${m.open} open</span><span class="meta">${m.completed} done · ${rupee(m.revenue)}</span><b>${rupee(m.payout)}</b></button>`).join('') : '<p class="muted" style="padding:16px">No mechanics yet. Add your first one to start assigning jobs.</p>'}</div>`;
+  <div class="list">${rows.length ? rows.map((m) => `<button class="row mrow" data-mech="${m.id}"><span>${esc(m.name)} ${m.active ? '' : '<span class="pill off">Inactive</span>'}<br><span class="meta">${esc(m.city)} · ${m.years} yr · Mechanic ${m.rate}% · Company ${m.companyRate}%${m.certified ? ' · Certified' : ''}<br><span class="splitbar" role="img" aria-label="Mechanic ${m.rate} percent, company ${m.companyRate} percent"><i style="width:${m.rate}%"></i></span>${m.specialties ? '<br>' + esc(m.specialties) : ''}</span></span><span class="meta">${m.open} open</span><span class="meta">${m.completed} done · ${rupee(m.revenue)}</span><b>${rupee(m.payout)}</b></button>`).join('') : '<p class="muted" style="padding:16px">No mechanics yet. Add your first one to start assigning jobs.</p>'}</div>`;
+}
+/* The revenue split picture: a two-colour bar and a sample job, so the percentage is never just a number. */
+function updateSplitPreview() {
+  const n = $('#mr'); if (!n) return;
+  const rate = Math.min(100, Math.max(0, parseInt(n.value, 10) || 0)), sp = splitJob(1000, rate, basis());
+  const bar = $('#split-bar'), sample = $('#split-sample');
+  if (bar) { bar.setAttribute('aria-label', `Mechanic ${rate} percent, company ${100 - rate} percent`); bar.innerHTML = `<span class="sb-mech" style="width:${rate}%">${rate >= 14 ? 'Mechanic ' + rate + '%' : ''}</span><span class="sb-co" style="width:${100 - rate}%">${100 - rate >= 14 ? 'Company ' + (100 - rate) + '%' : ''}</span>`; }
+  if (sample) sample.textContent = `On a ${rupee(1000)} job: the mechanic gets ${rupee(sp.mechanic)} and the company keeps ${rupee(sp.company)}.` + (sp.gst ? ` (${rupee(sp.gst)} is GST.)` : '');
 }
 function openMechanic(id) {
   const m = id === 'new' ? { id: 'new', name: '', phone: '', area: '', active: true, payout_rate: 0, city: 'Bengaluru', specialties: '', experience_years: 0, certified: true, notes: '' } : S.mechanics.find((x) => x.id === id); if (!m) return;
-  const st = id === 'new' ? null : mechanicStats(S.mechanics, S.leads).find((x) => x.id === id);
+  const st = id === 'new' ? null : mechanicStats(S.mechanics, S.leads, { basis: basis() }).find((x) => x.id === id);
   const ro = isOwner() ? '' : ' disabled';
   S.open = null; S.openCust = null; S.openMech = id;
   $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${id === 'new' ? 'New mechanic' : esc(m.name)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
@@ -181,7 +191,10 @@ function openMechanic(id) {
     <label class="label" for="mn">Name</label><input id="mn" maxlength="60" value="${esc(m.name)}"${ro}>
     <label class="label" for="mp">Mobile number</label><input id="mp" inputmode="numeric" maxlength="10" value="${esc(m.phone)}"${ro}>
     <label class="label" for="ma">Area they cover (optional)</label><input id="ma" maxlength="40" value="${esc(m.area || '')}"${ro}>
-    <label class="label" for="mr">Payout rate, % of collected amount</label><input id="mr" inputmode="numeric" maxlength="3" value="${esc(m.payout_rate)}"${ro}>
+    <div class="split-card"><h3 style="margin:0 0 4px">Revenue split</h3><p class="tiny muted" style="margin:0 0 10px">The company decides the percentage for each mechanic. It applies to the money collected on this mechanic's completed jobs${basis() === 'before_gst' ? ', before GST' : ' (GST included)'}.</p>
+      <label class="label" for="mr-range">Mechanic's share</label>
+      <div class="split-inputs"><input type="range" id="mr-range" min="0" max="100" step="5" value="${esc(m.payout_rate || 0)}"${ro} aria-label="Mechanic's share in percent"><span class="split-num"><input id="mr" inputmode="numeric" maxlength="3" value="${esc(m.payout_rate || 0)}"${ro} aria-label="Mechanic's share, number"><b>%</b></span></div>
+      <div id="split-bar" class="split-bar" role="img"></div><p id="split-sample" class="split-sample" role="status"></p></div>
     <label class="label" for="mcity">City</label><input id="mcity" maxlength="40" value="${esc(m.city || 'Bengaluru')}"${ro}>
     <label class="label" for="msp">Specialties (for example: scooters, Royal Enfield, EV)</label><input id="msp" maxlength="120" value="${esc(m.specialties || '')}"${ro}>
     <label class="label" for="mexp">Years of experience</label><input id="mexp" inputmode="numeric" maxlength="2" value="${esc(m.experience_years || 0)}"${ro}>
@@ -190,6 +203,7 @@ function openMechanic(id) {
     <label class="check"><input type="checkbox" id="mc"${m.active ? ' checked' : ''}${ro}><span>Active (can be assigned new jobs)</span></label>
     ${isOwner() ? '<button class="btn btn-primary" style="margin-top:8px" type="button" data-act="saveMechanic">Save</button>' : '<p class="tiny muted">Only the owner can change mechanics.</p>'}</div></div>
   ${st ? `<div class="card" style="margin-top:12px"><h3>Jobs</h3><dl class="kv"><dt>Open</dt><dd>${st.open}</dd><dt>Completed</dt><dd>${st.completed}</dd><dt>Collected</dt><dd>${rupee(st.revenue)}</dd><dt>Payout due</dt><dd>${rupee(st.payout)}</dd></dl></div>` : ''}`;
+  updateSplitPreview();
   $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
 }
 
@@ -221,6 +235,13 @@ function openCoupon(id) {
 
 /* ---------- reports ---------- */
 const RANGES = [['7d', 'Last 7 days'], ['30d', 'Last 30 days'], ['month', 'This month'], ['90d', 'Last 90 days'], ['all', 'All time']];
+function payoutTable(p) {
+  if (!p.rows.length) return '<div class="card" style="margin-top:16px"><h3>Mechanic payouts</h3><p class="muted">No completed jobs with a mechanic in this period yet.</p></div>';
+  return `<div class="card" style="margin-top:16px"><h3>Mechanic payouts</h3><p class="tiny muted" style="margin:0 0 8px">From completed jobs. Mechanic and company shares use each mechanic's percentage${basis() === 'before_gst' ? ', worked out before GST' : ''}.</p>
+  <div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Mechanic</th><th>Split</th><th>Jobs</th><th>Collected</th>${p.totals.gst ? '<th>GST</th>' : ''}<th>Mechanic gets</th><th>Company keeps</th></tr></thead><tbody>
+  ${p.rows.map((r) => `<tr><td>${esc(r.name)}</td><td><span class="splitbar" aria-hidden="true"><i style="width:${r.rate}%"></i></span> ${r.rate}/${100 - r.rate}</td><td>${r.jobs}</td><td>${rupee(r.collected)}</td>${p.totals.gst ? `<td>${rupee(r.gst)}</td>` : ''}<td>${rupee(r.mechanic)}</td><td>${rupee(r.company)}</td></tr>`).join('')}
+  <tr class="tot"><td><b>Total</b></td><td></td><td><b>${p.totals.jobs}</b></td><td><b>${rupee(p.totals.collected)}</b></td>${p.totals.gst ? `<td><b>${rupee(p.totals.gst)}</b></td>` : ''}<td><b>${rupee(p.totals.mechanic)}</b></td><td><b>${rupee(p.totals.company)}</b></td></tr></tbody></table></div></div>`;
+}
 function reportData() { return buildReport(S.leads, { services: S.services, mechanics: S.mechanics }, rangeFor(S.range)); }
 function reports() {
   const r = reportData(), t = r.totals;
@@ -234,7 +255,7 @@ function reports() {
     <div class="kpi"><b>${rupee(t.avgOrder)}</b><span>Average paid order</span></div>
     <div class="kpi"><b>${rupee(t.discount)}</b><span>Coupon discount given</span></div>
   </div>
-  <div class="split2">${table('By service', r.byService)}${table('By area', r.byArea)}${table('By mechanic', r.byMechanic)}${table('By source', r.bySource)}</div>`;
+  <div class="split2">${table('By service', r.byService)}${table('By area', r.byArea)}${table('By mechanic', r.byMechanic)}${table('By source', r.bySource)}</div>${payoutTable(payoutReport(r.leads, S.mechanics, basis()))}`;
 }
 
 function filtered() {
@@ -247,6 +268,14 @@ function renderList() {
   el.innerHTML = rows.length ? rows.map((l) => `<button class="row${S.selMode && S.sel.has(l.id) ? ' picked' : ''}" data-lead="${l.id}"${S.selMode ? ` aria-pressed="${S.sel.has(l.id)}"` : ''}><span class="ref">${S.selMode ? `<span class="chk" aria-hidden="true">${S.sel.has(l.id) ? '\u2611' : '\u2610'}</span> ` : ''}${esc(l.ref)}<br><span class="meta">${l.source === 'whatsapp' ? 'WhatsApp' : 'Website'}</span></span><span>${esc(l.name)} · <span class="meta">${esc(l.phone)}</span><br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')} · ${l.preferred_date ? esc(l.preferred_date) + ' ' + esc(SLOT[l.preferred_slot] ?? '') : ''}</span></span><span style="text-align:right"><span class="pill ${l.status}">${LABEL[l.status]}</span><br><span class="meta">${l.est_total ? rupee(l.est_total) : ''} · ${when(l.created_at)}</span></span></button>`).join('') : '<p class="muted" style="padding:16px">No bookings here yet.</p>';
 }
 
+function payoutCard(l) {
+  const m = S.mechanics.find((x) => x.id === l.mechanic_id); if (!m) return '';
+  if (!(l.paid_amount > 0)) return `<div class="card" style="margin-top:12px"><h3>Payout for this job</h3><p class="small muted" style="margin:0">${esc(m.name)} gets ${m.payout_rate || 0}% and the company keeps ${100 - (m.payout_rate || 0)}% once the customer has paid.</p></div>`;
+  const sp = splitJob(l.paid_amount, m.payout_rate || 0, basis());
+  return `<div class="card" style="margin-top:12px"><h3>Payout for this job</h3>
+    <div class="split-bar" role="img" aria-label="Mechanic ${sp.mechanicRate} percent, company ${sp.companyRate} percent"><span class="sb-mech" style="width:${sp.mechanicRate}%">${sp.mechanicRate >= 14 ? sp.mechanicRate + '%' : ''}</span><span class="sb-co" style="width:${sp.companyRate}%">${sp.companyRate >= 14 ? sp.companyRate + '%' : ''}</span></div>
+    <dl class="kv" style="margin-top:10px"><dt>Collected</dt><dd>${rupee(l.paid_amount)}</dd>${sp.gst ? `<dt>GST</dt><dd>${rupee(sp.gst)}</dd>` : ''}<dt>${esc(m.name)} gets</dt><dd><b>${rupee(sp.mechanic)}</b></dd><dt>Company keeps</dt><dd><b>${rupee(sp.company)}</b></dd></dl></div>`;
+}
 async function openLead(id, silent) {
   S.open = id; const l = S.leads.find((x) => x.id === id); if (!l) return;
   const { data: msgs } = await sb.from('messages').select('*').eq('lead_id', id).order('created_at').limit(200);
@@ -255,7 +284,7 @@ async function openLead(id, silent) {
   <p><span class="pill ${l.status}">${LABEL[l.status]}</span> ${l.opted_out ? '<span class="pill lost">Opted out</span>' : ''} ${l.paid_amount ? `<span class="pill paid">Paid ${rupee(l.paid_amount)}</span>` : ''}</p>
   <div class="card"><dl class="kv"><dt>Customer</dt><dd>${esc(l.name)}<br><a href="tel:+91${esc(l.phone)}">+91 ${esc(l.phone)}</a></dd><dt>Service</dt><dd>${esc(svcName(l.service_id))}${(l.addons || []).length ? ' + ' + l.addons.map((a) => esc(svcName(a))).join(', ') : ''}</dd><dt>Estimate</dt><dd>${l.est_total ? rupee(l.est_total) : '—'}</dd><dt>Area</dt><dd>${esc(l.area || '—')}</dd><dt>When</dt><dd>${esc(l.preferred_date || '—')} · ${esc(l.preferred_time || SLOT[l.preferred_slot] || '—')}</dd>${leadDetailRows(l).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${k === 'Map pin' ? `<a href="${esc(v)}" target="_blank" rel="noopener">Open in Google Maps</a>` : esc(v)}</dd>`).join('')}<dt>Source</dt><dd>${esc(l.source)}${l.utm?.utm_campaign ? ' · ' + esc(l.utm.utm_campaign) : ''}</dd><dt>Created</dt><dd>${when(l.created_at)}</dd><dt>Reminders</dt><dd>${l.next_followup_at ? 'Next ' + when(l.next_followup_at) + ' (step ' + (l.followup_step + 1) + ' of 4)' : 'None scheduled'}</dd></dl>
   <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">Open WhatsApp chat</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a></div></div>
-  <div class="card" style="margin-top:12px"><h3>Update</h3>
+  ${payoutCard(l)}<div class="card" style="margin-top:12px"><h3>Update</h3>
     <label class="label" for="ls">Status</label><select id="ls">${STATUSES.map((s) => `<option value="${s}"${s === l.status ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
     <label class="label" for="lm">Mechanic</label><select id="lm"><option value="">Not assigned</option>${S.mechanics.filter((m) => m.active || m.id === l.mechanic_id).map((m) => `<option value="${m.id}"${m.id === l.mechanic_id ? ' selected' : ''}>${esc(m.name)}${m.active ? '' : ' (inactive)'}</option>`).join('')}</select>
     <label class="label" for="la">Garage or outside partner (if not on your mechanic list)</label><input id="la" value="${esc(l.assigned_to || '')}" maxlength="60">
@@ -460,7 +489,7 @@ const ACT = {
     await audit('price_updated', { id, ...upd }); toast('Price live on the website'); loadServices();
   },
   async saveSettings() {
-    const pairs = { ai_enabled: $('#st-ai').checked, quiet_hours: { start: parseInt($('#st-q1').value, 10), end: parseInt($('#st-q2').value, 10) }, business_info: { ...(S.settings.business_info || {}), hours: $('#st-hours').value.trim(), areas: $('#st-areas').value.trim(), warranty: $('#st-war').value.trim() } };
+    const pairs = { payout_basis: $('#st-basis').value, ai_enabled: $('#st-ai').checked, quiet_hours: { start: parseInt($('#st-q1').value, 10), end: parseInt($('#st-q2').value, 10) }, business_info: { ...(S.settings.business_info || {}), hours: $('#st-hours').value.trim(), areas: $('#st-areas').value.trim(), warranty: $('#st-war').value.trim() } };
         for (const [key, value] of Object.entries(pairs)) { const { error } = await sb.from('settings').update({ value }).eq('key', key); if (error) return toast(isOwner() ? error.message : 'Only the owner can change settings'); }
     await audit('settings_updated', { keys: Object.keys(pairs) }); await loadSettings(); toast('Settings saved');
   },
@@ -478,6 +507,9 @@ function settings() {
   <label class="check"><input type="checkbox" id="st-ai"${st.ai_enabled !== false ? ' checked' : ''}${dis}><span><b>AI replies and reminders on</b><br><span class="tiny muted">Turn off to answer every chat yourself.</span></span></label>
   <p class="tiny muted" style="margin:10px 0 0">The checkup and quote fee and the above-180cc surcharge are now edited in the <b>Prices</b> tab, so every page shows the same number.</p>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="label" for="st-q1">No messages after (hour)</label><input id="st-q1" type="number" min="0" max="23" value="${q.start}"${dis}></div><div><label class="label" for="st-q2">Resume at (hour)</label><input id="st-q2" type="number" min="0" max="23" value="${q.end}"${dis}></div></div></div>
+  <div class="card"><h3>Mechanic payouts</h3><p class="small muted" style="margin:0 0 8px">Each mechanic's percentage is set on their own page. Choose what the percentage is worked out on.</p>
+  <label class="label" for="st-basis">Work out the split on</label><select id="st-basis"${dis}><option value="collected"${basis() === 'collected' ? ' selected' : ''}>The amount collected (GST included)</option><option value="before_gst"${basis() === 'before_gst' ? ' selected' : ''}>The amount before GST (GST is kept aside)</option></select>
+  <p class="tiny muted" style="margin:8px 0 0">Ask your accountant which to use. The GST on a job is paid to the government either way.</p></div>
   <div class="card"><h3>What the AI tells customers</h3><label class="label" for="st-hours">Hours</label><input id="st-hours" value="${esc(bi.hours || '')}"${dis}><label class="label" for="st-areas">Areas served</label><textarea id="st-areas" rows="3"${dis}>${esc(bi.areas || '')}</textarea><label class="label" for="st-war">Warranty</label><input id="st-war" value="${esc(bi.warranty || '')}"${dis}></div></div>
   ${isOwner() ? '<button class="btn btn-primary" style="margin-top:16px" type="button" data-act="saveSettings">Save settings</button>' : '<p class="muted">Only the owner can change settings.</p>'}`;
 }

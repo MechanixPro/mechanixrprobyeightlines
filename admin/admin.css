@@ -77,3 +77,16 @@
 /* select-to-delete mode */
 .row.picked{background:#FFF1E3;box-shadow:inset 3px 0 0 var(--ember)}
 .row .chk{font-size:18px;margin-right:4px}
+
+/* revenue split: mini bar in lists, big two-colour bar in the editor */
+.splitbar{display:inline-block;width:72px;height:6px;border-radius:6px;background:var(--navy);vertical-align:middle;overflow:hidden}
+.splitbar i{display:block;height:100%;background:var(--ember)}
+.split-card{border:1px solid var(--line);border-radius:16px;padding:14px;margin:12px 0;background:var(--card)}
+.split-inputs{display:flex;align-items:center;gap:14px}.split-inputs input[type=range]{flex:1;min-height:44px;accent-color:var(--ember)}
+.split-num{display:inline-flex;align-items:center;gap:4px}.split-num input{width:72px;text-align:right}
+.split-bar{display:flex;height:34px;border-radius:12px;overflow:hidden;margin-top:12px;font:700 13px var(--font);color:#fff}
+.split-bar .sb-mech{background:var(--ember);color:#1F1206;display:grid;place-items:center;transition:width .25s ease;white-space:nowrap}
+.split-bar .sb-co{background:var(--navy);display:grid;place-items:center;transition:width .25s ease;white-space:nowrap}
+.split-sample{margin:10px 0 0;font-size:14px;color:var(--ink-2)}
+.rtable .tot td{border-top:2px solid var(--line)}
+@media(prefers-reduced-motion:reduce){.split-bar .sb-mech,.split-bar .sb-co{transition:none}}
