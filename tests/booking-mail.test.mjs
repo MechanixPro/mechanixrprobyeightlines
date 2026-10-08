@@ -54,3 +54,9 @@ test('the invoice email shows the special discount with its reason, and a refund
   for (const t of ['Special discount', 'Regular customer', 'Refund due to you', '200.00']) assert.ok(m.html.includes(t), t);
   assert.match(m.text, /Special discount \(Regular customer\): -₹200\.00/);
 });
+
+test('the admin website is allowed to call the email functions (its address is in the default allowed list)', () => {
+  const util = read('../supabase/functions/_shared/util.ts');
+  assert.match(util, /ALLOWED_ORIGINS', 'https:\/\/mechanixpro\.in,https:\/\/www\.mechanixpro\.in,https:\/\/admin\.mechanixpro\.in'/);
+  for (const f of ['send-broadcast', 'confirm-booking', 'send-invoice']) assert.match(read(`../supabase/functions/${f}/index.ts`), /corsHeaders/, f);
+});

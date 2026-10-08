@@ -9,7 +9,7 @@ export function adminDb(): SupabaseClient {
 }
 
 export function corsHeaders(req: Request): Record<string, string> {
-  const allowed = env('ALLOWED_ORIGINS', 'https://mechanixpro.in,https://www.mechanixpro.in').split(',').map((s) => s.trim());
+  const allowed = env('ALLOWED_ORIGINS', 'https://mechanixpro.in,https://www.mechanixpro.in,https://admin.mechanixpro.in').split(',').map((s) => s.trim());
   const origin = req.headers.get('origin') ?? '';
   return {
     'Access-Control-Allow-Origin': allowed.includes(origin) ? origin : allowed[0],
