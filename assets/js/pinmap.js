@@ -44,18 +44,23 @@
     else if (opts.pin && geo && geo[opts.pin]) { sel = pj(P, geo[opts.pin][0], geo[opts.pin][1]); ok = true; }
     var areas = '', mine = '';
     Object.keys(S.paths).forEach(function (pin) { if (opts.pin && pin === opts.pin) mine = '<path class="pm-sel-area" d="' + S.paths[pin] + '"/>'; else areas += '<path class="pm-area" d="' + S.paths[pin] + '"/>'; });
-    var hubG = '<g class="pm-hub" transform="translate(' + hub.x.toFixed(1) + ' ' + hub.y.toFixed(1) + ')"><circle r="9" class="pm-hub-ring"/><circle r="5.2" fill="#14295A"/><circle r="2" fill="#F2801F"/><text y="-12" text-anchor="middle">Mechanix Pro</text></g>';
-    var route = '', rider = '', pin = '';
+    var route = '', rider = '', pin = '', vb = [0, 0, S.w, S.h], z = 1;
     if (ok) {
       var dx = sel.x - hub.x, dy = sel.y - hub.y, dist = Math.sqrt(dx * dx + dy * dy), still = !!opts.still || dist < 8;
+      if (dist < 110) { /* a spot close to Mechanix Pro: zoom in so the route and the pin are not on top of each other */
+        var half = Math.max(65, Math.max(Math.abs(dx), Math.abs(dy)) / 2 + 36), mx = (hub.x + sel.x) / 2, my = (hub.y + sel.y) / 2;
+        var x0 = Math.min(Math.max(mx - half, 0), S.w - 2 * half), y0 = Math.min(Math.max(my - half, 0), S.h - 2 * half);
+        vb = [Math.round(x0 * 10) / 10, Math.round(y0 * 10) / 10, Math.round(2 * half * 10) / 10, Math.round(2 * half * 10) / 10]; z = vb[2] / S.w;
+      }
       var cx = (hub.x + sel.x) / 2 - dy * 0.22, cy = (hub.y + sel.y) / 2 + dx * 0.22, d = 'M' + hub.x.toFixed(1) + ' ' + hub.y.toFixed(1) + ' Q' + cx.toFixed(1) + ' ' + cy.toFixed(1) + ' ' + sel.x.toFixed(1) + ' ' + sel.y.toFixed(1);
       if (dist >= 8) route = '<path id="' + id + 'r" class="pm-route' + (opts.still ? ' pm-route-still' : '') + '" d="' + d + '"/>';
-      var flip = dx < 0 ? -1 : 1, art = '<g transform="scale(' + flip + ' 1)">' + RIDER + '</g>';
+      var flip = dx < 0 ? -1 : 1, art = '<g transform="scale(' + (flip * z).toFixed(3) + ' ' + z.toFixed(3) + ')">' + RIDER + '</g>';
       rider = still ? '<g class="pm-rider" transform="translate(' + sel.x.toFixed(1) + ' ' + sel.y.toFixed(1) + ')">' + art + '</g>'
         : '<g class="pm-rider" visibility="hidden">' + art + '<set attributeName="visibility" to="visible" begin="0.5s" fill="freeze"/><animateMotion dur="3.2s" begin="0.5s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".45 0 .2 1"><mpath href="#' + id + 'r"/></animateMotion></g>';
-      pin = '<g class="pm-sel' + (still ? '' : ' pm-late') + '" transform="translate(' + sel.x.toFixed(1) + ' ' + sel.y.toFixed(1) + ')"><circle class="pm-ripple" r="8"/><circle class="pm-ripple pm-r2" r="8"/><g class="pm-pin"><path d="M0 0C-9-13-12-19-12-25a12 12 0 0 1 24 0c0 6-3 12-12 25z"/><circle cy="-25" r="4.6"/></g></g>';
+      pin = '<g class="pm-sel' + (still ? '' : ' pm-late') + '" transform="translate(' + sel.x.toFixed(1) + ' ' + sel.y.toFixed(1) + ') scale(' + z.toFixed(3) + ')"><circle class="pm-ripple" r="8"/><circle class="pm-ripple pm-r2" r="8"/><g class="pm-pin"><path d="M0 0C-9-13-12-19-12-25a12 12 0 0 1 24 0c0 6-3 12-12 25z"/><circle cy="-25" r="4.6"/></g></g>';
     }
-    return '<svg viewBox="0 0 ' + S.w + ' ' + S.h + '" role="presentation" aria-hidden="true" focusable="false"><g class="pm-land">' + areas + mine + '</g>' + route + hubG + rider + pin + '</svg>';
+    var hubG = '<g class="pm-hub" transform="translate(' + hub.x.toFixed(1) + ' ' + hub.y.toFixed(1) + ') scale(' + z.toFixed(3) + ')"><circle r="9" class="pm-hub-ring"/><circle r="5.2" fill="#14295A"/><circle r="2" fill="#F2801F"/><text y="-12" text-anchor="middle">Mechanix Pro</text></g>';
+    return '<svg viewBox="' + vb.join(' ') + '" style="--z:' + z.toFixed(3) + '" role="presentation" aria-hidden="true" focusable="false"><g class="pm-land">' + areas + mine + '</g>' + route + hubG + rider + pin + '</svg>';
   }
   /* Draws into an element. Uses the real outlines (loaded the first time they are needed); until then, a quick dot map. */
   var waiting = [], loading = false;

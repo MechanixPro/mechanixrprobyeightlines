@@ -621,3 +621,6 @@ a.soon-card:hover .soon-ico{transform:rotate(-8deg) scale(1.08)}
 @keyframes pmPulse{0%,100%{fill:rgba(242,128,31,.2)}50%{fill:rgba(242,128,31,.36)}}
 .pm-pin.pm-rm{animation:none}
 @media(prefers-reduced-motion:reduce){.pm-route,.pm-sel-area,.pm-rider-art{animation:none}.pm-late .pm-pin{animation:none;opacity:1}}
+
+/* zoomed map: strokes and text keep a steady size on screen */
+.pm svg{--z:1}.pm-route{stroke-width:calc(2.6px * var(--z));stroke-dasharray:calc(1px * var(--z)) calc(7px * var(--z))}.pm-sel-area{stroke-width:calc(1.8px * var(--z))}.pm-area{stroke-width:calc(.9px * var(--z))}
