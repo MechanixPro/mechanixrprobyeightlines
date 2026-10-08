@@ -73,3 +73,7 @@
   .inv-paper{box-shadow:none;border-radius:0;width:100%;padding:0}
   .inv-line{opacity:1;animation:none}.inv-stamp{opacity:.9;animation:none}
 }
+
+/* select-to-delete mode */
+.row.picked{background:#FFF1E3;box-shadow:inset 3px 0 0 var(--ember)}
+.row .chk{font-size:18px;margin-right:4px}
