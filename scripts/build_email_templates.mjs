@@ -2,6 +2,6 @@
 // Run: node scripts/build_email_templates.mjs
 import { writeFileSync } from 'node:fs';
 import { otpCode } from '../supabase/functions/_shared/email-templates.ts';
-const site = { siteUrl: process.env.SITE_URL || 'https://www.mechanixpro.in', phoneDisplay: '+91 97430 31301', phoneTel: '+919743031301', whatsappUrl: 'https://wa.me/919743031301', email: 'hello@mechanixpro.in' };
+const site = { siteUrl: process.env.SITE_URL || 'https://mechanixpro.in', phoneDisplay: '+91 97430 31301', phoneTel: '+919743031301', whatsappUrl: 'https://wa.me/919743031301', email: 'hello@mechanixpro.in' };
 writeFileSync(new URL('../supabase/templates/otp.html', import.meta.url), otpCode({ ...site, code: '{{ .Token }}', minutes: 10 }).html);
 console.log('Wrote supabase/templates/otp.html');

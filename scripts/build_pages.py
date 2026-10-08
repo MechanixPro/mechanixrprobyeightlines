@@ -2,7 +2,7 @@
 Run:  python3 scripts/build_pages.py   (from the repo root). Edit AREAS / legal text below, then re-run."""
 import html, json, os, re, datetime, urllib.parse
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SITE = 'https://www.mechanixpro.in'
+SITE = 'https://mechanixpro.in'
 TODAY = datetime.date.today().isoformat()
 
 NAV = '''<a class="skip" href="#main">Skip to content</a>
