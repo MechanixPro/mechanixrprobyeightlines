@@ -64,7 +64,7 @@ async function boot() {
   await Promise.all([loadLeads(), loadServices(), loadSettings(), loadPeople(), loadHome()]);
   render();
   S.channel = sb.channel('mxp-admin')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async (p) => { if (p.eventType === 'INSERT') toast('New booking ' + (p.new?.ref ?? '')); await loadLeads(); if (S.tab !== 'prices' && S.tab !== 'settings') render(); if (S.open) openLead(S.open, true); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async (p) => { if (p.eventType === 'INSERT') toast('New booking ' + (p.new?.ref ?? '')); await loadLeads(); if (!['prices', 'settings', 'offers', 'homeimgs'].includes(S.tab)) render(); if (S.open) openLead(S.open, true); })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (p) => { if (S.open && p.new?.lead_id === S.open) openLead(S.open, true); })
     .subscribe();
 }
@@ -98,7 +98,7 @@ document.addEventListener('change', (e) => { if (e.target.id === 'hf') ACT.uploa
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if ($('#inv')) $('#inv').remove(); else if (!$('#sheet').hidden) closeSheet(); } });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
-function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, reports, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, offers, reports, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -348,6 +348,20 @@ const ACT = {
     const m = r.url.match(/\/object\/public\/home\/(.+)$/); if (m) await sb.storage.from('home').remove([decodeURIComponent(m[1])]);
     await audit('home_image_deleted', { id: r.id }); toast('Deleted'); await loadHome(); render();
   },
+  async offerTest() {
+    const f = offerForm(), { data, error } = await sb.functions.invoke('send-broadcast', { body: { ...f, mode: 'test' } });
+    $('#offerMsg').textContent = error || !data || data.error ? 'Could not send: ' + ((data && data.error) || (error && error.message) || 'try again') : 'Test sent to ' + data.to + '. Check your inbox and spam.';
+  },
+  async offerSend() {
+    const f = offerForm(), n = eligibleCustomers().length;
+    if (!confirm(`Send "${f.subject}" to ${n} customer${n === 1 ? '' : 's'} now? This cannot be undone.`)) return;
+    S.offerKey = S.offerKey || 'c' + Date.now();
+    $('#offerMsg').textContent = 'Sending. Please keep this page open…';
+    const { data, error } = await sb.functions.invoke('send-broadcast', { body: { ...f, mode: 'send', campaign: S.offerKey } });
+    if (error || !data || data.error) { $('#offerMsg').textContent = 'Could not send: ' + ((data && data.error) || (error && error.message) || 'try again'); return; }
+    $('#offerMsg').textContent = `Sent ${data.sent}${data.failed ? ', ' + data.failed + ' failed' : ''}.` + (data.more ? ' There are more customers: press Send again to continue. Nobody gets it twice.' : '');
+    if (!data.more) S.offerKey = null;
+  },
   invoice() { const l = S.leads.find((x) => x.id === S.open); if (l) openInvoice(l); },
   invPrint() { window.print(); },
   invClose() { $('#inv')?.remove(); },
@@ -424,6 +438,24 @@ function settings() {
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="label" for="st-q1">No messages after (hour)</label><input id="st-q1" type="number" min="0" max="23" value="${q.start}"${dis}></div><div><label class="label" for="st-q2">Resume at (hour)</label><input id="st-q2" type="number" min="0" max="23" value="${q.end}"${dis}></div></div></div>
   <div class="card"><h3>What the AI tells customers</h3><label class="label" for="st-hours">Hours</label><input id="st-hours" value="${esc(bi.hours || '')}"${dis}><label class="label" for="st-areas">Areas served</label><textarea id="st-areas" rows="3"${dis}>${esc(bi.areas || '')}</textarea><label class="label" for="st-war">Warranty</label><input id="st-war" value="${esc(bi.warranty || '')}"${dis}></div></div>
   ${isOwner() ? '<button class="btn btn-primary" style="margin-top:16px" type="button" data-act="saveSettings">Save settings</button>' : '<p class="muted">Only the owner can change settings.</p>'}`;
+}
+/* ---------- offers (marketing email to customers who asked for it) ---------- */
+const eligibleCustomers = () => S.customers.filter((c) => c.email && c.email_marketing_consent === true && !c.email_unsubscribed_at && !c.blocked);
+function offers() {
+  if (!isOwner()) return '<h1 style="font-size:34px">Offers</h1><p class="muted">Only the owner can send offer emails.</p>';
+  const n = eligibleCustomers().length, d = S.offerDraft || {};
+  return `<h1 style="font-size:34px">Offers</h1><p class="muted">Email an offer to customers who ticked "email me offers". Everyone gets their own unsubscribe link. Always send yourself a test first.</p>
+  <div class="card"><label class="label" for="ofs">Subject</label><input id="ofs" maxlength="120" value="${esc(d.subject || '')}">
+  <label class="label" for="ofh">Headline inside the email</label><input id="ofh" maxlength="120" value="${esc(d.headline || '')}">
+  <label class="label" for="ofb">Message (leave a blank line between paragraphs)</label><textarea id="ofb" rows="6" maxlength="2000">${esc(d.body || '')}</textarea>
+  <label class="label" for="oft">Button text (optional)</label><input id="oft" maxlength="40" value="${esc(d.ctaText || 'Build your service')}">
+  <label class="label" for="ofu">Button link (optional, must start with https://)</label><input id="ofu" maxlength="300" value="${esc(d.ctaUrl || 'https://mechanixpro.in/book/')}">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-ghost" type="button" data-act="offerTest">Send a test to me</button><button class="btn btn-primary" type="button" data-act="offerSend"${n ? '' : ' disabled'}>Send to ${n} customer${n === 1 ? '' : 's'}</button></div>
+  <p class="tiny muted" id="offerMsg" role="status" style="margin-top:8px">${n ? '' : 'No customer has asked for offers yet.'}</p></div>`;
+}
+function offerForm() {
+  S.offerDraft = { subject: $('#ofs').value, headline: $('#ofh').value, body: $('#ofb').value, ctaText: $('#oft').value, ctaUrl: $('#ofu').value };
+  return { ...S.offerDraft };
 }
 function homeimgs() {
   const rows = S.homeimgs;
