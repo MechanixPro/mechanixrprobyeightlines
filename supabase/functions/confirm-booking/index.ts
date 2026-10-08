@@ -34,10 +34,10 @@ Deno.serve(async (req) => {
   let emailed = false;
   if (cust?.email) {
     const mail = bookingConfirmed({
-      siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 97430 31301'), phoneTel: env('PHONE_TEL', '+919743031301'),
+      siteUrl: env('SITE_URL', 'https://www.mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 97430 31301'), phoneTel: env('PHONE_TEL', '+919743031301'),
       whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/919743031301'), email: 'hello@mechanixpro.in',
       name: lead.name, ref: lead.ref, nick: bike?.nickname ?? null,
-      buildUrl: env('SITE_URL', 'https://mechanixpro.in') + '/book/?' + new URLSearchParams({ ...(bike?.brand && bike.brand !== 'Other' ? { brand: bike.brand } : {}), ...(bike?.model ? { model: bike.model } : {}), ...(bike?.nickname ? { nick: bike.nickname } : {}), ...(lead.service_id ? { service: lead.service_id } : {}) }).toString(),
+      buildUrl: env('SITE_URL', 'https://www.mechanixpro.in') + '/book/?' + new URLSearchParams({ ...(bike?.brand && bike.brand !== 'Other' ? { brand: bike.brand } : {}), ...(bike?.model ? { model: bike.model } : {}), ...(bike?.nickname ? { nick: bike.nickname } : {}), ...(lead.service_id ? { service: lead.service_id } : {}) }).toString(),
       bike: bike ? [bike.brand && bike.brand !== 'Other' ? bike.brand : '', bike.model].filter(Boolean).join(' ') + (bike.nickname ? ` "${bike.nickname}"` : '') : 'Your bike',
       service: svc?.name ?? 'Bike service', area: lead.area || 'Bengaluru',
       whenText: formatWhen(String(lead.preferred_date), String(lead.preferred_slot), lead.preferred_time ?? null),

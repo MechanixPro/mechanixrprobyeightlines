@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
   if (!invoice.lines.length) return json(req, { error: 'This booking has no priced items to invoice' }, 400);
 
   const mail = invoiceEmail({
-    siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 97430 31301'), phoneTel: env('PHONE_TEL', '+919743031301'),
+    siteUrl: env('SITE_URL', 'https://www.mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 97430 31301'), phoneTel: env('PHONE_TEL', '+919743031301'),
     whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/919743031301'), email: 'hello@mechanixpro.in', invoice, company: COMPANY,
   });
   const r = await sendEmail({ to: cust.email, subject: mail.subject, html: mail.html, text: mail.text, from: FROM_BOOKING, tags: { template: 'invoice' } });
