@@ -112,3 +112,10 @@ test('the invoice screen and email say whether amounts are before or including G
   assert.match(m, /'excl\.' : 'incl\.'/); assert.match(m, /GST is added at 18%/);
   assert.match(readFileSync(new URL('../supabase/migrations/20261029000000_invoice_override.sql', import.meta.url), 'utf8'), /invoice_override jsonb/);
 });
+test('the plain-text invoice email says the same thing about GST as the HTML one', async () => {
+  const { invoiceEmail } = await import('../supabase/functions/_shared/email-templates.ts');
+  const mk = (basis) => invoiceEmail({ siteUrl: 'https://x', phoneDisplay: '1', phoneTel: '1', whatsappUrl: 'https://wa.me/1', email: 'a@b.in', company: { legalName: 'N', addressLines: [], city: 'B', state: 'K', pincode: '1', gstin: 'G' },
+    invoice: buildInvoice({ ...lead, invoice_override: { basis, lines: [{ name: 'Labour', amount: 1000 }] } }, services) });
+  assert.match(mk('excl').text, /Amounts are before GST/); assert.match(mk('excl').html, /Amounts are before GST/); assert.doesNotMatch(mk('excl').text, /Prices include 18% GST/);
+  assert.match(mk('incl').text, /Prices include 18% GST/);
+});
