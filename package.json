@@ -7,8 +7,8 @@
     "check": "node --check assets/js/app.js && node --check assets/js/logic.js && node --check assets/js/hero.js && node --check assets/js/page.js && node --check admin/admin.js",
     "admin": "sh scripts/build_admin.sh && npx --yes serve dist-admin -l 3001",
     "test": "node --test tests/*.test.js tests/*.test.mjs",
-    "deploy": "wrangler deploy",
-    "preview": "wrangler dev"
+    "deploy:site": "sh scripts/build_site.sh && wrangler pages deploy dist-site --project-name mechanixpro-site --branch main",
+    "deploy:admin": "sh scripts/build_admin.sh && wrangler pages deploy dist-admin --project-name mechanixpro-admin --branch main"
   },
   "devDependencies": {
     "wrangler": "^4.148.0"

@@ -7,43 +7,73 @@
       "name": "Basic service",
       "price": 599,
       "includes": [
-        "Engine oil level check",
-        "Chain clean and lube",
-        "Brake adjustment",
-        "Wash and wipe"
+        "• 20+ Point Bike Checkup",
+        "• Engine Check",
+        "• Brake Check",
+        "• Tyre Check",
+        "• Battery Check",
+        "• Lights & Indicators Check",
+        "• Horn Check",
+        "• Chain Cleaning & Lubrication",
+        "• Air Filter Check",
+        "• Clutch Check",
+        "• Throttle Check",
+        "• Bike Washing & Cleaning"
       ]
     },
     "general": {
       "name": "General service",
       "price": 1299,
       "includes": [
-        "Engine oil change (brand of your choice)",
-        "Air filter clean and spark plug check",
-        "Chain clean, lube and adjust",
-        "Brake inspection and adjustment",
-        "Battery, lights and horn check",
-        "Tyre pressure and 20-point safety check",
-        "Wash and wipe"
+        "• 30+ Point Bike Checkup",
+        "• Engine Oil Replacement (As per your choice)",
+        "• Brake Check & Adjustment",
+        "• Tyre Check",
+        "• Battery Check",
+        "• Chain Cleaning & Lubrication",
+        "• Air Filter Cleaning",
+        "• Spark Plug Check",
+        "• Clutch & Throttle Adjustment",
+        "• Lights & Electrical Check",
+        "• Suspension Check",
+        "• Bike Washing & Cleaning",
+        "• Extra parts (Chargeble)"
       ]
     },
     "full": {
       "name": "Full service",
       "price": 1999,
       "includes": [
-        "Everything in the General service",
-        "Throttle body clean",
-        "Brake pads check",
-        "Polish"
+        "• 40+ Point Complete Bike Checkup",
+        "• Engine Oil Replacement",
+        "• Engine Performance Check",
+        "• Brake Servicing",
+        "• Tyre & Wheel Check",
+        "• Battery & Electrical Check",
+        "• Air Filter Cleaning / Replacement",
+        "• Spark Plug Check / Replacement",
+        "• Chain Servicing",
+        "• Clutch Servicing",
+        "• Suspension Check",
+        "• Complete Bike Cleaning",
+        "• Required Minor Parts Replacement",
+        "• Extra Parts (Chargeble)",
+        "• Final Quality Inspection"
       ]
     },
     "repair": {
       "name": "Repair or problem check",
       "price": 349,
       "includes": [
-        "Inspection visit at your location",
-        "Diagnosis of the problem",
-        "Itemised quote before any work starts",
-        "The fee is adjusted in your final bill if you go ahead with the service"
+        "AT YOUR DOOR STEP",
+        "• Diagnose the bike problem",
+        "• Identify the cause of the issue",
+        "• Complete vehicle inspection",
+        "• Check engine, brakes, battery & electricals",
+        "• Check unusual noise, vibration or starting issues",
+        "• Get a clear repair estimate before work",
+        "• Customer approval required before any repair",
+        "• Genuine parts replacement, if required"
       ]
     },
     "sos": {
@@ -51,8 +81,16 @@
       "price": 349,
       "includes": [
         "Mechanic dispatched to your location now",
-        "Puncture repair or battery help",
-        "Breakdown check and advice"
+        "• Quick roadside assistance",
+        "• Bike breakdown diagnosis",
+        "• Puncture assistance",
+        "• Battery jump-start assistance",
+        "• Starting problem assistance",
+        "• Minor on-the-spot repairs",
+        "• Fuel-related assistance",
+        "• Emergency towing support, if required",
+        "• Repair estimate before major work",
+        "• No major repair without customer approval"
       ]
     }
   },
