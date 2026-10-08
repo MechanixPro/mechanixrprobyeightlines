@@ -11,8 +11,38 @@
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-store
 
-/assets/*
+/assets/img/models/*
   Cache-Control: public, max-age=86400
+
+/assets/img/parts/*
+  Cache-Control: public, max-age=86400
+
+/assets/img/photos/*
+  Cache-Control: public, max-age=86400
+
+/assets/css/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/assets/js/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/assets/img/logo*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/assets/img/icon*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/assets/img/favicon*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/assets/img/apple-touch-icon.png
+  Cache-Control: public, max-age=0, must-revalidate
+
+/assets/img/og.png
+  Cache-Control: public, max-age=0, must-revalidate
+
+/assets/img/email-logo.png
+  Cache-Control: public, max-age=0, must-revalidate
 
 /sw.js
   Cache-Control: no-cache

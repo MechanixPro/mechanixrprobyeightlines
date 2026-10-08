@@ -395,6 +395,7 @@
     st[f] = f === 'phone' ? t.value.replace(/\D/g, '').slice(0, 10) : f === 'coupon' ? L.cleanCoupon(t.value) : t.value;
     if (f === 'phone' && t.value !== st.phone) t.value = st.phone;
     if (f === 'coupon' && t.value !== st.coupon) t.value = st.coupon;
+    if (f === 'nick' || f === 'model') renderSummary();
     if (f === 'model') { applyModel(); var mi = $('#modelInfo'), cs = $('#ccSeg'); if (mi) mi.textContent = modelNote(); if (cs) cs.innerHTML = ccSeg(); }
     save();
   });

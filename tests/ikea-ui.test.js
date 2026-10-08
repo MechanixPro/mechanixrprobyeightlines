@@ -22,3 +22,9 @@ test('the form offers pick up and drop, a registration number and a service remi
 test('the page keeps the visitor informed: nothing here is hidden behind a trick', () => {
   assert.doesNotMatch(app, /beforeunload/); assert.doesNotMatch(app, /history\.pushState/);
 });
+
+test('typing the bike name or model updates "Your package for" straight away', () => {
+  const app = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'assets/js/app.js'), 'utf8');
+  const handler = app.slice(app.indexOf("document.addEventListener('input'"), app.indexOf('function scrollToBuilder'));
+  assert.match(handler, /f === 'nick'[\s\S]*renderSummary\(\)|renderSummary\(\)[\s\S]*f === 'nick'/);
+});
