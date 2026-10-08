@@ -410,3 +410,7 @@ main.page .final{margin-top:32px}
 details>p{animation:faqOpen .3s ease}details[open]>summary{color:var(--ember-2)}
 @keyframes faqOpen{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 @media(hover:hover){.bike-card{transition:transform .25s ease,box-shadow .25s ease}.bike-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(20,41,90,.14)}}
+
+/* footer logo sits on a white pill so the navy artwork stays readable on the dark footer; model page photo */
+footer .brand{background:#fff;padding:8px 14px;border-radius:14px;display:inline-flex;width:fit-content}
+.model-fig{margin:18px 0}.model-fig img{width:100%;max-width:520px;height:auto;max-height:340px;object-fit:cover;border-radius:20px;display:block}

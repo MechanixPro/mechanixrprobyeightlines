@@ -8,7 +8,7 @@ TODAY = datetime.date.today().isoformat()
 NAV = '''<a class="skip" href="#main">Skip to content</a>
 <header class="nav"><div class="wrap">
   <a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="27"><img class="wm" src="/assets/img/logo-wordmark.webp" alt="" width="137" height="12"></a>
-  <nav class="links" aria-label="Main"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a></nav>
+  <nav class="links" aria-label="Main"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a></nav>
   <details class="menu"><summary aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
     <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
   <a class="btn btn-ghost btn-sm call-btn" href="#" data-call><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call us</a>
@@ -107,6 +107,8 @@ def write(path, content):
     full = os.path.join(ROOT, path); os.makedirs(os.path.dirname(full), exist_ok=True)
     open(full, 'w', encoding='utf-8').write(tok(content) if path.endswith('.html') else content)
 
+_pc = json.load(open(os.path.join(ROOT, 'src', 'model-photos.json'), encoding='utf-8'))
+POPULAR = ''.join(f'<a href="/bike-service/{k}/">{html.escape(_pc[k]["brand"] + " " + _pc[k]["model"])}</a>' for k in ['honda-activa-6g', 'honda-dio', 'tvs-jupiter', 'hero-splendor-plus', 'bajaj-pulsar-ns160', 'royal-enfield-classic-350', 'ola-electric-s1-pro'] if k in _pc)
 urls = [('/', '1.0')]
 for slug, name, pins, locs, why in AREAS:
     url = f'{SITE}/bike-service-{slug}/'
@@ -133,6 +135,8 @@ for slug, name, pins, locs, why in AREAS:
 <h2>Starting prices in {name}</h2>
 <div class="card">{''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES)}</div>
 <p class="tiny muted" style="margin-top:8px">Bikes and scooters up to 180cc; above 180cc add {{fee:bigbike}} to service packages. GST included. Pincodes: {pins}.</p>
+<h2>Popular bikes we service in {name}</h2>
+<p class="areas">{POPULAR}</p>
 <h2>How it works</h2>
 <ol><li>Build your service on the website and send it on WhatsApp.</li><li>Our expert checks what is needed, confirms if it can be done at home, and sends your quote.</li><li>You approve, we lock your slot ({{fee:advance}} checkup and quote fee, adjusted in your bill if you go ahead), and the mechanic arrives.</li></ol>
 <h2>Questions from {name} riders</h2>
@@ -209,6 +213,93 @@ for slug, (title, desc, body) in LEGAL.items():
 _ub = HEAD.format(title='Unsubscribe from offer emails | Mechanix Pro', desc='Stop offer emails from Mechanix Pro.', url=f'{SITE}/unsubscribe/', site=SITE, schema='', scripts='<script src="/assets/js/unsub.js" defer></script>', body='', nav=NAV, main='page')
 _ub = _ub.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
 write('unsubscribe/index.html', _ub + '<h1 style="font-size:40px">Unsubscribe from offer emails</h1>\n<p class="muted" style="font-size:18px">Tap the button to stop offer emails from Mechanix Pro. Updates about a booking you made will still reach you.</p>\n<p><button class="btn btn-primary" type="button" id="unsubGo">Stop offer emails</button></p><p role="status" id="unsubMsg" class="small"></p>' + foot())
+
+# ---- Model pages: one per photographed model, with content that differs by type, engine class and price ----
+def load_bikes():
+    src = open(os.path.join(ROOT, 'assets', 'js', 'bikes.js'), encoding='utf-8').read()
+    out = []
+    for brand, rows in re.findall(r"^  '([^']+)': \[(.*)\],?$", src, flags=re.M):
+        for name, t, big in re.findall(r"\['([^']+)', '([mse])', (\d)\]", rows):
+            out.append((brand, name, t, big == '1'))
+    return out
+def model_slug(brand, name):
+    return re.sub(r'[^a-z0-9]+', '-', (brand + ' ' + name).lower()).strip('-')
+KIND = {
+  'm': ('motorcycle', 'Chain clean, lube and adjust, brake pads, clutch and throttle cable play, spark plug and air filter.',
+        ['Chain noise or a loose chain', 'Weak or noisy brakes', 'Hard starting or rough idle', 'Clutch that slips or feels heavy'],
+        'Most services take 60 to 90 minutes at your doorstep.'),
+  's': ('scooter', 'Engine oil and gear oil, air filter, CVT belt and roller check, brake shoes, battery and tyre pressure.',
+        ['Weak pickup or a belt that slips', 'Spongy or noisy brakes', 'Slow or no self-start', 'Vibration at low speed'],
+        'Most services take 60 to 75 minutes at your doorstep.'),
+  'e': ('electric scooter', 'There is no engine oil to change. We check battery health and connectors, brakes, tyres, suspension, lights and charging behaviour.',
+        ['Range lower than before', 'Charging that stops early or is slow', 'Brakes that feel weak', 'Warning lights or unexpected power cuts'],
+        'A problem check usually takes 45 to 60 minutes at your doorstep.'),
+}
+model_pages = []
+photo_credits = json.load(open(os.path.join(ROOT, 'src', 'model-photos.json'), encoding='utf-8'))
+for brand, name, t, big in load_bikes():
+    slug = model_slug(brand, name)
+    if slug not in photo_credits: continue
+    c = photo_credits[slug]; full = f'{brand} {name}'; kind, checks, problems, timing = KIND[t]
+    url = f'{SITE}/bike-service/{slug}/'
+    first = 'repair' if t == 'e' else 'basic'
+    first_name = 'Repair or problem check' if t == 'e' else 'Basic service'
+    surcharge = ' Because this bike is above 180cc, add {{fee:bigbike}} to Basic, General and Full service packages.' if big else ''
+    title = f'{full} Service at Home in Bengaluru | Mechanix Pro'
+    desc = f'Doorstep {full} {"problem check" if t == "e" else "service"} in Bengaluru, from {{{{text:{first}}}}}. Mechanix Pro certified mechanics, OEM-certified parts, {{{{days}}}}-day warranty. Quote on WhatsApp first.'
+    book = f'/book/?brand={urllib.parse.quote(brand, safe="")}&amp;model={urllib.parse.quote(name, safe="")}'
+    schema = '<script type="application/ld+json">' + json.dumps({
+      "@context": "https://schema.org", "@type": "AutoRepair", "name": f"Mechanix Pro: {full} service", "url": url,
+      "image": f"{SITE}/assets/img/models/{slug}.webp", "telephone": "+91-9743031301", "priceRange": "{{text:repair}}–{{text:full}}",
+      "areaServed": {"@type": "City", "name": "Bengaluru"},
+      "address": {"@type": "PostalAddress", "addressLocality": "Bengaluru", "addressRegion": "Karnataka", "addressCountry": "IN"}}, ensure_ascii=False) + '</script>'
+    price_rows = ''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES if k in ('basic', 'general', 'full', 'repair'))
+    body = f'''<p class="breadcrumb"><a href="/">Home</a> › <a href="/book/?brand={urllib.parse.quote(brand, safe="")}">{html.escape(brand)}</a> › {html.escape(name)}</p>
+<h1 style="font-size:clamp(32px,6vw,50px)">{html.escape(full)} service at your doorstep in Bengaluru.</h1>
+<p class="muted" style="font-size:20px">A Mechanix Pro certified mechanic comes to your home or office for your {html.escape(full)}, a {kind} {'above 180cc' if big else 'up to 180cc'}. Quote on WhatsApp first, and nothing starts without your OK.</p>
+<figure class="model-fig"><img src="/assets/img/models/{slug}.webp" width="600" height="420" decoding="async" alt="{html.escape(full)} {kind} (example photo)"><figcaption class="tiny muted">Example photo: "{html.escape(c['title'])}" by {html.escape(c['author'])}, <a href="{html.escape(c['license_url'])}" rel="noopener">{html.escape(c['license'])}</a>, <a href="{html.escape(c['source'])}" rel="noopener">source</a>. It shows an example bike, not a customer's.</figcaption></figure>
+<p><a class="btn btn-primary" href="{book}">Build your service for this bike</a> <a class="btn btn-wa" href="#" data-wa="Bengaluru" data-wa-text="Hi Mechanix Pro, I need a quote for my {html.escape(full)}.">Get a quote on WhatsApp</a></p>
+<h2>What we check on a {html.escape(full)}</h2>
+<p>{checks} {timing}</p>
+<h2>Common {kind} problems we fix</h2>
+<ul>{''.join(f'<li>{html.escape(x)}</li>' for x in problems)}</ul>
+<h2>Prices for your {html.escape(name)}</h2>
+<div class="card">{price_rows}</div>
+<p class="tiny muted" style="margin-top:8px">Starting from {{{{text:{first}}}}} for the {first_name}. GST included.{surcharge} Your exact quote comes on WhatsApp.</p>
+<h2>How it works</h2>
+<ol><li>Build your service and send it on WhatsApp.</li><li>Our expert checks what is needed and sends your quote.</li><li>You approve, we confirm your slot, and the mechanic arrives. The {{{{fee:advance}}}} checkup and quote fee is adjusted in your bill if you go ahead.</li></ol>
+<div class="final" style="margin-top:32px"><h2>Book a service for your {html.escape(name)}.</h2><p>Takes under a minute.</p><a class="btn btn-primary" href="{book}">Build your service</a></div>
+'''
+    write(f'bike-service/{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=LEGAL_JS, body='', nav=NAV, main='page') + body + foot())
+    urls.append((f'/bike-service/{slug}/', '0.6'))
+    model_pages.append(slug)
+
+# ---- Fleet and societies pages: group requests that open WhatsApp with a ready message ----
+GROUP = {
+ 'fleet': ('Bike Fleet and Delivery Rider Service in Bengaluru | Mechanix Pro', 'Regular doorstep service for delivery riders and small bike fleets in Bengaluru. One quote for the whole fleet, work at your parking, OEM-certified parts. Quote on WhatsApp.', 'Service for delivery riders and small fleets.',
+   'Keep every bike on the road. We service a group of bikes at your hub or parking, one visit at a time, and send one quote for the whole fleet.',
+   ['One quote for all bikes, shown before any work starts', 'Servicing at your parking or hub, so riders lose less time', 'A service record for every bike, kept by registration number', 'Mechanix Pro certified mechanics and OEM-certified parts', '{{days}}-day warranty on the work'],
+   'Hi Mechanix Pro, I run a bike fleet and need a fleet service quote. Number of bikes: __. Area: __.', 'Get a fleet quote on WhatsApp'),
+ 'societies': ('Bike Service for Apartments and Offices in Bengaluru | Mechanix Pro', 'Doorstep bike service days for apartment societies and office parking in Bengaluru. Many bikes in one visit, a group quote on WhatsApp, work starts only after approval.', 'Service days for apartments and offices.',
+   'Gather a few bikes and we come to your society or office parking. Residents and staff book on the same day, so it is easier for everyone.',
+   ['A set service day in your parking area', 'Each owner gets their own quote and approves for their own bike', 'Group visits mean quicker slots', 'Mechanix Pro certified mechanics and OEM-certified parts', '{{days}}-day warranty on the work'],
+   'Hi Mechanix Pro, I would like a bike service day at our apartment or office. Society or office name: __. Area: __. Approximate bikes: __.', 'Plan a service day on WhatsApp'),
+}
+for slug, (title, desc, h1, lead, points, msg, cta) in GROUP.items():
+    url = f'{SITE}/{slug}/'
+    body = f'''<h1 style="font-size:clamp(32px,6vw,50px)">{h1}</h1>
+<p class="muted" style="font-size:20px">{lead}</p>
+<p><a class="btn btn-wa" href="#" data-wa="Bengaluru" data-wa-text="{html.escape(msg)}">{cta}</a></p>
+<h2>What you get</h2>
+<ul>{''.join(f'<li>{p}</li>' for p in points)}</ul>
+<h2>Prices</h2>
+<div class="card">{''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES if k in ('basic', 'general', 'full', 'repair'))}</div>
+<p class="tiny muted" style="margin-top:8px">Per bike, up to 180cc; above 180cc add {{{{fee:bigbike}}}} to service packages. GST included. Group quotes are confirmed on WhatsApp.</p>
+<h2>How it works</h2>
+<ol><li>Message us the number of bikes and your location.</li><li>We reply with a group quote and a service day.</li><li>Each owner approves, and the mechanics arrive on the day.</li></ol>
+'''
+    write(f'{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='page') + body + foot())
+    urls.append((f'/{slug}/', '0.6'))
 
 MAIN = [
   ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from {{text:basic}}, Mechanix Pro-certified mechanics, OEM-certified parts, {{days}}-day service warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n<script src="/assets/js/showcase.js" defer></script>', '1.0'),

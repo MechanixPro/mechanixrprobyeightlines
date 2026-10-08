@@ -6,6 +6,8 @@
     var w = e.target.closest('[data-wa]'); if (!w) return; e.preventDefault();
     if (!/^\d{12}$/.test(num)) return alert('WhatsApp number is not set yet.');
     var area = w.getAttribute('data-wa');
+    var custom = w.getAttribute('data-wa-text');
+    if (custom) { location.href = 'https://wa.me/' + num + '?text=' + encodeURIComponent(custom); return; }
     location.href = 'https://wa.me/' + num + '?text=' + encodeURIComponent('Hi Mechanix Pro, I need a bike service' + (area && area !== 'Contact' ? ' in ' + area : '') + '.');
   });
   function callHref() { var d = String(C.callNumber || C.whatsapp || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
