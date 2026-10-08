@@ -82,6 +82,17 @@
     Object.keys(AREA_COORDS).forEach(function (name) { var d = distanceKm(lat, lng, AREA_COORDS[name][0], AREA_COORDS[name][1]); if (d < bd) { bd = d; best = name; } });
     return bd <= 5 ? best : 'Other area';
   }
+  /* Other Bengaluru localities, so a visitor outside our service areas still gets their real area filled in. Approximate centres. */
+  var LOCALITIES = { 'Indiranagar': [12.9784, 77.6408], 'Whitefield': [12.9698, 77.7500], 'Jayanagar': [12.9250, 77.5938], 'Basavanagudi': [12.9422, 77.5750], 'Malleshwaram': [13.0035, 77.5643], 'Rajajinagar': [12.9910, 77.5520], 'Yeshwanthpur': [13.0285, 77.5400], 'Hebbal': [13.0358, 77.5970], 'Yelahanka': [13.1007, 77.5963], 'RT Nagar': [13.0210, 77.5950], 'Banashankari': [12.9255, 77.5468], 'Bannerghatta Road': [12.8890, 77.5970], 'Kengeri': [12.9170, 77.4830], 'Vijayanagar': [12.9719, 77.5320], 'Rajarajeshwari Nagar': [12.9260, 77.5190], 'Domlur': [12.9610, 77.6387], 'HAL / Old Airport Road': [12.9591, 77.6644], 'CV Raman Nagar': [12.9855, 77.6640], 'KR Puram': [13.0007, 77.6960], 'Mahadevapura': [12.9910, 77.6970], 'Brookefield': [12.9660, 77.7170], 'Varthur': [12.9390, 77.7440], 'Hennur': [13.0360, 77.6420], 'Kalyan Nagar': [13.0280, 77.6400], 'Banaswadi': [13.0120, 77.6520], 'Frazer Town': [13.0000, 77.6150], 'MG Road': [12.9750, 77.6070], 'Ulsoor': [12.9810, 77.6200], 'Richmond Town': [12.9600, 77.5970], 'Sadashivanagar': [13.0070, 77.5800], 'Nagarbhavi': [12.9610, 77.5120], 'Peenya': [13.0300, 77.5200], 'Hoodi': [12.9920, 77.7160], 'Begur': [12.8700, 77.6270], 'Kanakapura Road': [12.8700, 77.5640], 'Uttarahalli': [12.9070, 77.5400], 'Hulimavu': [12.8800, 77.6020], 'Bommasandra': [12.8160, 77.6900], 'Kadugodi': [12.9970, 77.7580], 'Jigani': [12.7850, 77.6370], 'Anekal': [12.7110, 77.6950] };
+  /* The place name for a spot: one of our service areas (served), or the nearest known locality (not served yet), or "Other area". */
+  function nearestPlace(lat, lng) {
+    if (!validGeo(lat, lng)) return null;
+    var area = nearestArea(lat, lng);
+    if (area && area !== 'Other area') return { name: area, served: true };
+    var best = null, bd = Infinity;
+    Object.keys(LOCALITIES).forEach(function (n) { var d = distanceKm(lat, lng, LOCALITIES[n][0], LOCALITIES[n][1]); if (d < bd) { bd = d; best = n; } });
+    return bd <= 8 ? { name: best, served: false } : { name: 'Other area', served: false };
+  }
   function mapsLink(lat, lng) { return 'https://maps.google.com/?q=' + lat.toFixed(5) + ',' + lng.toFixed(5); }
   var CRUISER_NAMES = /Avenger|Dominar|Intruder|Thunderbird|Bullet|Classic|Meteor|Himalayan|Scram|Interceptor|Continental|Shotgun|Guerrilla|Hunter|CB350|H.ness/i;
   var SPORTS_NAMES = /Apache|Pulsar|FZ|Gixxer|R15|MT-15|Xtreme|Raider|Hornet|Duke|^RC|CB200X|CB300F|Karizma|Xpulse|Ronin|Adventure|V-Strom|CBZ|Impulse|Hunk|Achiever|Ignitor|Stunner|Twister|Fazer|SZ|Gladiator|GS ?150|Ninja|Panigale|Monster/i;
@@ -195,5 +206,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { nearestPlace: nearestPlace, prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });

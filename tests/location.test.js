@@ -36,3 +36,18 @@ test('leadPayload carries lat, lng and address, or nulls', () => {
   const q = L.leadPayload(st(), '2026-10-08');
   assert.equal(q.lat, null); assert.equal(q.lng, null); assert.equal(q.address, null);
 });
+
+test('nearestPlace names the real locality, and says whether we serve it', () => {
+  const a = L.nearestPlace(12.9121, 77.6446); assert.equal(a.name, 'HSR Layout'); assert.equal(a.served, true);
+  const b = L.nearestPlace(12.9784, 77.6408); assert.equal(b.name, 'Indiranagar'); assert.equal(b.served, false);
+  const c = L.nearestPlace(12.9698, 77.7500); assert.equal(c.name, 'Whitefield'); assert.equal(c.served, false);
+  assert.equal(L.nearestPlace(13.0827, 80.2707).name, 'Other area');
+  assert.equal(L.nearestPlace(NaN, 1), null);
+});
+test('after the location is fetched, the area is filled in automatically, even outside our areas, with a note in the address', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const a = fs.readFileSync(path.join(__dirname, '..', 'assets/js/app.js'), 'utf8');
+  const loc = a.slice(a.indexOf('function locate()'), a.indexOf('/* SOS'));
+  assert.match(loc, /L\.nearestPlace\(/); assert.match(loc, /st\.area = /); assert.match(loc, /st\.address/);
+  assert.match(a, /AREAS\.indexOf\(st\.area\)/);
+});

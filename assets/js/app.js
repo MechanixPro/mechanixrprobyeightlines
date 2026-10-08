@@ -178,7 +178,7 @@
       var hasPin = L.validGeo(st.lat, st.lng);
       h += '<div class="locate"><button type="button" class="btn btn-ghost btn-sm" data-act="locate"' + (locating ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg>' + (locating ? 'Finding you…' : hasPin ? 'Update my location' : 'Use my current location') + '</button>' + (hasPin ? '<button type="button" class="btn btn-ghost btn-sm" data-act="clearloc">Remove</button>' : '') + '</div>';
       if (locMsg || hasPin) h += '<p class="small locmsg" role="status">' + esc(locMsg || ('Location saved. Nearest area: ' + (st.area || 'Other area') + '.')) + '</p>';
-      h += '<label class="label" for="f-area">Area</label><select id="f-area" data-f="area"><option value="">Choose your area</option>' + AREAS.map(function (a) { return '<option' + (st.area === a ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + '</select>';
+      h += '<label class="label" for="f-area">Area</label><select id="f-area" data-f="area"><option value="">Choose your area</option>' + (st.area && AREAS.indexOf(st.area) < 0 ? '<option selected>' + esc(st.area) + '</option>' : '') + AREAS.map(function (a) { return '<option' + (st.area === a ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + '</select>';
       h += '<label class="label" for="f-address">Flat, street or landmark <span class="muted" style="font-weight:400">(helps the mechanic find you)</span></label><input id="f-address" data-f="address" maxlength="200" autocomplete="street-address" placeholder="e.g. Flat 4B, Green Apartments, 27th Main" value="' + esc(st.address) + '">';
       if (st.place !== 'road') h += schedulePicker();
       else h += '<p class="small" style="margin:14px 0 0"><b>Stuck on the road?</b> Send this and share your live location on WhatsApp. We send the nearest mechanic.</p>';
@@ -434,9 +434,13 @@
     navigator.geolocation.getCurrentPosition(function (p) {
       locating = false;
       st.lat = Math.round(p.coords.latitude * 1e5) / 1e5; st.lng = Math.round(p.coords.longitude * 1e5) / 1e5;
-      var area = L.nearestArea(st.lat, st.lng);
-      if (!area) { st.lat = null; st.lng = null; locMsg = 'That location looks wrong. Choose your area below.'; }
-      else { st.area = area; locMsg = area === 'Other area' ? 'You are outside our current areas. Send it anyway and we will tell you when we reach you.' : 'Location saved. Nearest area: ' + area + '.'; }
+      var place = L.nearestPlace(st.lat, st.lng);
+      if (!place) { st.lat = null; st.lng = null; locMsg = 'That location looks wrong. Choose your area below.'; }
+      else {
+        st.area = place.name;
+        if (!st.address || /^Near /.test(st.address)) st.address = place.name === 'Other area' ? '' : 'Near ' + place.name;
+        locMsg = place.served ? 'Location saved. Your area is ' + place.name + '.' : place.name === 'Other area' ? 'You are outside our current areas. Send it anyway and we will tell you when we reach you.' : 'You are near ' + place.name + ', which we do not serve yet. Send it anyway and we will tell you when we reach you.';
+      }
       save(); render();
     }, function (err) {
       locating = false;
