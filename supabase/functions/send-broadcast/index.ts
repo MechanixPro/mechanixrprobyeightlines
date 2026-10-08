@@ -32,6 +32,7 @@ Deno.serve(async (req) => {
     if (!user.email) return json(req, { error: 'Your admin login has no email address' }, 400);
     const m = build(siteUrl + '/unsubscribe/');
     const r = await sendEmail({ to: user.email, subject: '[Test] ' + m.subject, html: m.html, text: m.text, tags: { template: 'marketing_test' } });
+    await db.from('email_log').insert({ to_email: user.email, template: 'marketing_test', status: r.ok ? 'sent' : r.skipped ? 'skipped' : 'failed', provider_id: r.id ?? null, error: r.error ?? null });
     return json(req, r.ok ? { ok: true, sent: 1, to: user.email } : { error: r.skipped ? 'Email is not set up yet' : (r.error ?? 'Could not send') }, r.ok ? 200 : 400);
   }
   if (b.mode !== 'send') return json(req, { error: 'Choose test or send' }, 400);

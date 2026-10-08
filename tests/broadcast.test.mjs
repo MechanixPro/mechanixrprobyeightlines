@@ -40,3 +40,8 @@ test('admin has an Offers tab with a test button and a confirmed send', () => {
   const a = read('../admin/admin.js');
   assert.match(a, /functions\.invoke\('send-broadcast'/); assert.match(a, /data-act="offerTest"/); assert.match(a, /data-act="offerSend"/);
 });
+
+test('a test offer to the owner is recorded in the email log, so a failed or missing test can be traced', () => {
+  const f = read('../supabase/functions/send-broadcast/index.ts');
+  assert.match(f, /template: 'marketing_test'/);
+});
