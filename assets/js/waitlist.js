@@ -4,6 +4,8 @@
   var C = window.MXP || {}, form = document.getElementById('waitlistForm'); if (!form) return;
   var msg = document.getElementById('wlMsg'), boxes = form.querySelectorAll('input[name="wl-interest"]'), busy = false;
   function say(t, ok) { msg.textContent = t; msg.className = 'wl-msg ' + (ok ? 'ok' : 'bad'); }
+  if (form.dataset.preselect) boxes.forEach(function (x) { if (x.value === form.dataset.preselect) x.checked = true; });
+  var slug = (location.pathname.replace(/\/+$/, '').split('/').pop() || 'home').replace(/[^a-z0-9-]/gi, '').toLowerCase().slice(0, 24) || 'home';
   document.querySelectorAll('[data-interest]').forEach(function (b) {
     b.addEventListener('click', function () {
       boxes.forEach(function (x) { if (x.value === b.getAttribute('data-interest')) x.checked = true; });
@@ -22,7 +24,7 @@
     if (!C.supabaseUrl || !C.supabaseAnonKey) return say('The waitlist is not available right now. Please message us on WhatsApp.');
     busy = true; say('Sending\u2026', true);
     fetch(C.supabaseUrl + '/functions/v1/join-waitlist', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey },
-      body: JSON.stringify({ name: document.getElementById('wl-name').value, phone: phone, email: email, interests: picked, city: document.getElementById('wl-city').value, note: document.getElementById('wl-note').value, consent: true }) })
+      body: JSON.stringify({ name: document.getElementById('wl-name').value, phone: phone, email: email, interests: picked, source: 'page:' + slug, city: document.getElementById('wl-city').value, note: document.getElementById('wl-note').value, consent: true }) })
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (x) { if (x.ok) { form.reset(); say('You are on the list! We will message you as soon as it starts.', true); } else say((x.d && x.d.error) || 'Something went wrong. Please try again.'); })
       .catch(function () { say('No connection. Please try again.'); })

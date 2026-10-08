@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
   ]);
   if ((lastTen ?? 0) >= 3 || (lastDay ?? 0) >= 10) return json(req, { error: 'Too many requests. Please try again later.' }, 429);
 
-  const { error } = await db.from('waitlist').insert({ ...v.value, ip_hash: ipHash, source: 'website' });
+  const { error } = await db.from('waitlist').insert({ ...v.value, ip_hash: ipHash, source: /^page:[a-z0-9-]{1,24}$/.test(String(b.source ?? '')) ? String(b.source) : 'website' });
   if (error) { console.error('waitlist insert failed'); return json(req, { error: 'Could not save. Please try again.' }, 500); }
   return json(req, { ok: true });
 });

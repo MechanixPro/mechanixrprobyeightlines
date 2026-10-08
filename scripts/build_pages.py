@@ -10,7 +10,7 @@ NAV = '''<a class="skip" href="#main">Skip to content</a>
   <a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="27"><img class="wm" src="/assets/img/logo-wordmark.webp" alt="" width="137" height="12"></a>
   <nav class="links" aria-label="Main"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a></nav>
   <details class="menu"><summary aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
-    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/#coming-soon">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
+    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
   <a class="btn btn-ghost btn-sm call-btn" href="#" data-call><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call us</a>
   <a class="btn btn-primary btn-sm cta" href="/book/">Get a quote</a>
 </div></header>
@@ -50,7 +50,7 @@ HEAD = '''<!doctype html>
 {nav}<main id="main" class="{main}">
 '''
 FOOT = '''</main>
-{footer}{extra}<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pingeo.js" defer></script><script src="/assets/js/pinmap.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script></body>
+{footer}{extra}<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pingeo.js" defer></script><script src="/assets/js/pinmap.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script><script src="/assets/js/reveal.js" defer></script></body>
 </html>
 '''
 LEGAL_JS = '<script src="/assets/js/page.js" defer></script>'
@@ -317,6 +317,111 @@ _areas_body = f'''<h1 style="font-size:clamp(34px,6vw,52px)">We serve all of Ben
 write('areas/index.html', HEAD.format(title='Bike Service in All Bengaluru PIN Codes | Mechanix Pro', desc=f'Doorstep bike and scooter service in all of Bengaluru, every PIN code from 560001 to 560110. Check your PIN code and get a quote on WhatsApp.', url=f'{SITE}/areas/', site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='page') + _areas_body + foot())
 urls.append(('/areas/', '0.7'))
 
+# ---- Coming soon: an overview page and one page per service, where visitors show their interest ----
+SOON = [
+ dict(id='car', slug='car-service', title='Car service', tag='Doorstep car service in Bengaluru',
+  line='Your car, serviced where you are.',
+  desc='We are bringing the Mechanix Pro way to cars: tell us what your car needs, get a quote first, and approve it before any work starts.',
+  feats=[('Quote first', 'You see an itemised quote on WhatsApp and approve it before any work starts.'), ('We come to you', 'Service at your home or office parking, so you do not lose half a day at a garage.'), ('Parts you can trust', 'Parts are fitted only after your approval, with the same care as our bike service.')],
+  steps=['Tell us your car and what it needs.', 'Get an itemised quote on WhatsApp.', 'Approve it, and we come to you.'],
+  icon='M5 16l1.5-5a2 2 0 0 1 1.9-1.4h7.2a2 2 0 0 1 1.9 1.4L19 16M4 16h16v3h-2v-1H6v1H4zM7.5 13.5h.01M16.5 13.5h.01'),
+ dict(id='echallan', slug='e-challan-services', title='E-challan services', tag='Check and settle traffic e-challans',
+  line='Traffic e-challans, sorted in one place.',
+  desc='Look up the e-challans on your vehicle and settle what is due, without chasing several websites.',
+  feats=[('One place to check', 'Look up e-challans against your vehicle number.'), ('Help to settle them', 'We help you pay what is due, with a clear record of it.'), ('A nudge before it grows', 'Reminders so a small fine does not turn into a bigger problem.')],
+  steps=['Enter your vehicle number.', 'See the e-challans that are pending.', 'Settle them with our help.'],
+  icon='M7 3h8l4 4v14H7zM15 3v4h4M9.5 14l2 2 3.5-4'),
+ dict(id='pdi', slug='ai-pdi-reports', title='AI PDI reports', tag='Pre-delivery inspection, prepared with AI',
+  line='Know the vehicle before you take it home.',
+  desc='A pre-delivery inspection report for a new or pre-owned vehicle, prepared with the help of AI, so you can check it before you pay.',
+  feats=[('Photo-led inspection', 'Share photos and details, and the inspection follows a clear checklist.'), ('AI-assisted report', 'Findings written up in plain words, prepared with the help of AI.'), ('Something you can share', 'A simple report you can show the dealer or seller before you decide.')],
+  steps=['Tell us about the vehicle.', 'Share the photos and details we ask for.', 'Get your report.'],
+  icon='M9 4h6l1 2h3v15H5V6h3zM9 13l2 2 4-4'),
+ dict(id='damage', slug='ai-damage-analysis', title='AI damage analysis', tag='Photos in, damage analysis out',
+  line='Show us the damage. Get a clear picture.',
+  desc='Share photos of damage to your vehicle and get an AI-assisted analysis of what needs fixing.',
+  feats=[('Just share photos', 'Take a few photos from your phone, no technical know-how needed.'), ('AI-assisted analysis', 'Spot the damage and the likely repairs, prepared with the help of AI.'), ('An estimate you approve', 'A repair estimate on WhatsApp. Nothing starts until you say yes.')],
+  steps=['Take photos of the damage.', 'Send them to us.', 'Get the analysis and an estimate.'],
+  icon='M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M12 8.5l1.1 2.4 2.4 1.1-2.4 1.1L12 15.5l-1.1-2.4-2.4-1.1 2.4-1.1z'),
+ dict(id='rental', slug='bike-rental', title='Bike rental', tag='Rent a bike by the day', backed='Backed by Eightlines Fleet Private Limited',
+  line='Ride when you need to. Return when you are done.',
+  desc='Bike rental is coming to Mechanix Pro, backed by Eightlines Fleet Private Limited.',
+  feats=[('Rent by the day', 'Pick a bike for as long as you need it.'), ('Clear terms', 'Straightforward pricing, deposit and rules, explained before you ride.'), ('Easy pickup and return', 'A simple handover, with a checklist at pickup and return.')],
+  steps=['Choose a bike and your dates.', 'Confirm the terms and the handover.', 'Ride, and return it when you are done.'],
+  icon='M6 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15l4-7h5l3 7M10 8l2 7'),
+ dict(id='oem', slug='oem-parts', title='OEM parts', tag='Genuine parts, ordered through us',
+  line='The right part for your bike.',
+  desc='Genuine OEM parts for your bike, ordered through Mechanix Pro and fitted by our mechanics, or delivered to you.',
+  feats=[('Genuine OEM parts', 'Parts made for your bike, not a guess.'), ('Ordered through us', 'Tell us your bike and the part, and we find it for you.'), ('Fitted or delivered', 'Have our mechanic fit it at your door, or get it delivered.')],
+  steps=['Tell us your bike and the part.', 'Get the price and availability.', 'Approve, and we fit or deliver it.'],
+  icon='M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4'),
+ dict(id='insurance', slug='insurance-claim-service', title='Insurance claim service', tag='Help with your vehicle insurance claim',
+  line='A claim without the runaround.',
+  desc='Help with your vehicle insurance claim, from the paperwork to the repair.',
+  feats=[('Paperwork help', 'We guide you through what the claim needs.'), ('Repair coordination', 'Repairs lined up so the claim and the work move together.'), ('Kept in the loop', 'Updates on WhatsApp, so you always know where the claim stands.')],
+  steps=['Tell us what happened.', 'We guide you through the claim.', 'Get the repair done.'],
+  icon='M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6zM9 12l2 2 4-4'),
+ dict(id='franchise', slug='franchise', title='Franchise model', tag='Run Mechanix Pro in your city',
+  line='Bring Mechanix Pro to your city.',
+  desc='We are planning a franchise model so the Mechanix Pro way of doing bike service can reach more cities. Tell us where you are.',
+  feats=[('Your city, our standards', 'The same quote-first, approval-first way of working.'), ('Support to get started', 'Training and guidance as part of the plan.'), ('Tell us about you', 'Share your city and interest, and we will get in touch as the model takes shape.')],
+  steps=['Tell us your city and your interest.', 'We share how the model will work.', 'We talk about getting started.'],
+  icon='M4 10l1.5-5h13L20 10M4 10v10h16V10M4 10h16M9 20v-5h6v5'),
+]
+def soon_icon(path, cls='soon-ico-svg'):
+    return f'<svg class="{cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" d="{path}"/></svg>'
+def soon_cards(skip=None):
+    out = []
+    for n, x in enumerate(SOON):
+        if x['id'] == skip: continue
+        out.append(f'<a class="soon-card reveal" href="/coming-soon/{x["slug"]}/" style="--i:{n}"><span class="soon-ico">{soon_icon(x["icon"])}</span><span class="soon-pill">Coming soon</span><h3>{html.escape(x["title"])}</h3><p>{html.escape(x["tag"])}</p><span class="soon-go">Show your interest <i aria-hidden="true">&rarr;</i></span></a>')
+    return ''.join(out)
+def soon_form(pre=None):
+    chips = ''.join(f'<label class="chip-check"><input type="checkbox" name="wl-interest" value="{x["id"]}"><span>{html.escape(x["title"])}</span></label>' for x in SOON)
+    pre_attr = f' data-preselect="{pre}"' if pre else ''
+    legend = 'Also interested in' if pre else 'What are you interested in?'
+    return f'''<form class="wl card" id="waitlistForm"{pre_attr} novalidate>
+      <h3>Get early-bird access</h3>
+      <p class="muted" style="margin-top:-4px">Leave your details and we will message you when it starts. Your interest also helps us decide what to launch first.</p>
+      <fieldset class="wl-interests"><legend class="label">{legend}</legend><div class="wl-chips">{chips}</div></fieldset>
+      <div class="wl-grid">
+        <div><label class="label" for="wl-name">Your name</label><input id="wl-name" maxlength="60" autocomplete="name"></div>
+        <div><label class="label" for="wl-phone">Mobile number</label><input id="wl-phone" inputmode="numeric" maxlength="10" autocomplete="tel-national" placeholder="10-digit number"></div>
+        <div><label class="label" for="wl-email">Email (optional if you gave a number)</label><input id="wl-email" type="email" maxlength="120" autocomplete="email"></div>
+        <div><label class="label" for="wl-city">City or area</label><input id="wl-city" maxlength="40" autocomplete="address-level2"></div>
+      </div>
+      <label class="label" for="wl-note">Anything else? (optional)</label><input id="wl-note" maxlength="200">
+      <label class="check"><input type="checkbox" id="wl-consent"><span>It is fine to contact me about the services I picked.</span></label>
+      <button class="btn btn-primary" type="submit" style="margin-top:14px">Join the waitlist</button>
+      <p class="wl-msg" id="wlMsg" role="status" aria-live="polite"></p>
+    </form>'''
+def soon_page(slug, title, desc, body):
+    url = f'{SITE}/coming-soon/{slug}/' if slug else f'{SITE}/coming-soon/'
+    write(f'coming-soon/{slug}/index.html' if slug else 'coming-soon/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='') + body + foot())
+    urls.append((f'/coming-soon/{slug}/' if slug else '/coming-soon/', '0.5'))
+for x in SOON:
+    backed = f'<p class="soon-backed">{html.escape(x["backed"])}</p>' if x.get('backed') else ''
+    feats = ''.join(f'<div class="soon-feature reveal" style="--i:{i}"><h3>{html.escape(t)}</h3><p>{html.escape(d)}</p></div>' for i, (t, d) in enumerate(x['feats']))
+    steps = ''.join(f'<li class="soon-step reveal" style="--i:{i}"><span class="soon-n">{i + 1}</span><span>{html.escape(t)}</span></li>' for i, t in enumerate(x['steps']))
+    body = f'''<section class="soon-hero"><div class="soon-glow" aria-hidden="true"></div><div class="wrap">
+  <p class="breadcrumb soon-crumb"><a href="/">Home</a> &rsaquo; <a href="/coming-soon/">Coming soon</a> &rsaquo; {html.escape(x["title"])}</p>
+  <div class="soon-hero-grid"><div class="soon-copy"><span class="soon-pill">Coming soon</span><h1>{html.escape(x["title"])}</h1><p class="lead">{html.escape(x["line"])}</p><p class="soon-desc">{html.escape(x["desc"])}</p>{backed}
+    <div class="row"><a class="btn btn-primary" href="#interest">Show your interest</a><a class="btn btn-ghost-light" href="/coming-soon/">All coming-soon services</a></div></div>
+  <div class="soon-art" aria-hidden="true"><span class="soon-ring r1"></span><span class="soon-ring r2"></span><span class="soon-badge">{soon_icon(x["icon"], "soon-art-svg")}</span></div></div>
+</div></section>
+<section><div class="wrap"><div class="sec-head"><h2>What we are planning.</h2><p>This is how {html.escape(x["title"].lower() if x["id"] not in ("franchise",) else "the franchise model")} is shaping up.</p></div><div class="soon-features">{feats}</div></div></section>
+<section class="band"><div class="wrap"><div class="sec-head"><h2>How it will work.</h2></div><ol class="soon-steps">{steps}</ol></div></section>
+<section id="interest"><div class="wrap"><div class="sec-head"><h2>Be the first to know.</h2><p>Early-bird access for the people who ask first.</p></div>{soon_form(x["id"])}</div></section>
+<section><div class="wrap"><div class="sec-head"><h2>Also coming soon.</h2></div><div class="soon-grid">{soon_cards(x["id"])}</div></div></section>'''
+    soon_page(x['slug'], f'{x["title"]}: Coming Soon | Mechanix Pro', f'{x["title"]} is coming soon from Mechanix Pro. {x["desc"]} Join the waitlist for early-bird access.', body)
+_overview = f'''<section class="soon-hero soon-hero-sm"><div class="soon-glow" aria-hidden="true"></div><div class="wrap">
+  <p class="breadcrumb soon-crumb"><a href="/">Home</a> &rsaquo; Coming soon</p>
+  <span class="soon-pill">Coming soon</span><h1>Coming soon from Mechanix Pro.</h1><p class="lead">Eight new things on the way. Pick the ones you want and join the waitlist for early-bird access.</p>
+  <div class="row"><a class="btn btn-primary" href="#interest">Join the waitlist</a></div></div></section>
+<section><div class="wrap"><div class="soon-grid">{soon_cards()}</div></div></section>
+<section id="interest" class="band"><div class="wrap"><div class="sec-head"><h2>Get early-bird access.</h2><p>Tell us what you are interested in. We will message you when it starts.</p></div>{soon_form()}</div></section>'''
+soon_page('', 'Coming Soon: Car Service, E-challan, Bike Rental and More | Mechanix Pro', 'New from Mechanix Pro: car service, e-challan services, AI PDI reports, AI damage analysis, bike rental, OEM parts, insurance claim service and a franchise model. Join the waitlist for early-bird access.', _overview)
+
 MAIN = [
   ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from {{text:basic}}, Mechanix Pro-certified mechanics, OEM-certified parts, {{days}}-day service warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n<script src="/assets/js/showcase.js" defer></script>', '1.0'),
   ('book', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.9'),
@@ -326,7 +431,7 @@ MAIN = [
 for slug, src, title, desc, ld, body, scripts, prio in MAIN:
     url = f'{SITE}/{slug}/' if slug else f'{SITE}/'
     schema = ('<script type="application/ld+json">' + open(os.path.join(ROOT, 'src', ld), encoding='utf-8').read() + '</script>') if ld else ''
-    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--BRAND_CHIPS-->', brand_chips())
+    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards())
     out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(FLOAT)
     write(f'{slug}/index.html' if slug else 'index.html', out)
     if slug: urls.append((f'/{slug}/', prio))
