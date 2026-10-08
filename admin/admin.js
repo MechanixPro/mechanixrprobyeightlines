@@ -162,7 +162,7 @@ function openCustomer(id) {
     <label class="label" for="cn">Notes</label><textarea id="cn" rows="3" maxlength="1000">${esc(r.notes || '')}</textarea>
     <label class="check"><input type="checkbox" id="cb"${r.blocked ? ' checked' : ''}><span>Block this customer. New website bookings from this number are not saved. They can still message you on WhatsApp.</span></label>
     <label class="label" for="cr">Reason (private)</label><input id="cr" maxlength="200" value="${esc(r.blockedReason || '')}">
-    <button class="btn btn-primary" style="margin-top:14px" type="button" data-act="saveCustomer">Save</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn btn-primary" type="button" data-act="saveCustomer">Save</button>${isOwner() ? '<button class="btn btn-ghost" type="button" data-act="deleteCustomer">Delete customer</button>' : ''}</div></div>
   <div class="card" style="margin-top:12px"><h3>Booking history</h3>${mine.length ? mine.map((l) => `<button class="row" data-lead="${l.id}" style="border-radius:12px"><span class="ref">${esc(l.ref)}</span><span>${esc(svcName(l.service_id))}<br><span class="meta">${when(l.created_at)}</span></span><span class="pill ${l.status}">${LABEL[l.status]}</span></button>`).join('') : '<p class="small muted">No bookings yet.</p>'}</div>`;
   $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
 }
@@ -201,7 +201,7 @@ function openMechanic(id) {
     <label class="label" for="mnotes">Private notes (not shown to customers)</label><input id="mnotes" maxlength="500" value="${esc(m.notes || '')}"${ro}>
     <label class="check"><input type="checkbox" id="mcert"${m.certified !== false ? ' checked' : ''}${ro}><span>Mechanix Pro certified (shown to the customer in the confirmation)</span></label>
     <label class="check"><input type="checkbox" id="mc"${m.active ? ' checked' : ''}${ro}><span>Active (can be assigned new jobs)</span></label>
-    ${isOwner() ? '<button class="btn btn-primary" style="margin-top:8px" type="button" data-act="saveMechanic">Save</button>' : '<p class="tiny muted">Only the owner can change mechanics.</p>'}</div></div>
+    ${isOwner() ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-primary" type="button" data-act="saveMechanic">Save</button>' + (id !== 'new' ? '<button class="btn btn-ghost" type="button" data-act="deleteMechanic">Delete mechanic</button>' : '') + '</div>' : '<p class="tiny muted">Only the owner can change mechanics.</p>'}</div></div>
   ${st ? `<div class="card" style="margin-top:12px"><h3>Jobs</h3><dl class="kv"><dt>Open</dt><dd>${st.open}</dd><dt>Completed</dt><dd>${st.completed}</dd><dt>Collected</dt><dd>${rupee(st.revenue)}</dd><dt>Payout due</dt><dd>${rupee(st.payout)}</dd></dl></div>` : ''}`;
   updateSplitPreview();
   $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
@@ -228,7 +228,7 @@ function openCoupon(id) {
     <label class="label" for="ce">Ends on</label><input id="ce" type="date" value="${esc(c.endsOn || '')}"${ro}>
     <label class="label" for="cn2">Private note</label><input id="cn2" maxlength="200" value="${esc(c.note || '')}"${ro}>
     <label class="check"><input type="checkbox" id="ca"${c.active ? ' checked' : ''}${ro}><span>Switched on</span></label>
-    ${isOwner() ? '<button class="btn btn-primary" style="margin-top:8px" type="button" data-act="saveCoupon">Save</button>' : '<p class="tiny muted">Only the owner can change coupons.</p>'}</div></div>
+    ${isOwner() ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-primary" type="button" data-act="saveCoupon">Save</button>' + (id !== 'new' ? '<button class="btn btn-ghost" type="button" data-act="deleteCoupon">Delete coupon</button>' : '') + '</div>' : '<p class="tiny muted">Only the owner can change coupons.</p>'}</div></div>
   ${id === 'new' ? '' : `<div class="card" style="margin-top:12px"><h3>Use so far</h3><dl class="kv"><dt>Asked for</dt><dd>${c.requested}</dd><dt>Went ahead</dt><dd>${c.used}</dd><dt>Discount given</dt><dd>${rupee(c.given)}</dd></dl></div>`}`;
   $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
 }
@@ -393,6 +393,34 @@ const ACT = {
     await audit('booking_deleted', { count: ids.length }); toast(ids.length + ' deleted');
     S.selMode = false; S.sel = new Set(); await loadLeads(); render();
   },
+  async deleteCustomer() {
+    const c = S.customers.find((x) => x.id === S.openCust); if (!c) return;
+    const theirs = S.leads.filter((l) => l.customer_id === c.id);
+    if (!confirm(`Delete ${c.name}? Their saved bikes are deleted too. This cannot be undone.`)) return;
+    if (theirs.length && confirm(`Also delete their ${theirs.length} booking${theirs.length === 1 ? '' : 's'}? OK deletes the bookings too. Cancel keeps the bookings.`)) {
+      const r = await sb.from('leads').delete().eq('customer_id', c.id); if (r.error) return toast('Could not delete the bookings: ' + r.error.message);
+    }
+    const { error } = await sb.from('customers').delete().eq('id', c.id); if (error) return toast('Could not delete: ' + error.message);
+    await audit('customer_deleted', { name: c.name }); toast('Deleted ' + c.name); closeSheet(); await Promise.all([loadPeople(), loadLeads()]); render();
+  },
+  async deleteMechanic() {
+    const m = S.mechanics.find((x) => x.id === S.openMech); if (!m) return;
+    if (!confirm(`Delete mechanic ${m.name}? Their jobs stay, but show as not assigned. This cannot be undone.`)) return;
+    const { error } = await sb.from('mechanics').delete().eq('id', m.id); if (error) return toast('Could not delete: ' + error.message);
+    await audit('mechanic_deleted', { name: m.name }); toast('Deleted ' + m.name); closeSheet(); await Promise.all([loadPeople(), loadLeads()]); render();
+  },
+  async deleteCoupon() {
+    const c = S.coupons.find((x) => x.id === S.openCoupon); if (!c) return;
+    if (!confirm(`Delete coupon ${c.code}? Past bookings keep their discount. This cannot be undone.`)) return;
+    const { error } = await sb.from('coupons').delete().eq('id', c.id); if (error) return toast('Could not delete: ' + error.message);
+    await audit('coupon_deleted', { code: c.code }); toast('Deleted ' + c.code); closeSheet(); await loadPeople(); render();
+  },
+  async deleteIssue() {
+    const i = S.issues.find((x) => x.id === S.openIssue); if (!i) return;
+    if (!confirm(`Delete this ${KIND_LABEL[i.kind].toLowerCase()} record? This cannot be undone.`)) return;
+    const { error } = await sb.from('issues').delete().eq('id', i.id); if (error) return toast('Could not delete: ' + error.message);
+    await audit('issue_deleted', { kind: i.kind }); toast('Deleted'); closeSheet(); await loadIssues(); render();
+  },
   async deleteLead() {
     const l = S.leads.find((x) => x.id === S.open); if (!l) return;
     if (!confirm(`Delete booking ${l.ref} for ${l.name}? This cannot be undone.`)) return;
@@ -553,7 +581,7 @@ function openIssue(id) {
     <label class="label" for="in">What happened</label><textarea id="in" rows="3" maxlength="1000">${esc(i.note || '')}</textarea>
     <label class="label" for="is">Status</label><select id="is">${Object.entries(STATUS_LABEL).map(([k, t]) => `<option value="${k}"${k === i.status ? ' selected' : ''}>${t}</option>`).join('')}</select>
     <label class="label" for="ir">How it was resolved</label><textarea id="ir" rows="3" maxlength="1000">${esc(i.resolution || '')}</textarea>
-    <button class="btn btn-primary" style="margin-top:8px" type="button" data-act="saveIssue">Save</button></div></div>`;
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-primary" type="button" data-act="saveIssue">Save</button>${isOwner() && id !== 'new' ? '<button class="btn btn-ghost" type="button" data-act="deleteIssue">Delete issue</button>' : ''}</div></div></div>`;
   $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
 }
 function homeimgs() {
