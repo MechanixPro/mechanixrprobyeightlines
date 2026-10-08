@@ -510,3 +510,17 @@ input,select,textarea{border-color:var(--line);border-radius:12px}
 .check input[type=checkbox]:checked{background:#34C759;box-shadow:none}.check input[type=checkbox]:checked::after{transform:translateX(20px)}
 .check input[type=checkbox]:focus-visible{outline:3px solid var(--ember);outline-offset:3px}
 @media(prefers-reduced-motion:reduce){.check input[type=checkbox],.check input[type=checkbox]::after{transition:none}}
+
+/* coming soon + waitlist */
+.soon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin:6px 0 22px}
+.soon-card{background:var(--card);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:8px}
+.soon-card h3{margin:0;font-size:20px}.soon-card p{margin:0;color:var(--muted);font-size:15px;flex:1}.soon-card .btn{align-self:flex-start;margin-top:6px}
+.soon-pill{align-self:flex-start;background:var(--ember-soft);color:var(--ember-2);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:980px}
+.soon-note{color:var(--navy)!important;font-weight:600;flex:0!important}
+.wl{max-width:760px}.wl-interests{border:0;padding:0;margin:14px 0 4px}.wl-chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip-check{position:relative}.chip-check input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.chip-check span{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:980px;background:var(--soft);font-weight:500;transition:background .18s,color .18s}
+.chip-check input:checked+span{background:var(--navy);color:#fff}.chip-check input:focus-visible+span{outline:3px solid var(--ember);outline-offset:2px}
+.wl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 16px}
+.wl-msg{margin:12px 0 0;min-height:24px;font-weight:600}.wl-msg.ok{color:#1A7F4B}.wl-msg.bad{color:var(--bad)}
+@media(max-width:520px){.soon-grid{grid-template-columns:1fr 1fr;gap:10px}.soon-card{padding:14px;gap:6px}.soon-card h3{font-size:17px}.soon-card p{font-size:14px}.soon-card .btn{padding:8px 14px}}

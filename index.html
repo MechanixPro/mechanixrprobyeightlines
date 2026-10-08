@@ -30,7 +30,7 @@
   <a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="27"><img class="wm" src="/assets/img/logo-wordmark.webp" alt="" width="137" height="12"></a>
   <nav class="links" aria-label="Main"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a></nav>
   <details class="menu"><summary aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
-    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
+    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/#coming-soon">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
   <a class="btn btn-ghost btn-sm call-btn" href="#" data-call><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call us</a>
   <a class="btn btn-primary btn-sm cta" href="/book/">Get a quote</a>
 </div></header>
@@ -155,6 +155,36 @@
     <p class="tiny muted" style="margin-top:14px">Outside Bengaluru? Build your service anyway and we will tell you when we reach you.</p>
   </div>
 </section>
+<section id="coming-soon" class="reveal">
+  <div class="wrap">
+    <div class="sec-head"><h2>Coming soon.</h2><p>More from Mechanix Pro. Join the waitlist for early-bird access.</p></div>
+    <div class="soon-grid">
+      <article class="soon-card"><span class="soon-pill">Coming soon</span><h3>Car service</h3><p>Doorstep car service with the same promise: quote first, work after your OK.</p><button type="button" class="btn btn-ghost btn-sm" data-interest="car">Notify me</button></article>
+      <article class="soon-card"><span class="soon-pill">Coming soon</span><h3>E-challan services</h3><p>Check and settle traffic e-challans for your vehicle in one place.</p><button type="button" class="btn btn-ghost btn-sm" data-interest="echallan">Notify me</button></article>
+      <article class="soon-card"><span class="soon-pill">Coming soon</span><h3>AI PDI reports</h3><p>A pre-delivery inspection report for a new or pre-owned vehicle, prepared with AI.</p><button type="button" class="btn btn-ghost btn-sm" data-interest="pdi">Notify me</button></article>
+      <article class="soon-card"><span class="soon-pill">Coming soon</span><h3>AI damage analysis</h3><p>Share photos of damage and get an AI-assisted analysis.</p><button type="button" class="btn btn-ghost btn-sm" data-interest="damage">Notify me</button></article>
+      <article class="soon-card"><span class="soon-pill">Coming soon</span><h3>Bike rental</h3><p>Rent a bike by the day.</p><p class="soon-note">Backed by Eightlines Fleet Private Limited</p><button type="button" class="btn btn-ghost btn-sm" data-interest="rental">Notify me</button></article>
+      <article class="soon-card"><span class="soon-pill">Coming soon</span><h3>OEM parts</h3><p>Genuine OEM parts for your bike, ordered through Mechanix Pro.</p><button type="button" class="btn btn-ghost btn-sm" data-interest="oem">Notify me</button></article>
+      <article class="soon-card"><span class="soon-pill">Coming soon</span><h3>Insurance claim service</h3><p>Help with your vehicle insurance claim, from paperwork to repair.</p><button type="button" class="btn btn-ghost btn-sm" data-interest="insurance">Notify me</button></article>
+      <article class="soon-card"><span class="soon-pill">Coming soon</span><h3>Franchise model</h3><p>Run Mechanix Pro in your city. Tell us where you are.</p><button type="button" class="btn btn-ghost btn-sm" data-interest="franchise">Notify me</button></article>
+    </div>
+    <form class="wl card" id="waitlistForm" novalidate>
+      <h3>Get early-bird access</h3>
+      <p class="muted" style="margin-top:-4px">Tell us what you are interested in. We will message you when it starts, and your interest helps us decide what to launch first.</p>
+      <fieldset class="wl-interests"><legend class="label">What are you interested in?</legend><div class="wl-chips"><label class="chip-check"><input type="checkbox" name="wl-interest" value="car"><span>Car service</span></label><label class="chip-check"><input type="checkbox" name="wl-interest" value="echallan"><span>E-challan services</span></label><label class="chip-check"><input type="checkbox" name="wl-interest" value="pdi"><span>AI PDI reports</span></label><label class="chip-check"><input type="checkbox" name="wl-interest" value="damage"><span>AI damage analysis</span></label><label class="chip-check"><input type="checkbox" name="wl-interest" value="rental"><span>Bike rental</span></label><label class="chip-check"><input type="checkbox" name="wl-interest" value="oem"><span>OEM parts</span></label><label class="chip-check"><input type="checkbox" name="wl-interest" value="insurance"><span>Insurance claim service</span></label><label class="chip-check"><input type="checkbox" name="wl-interest" value="franchise"><span>Franchise model</span></label></div></fieldset>
+      <div class="wl-grid">
+        <div><label class="label" for="wl-name">Your name</label><input id="wl-name" maxlength="60" autocomplete="name"></div>
+        <div><label class="label" for="wl-phone">Mobile number</label><input id="wl-phone" inputmode="numeric" maxlength="10" autocomplete="tel-national" placeholder="10-digit number"></div>
+        <div><label class="label" for="wl-email">Email (optional if you gave a number)</label><input id="wl-email" type="email" maxlength="120" autocomplete="email"></div>
+        <div><label class="label" for="wl-city">City or area</label><input id="wl-city" maxlength="40" autocomplete="address-level2"></div>
+      </div>
+      <label class="label" for="wl-note">Anything else? (optional, for example your city if you are interested in a franchise)</label><input id="wl-note" maxlength="200">
+      <label class="check"><input type="checkbox" id="wl-consent"><span>It is fine to contact me about the services I picked.</span></label>
+      <button class="btn btn-primary" type="submit" style="margin-top:14px">Join the waitlist</button>
+      <p class="wl-msg" id="wlMsg" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</section>
 <section>
   <div class="wrap">
     <div class="final">
@@ -179,5 +209,5 @@
 </footer>
 <a class="wa-fab" href="#" data-wa="general" aria-label="Chat on WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp us</a>
 <div class="mbar" id="mbar"><a class="btn btn-ghost" href="#" data-call aria-label="Call us"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call</a><a class="btn btn-wa" href="#" data-wa="general">WhatsApp</a><a class="btn btn-primary" href="/book/">Get a quote</a></div>
-<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pincheck.js" defer></script></body>
+<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script></body>
 </html>

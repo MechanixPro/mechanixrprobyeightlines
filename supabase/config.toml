@@ -10,6 +10,9 @@ verify_jwt = false
 [functions.auth-email]
 verify_jwt = false
 
+[functions.join-waitlist]
+verify_jwt = false
+
 [functions.unsubscribe]
 verify_jwt = false
 

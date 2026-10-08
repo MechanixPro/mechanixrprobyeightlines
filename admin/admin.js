@@ -6,6 +6,7 @@ import { couponRows } from './coupon-view.js';
 import { rangeFor, buildReport, reportCsv, payoutReport } from './report.js';
 import { splitJob } from './split.js';
 import { pinRows, validPin, cleanPin, cleanPinName } from './pins-view.js';
+import { interestCounts, waitlistRows, interestLabel } from './waitlist-view.js';
 import { buildInvoice } from './invoice.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
@@ -23,7 +24,7 @@ if (!C.supabaseUrl || !C.supabaseAnonKey) {
   throw new Error('Supabase not configured');
 }
 const sb = createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
-const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
+const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', waitlist: [], wi: '', wq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
 
 function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
@@ -65,7 +66,7 @@ async function boot() {
   if (!me) { $('#loginErr').textContent = 'This account is not an admin. Ask the owner to add you.'; await sb.auth.signOut(); return; }
   S.me = me;
   $('#login').hidden = true; $('#view').hidden = false; $('#tabs').hidden = false; $('#signOut').hidden = false;
-  await Promise.all([loadLeads(), loadServices(), loadSettings(), loadPeople(), loadHome(), loadIssues(), loadPins()]);
+  await Promise.all([loadLeads(), loadServices(), loadSettings(), loadPeople(), loadHome(), loadIssues(), loadPins(), loadWaitlist()]);
   render();
   S.channel = sb.channel('mxp-admin')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async (p) => { if (p.eventType === 'INSERT') toast('New booking ' + (p.new?.ref ?? '')); await loadLeads(); if (!['prices', 'settings', 'offers', 'homeimgs'].includes(S.tab)) render(); if (S.open) openLead(S.open, true); })
@@ -86,6 +87,7 @@ async function loadPeople() {
 async function loadHome() { const { data } = await sb.from('home_images').select('*').order('position').order('created_at'); S.homeimgs = data ?? []; }
 async function loadIssues() { const { data } = await sb.from('issues').select('*').order('created_at', { ascending: false }).limit(500); S.issues = data ?? []; }
 async function loadPins() { const { data } = await sb.from('service_pincodes').select('*').order('pin').limit(2000); S.pins = data ?? []; }
+async function loadWaitlist() { const { data } = await sb.from('waitlist').select('*').order('created_at', { ascending: false }).limit(2000); S.waitlist = data ?? []; }
 async function loadServices() { const { data } = await sb.from('services').select('*').order('sort'); S.services = data ?? []; }
 async function loadSettings() { const { data } = await sb.from('settings').select('*'); S.settings = Object.fromEntries((data ?? []).map((r) => [r.key, r.value])); }
 const svcName = (id) => S.services.find((s) => s.id === id)?.name ?? id ?? '—';
@@ -96,17 +98,19 @@ document.addEventListener('click', (e) => {
   const r = e.target.closest('[data-lead]'); if (r) { if (S.selMode) { const id = r.dataset.lead; if (S.sel.has(id)) S.sel.delete(id); else S.sel.add(id); render(); } else openLead(r.dataset.lead); return; }
   const cu = e.target.closest('[data-cust]'); if (cu) { openCustomer(cu.dataset.cust); return; }
   const is = e.target.closest('[data-issue]'); if (is) { openIssue(is.dataset.issue); return; }
+  const wb = e.target.closest('[data-wi]'); if (wb) { S.wi = S.wi === wb.dataset.wi ? '' : wb.dataset.wi; render(); return; }
+  const wl = e.target.closest('[data-wl]'); if (wl) { openWaitlist(wl.dataset.wl); return; }
   const pn = e.target.closest('[data-pin]'); if (pn) { openPin(pn.dataset.pin); return; }
   const me = e.target.closest('[data-mech]'); if (me) { openMechanic(me.dataset.mech); return; }
   const co = e.target.closest('[data-coupon]'); if (co) { openCoupon(co.dataset.coupon); return; }
   const a = e.target.closest('[data-act]'); if (a && ACT[a.dataset.act]) ACT[a.dataset.act](a);
 });
-document.addEventListener('input', (e) => { if (e.target.id === 'mr-range' || e.target.id === 'mr') { const v = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)); if (e.target.id === 'mr-range') $('#mr').value = v; else $('#mr-range').value = v; updateSplitPreview(); }  if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'pq') { S.pq = e.target.value; const l = $('#pinlist'); if (l) { const keep = e.target; render(); const again = $('#pq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
+document.addEventListener('input', (e) => { if (e.target.id === 'mr-range' || e.target.id === 'mr') { const v = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)); if (e.target.id === 'mr-range') $('#mr').value = v; else $('#mr-range').value = v; updateSplitPreview(); }  if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'wq') { S.wq = e.target.value; render(); const again = $('#wq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } if (e.target.id === 'pq') { S.pq = e.target.value; const l = $('#pinlist'); if (l) { const keep = e.target; render(); const again = $('#pq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
 document.addEventListener('change', (e) => { if (e.target.id === 'il') { const l = S.leads.find((x) => x.id === e.target.value), w = warrantyInfo(l, WARRANTY_DAYS); $('#iw').textContent = l ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''; } if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'ifs') { S.ifilter = e.target.value; render(); } if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if ($('#inv')) $('#inv').remove(); else if (!$('#sheet').hidden) closeSheet(); } });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
-function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, issues, pins, offers, reports, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, issues, pins, waitlist, offers, reports, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -396,6 +400,18 @@ const ACT = {
     await audit('booking_deleted', { count: ids.length }); toast(ids.length + ' deleted');
     S.selMode = false; S.sel = new Set(); await loadLeads(); render();
   },
+  wlCsv() {
+    const rows = [['Joined', 'Name', 'Mobile', 'Email', 'City', 'Interested in', 'Note']].concat(waitlistRows(S.waitlist, { interest: S.wi, q: S.wq }).map((r) => [r.created_at, r.name, r.phone, r.email, r.city, (r.interests || []).map(interestLabel).join('; '), r.note]));
+    const csv = rows.map((r) => r.map((c) => { c = String(c ?? ''); if (/^[=+\-@]/.test(c)) c = "'" + c; return /[",\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(',')).join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'mechanixpro-waitlist-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
+    audit('exported_waitlist', { rows: rows.length - 1 });
+  },
+  async wlDelete() {
+    const r = S.waitlist.find((x) => x.id === S.openWl); if (!r) return;
+    if (!confirm(`Delete ${r.name || 'this signup'} from the waitlist? This cannot be undone.`)) return;
+    const { error } = await sb.from('waitlist').delete().eq('id', r.id); if (error) return toast('Could not delete: ' + error.message);
+    await audit('waitlist_deleted', {}); toast('Deleted'); closeSheet(); await loadWaitlist(); render();
+  },
   addPin() { openPin('new'); },
   async savePin() {
     const isNew = S.openPin === 'new', pin = isNew ? cleanPin($('#pp').value) : S.openPin, name = cleanPinName($('#pn').value), active = $('#pa').checked;
@@ -618,6 +634,22 @@ function openIssue(id) {
     <label class="label" for="is">Status</label><select id="is">${Object.entries(STATUS_LABEL).map(([k, t]) => `<option value="${k}"${k === i.status ? ' selected' : ''}>${t}</option>`).join('')}</select>
     <label class="label" for="ir">How it was resolved</label><textarea id="ir" rows="3" maxlength="1000">${esc(i.resolution || '')}</textarea>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-primary" type="button" data-act="saveIssue">Save</button>${isOwner() && id !== 'new' ? '<button class="btn btn-ghost" type="button" data-act="deleteIssue">Delete issue</button>' : ''}</div></div></div>`;
+  $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
+}
+/* ---------- waitlist: who wants the coming-soon services ---------- */
+function waitlist() {
+  const counts = interestCounts(S.waitlist), max = Math.max(1, ...counts.map((c) => c.count)), rows = waitlistRows(S.waitlist, { interest: S.wi, q: S.wq });
+  return `<h1 style="font-size:34px">Waitlist</h1><p class="muted">${S.waitlist.length} ${S.waitlist.length === 1 ? 'person has' : 'people have'} asked to hear about the coming-soon services. One person can pick several. Tap a bar to filter the list.</p>
+  <div class="card"><h3>Interest by service</h3><div class="bars">${counts.map((c) => `<button type="button" class="b wl-bar${S.wi === c.id ? ' on' : ''}" data-wi="${c.id}" aria-pressed="${S.wi === c.id}"><span>${esc(c.label)}</span><span class="t"><i style="width:${Math.round((c.count / max) * 100)}%"></i></span><b>${c.count}</b></button>`).join('')}</div></div>
+  <div class="toolbar" style="margin-top:14px"><input id="wq" type="search" placeholder="Search name, phone, email or city" value="${esc(S.wq)}" aria-label="Search the waitlist"><button class="btn btn-ghost btn-sm" type="button" data-act="wlCsv">Export CSV</button></div>
+  <div class="list">${rows.length ? rows.map((r) => `<button class="row mrow" data-wl="${r.id}"><span><b>${esc(r.name || 'No name')}</b><br><span class="meta">${esc(r.phone || r.email || '')}${r.city ? ' · ' + esc(r.city) : ''}</span></span><span class="meta">${esc((r.interests || []).map(interestLabel).join(', '))}</span><span class="meta">${when(r.created_at)}</span></button>`).join('') : '<p class="muted" style="padding:16px">Nobody here yet.</p>'}</div>`;
+}
+function openWaitlist(id) {
+  const r = S.waitlist.find((x) => x.id === id); if (!r) return;
+  S.open = null; S.openCust = null; S.openMech = null; S.openCoupon = null; S.openIssue = null; S.openPin = null; S.openWl = id;
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${esc(r.name || 'Waitlist signup')}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  <div class="card" style="margin-top:12px"><dl class="kv"><dt>Mobile</dt><dd>${r.phone ? `<a href="tel:+91${esc(r.phone)}">+91 ${esc(r.phone)}</a> · <a href="https://wa.me/91${esc(r.phone)}" target="_blank" rel="noopener">WhatsApp</a>` : '—'}</dd><dt>Email</dt><dd>${esc(r.email || '—')}</dd><dt>City</dt><dd>${esc(r.city || '—')}</dd><dt>Interested in</dt><dd>${esc((r.interests || []).map(interestLabel).join(', '))}</dd><dt>Note</dt><dd>${esc(r.note || '—')}</dd><dt>Joined</dt><dd>${when(r.created_at)}</dd></dl>
+  ${isOwner() ? '<button class="btn btn-ghost" style="margin-top:14px" type="button" data-act="wlDelete">Delete this signup</button>' : ''}</div>`;
   $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
 }
 /* ---------- PIN codes we serve ---------- */
