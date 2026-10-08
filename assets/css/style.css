@@ -392,10 +392,10 @@ main.page .final{margin-top:32px}
 
 /* home picture shuffle */
 #showcase{padding-top:8px}
-.show{position:relative;max-width:760px;margin:0 auto;aspect-ratio:16/9;border-radius:24px;overflow:hidden;background:var(--soft);border:1px solid var(--line)}
-.slide{position:absolute;inset:0;margin:0;opacity:0;transform:scale(1.03);transition:opacity .9s ease,transform 5s ease;pointer-events:none}
-.slide.on{opacity:1;transform:scale(1);pointer-events:auto}
-.slide img{width:100%;height:100%;object-fit:cover;object-position:center 60%;display:block;background:#fff}
+.show{position:relative;max-width:600px;margin:0 auto;aspect-ratio:10/7;border-radius:24px;overflow:hidden;background:var(--soft);border:1px solid var(--line)}
+.slide{position:absolute;inset:0;margin:0;opacity:0;transform:scale(1.03);transition:opacity .5s ease,transform 5s ease;pointer-events:none}
+.slide{z-index:0}.slide.prev{opacity:1;transform:none;z-index:1;transition:none}.slide.on{opacity:1;transform:scale(1);pointer-events:auto;z-index:2}
+.slide img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;background:#fff}
 .slide figcaption{position:absolute;left:14px;bottom:14px;padding:6px 12px;border-radius:980px;background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:14px;font-weight:600;color:var(--ink)}
 .show-dots{display:flex;justify-content:center;gap:2px;margin-top:6px}
 .show-dots button{width:44px;height:44px;border:0;background:transparent;cursor:pointer;position:relative}
@@ -414,3 +414,5 @@ details>p{animation:faqOpen .3s ease}details[open]>summary{color:var(--ember-2)}
 /* footer logo sits on a white pill so the navy artwork stays readable on the dark footer; model page photo */
 footer .brand{background:#fff;padding:8px 14px;border-radius:14px;display:inline-flex;width:fit-content}
 .model-fig{margin:18px 0}.model-fig img{width:100%;max-width:520px;height:auto;max-height:340px;object-fit:cover;border-radius:20px;display:block}
+
+.nav .links a{white-space:nowrap}

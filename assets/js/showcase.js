@@ -24,7 +24,12 @@
       for (var i = 0; i < s.length; i++) s[i].classList.toggle('on', i === cur);
       if (dots) { var d = dots.children; for (var j = 0; j < d.length; j++) d[j].setAttribute('aria-pressed', String(j === cur)); }
     }
-    function go(i) { cur = i; paint(); }
+    function go(i) {
+      if (i === cur) return;
+      var s = slides(), old = s[cur];
+      if (old) { old.classList.add('prev'); setTimeout(function () { old.classList.remove('prev'); }, 650); }
+      cur = i; paint();
+    }
     function buildDots() {
       if (!dots) return; dots.innerHTML = '';
       var n = slides().length; if (n < 2) return;
