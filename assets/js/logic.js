@@ -113,6 +113,10 @@
     });
     return inside || (nearD <= 3.5 ? near : '');
   }
+  /* The barcode on the confirmation receipt: bar widths (1 to 3) drawn from the booking reference. Decorative; the same reference always gives the same bars. */
+  function receiptBars(ref) {
+    var out = [2, 1, 2, 1]; String(ref || 'MECHANIX').split('').forEach(function (ch) { var c = ch.charCodeAt(0); out.push((c % 3) + 1, ((c >> 2) % 3) + 1, ((c >> 4) % 3) + 1, ((c >> 1) % 3) + 1); }); out.push(1, 2, 1, 2); return out;
+  }
   function mapsLink(lat, lng) { return 'https://maps.google.com/?q=' + lat.toFixed(5) + ',' + lng.toFixed(5); }
   var CRUISER_NAMES = /Avenger|Dominar|Intruder|Thunderbird|Bullet|Classic|Meteor|Himalayan|Scram|Interceptor|Continental|Shotgun|Guerrilla|Hunter|CB350|H.ness/i;
   var SPORTS_NAMES = /Apache|Pulsar|FZ|Gixxer|R15|MT-15|Xtreme|Raider|Hornet|Duke|^RC|CB200X|CB300F|Karizma|Xpulse|Ronin|Adventure|V-Strom|CBZ|Impulse|Hunk|Achiever|Ignitor|Stunner|Twister|Fazer|SZ|Gladiator|GS ?150|Ninja|Panigale|Monster/i;
@@ -227,5 +231,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { pinFromLocation: pinFromLocation, pinInfo: pinInfo, inBengaluru: inBengaluru, nearestPlace: nearestPlace, prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { receiptBars: receiptBars, pinFromLocation: pinFromLocation, pinInfo: pinInfo, inBengaluru: inBengaluru, nearestPlace: nearestPlace, prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });

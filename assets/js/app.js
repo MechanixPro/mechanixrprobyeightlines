@@ -363,16 +363,24 @@
   function showDone(ref, url) {
     closeExit();
     var old = $('#doneSheet'); if (old) old.remove();
-    var name = st.nick ? esc(st.nick) : esc(bikeTitle()), sv = svc(st.service), ics = L.icsFor(st, ref, sv ? sv.name : ''), secs = 5;
+    var name = st.nick ? esc(st.nick) : esc(bikeTitle()), sv = svc(st.service), ics = L.icsFor(st, ref, sv ? sv.name : ''), secs = 9;
+    var when = st.place !== 'road' && st.dateIso && st.hour != null ? L.whenLabel(st.dateIso, st.hour) : 'We will contact you soon';
+    var bars = L.receiptBars(ref), x = 0, svgBars = bars.map(function (w, i) { var r = i % 2 === 0 ? '<rect x="' + x + '" y="0" width="' + w + '" height="46"/>' : ''; x += w + (i % 2 === 0 ? 0 : 0); return r; }).join('');
+    var barW = bars.reduce(function (t, w) { return t + w; }, 0);
+    var pieces = ''; for (var k = 0; k < 28; k++) pieces += '<i style="--x:' + (Math.round(Math.random() * 100)) + '%;--d:' + (1.3 + Math.random() * 0.9).toFixed(2) + 's;--s:' + (0.3 + Math.random() * 0.5).toFixed(2) + 's;--r:' + Math.round(Math.random() * 360) + 'deg;--c:' + ['#F2801F', '#14295A', '#34C759', '#FFC38A', '#5AC8FA'][k % 5] + '"></i>';
     var d = document.createElement('div'); d.className = 'sheetx'; d.id = 'doneSheet'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'doneT');
-    d.innerHTML = '<div class="sheetx-panel done fade"><div class="done-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>' +
-      '<h3 id="doneT">' + name + ' is in the queue.</h3>' + (ref ? '<p class="done-ref">Reference <b>' + esc(ref) + '</b></p>' : '') +
-      '<ol class="done-steps"><li>Our expert checks what ' + name + ' needs.</li><li>Your quote arrives on WhatsApp.</li><li>You approve, and we come to you.</li></ol>' +
+    d.innerHTML = '<div class="rcpt-wrap"><div class="confetti" aria-hidden="true">' + pieces + '</div>' +
+      '<div class="rcpt-slot" aria-hidden="true"><i class="rcpt-led"></i></div>' +
+      '<div class="rcpt-paper"><div class="rcpt-head"><span class="rcpt-ico" aria-hidden="true"><img src="/assets/img/logo-mark.webp" alt="" width="34" height="35"></span><h3 id="doneT">Thank you!</h3><p>' + name + ' is in the queue.</p></div>' +
+      '<div class="rcpt-perf" aria-hidden="true"><i></i><i></i></div>' +
+      '<dl class="rcpt-rows"><div><dt>Reference</dt><dd>' + (ref ? esc(ref) : 'Pending') + '</dd></div><div><dt>Estimate</dt><dd>from ' + rupee(total()) + '</dd></div><div><dt>Bike</dt><dd>' + esc(bikeTitle()) + '</dd></div><div><dt>Service</dt><dd>' + esc(sv ? sv.name : '') + '</dd></div><div><dt>When</dt><dd>' + esc(when) + '</dd></div><div><dt>Status</dt><dd><span class="rcpt-chip">Request received</span></dd></div></dl>' +
+      '<div class="rcpt-barcode" aria-hidden="true"><svg viewBox="0 0 ' + barW + ' 46" preserveAspectRatio="none">' + svgBars + '</svg><small>' + (ref ? esc(ref) : 'MECHANIX PRO') + '</small></div>' +
+      '<p class="rcpt-foot">Your quote arrives on WhatsApp. Nothing starts until you approve it.</p>' +
       '<a class="btn btn-wa" id="doneWa" href="' + esc(url) + '">Open WhatsApp now</a>' +
       '<div class="done-more">' + (ics ? '<a class="btn btn-ghost btn-sm" download="mechanix-pro-service.ics" href="data:text/calendar;charset=utf-8,' + encodeURIComponent(ics) + '">Add to calendar</a>' : '') + '<button type="button" class="btn btn-ghost btn-sm" data-act="copyBuild">Copy my build link</button></div>' +
-      '<p class="tiny muted" id="doneCount" role="status">Opening WhatsApp in ' + secs + '…</p></div>';
+      '<p class="tiny muted" id="doneCount" role="status">Opening WhatsApp in ' + secs + '…</p></div></div>';
     document.body.appendChild(d);
-    var go = d.querySelector('#doneWa'); if (go) go.focus();
+    var go = d.querySelector('#doneWa'); if (go) go.focus({ preventScroll: true });
     var cnt = d.querySelector('#doneCount'), t = setInterval(function () { secs--; if (!document.body.contains(d)) return clearInterval(t); if (secs <= 0) { clearInterval(t); location.href = url; } else cnt.textContent = 'Opening WhatsApp in ' + secs + '…'; }, 1000);
     d.addEventListener('click', function (e) { if (e.target === d || (e.target.closest && e.target.closest('[data-act=copyBuild]'))) clearInterval(t); });
   }

@@ -524,3 +524,29 @@ input,select,textarea{border-color:var(--line);border-radius:12px}
 .wl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 16px}
 .wl-msg{margin:12px 0 0;min-height:24px;font-weight:600}.wl-msg.ok{color:#1A7F4B}.wl-msg.bad{color:var(--bad)}
 @media(max-width:520px){.soon-grid{grid-template-columns:1fr 1fr;gap:10px}.soon-card{padding:14px;gap:6px}.soon-card h3{font-size:17px}.soon-card p{font-size:14px}.soon-card .btn{padding:8px 14px}}
+
+/* receipt checkout: the confirmation prints out of a slot, like a payment receipt */
+.rcpt-wrap{position:relative;width:min(380px,100%);max-height:92vh;overflow:auto;overflow-x:hidden;padding:6px 6px 0;-webkit-overflow-scrolling:touch}
+.rcpt-slot{position:relative;z-index:3;height:30px;border-radius:15px;background:linear-gradient(#aeb4c2,#6f7686 55%,#4b5160);box-shadow:0 10px 24px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.55)}
+.rcpt-slot::after{content:"";position:absolute;left:12px;right:12px;bottom:6px;height:5px;border-radius:3px;background:#14151a}
+.rcpt-led{position:absolute;right:16px;top:8px;width:8px;height:8px;border-radius:50%;background:#34C759;box-shadow:0 0 8px #34C759;animation:rcptLed 1s ease-in-out 1.6s infinite}
+.rcpt-paper{position:relative;z-index:2;margin:-8px 14px 14px;background:#fff;border-radius:6px 6px 22px 22px;padding:22px 20px 18px;box-shadow:0 18px 40px rgba(0,0,0,.28);transform-origin:50% 0;clip-path:inset(0 0 100% 0);animation:rcptPrint 1.5s cubic-bezier(.3,.7,.2,1) .15s forwards,rcptWobble .9s ease 1.75s}
+.rcpt-head{text-align:center}.rcpt-ico{display:grid;place-items:center;width:52px;height:52px;margin:0 auto 8px;border-radius:50%;background:#FFF1E3}
+.rcpt-head h3{margin:0 0 2px;font-size:26px}.rcpt-head p{margin:0;color:var(--muted)}
+.rcpt-perf{position:relative;height:0;margin:16px -20px;border-top:2px dashed #D2D2D7}
+.rcpt-perf i{position:absolute;top:-11px;width:20px;height:20px;border-radius:50%;background:rgba(10,18,32,.55)}.rcpt-perf i:first-child{left:-10px}.rcpt-perf i:last-child{right:-10px}
+.rcpt-rows{margin:0;display:grid;gap:10px}.rcpt-rows>div{display:flex;justify-content:space-between;gap:14px;align-items:baseline}
+.rcpt-rows dt{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8E8E93}.rcpt-rows dd{margin:0;font-weight:600;text-align:right;font-size:15px}
+.rcpt-chip{display:inline-block;padding:3px 10px;border-radius:980px;background:#E7F7EE;color:#1A7F4B;font-size:12.5px;font-weight:700}
+.rcpt-barcode{margin:18px 0 6px;text-align:center}.rcpt-barcode svg{width:100%;height:46px;fill:#1D1D1F;display:block}.rcpt-barcode small{display:block;margin-top:4px;font:600 11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.18em;color:#8E8E93}
+.rcpt-foot{margin:10px 0 14px;text-align:center;font-size:13.5px;color:var(--muted)}
+.rcpt-paper .btn-wa{width:100%;justify-content:center}.rcpt-paper .done-more{margin-top:10px}.rcpt-paper #doneCount{text-align:center;margin:8px 0 0}
+.rcpt-paper>*:not(.rcpt-head):not(.rcpt-perf){animation:rcptFade .5s ease 1.2s both}
+.confetti{position:absolute;inset:0;pointer-events:none;z-index:4;overflow:hidden}
+.confetti i{position:absolute;top:34px;left:var(--x);width:8px;height:12px;background:var(--c);border-radius:2px;opacity:0;transform:rotate(var(--r));animation:cfFall var(--d) ease-out var(--s) forwards;animation-delay:calc(1.4s + var(--s))}
+@keyframes rcptPrint{from{clip-path:inset(0 0 100% 0);transform:translateY(-18px)}to{clip-path:inset(0 0 0 0);transform:none}}
+@keyframes rcptWobble{0%,100%{transform:rotate(0)}30%{transform:rotate(-1.6deg)}65%{transform:rotate(1.2deg)}}
+@keyframes rcptFade{from{opacity:0}to{opacity:1}}
+@keyframes rcptLed{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes cfFall{0%{opacity:1;transform:translateY(0) rotate(var(--r))}100%{opacity:0;transform:translateY(420px) rotate(calc(var(--r) + 540deg))}}
+@media(prefers-reduced-motion:reduce){.rcpt-paper{clip-path:none;animation:none}.rcpt-paper>*{animation:none}.confetti{display:none}.rcpt-led{animation:none}}
