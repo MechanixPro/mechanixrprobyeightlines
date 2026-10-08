@@ -102,6 +102,17 @@
     var name = (pins && pins[pin]) || '', n = +pin;
     return { pin: pin, name: name, served: !!name || (n >= 560001 && n <= 560110), known: !!name };
   }
+  /* The PIN code for a place on the map: among the PIN areas whose outline contains the point, the one with the nearest centre; otherwise the nearest centre within 3.5 km. Approximate, so the visitor can correct it. */
+  function pinFromLocation(lat, lng, geo) {
+    if (!validGeo(lat, lng) || !geo) return '';
+    var inside = '', insideD = Infinity, near = '', nearD = Infinity;
+    Object.keys(geo).forEach(function (pin) {
+      var g = geo[pin], d = distanceKm(lat, lng, g[0], g[1]);
+      if (lat >= g[2] && lat <= g[3] && lng >= g[4] && lng <= g[5] && d < insideD) { inside = pin; insideD = d; }
+      if (d < nearD) { near = pin; nearD = d; }
+    });
+    return inside || (nearD <= 3.5 ? near : '');
+  }
   function mapsLink(lat, lng) { return 'https://maps.google.com/?q=' + lat.toFixed(5) + ',' + lng.toFixed(5); }
   var CRUISER_NAMES = /Avenger|Dominar|Intruder|Thunderbird|Bullet|Classic|Meteor|Himalayan|Scram|Interceptor|Continental|Shotgun|Guerrilla|Hunter|CB350|H.ness/i;
   var SPORTS_NAMES = /Apache|Pulsar|FZ|Gixxer|R15|MT-15|Xtreme|Raider|Hornet|Duke|^RC|CB200X|CB300F|Karizma|Xpulse|Ronin|Adventure|V-Strom|CBZ|Impulse|Hunk|Achiever|Ignitor|Stunner|Twister|Fazer|SZ|Gladiator|GS ?150|Ninja|Panigale|Monster/i;
@@ -216,5 +227,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { pinInfo: pinInfo, inBengaluru: inBengaluru, nearestPlace: nearestPlace, prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { pinFromLocation: pinFromLocation, pinInfo: pinInfo, inBengaluru: inBengaluru, nearestPlace: nearestPlace, prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });

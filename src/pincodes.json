@@ -15,7 +15,15 @@
     "Vasanthanagar",
     "Vidhana Soudha"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.9797,
+   "lng": 77.5947,
+   "bbox": [
+    12.9648,
+    12.9963,
+    77.5747,
+    77.6154
+   ]
   },
   "560002": {
    "name": "City Market",
@@ -23,7 +31,15 @@
     "Bangalore City",
     "Bangalore Corporation Building"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.96273,
+   "lng": 77.58065,
+   "bbox": [
+    12.9539,
+    12.9729,
+    77.5686,
+    77.5897
+   ]
   },
   "560003": {
    "name": "Malleswaram",
@@ -33,7 +49,15 @@
     "Swimming Pool Extn",
     "Vyalikaval Extn"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.0011,
+   "lng": 77.57251,
+   "bbox": [
+    12.9919,
+    13.0094,
+    77.5601,
+    77.5842
+   ]
   },
   "560004": {
    "name": "Basavanagudi",
@@ -43,14 +67,30 @@
     "Pampamahakavi Road",
     "Thyagarajnagar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.94522,
+   "lng": 77.57586,
+   "bbox": [
+    12.9294,
+    12.9574,
+    77.5666,
+    77.5905
+   ]
   },
   "560005": {
    "name": "Fraser Town",
    "areas": [
     "Fraser Town"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.9968,
+   "lng": 77.61905,
+   "bbox": [
+    12.9873,
+    13.0068,
+    77.6054,
+    77.6336
+   ]
   },
   "560006": {
    "name": "JC Nagar",
@@ -58,7 +98,15 @@
     "J.C.Nagar",
     "Training Command IAF"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.01064,
+   "lng": 77.59121,
+   "bbox": [
+    12.9936,
+    13.0278,
+    77.574,
+    77.6126
+   ]
   },
   "560007": {
    "name": "Agram",
@@ -66,7 +114,15 @@
     "Agram",
     "Air Force Hospital"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.95747,
+   "lng": 77.62914,
+   "bbox": [
+    12.9385,
+    12.9751,
+    77.6142,
+    77.6409
+   ]
   },
   "560008": {
    "name": "HAL II Stage",
@@ -74,7 +130,15 @@
     "H.A.L II Stage",
     "Hulsur Bazaar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.97726,
+   "lng": 77.63499,
+   "bbox": [
+    12.9594,
+    12.9947,
+    77.6193,
+    77.655
+   ]
   },
   "560009": {
    "name": "KG Road",
@@ -82,7 +146,15 @@
     "Bangalore Dist Offices Bldg",
     "K. G. Road"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.97861,
+   "lng": 77.57628,
+   "bbox": [
+    12.973,
+    12.9863,
+    77.5701,
+    77.5844
+   ]
   },
   "560010": {
    "name": "Rajajinagar",
@@ -91,7 +163,15 @@
     "Rajajinagar",
     "Rajajinagar IVth Block"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.9906,
+   "lng": 77.55141,
+   "bbox": [
+    12.975,
+    13.0138,
+    77.5424,
+    77.5603
+   ]
   },
   "560011": {
    "name": "Jayanagar",
@@ -99,35 +179,75 @@
     "Jayangar III Block",
     "Madhavan Park"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.93022,
+   "lng": 77.58512,
+   "bbox": [
+    12.9233,
+    12.9367,
+    77.5796,
+    77.5927
+   ]
   },
   "560012": {
    "name": "Science Institute",
    "areas": [
     "Science Institute"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.01932,
+   "lng": 77.5675,
+   "bbox": [
+    13.008,
+    13.0301,
+    77.5556,
+    77.5779
+   ]
   },
   "560013": {
    "name": "Jalahalli",
    "areas": [
     "Jalahalli"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.04942,
+   "lng": 77.55219,
+   "bbox": [
+    13.0386,
+    13.06,
+    77.5329,
+    77.5693
+   ]
   },
   "560014": {
    "name": "Jalahalli East",
    "areas": [
     "Jalahalli East"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.07265,
+   "lng": 77.54455,
+   "bbox": [
+    13.059,
+    13.0838,
+    77.5339,
+    77.5553
+   ]
   },
   "560015": {
    "name": "Jalahalli West",
    "areas": [
     "Jalahalli West"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.06293,
+   "lng": 77.52615,
+   "bbox": [
+    13.0459,
+    13.0787,
+    77.5031,
+    77.5467
+   ]
   },
   "560016": {
    "name": "Ramamurthy Nagar",
@@ -136,7 +256,15 @@
     "Krishnarajapuram R S",
     "Ramamurthy Nagar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.01858,
+   "lng": 77.67653,
+   "bbox": [
+    12.9868,
+    13.0524,
+    77.6561,
+    77.6936
+   ]
   },
   "560017": {
    "name": "Vimanapura",
@@ -144,28 +272,60 @@
     "NAL",
     "Vimanapura"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.95417,
+   "lng": 77.66389,
+   "bbox": [
+    12.9339,
+    12.9756,
+    77.6413,
+    77.6895
+   ]
   },
   "560018": {
    "name": "Chamrajpet",
    "areas": [
     "Chamrajpet (Bangalore)"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.95828,
+   "lng": 77.56395,
+   "bbox": [
+    12.9531,
+    12.9642,
+    77.5554,
+    77.5746
+   ]
   },
   "560019": {
    "name": "Gaviopuram Extension",
    "areas": [
     "Gaviopuram Extension"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.94713,
+   "lng": 77.5624,
+   "bbox": [
+    12.9376,
+    12.9552,
+    77.5552,
+    77.5679
+   ]
   },
   "560020": {
    "name": "Seshadripuram",
    "areas": [
     "Seshadripuram"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.99155,
+   "lng": 77.57707,
+   "bbox": [
+    12.9844,
+    12.9994,
+    77.5715,
+    77.5847
+   ]
   },
   "560021": {
    "name": "Gayathrinagar",
@@ -173,7 +333,15 @@
     "Gayathrinagar",
     "Srirampuram"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.99189,
+   "lng": 77.56316,
+   "bbox": [
+    12.9819,
+    13.0039,
+    77.5527,
+    77.5722
+   ]
   },
   "560022": {
    "name": "Yeshwanthpur",
@@ -181,14 +349,30 @@
     "Yeshwanthpur Bazar",
     "Yeswanthpura"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.0255,
+   "lng": 77.54584,
+   "bbox": [
+    13.0114,
+    13.044,
+    77.5285,
+    77.5632
+   ]
   },
   "560023": {
    "name": "Magadi Road",
    "areas": [
     "Magadi Road"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.97431,
+   "lng": 77.55834,
+   "bbox": [
+    12.964,
+    12.9836,
+    77.5436,
+    77.5711
+   ]
   },
   "560024": {
    "name": "Hebbal",
@@ -197,7 +381,15 @@
     "H.A. Farm",
     "Hebbal Kempapura"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.04532,
+   "lng": 77.59777,
+   "bbox": [
+    13.0229,
+    13.0599,
+    77.5783,
+    77.6235
+   ]
   },
   "560025": {
    "name": "Richmond Town",
@@ -207,7 +399,15 @@
     "Museum Road",
     "Richmond Town"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.96424,
+   "lng": 77.60696,
+   "bbox": [
+    12.9515,
+    12.9751,
+    77.5948,
+    77.6196
+   ]
   },
   "560026": {
    "name": "Deepanjalinagar",
@@ -215,7 +415,15 @@
     "Deepanjalinagar",
     "Governmemnt Electric Factory"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.95467,
+   "lng": 77.54619,
+   "bbox": [
+    12.9384,
+    12.9694,
+    77.5281,
+    77.5643
+   ]
   },
   "560027": {
    "name": "Shanthinagar",
@@ -224,7 +432,15 @@
     "Shanthinagar",
     "Wilson Garden"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.95933,
+   "lng": 77.59308,
+   "bbox": [
+    12.9142,
+    13.0045,
+    77.547,
+    77.6391
+   ]
   },
   "560028": {
    "name": "Tyagrajnagar",
@@ -239,14 +455,30 @@
     "Dharmaram College",
     "Tavarekere"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.92973,
+   "lng": 77.60474,
+   "bbox": [
+    12.9165,
+    12.9449,
+    77.5926,
+    77.6161
+   ]
   },
   "560030": {
    "name": "Adugodi",
    "areas": [
     "Adugodi"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.94529,
+   "lng": 77.60738,
+   "bbox": [
+    12.9383,
+    12.9519,
+    77.5969,
+    77.6171
+   ]
   },
   "560032": {
    "name": "RT Nagar",
@@ -254,14 +486,30 @@
     "P&T Col. Kavalbyrasandra",
     "R T Nagar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.02772,
+   "lng": 77.60032,
+   "bbox": [
+    13.0119,
+    13.0412,
+    77.5839,
+    77.6161
+   ]
   },
   "560033": {
    "name": "Maruthi Sevanagar",
    "areas": [
     "Maruthi Sevanagar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.99801,
+   "lng": 77.64616,
+   "bbox": [
+    12.9869,
+    13.0063,
+    77.6268,
+    77.6641
+   ]
   },
   "560034": {
    "name": "Koramangala",
@@ -271,14 +519,30 @@
     "Koramangala I Block",
     "St. John's Medical College"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.92543,
+   "lng": 77.63138,
+   "bbox": [
+    12.9159,
+    12.9372,
+    77.6144,
+    77.6518
+   ]
   },
   "560035": {
    "name": "Carmelaram",
    "areas": [
     "Carmelram"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.89602,
+   "lng": 77.69982,
+   "bbox": [
+    12.876,
+    12.9202,
+    77.672,
+    77.7314
+   ]
   },
   "560036": {
    "name": "Devasandra",
@@ -286,7 +550,15 @@
     "Devasandra",
     "Krishnarajapuram"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.01216,
+   "lng": 77.6967,
+   "bbox": [
+    12.9943,
+    13.0381,
+    77.6768,
+    77.7192
+   ]
   },
   "560037": {
    "name": "Marathahalli",
@@ -296,21 +568,45 @@
     "Marathahalli Colony",
     "Rameshnagar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.95971,
+   "lng": 77.69913,
+   "bbox": [
+    12.9398,
+    12.9849,
+    77.6709,
+    77.7307
+   ]
   },
   "560038": {
    "name": "Indiranagar",
    "areas": [
     "Indiranagar (Bangalore)"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.97973,
+   "lng": 77.64167,
+   "bbox": [
+    12.9702,
+    12.9918,
+    77.6313,
+    77.6503
+   ]
   },
   "560039": {
    "name": "Nayandahalli",
    "areas": [
     "Nayandahalli"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.93967,
+   "lng": 77.52472,
+   "bbox": [
+    12.9277,
+    12.9531,
+    77.5132,
+    77.5342
+   ]
   },
   "560040": {
    "name": "Vijayanagar",
@@ -319,7 +615,15 @@
     "Vijayanagar (Bangalore)",
     "Vijayanagar East"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.96663,
+   "lng": 77.53331,
+   "bbox": [
+    12.9487,
+    12.9802,
+    77.5232,
+    77.5484
+   ]
   },
   "560041": {
    "name": "Jayanagar",
@@ -327,14 +631,30 @@
     "Jayanagar",
     "Tilaknagar (Bangalore)"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.92339,
+   "lng": 77.59238,
+   "bbox": [
+    12.9167,
+    12.9345,
+    77.5802,
+    77.6012
+   ]
   },
   "560042": {
    "name": "Sivan Chetty Gardens",
    "areas": [
     "Sivan Chetty Gardens"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.98183,
+   "lng": 77.617,
+   "bbox": [
+    12.9725,
+    12.9906,
+    77.6101,
+    77.6231
+   ]
   },
   "560043": {
    "name": "Banaswadi",
@@ -344,7 +664,15 @@
     "Jalavayuvihar",
     "Kalyananagar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.02389,
+   "lng": 77.64421,
+   "bbox": [
+    12.9968,
+    13.048,
+    77.62,
+    77.6642
+   ]
   },
   "560045": {
    "name": "Nagawara",
@@ -352,7 +680,15 @@
     "Arabic College",
     "Venkateshapura"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.03674,
+   "lng": 77.62141,
+   "bbox": [
+    13.0072,
+    13.0663,
+    77.6007,
+    77.6415
+   ]
   },
   "560046": {
    "name": "Benson Town",
@@ -360,7 +696,15 @@
     "Benson Town",
     "Jayamahal Road"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.00032,
+   "lng": 77.60144,
+   "bbox": [
+    12.9918,
+    13.0084,
+    77.5931,
+    77.6121
+   ]
   },
   "560047": {
    "name": "Austin Town",
@@ -368,7 +712,15 @@
     "Austin Town",
     "Viveknagar (Bangalore)"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.95672,
+   "lng": 77.61662,
+   "bbox": [
+    12.9445,
+    12.9685,
+    77.6088,
+    77.6269
+   ]
   },
   "560048": {
    "name": "Hoodi",
@@ -376,7 +728,15 @@
     "Hoodi",
     "Mahadevapura"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.99013,
+   "lng": 77.71192,
+   "bbox": [
+    12.972,
+    13.0057,
+    77.6851,
+    77.7438
+   ]
   },
   "560049": {
    "name": "Bhattarahalli",
@@ -386,7 +746,15 @@
     "Mundur",
     "Virgonagar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.06004,
+   "lng": 77.73104,
+   "bbox": [
+    13.0035,
+    13.1165,
+    77.69,
+    77.7689
+   ]
   },
   "560050": {
    "name": "Banashankari",
@@ -396,28 +764,60 @@
     "Dasarahalli(Srinagar)",
     "State Bank Of Mysore Colony"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.9414,
+   "lng": 77.5548,
+   "bbox": [
+    12.9334,
+    12.9523,
+    77.5477,
+    77.5646
+   ]
   },
   "560051": {
    "name": "Shivajinagar",
    "areas": [
     "H.K.P. Road"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.98774,
+   "lng": 77.60319,
+   "bbox": [
+    12.9815,
+    12.9941,
+    77.5972,
+    77.6073
+   ]
   },
   "560052": {
    "name": "Vasanthnagar",
    "areas": [
     "Vasanthnagar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.99077,
+   "lng": 77.59208,
+   "bbox": [
+    12.9832,
+    12.9978,
+    77.5843,
+    77.6001
+   ]
   },
   "560053": {
    "name": "Chickpet",
    "areas": [
     "Chickpet"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.96862,
+   "lng": 77.57102,
+   "bbox": [
+    12.9612,
+    12.9759,
+    77.5592,
+    77.5812
+   ]
   },
   "560054": {
    "name": "Mathikere",
@@ -426,14 +826,30 @@
     "Msrit",
     "Sri Chowdeshwari"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.03429,
+   "lng": 77.55727,
+   "bbox": [
+    13.0263,
+    13.042,
+    77.5429,
+    77.5713
+   ]
   },
   "560055": {
    "name": "Malleswaram",
    "areas": [
     "Malleswaram West"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.00775,
+   "lng": 77.55986,
+   "bbox": [
+    13.0005,
+    13.0158,
+    77.5532,
+    77.5712
+   ]
   },
   "560056": {
    "name": "Mallathahalli",
@@ -441,14 +857,30 @@
     "Bnagalore Viswavidalaya",
     "Mallathahalli"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.94769,
+   "lng": 77.49698,
+   "bbox": [
+    12.9253,
+    12.9754,
+    77.4748,
+    77.5202
+   ]
   },
   "560057": {
    "name": "Peenya",
    "areas": [
     "Peenya Dasarahalli"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.04605,
+   "lng": 77.51311,
+   "bbox": [
+    13.0351,
+    13.061,
+    77.5045,
+    77.5222
+   ]
   },
   "560058": {
    "name": "Peenya",
@@ -457,14 +889,30 @@
     "Peenya I Stage",
     "Peenya Small Industries"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.02329,
+   "lng": 77.51356,
+   "bbox": [
+    12.9938,
+    13.0549,
+    77.4827,
+    77.5397
+   ]
   },
   "560059": {
    "name": "RV Niketan",
    "areas": [
     "Rv Niketan"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.92378,
+   "lng": 77.49579,
+   "bbox": [
+    12.9164,
+    12.9336,
+    77.489,
+    77.5051
+   ]
   },
   "560060": {
    "name": "Kengeri",
@@ -473,7 +921,15 @@
     "Kengeri",
     "Sulikere"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.90706,
+   "lng": 77.45967,
+   "bbox": [
+    12.8411,
+    12.968,
+    77.4069,
+    77.5129
+   ]
   },
   "560061": {
    "name": "Subramanyapura",
@@ -481,7 +937,15 @@
     "Chikkalasandra",
     "Subramanyapura"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.90362,
+   "lng": 77.53999,
+   "bbox": [
+    12.8879,
+    12.9201,
+    77.5186,
+    77.5587
+   ]
   },
   "560062": {
    "name": "Konanakunte",
@@ -489,7 +953,15 @@
     "Doddakallasandra",
     "Konanakunte"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.86714,
+   "lng": 77.5209,
+   "bbox": [
+    12.8348,
+    12.895,
+    77.4706,
+    77.5754
+   ]
   },
   "560063": {
    "name": "Yelahanka",
@@ -497,7 +969,15 @@
     "A F Station Yelahanka",
     "BSF Campus Yelahanka"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.13124,
+   "lng": 77.61121,
+   "bbox": [
+    13.1194,
+    13.1461,
+    77.5888,
+    77.6339
+   ]
   },
   "560064": {
    "name": "Jakkur",
@@ -510,14 +990,30 @@
     "Yelahanka",
     "Yelahanka Satellite Town"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.14017,
+   "lng": 77.57225,
+   "bbox": [
+    13.0591,
+    13.2315,
+    77.5195,
+    77.6359
+   ]
   },
   "560065": {
    "name": "GKVK",
    "areas": [
     "G.K.V.K."
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.08531,
+   "lng": 77.5778,
+   "bbox": [
+    13.0698,
+    13.0994,
+    77.5596,
+    77.5963
+   ]
   },
   "560066": {
    "name": "Whitefield",
@@ -525,7 +1021,15 @@
     "EPIP",
     "Whitefield"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.9692,
+   "lng": 77.74395,
+   "bbox": [
+    12.9438,
+    12.9899,
+    77.7095,
+    77.7841
+   ]
   },
   "560067": {
    "name": "Kadugodi",
@@ -539,7 +1043,15 @@
     "Naduvathi",
     "Samethanahalli"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.95569,
+   "lng": 77.81291,
+   "bbox": [
+    12.865,
+    13.0274,
+    77.728,
+    77.8756
+   ]
   },
   "560068": {
    "name": "Begur",
@@ -549,14 +1061,30 @@
     "Madivala",
     "Singasandra"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.89422,
+   "lng": 77.64235,
+   "bbox": [
+    12.8697,
+    12.9278,
+    77.609,
+    77.6728
+   ]
   },
   "560069": {
    "name": "Jayanagar",
    "areas": [
     "Jayangar East S.O"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.9407,
+   "lng": 77.58783,
+   "bbox": [
+    12.9344,
+    12.9474,
+    77.5801,
+    77.5969
+   ]
   },
   "560070": {
    "name": "Padmanabhanagar",
@@ -566,21 +1094,45 @@
     "Padmanabhnagar",
     "Tyagrajnagar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.92246,
+   "lng": 77.56681,
+   "bbox": [
+    12.9087,
+    12.9377,
+    77.5505,
+    77.5803
+   ]
   },
   "560071": {
    "name": "Domlur",
    "areas": [
     "Domlur"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.95618,
+   "lng": 77.6398,
+   "bbox": [
+    12.9444,
+    12.9676,
+    77.6336,
+    77.6476
+   ]
   },
   "560072": {
    "name": "Nagarbhavi",
    "areas": [
     "Nagarbhavi"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.96575,
+   "lng": 77.51408,
+   "bbox": [
+    12.9491,
+    12.981,
+    77.4952,
+    77.5268
+   ]
   },
   "560073": {
    "name": "Nagasandra",
@@ -590,7 +1142,15 @@
     "Nagasandra (Bangalore)",
     "Nelakadiranahalli"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.04317,
+   "lng": 77.48674,
+   "bbox": [
+    13.0086,
+    13.0722,
+    77.4603,
+    77.508
+   ]
   },
   "560074": {
    "name": "Kumbalgodu",
@@ -599,7 +1159,15 @@
     "Kumbalgodu Gollahalli",
     "Ramohalli"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.88234,
+   "lng": 77.42672,
+   "bbox": [
+    12.8403,
+    12.9175,
+    77.3974,
+    77.4548
+   ]
   },
   "560075": {
    "name": "Thippasandra",
@@ -607,7 +1175,15 @@
     "Jeevanbhimanagar",
     "New Thippasandra"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.9702,
+   "lng": 77.65626,
+   "bbox": [
+    12.9583,
+    12.9827,
+    77.6461,
+    77.6664
+   ]
   },
   "560076": {
    "name": "Bannerghatta Road",
@@ -618,7 +1194,15 @@
     "Mico Layout",
     "Mount St Joseph"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.88064,
+   "lng": 77.60387,
+   "bbox": [
+    12.8507,
+    12.9167,
+    77.5732,
+    77.6261
+   ]
   },
   "560077": {
    "name": "Kothanur",
@@ -627,7 +1211,15 @@
     "Dr. Shivarama Karanth Nagar",
     "Kothanur"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.06253,
+   "lng": 77.65302,
+   "bbox": [
+    13.0374,
+    13.0895,
+    77.6168,
+    77.681
+   ]
   },
   "560078": {
    "name": "JP Nagar",
@@ -637,7 +1229,15 @@
     "Kumaraswamy Layout",
     "Yelachenahalli"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.8996,
+   "lng": 77.58203,
+   "bbox": [
+    12.876,
+    12.9176,
+    77.5635,
+    77.6019
+   ]
   },
   "560079": {
    "name": "Basaveshwaranagar",
@@ -646,21 +1246,45 @@
     "K H B Colony",
     "Kamakshipalya"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.98821,
+   "lng": 77.53264,
+   "bbox": [
+    12.9756,
+    13.0022,
+    77.5184,
+    77.5464
+   ]
   },
   "560080": {
    "name": "Sadashivanagar",
    "areas": [
     "Sadashivanagar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.01034,
+   "lng": 77.57896,
+   "bbox": [
+    13.0031,
+    13.0148,
+    77.5724,
+    77.5845
+   ]
   },
   "560081": {
    "name": "Chandapura",
    "areas": [
     "Chandapura"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.79813,
+   "lng": 77.71199,
+   "bbox": [
+    12.7869,
+    12.8101,
+    77.7038,
+    77.7212
+   ]
   },
   "560082": {
    "name": "Bolare",
@@ -673,7 +1297,15 @@
     "Thattekuppe",
     "Udaypura"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.82615,
+   "lng": 77.46733,
+   "bbox": [
+    12.8013,
+    12.8471,
+    77.4198,
+    77.5143
+   ]
   },
   "560083": {
    "name": "Gottigere",
@@ -684,7 +1316,15 @@
     "Ragihalli",
     "Sakalavara"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.82234,
+   "lng": 77.5729,
+   "bbox": [
+    12.7587,
+    12.8699,
+    77.5125,
+    77.6281
+   ]
   },
   "560084": {
    "name": "Lingarajapuram",
@@ -692,7 +1332,15 @@
     "Lingarajapuram",
     "St. Thomas Town"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.01161,
+   "lng": 77.62762,
+   "bbox": [
+    13.0005,
+    13.0238,
+    77.6125,
+    77.6372
+   ]
   },
   "560085": {
    "name": "Banashankari",
@@ -701,7 +1349,15 @@
     "Girinagar (Bangalore)",
     "Kathriguppe"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.92991,
+   "lng": 77.54406,
+   "bbox": [
+    12.9169,
+    12.9454,
+    77.5296,
+    77.5613
+   ]
   },
   "560086": {
    "name": "Mahalakshmipuram",
@@ -709,7 +1365,15 @@
     "Mahalakshmipuram Layout",
     "West of Chord Road II stage"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.00439,
+   "lng": 77.53995,
+   "bbox": [
+    12.9974,
+    13.0158,
+    77.5237,
+    77.5508
+   ]
   },
   "560087": {
    "name": "Gunjur",
@@ -718,14 +1382,30 @@
     "Muthusandra",
     "Vartur"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.92857,
+   "lng": 77.73723,
+   "bbox": [
+    12.8869,
+    12.9617,
+    77.7048,
+    77.7744
+   ]
   },
   "560088": {
    "name": "Hessarghatta",
    "areas": [
     "Hessarghatta"
    ],
-   "district": "Bangalore Rural"
+   "district": "Bangalore Rural",
+   "lat": 13.12129,
+   "lng": 77.49533,
+   "bbox": [
+    13.0942,
+    13.1607,
+    77.4539,
+    77.5365
+   ]
   },
   "560089": {
    "name": "Hessarghatta Lake",
@@ -735,7 +1415,15 @@
     "Kakolu",
     "Shivakote"
    ],
-   "district": "Bangalore Rural"
+   "district": "Bangalore Rural",
+   "lat": 13.17743,
+   "lng": 77.50146,
+   "bbox": [
+    13.1232,
+    13.2241,
+    77.4643,
+    77.5403
+   ]
   },
   "560090": {
    "name": "Chikkabanavara",
@@ -744,7 +1432,15 @@
     "Silvepura",
     "Tarabanahalli"
    ],
-   "district": "Bangalore Rural"
+   "district": "Bangalore Rural",
+   "lat": 13.08986,
+   "lng": 77.51873,
+   "bbox": [
+    13.0654,
+    13.1196,
+    77.4751,
+    77.5545
+   ]
   },
   "560091": {
    "name": "Kodigehalli",
@@ -754,7 +1450,15 @@
     "Kodigehalli",
     "Viswaneedam"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.99439,
+   "lng": 77.48192,
+   "bbox": [
+    12.9665,
+    13.0226,
+    77.4344,
+    77.523
+   ]
   },
   "560092": {
    "name": "Sahakaranagar",
@@ -764,14 +1468,30 @@
     "Kodigehalli",
     "Sahakaranagar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.06173,
+   "lng": 77.59288,
+   "bbox": [
+    13.0496,
+    13.0738,
+    77.5693,
+    77.6154
+   ]
   },
   "560093": {
    "name": "CV Raman Nagar",
    "areas": [
     "C.V.Raman Nagar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.98353,
+   "lng": 77.66841,
+   "bbox": [
+    12.9727,
+    12.9945,
+    77.648,
+    77.6914
+   ]
   },
   "560094": {
    "name": "RMV Extension",
@@ -779,35 +1499,75 @@
     "ISRO Anthariksha Bhavan",
     "R.M.V. Extension II Stage"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.04077,
+   "lng": 77.57358,
+   "bbox": [
+    13.0257,
+    13.0546,
+    77.5621,
+    77.583
+   ]
   },
   "560095": {
    "name": "Koramangala",
    "areas": [
     "Koramangala VI Bk"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.93884,
+   "lng": 77.62988,
+   "bbox": [
+    12.9274,
+    12.9517,
+    77.6091,
+    77.6536
+   ]
   },
   "560096": {
    "name": "Nandini Layout",
    "areas": [
     "Nandinilayout"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.01454,
+   "lng": 77.5339,
+   "bbox": [
+    13.0054,
+    13.0221,
+    77.5219,
+    77.5441
+   ]
   },
   "560097": {
    "name": "Vidyaranyapura",
    "areas": [
     "Vidyaranyapura"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 13.07855,
+   "lng": 77.55523,
+   "bbox": [
+    13.0546,
+    13.1012,
+    77.5302,
+    77.5866
+   ]
   },
   "560098": {
    "name": "Rajarajeshwari Nagar",
    "areas": [
     "Rajarajeshwarinagar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.91569,
+   "lng": 77.51599,
+   "bbox": [
+    12.8924,
+    12.9363,
+    77.499,
+    77.5323
+   ]
   },
   "560099": {
    "name": "Bommasandra",
@@ -817,7 +1577,15 @@
     "Huskur",
     "Muthanallur"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.83934,
+   "lng": 77.70554,
+   "bbox": [
+    12.7843,
+    12.895,
+    77.6495,
+    77.7505
+   ]
   },
   "560100": {
    "name": "Electronic City",
@@ -825,14 +1593,30 @@
     "Electronics City",
     "Wipro Limited"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.84601,
+   "lng": 77.66127,
+   "bbox": [
+    12.8198,
+    12.8812,
+    77.6089,
+    77.7128
+   ]
   },
   "560102": {
    "name": "HSR Layout",
    "areas": [
     "HSR Layout"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.91515,
+   "lng": 77.65051,
+   "bbox": [
+    12.898,
+    12.9308,
+    77.6227,
+    77.6694
+   ]
   },
   "560103": {
    "name": "Bellandur",
@@ -840,14 +1624,30 @@
     "Bellandur",
     "Panathur"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.92328,
+   "lng": 77.67887,
+   "bbox": [
+    12.8885,
+    12.946,
+    77.642,
+    77.7078
+   ]
   },
   "560104": {
    "name": "Hampinagar",
    "areas": [
     "Hampinagar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.96232,
+   "lng": 77.53804,
+   "bbox": [
+    12.954,
+    12.9688,
+    77.5331,
+    77.5445
+   ]
   },
   "560105": {
    "name": "Jigani",
@@ -858,35 +1658,75 @@
     "Jigani",
     "Kallubalu"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.78642,
+   "lng": 77.63458,
+   "bbox": [
+    12.7501,
+    12.8261,
+    77.5928,
+    77.6781
+   ]
   },
   "560107": {
    "name": "Achitnagar",
    "areas": [
     "Achitnagar"
    ],
-   "district": "Bangalore Rural"
+   "district": "Bangalore Rural",
+   "lat": 13.08511,
+   "lng": 77.48937,
+   "bbox": [
+    13.0734,
+    13.0979,
+    77.4779,
+    77.5043
+   ]
   },
   "560108": {
    "name": "Anjanapura",
    "areas": [
     "Anjanapura"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.85708,
+   "lng": 77.55679,
+   "bbox": [
+    12.8481,
+    12.867,
+    77.545,
+    77.57
+   ]
   },
   "560109": {
    "name": "Thalaghattapura",
    "areas": [
     "Thalaghattapura"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.86641,
+   "lng": 77.52352,
+   "bbox": [
+    12.8536,
+    12.8771,
+    77.5098,
+    77.5415
+   ]
   },
   "560110": {
    "name": "Ullal Upanagar",
    "areas": [
     "Ullalu Upanagar"
    ],
-   "district": "Bangalore"
+   "district": "Bangalore",
+   "lat": 12.95168,
+   "lng": 77.47638,
+   "bbox": [
+    12.9307,
+    12.9715,
+    77.4693,
+    77.4848
+   ]
   }
  }
 }

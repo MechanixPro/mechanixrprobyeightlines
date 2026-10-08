@@ -454,8 +454,10 @@
       if (!place) { st.lat = null; st.lng = null; locMsg = 'That location looks wrong. Choose your area below.'; }
       else {
         st.area = place.name;
+        var gotPin = place.served ? L.pinFromLocation(st.lat, st.lng, window.MXP_PIN_GEO) : '';
+        if (gotPin) st.pin = gotPin;
         if (!st.address || /^Near /.test(st.address)) st.address = place.name === 'Other area' ? '' : 'Near ' + place.name;
-        locMsg = place.served ? 'Location saved. You are in ' + place.name + ', and we serve all of Bengaluru.' : 'You are outside Bengaluru. Send it anyway and we will tell you when we reach you.';
+        locMsg = place.served ? 'Location saved. You are in ' + place.name + (gotPin ? ', PIN code ' + gotPin + ' (please check it)' : '') + ', and we serve all of Bengaluru.' : 'You are outside Bengaluru. Send it anyway and we will tell you when we reach you.';
       }
       save(); render();
     }, function (err) {

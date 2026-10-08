@@ -54,7 +54,7 @@ FOOT = '''</main>
 </html>
 '''
 LEGAL_JS = '<script src="/assets/js/page.js" defer></script>'
-APP_JS = '<script src="/assets/js/pincodes.js" defer></script>\n<script src="/assets/js/pins-live.js" defer></script>\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/model-photos.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/app.js" defer></script>'
+APP_JS = '<script src="/assets/js/pincodes.js" defer></script>\n<script src="/assets/js/pingeo.js" defer></script>\n<script src="/assets/js/pins-live.js" defer></script>\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/model-photos.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/app.js" defer></script>'
 FLOAT = '''<a class="wa-fab" href="#" data-wa="general" aria-label="Chat on WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp us</a>
 <div class="mbar" id="mbar"><a class="btn btn-ghost" href="#" data-call aria-label="Call us"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call</a><a class="btn btn-wa" href="#" data-wa="general">WhatsApp</a><a class="btn btn-primary" href="/book/">Get a quote</a></div>
 '''
@@ -198,7 +198,7 @@ def credits_html():
     if os.path.exists(pp):
         for c in json.load(open(pp, encoding='utf-8')).values():
             rows.append(f'<li>{html.escape(c["caption"])}: "{html.escape(c["title"])}" by {html.escape(c["author"])}, <a href="{html.escape(c["license_url"])}" rel="noopener">{html.escape(c["license"])}</a>, <a href="{html.escape(c["source"])}" rel="noopener">source on Wikimedia Commons</a></li>')
-    return ('<h2 id="credits">Photo and image credits</h2><p>Bike and part photos come from the Wikimedia Commons community and are used under their free licences, listed below. They show example bikes, not our customers. Brand and model names belong to their owners.</p><p>Illustration on the How it works page: <a href="http://www.freepik.com" rel="noopener">Designed by macrovector / Freepik</a>. Oil change photo on the Services page: <a href="https://www.vecteezy.com" rel="noopener">Vecteezy</a>.</p><ul>' + ''.join(rows) + '</ul>')
+    return ('<h2 id="credits">Photo and image credits</h2><p>Bike and part photos come from the Wikimedia Commons community and are used under their free licences, listed below. They show example bikes, not our customers. Brand and model names belong to their owners.</p><p>PIN code locations on the booking form: map data &copy; <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap contributors</a> (ODbL); PIN codes and area names: India Post directory. Illustration on the How it works page: <a href="http://www.freepik.com" rel="noopener">Designed by macrovector / Freepik</a>. Oil change photo on the Services page: <a href="https://www.vecteezy.com" rel="noopener">Vecteezy</a>.</p><ul>' + ''.join(rows) + '</ul>')
 
 LEGAL = {k: (t, d, company_fill(body)) for k, (t, d, body) in LEGAL.items()}
 LEGAL['terms'] = (LEGAL['terms'][0], LEGAL['terms'][1], LEGAL['terms'][2] + credits_html())
@@ -303,6 +303,9 @@ for slug, (title, desc, h1, lead, points, msg, cta) in GROUP.items():
 _pins = json.load(open(os.path.join(ROOT, 'src', 'pincodes.json'), encoding='utf-8'))['pins']
 with open(os.path.join(ROOT, 'assets', 'js', 'pincodes.js'), 'w', encoding='utf-8') as _f:
     _f.write('/* Bengaluru PIN codes we serve: PIN -> main area name. Written by scripts/build_pages.py from src/pincodes.json. */\nwindow.MXP_PINS = ' + json.dumps({k: v['name'] for k, v in _pins.items()}, ensure_ascii=False, separators=(',', ':')) + ';\n')
+_geo = {k: [v['lat'], v['lng']] + v['bbox'] for k, v in _pins.items() if 'lat' in v}
+with open(os.path.join(ROOT, 'assets', 'js', 'pingeo.js'), 'w', encoding='utf-8') as _f:
+    _f.write('/* Centre point and outline of each Bengaluru PIN code: PIN -> [lat, lng, south, north, west, east]. Map data © OpenStreetMap contributors (ODbL). Written by scripts/build_pages.py from src/pincodes.json. */\nwindow.MXP_PIN_GEO = ' + json.dumps(_geo, separators=(',', ':')) + ';\n')
 _rows = ''.join(f'<li class="pin-row"><b>{k}</b><span>{html.escape(v["name"])}</span><small>{html.escape(", ".join(a for a in v["areas"] if a != v["name"])[:140])}</small></li>' for k, v in _pins.items())
 _areas_body = f'''<h1 style="font-size:clamp(34px,6vw,52px)">We serve all of Bengaluru.</h1>
 <p class="muted" style="font-size:20px">Mechanix Pro comes to your home or office in every Bengaluru PIN code, 560001 to 560110. Check yours below, then build your service.</p>

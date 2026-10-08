@@ -54,3 +54,18 @@ test('a PIN code the company has paused is reported as not served', () => {
   assert.deepEqual(L.pinInfo('560102', { '560102': 'HSR Layout' }, { '560102': true }), { pin: '560102', name: '', served: false, known: false });
   assert.equal(L.pinInfo('560110', {}, {}).served, true);
 });
+
+test('a PIN code is found from a place on the map', () => {
+  global.window = {}; delete require.cache[require.resolve('../assets/js/pingeo.js')]; require('../assets/js/pingeo.js');
+  const geo = global.window.MXP_PIN_GEO;
+  assert.ok(Object.keys(geo).length >= 105);
+  const cases = [[12.9116, 77.6389, '560102'], [12.9784, 77.6408, '560038'], [12.9698, 77.7500, '560066'], [12.8452, 77.6602, '560100']];
+  for (const [la, ln, want] of cases) assert.equal(L.pinFromLocation(la, ln, geo), want, want);
+  assert.equal(L.pinFromLocation(13.0827, 80.2707, geo), '');
+  assert.equal(L.pinFromLocation(NaN, 1, geo), '');
+});
+test('fetching the location fills in the PIN code as well as the area', () => {
+  const app = read('assets/js/app.js'); const loc = app.slice(app.indexOf('function locate()'), app.indexOf('/* SOS'));
+  assert.match(loc, /L\.pinFromLocation\(/); assert.match(loc, /st\.pin = /);
+  assert.match(read('scripts/build_pages.py'), /pingeo\.js/);
+});
