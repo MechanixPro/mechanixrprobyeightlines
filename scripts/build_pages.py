@@ -18,7 +18,7 @@ NAV = '''<a class="skip" href="#main">Skip to content</a>
 FOOTER = '''<footer>
   <div class="wrap cols">
     <div>
-      <a class="brand" href="/" style="margin-bottom:8px"><img src="/assets/img/logo.svg" alt="" width="22" height="23"><img class="wm" src="/assets/img/logo-wordmark.webp" alt="" width="125" height="11"></a>
+      <a class="brand" href="/" aria-label="Mechanix Pro home" style="margin-bottom:8px"><img src="/assets/img/logo.svg" alt="" width="22" height="23"><img class="wm" src="/assets/img/logo-wordmark.webp" alt="" width="125" height="11"></a>
       <p>Your roadside first responders. Doorstep bike service and breakdown help in Bengaluru.</p>
       <p><span data-phone>+91 XXXXX XXXXX</span> · <a href="mailto:hello@mechanixpro.in" style="display:inline">hello@mechanixpro.in</a></p>
     </div>
@@ -39,8 +39,6 @@ HEAD = '''<!doctype html>
 <meta name="theme-color" content="#14295A">
 <meta property="og:title" content="{title}"><meta property="og:description" content="{desc}"><meta property="og:url" content="{url}"><meta property="og:image" content="{site}/assets/img/og.png"><meta property="og:type" content="website"><meta property="og:site_name" content="Mechanix Pro"><meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32"><link rel="icon" href="/assets/img/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/assets/css/style.css">
 {schema}
 <script src="/assets/js/loader.js"></script>

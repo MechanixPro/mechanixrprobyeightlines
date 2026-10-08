@@ -12,13 +12,13 @@
   Cache-Control: no-store
 
 /assets/img/models/*
-  Cache-Control: public, max-age=86400
+  Cache-Control: public, max-age=604800
 
 /assets/img/parts/*
-  Cache-Control: public, max-age=86400
+  Cache-Control: public, max-age=604800
 
 /assets/img/photos/*
-  Cache-Control: public, max-age=86400
+  Cache-Control: public, max-age=604800
 
 /assets/css/*
   Cache-Control: public, max-age=0, must-revalidate

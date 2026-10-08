@@ -74,9 +74,9 @@ def save(img, name):
     img.save(os.path.join(OUT, name + '.webp'), quality=92, method=6)
 
 save(fit(full, 1000), 'logo-full')
-save(fit(mark, 400), 'logo-mark')
-save(fit(word, 640), 'logo-wordmark')
-save(fit(tag, 640), 'logo-tagline')
+save(fit(mark, 260), 'logo-mark')
+save(fit(word, 520), 'logo-wordmark')
+save(fit(tag, 520), 'logo-tagline')
 
 # Email header logo (PNG, because email apps do not show WebP or SVG).
 em = fit(mark, 160); em.quantize(256, method=Image.FASTOCTREE).save(os.path.join(OUT, 'email-logo.png'), optimize=True)

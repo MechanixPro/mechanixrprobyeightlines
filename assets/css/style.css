@@ -477,3 +477,6 @@ footer .brand{background:#fff;padding:8px 14px;border-radius:14px;display:inline
 .welcome-x{position:absolute;right:4px;top:2px;width:44px;height:44px;border:0;background:transparent;font-size:24px;color:var(--muted);cursor:pointer}
 @media(max-width:520px){.welcome{right:16px;max-width:none;bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
 @media(prefers-reduced-motion:reduce){.welcome{transition:none}}
+
+/* reserve the builder's space so the footer does not jump when it fills in */
+.builder{min-height:760px}
