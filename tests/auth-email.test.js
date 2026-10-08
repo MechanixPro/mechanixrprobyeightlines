@@ -5,12 +5,12 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
 
-test('Supabase auth sends its emails through Resend from the no-reply address, with public sign-ups off', () => {
+test('Supabase auth hands login emails to our own function (sent through Resend from no-reply), with public sign-ups off', () => {
   const t = read('supabase/config.toml');
   assert.match(t, /enable_signup = false/);
-  assert.match(t, /\[auth\.email\.smtp\]/); assert.match(t, /host = "smtp\.resend\.com"/); assert.match(t, /user = "resend"/);
-  assert.match(t, /pass = "env\(RESEND_API_KEY\)"/); assert.match(t, /admin_email = "no-reply@mechanixpro\.in"/);
-  assert.doesNotMatch(t, /re_[A-Za-z0-9]{10,}/);
+  assert.match(t, /functions\/auth-email/); assert.match(read('docs/AUTH-EMAIL.md'), /functions\/v1\/auth-email/);
+  assert.doesNotMatch(t, /re_[A-Za-z0-9]{10,}/); assert.doesNotMatch(t, /whsec_/);
+  assert.match(read('supabase/functions/_shared/resend.ts'), /FROM_DEFAULT = 'Mechanix Pro <no-reply@mechanixpro\.in>'/);
 });
 test('the login code email template exists, shows the code placeholder and uses the brand', () => {
   const t = read('supabase/templates/otp.html');

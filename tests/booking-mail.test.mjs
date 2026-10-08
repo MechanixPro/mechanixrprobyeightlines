@@ -13,7 +13,7 @@ test('booking mail comes from booking@, login and offer mail from no-reply@', ()
   assert.equal(FROM_DEFAULT, 'Mechanix Pro <no-reply@mechanixpro.in>');
   for (const f of ['submit-lead', 'confirm-booking', 'send-invoice']) assert.match(read(`../supabase/functions/${f}/index.ts`), /from: FROM_BOOKING/, f);
   assert.doesNotMatch(read('../supabase/functions/send-broadcast/index.ts'), /FROM_BOOKING/);
-  assert.match(read('../supabase/config.toml'), /admin_email = "no-reply@mechanixpro\.in"/);
+  assert.doesNotMatch(read('../supabase/functions/auth-email/index.ts'), /FROM_BOOKING/); assert.match(read('../supabase/functions/_shared/resend.ts'), /FROM_DEFAULT = 'Mechanix Pro <no-reply@mechanixpro\.in>'/);
 });
 test('booking mails show the customer\'s own build and a link to edit it (the IKEA effect)', () => {
   const d = { ...SITE, name: 'Asha', ref: 'MP-1', bike: '"Raja" (Honda Activa 6G)', nick: 'Raja', service: 'General service', area: 'HSR', whenText: 'Sat, 11 Oct · 10–11 AM', estimate: 1299, buildUrl: 'https://mechanixpro.in/book/?brand=Honda&model=Activa%206G&nick=Raja' };

@@ -7,6 +7,9 @@ verify_jwt = false
 verify_jwt = false
 [functions.follow-up]
 verify_jwt = false
+[functions.auth-email]
+verify_jwt = false
+
 [functions.unsubscribe]
 verify_jwt = false
 
@@ -23,7 +26,7 @@ additional_redirect_urls = ["https://mechanixpro-admin.pages.dev"]
 [auth.email]
 # Keep this true: it switches the Email sign-in provider on (login codes and passwords). Public sign-ups are blocked by [auth] enable_signup = false above.
 enable_signup = true
-enable_confirmations = true
+enable_confirmations = false
 otp_length = 6
 otp_expiry = 600
 max_frequency = "60s"
@@ -32,11 +35,6 @@ max_frequency = "60s"
 subject = "Your Mechanix Pro login code"
 content_path = "./supabase/templates/otp.html"
 
-[auth.email.smtp]
-enabled = true
-host = "smtp.resend.com"
-port = 465
-user = "resend"
-pass = "env(RESEND_API_KEY)"
-admin_email = "no-reply@mechanixpro.in"
-sender_name = "Mechanix Pro"
+# Login codes are sent by our own function (functions/auth-email) through Resend, set up once as a Supabase Auth "Send Email" hook.
+# The hook is deliberately not declared here: its secret must not live in this file, and declaring it would make every CLI command ask for it.
+# See docs/AUTH-EMAIL.md.
