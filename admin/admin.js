@@ -5,6 +5,7 @@ import { customerRows, searchCustomers, mechanicStats } from './people.js';
 import { couponRows } from './coupon-view.js';
 import { rangeFor, buildReport, reportCsv } from './report.js';
 import { buildInvoice } from './invoice.js';
+import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
 const C = window.MXP || {};
 const $ = (s, r = document) => r.querySelector(s);
@@ -20,7 +21,7 @@ if (!C.supabaseUrl || !C.supabaseAnonKey) {
   throw new Error('Supabase not configured');
 }
 const sb = createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
-const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
+const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], ifilter: 'open', range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
 
 function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
@@ -61,7 +62,7 @@ async function boot() {
   if (!me) { $('#loginErr').textContent = 'This account is not an admin. Ask the owner to add you.'; await sb.auth.signOut(); return; }
   S.me = me;
   $('#login').hidden = true; $('#view').hidden = false; $('#tabs').hidden = false; $('#signOut').hidden = false;
-  await Promise.all([loadLeads(), loadServices(), loadSettings(), loadPeople(), loadHome()]);
+  await Promise.all([loadLeads(), loadServices(), loadSettings(), loadPeople(), loadHome(), loadIssues()]);
   render();
   S.channel = sb.channel('mxp-admin')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async (p) => { if (p.eventType === 'INSERT') toast('New booking ' + (p.new?.ref ?? '')); await loadLeads(); if (!['prices', 'settings', 'offers', 'homeimgs'].includes(S.tab)) render(); if (S.open) openLead(S.open, true); })
@@ -80,6 +81,7 @@ async function loadPeople() {
   if (c.error || b.error || m.error || cp.error) toast('Could not load customers or mechanics');
 }
 async function loadHome() { const { data } = await sb.from('home_images').select('*').order('position').order('created_at'); S.homeimgs = data ?? []; }
+async function loadIssues() { const { data } = await sb.from('issues').select('*').order('created_at', { ascending: false }).limit(500); S.issues = data ?? []; }
 async function loadServices() { const { data } = await sb.from('services').select('*').order('sort'); S.services = data ?? []; }
 async function loadSettings() { const { data } = await sb.from('settings').select('*'); S.settings = Object.fromEntries((data ?? []).map((r) => [r.key, r.value])); }
 const svcName = (id) => S.services.find((s) => s.id === id)?.name ?? id ?? '—';
@@ -89,16 +91,17 @@ document.addEventListener('click', (e) => {
   const t = e.target.closest('[data-tab]'); if (t) { S.tab = t.dataset.tab; document.querySelectorAll('#tabs button').forEach((b) => b.toggleAttribute('aria-current', b === t)); document.querySelectorAll('#tabs button').forEach((b) => b === t ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')); render(); return; }
   const r = e.target.closest('[data-lead]'); if (r) { openLead(r.dataset.lead); return; }
   const cu = e.target.closest('[data-cust]'); if (cu) { openCustomer(cu.dataset.cust); return; }
+  const is = e.target.closest('[data-issue]'); if (is) { openIssue(is.dataset.issue); return; }
   const me = e.target.closest('[data-mech]'); if (me) { openMechanic(me.dataset.mech); return; }
   const co = e.target.closest('[data-coupon]'); if (co) { openCoupon(co.dataset.coupon); return; }
   const a = e.target.closest('[data-act]'); if (a && ACT[a.dataset.act]) ACT[a.dataset.act](a);
 });
 document.addEventListener('input', (e) => { if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
-document.addEventListener('change', (e) => { if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
+document.addEventListener('change', (e) => { if (e.target.id === 'il') { const l = S.leads.find((x) => x.id === e.target.value), w = warrantyInfo(l, WARRANTY_DAYS); $('#iw').textContent = l ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''; } if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'ifs') { S.ifilter = e.target.value; render(); } if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if ($('#inv')) $('#inv').remove(); else if (!$('#sheet').hidden) closeSheet(); } });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
-function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, offers, reports, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, issues, offers, reports, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -113,6 +116,7 @@ function dash() {
   return `<h1 style="font-size:34px">Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, ${esc(S.me.name)}</h1>
   <div class="kpis">
     <div class="kpi"><b>${today.length}</b><span>Bookings today</span></div>
+    <div class="kpi"><b>${openIssueCount(S.issues)}</b><span>Open issues</span></div>
     <div class="kpi"><b>${week.length}</b><span>Last 7 days</span></div>
     <div class="kpi"><b>${conv}%</b><span>Paid conversion (7 days)</span></div>
     <div class="kpi"><b>${rupee(paidWeek.reduce((s, l) => s + (l.paid_amount || 0), 0))}</b><span>Collected online (7 days)</span></div>
@@ -259,7 +263,7 @@ async function openLead(id, silent) {
     <button class="btn btn-primary" style="margin-top:14px" type="button" data-act="save">Save changes</button></div>
   <div class="card" style="margin-top:12px"><h3>Payment</h3>${l.payment_link ? `<p class="small">Link sent: <a href="${esc(l.payment_link)}" target="_blank" rel="noopener">${esc(l.payment_link)}</a> (${rupee(l.amount_due)})</p>` : ''}
     <label class="label" for="pa">Amount</label><input id="pa" inputmode="numeric" value="${esc(l.amount_due || fee('advance', 199))}">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button><button class="btn btn-primary btn-sm" type="button" data-act="confirmBooking">Confirm booking and email customer</button><button class="btn btn-dark btn-sm" type="button" data-act="payLink">Create & send payment link</button><button class="btn btn-ghost btn-sm" type="button" data-act="markPaid">Mark paid manually</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-ghost btn-sm" type="button" data-act="issueFromLead">Log an issue</button><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button><button class="btn btn-primary btn-sm" type="button" data-act="confirmBooking">Confirm booking and email customer</button><button class="btn btn-dark btn-sm" type="button" data-act="payLink">Create & send payment link</button><button class="btn btn-ghost btn-sm" type="button" data-act="markPaid">Mark paid manually</button></div>
     <p class="tiny muted">Paid bookings stop all automatic reminders.</p></div>
   <div class="card" style="margin-top:12px"><h3>WhatsApp conversation</h3><div class="chat">${(msgs ?? []).map((m) => `<div class="bubble ${m.direction}">${esc(m.body)}<small>${m.direction === 'in' ? 'Customer' : m.sender === 'ai' ? 'AI assistant' : m.sender === 'staff' ? 'Team' : 'Automatic'} · ${when(m.created_at)}</small></div>`).join('') || '<p class="muted small">No messages yet. The conversation appears here once WhatsApp automation is connected.</p>'}</div></div>`;
   $('#sheet').hidden = false; if (!silent) $('#sheetPanel').scrollTop = 0;
@@ -347,6 +351,17 @@ const ACT = {
     const { error } = await sb.from('home_images').delete().eq('id', r.id); if (error) return toast('Could not delete');
     const m = r.url.match(/\/object\/public\/home\/(.+)$/); if (m) await sb.storage.from('home').remove([decodeURIComponent(m[1])]);
     await audit('home_image_deleted', { id: r.id }); toast('Deleted'); await loadHome(); render();
+  },
+  newIssue() { S.issueLead = ''; openIssue('new'); },
+  issueFromLead() { const l = S.leads.find((x) => x.id === S.open); S.issueLead = l ? l.id : ''; openIssue('new'); },
+  async saveIssue() {
+    const amt = $('#ia').value.replace(/\D/g, ''), kind = $('#ik').value, status = $('#is').value;
+    const row = { amount: amt ? Math.min(100000, parseInt(amt, 10)) : null, note: $('#in').value.trim() || null, resolution: $('#ir').value.trim() || null, status, resolved_at: status === 'resolved' ? new Date().toISOString() : null };
+    if (!row.note) return toast('Describe what happened');
+    if (kind === 'refund' && !row.amount) return toast('Enter the refund amount');
+    const q = S.openIssue === 'new' ? sb.from('issues').insert({ ...row, kind, lead_id: $('#il').value || null, created_by: S.me.user_id }) : sb.from('issues').update(row).eq('id', S.openIssue);
+    const { error } = await q; if (error) return toast('Could not save: ' + error.message);
+    await audit(S.openIssue === 'new' ? 'issue_logged' : 'issue_updated', { kind, status }); toast('Saved'); await loadIssues(); closeSheet(); render();
   },
   async offerTest() {
     const f = offerForm(), { data, error } = await sb.functions.invoke('send-broadcast', { body: { ...f, mode: 'test' } });
@@ -456,6 +471,31 @@ function offers() {
 function offerForm() {
   S.offerDraft = { subject: $('#ofs').value, headline: $('#ofh').value, body: $('#ofb').value, ctaText: $('#oft').value, ctaUrl: $('#ofu').value };
   return { ...S.offerDraft };
+}
+/* ---------- issues, refunds and warranty ---------- */
+const WARRANTY_DAYS = 30;
+function issues() {
+  const rows = issueRows(S.issues, S.leads, S.ifilter);
+  return `<div class="toolbar"><p class="small muted" style="margin:0;flex:1">Log complaints, refund requests and warranty redo jobs against a booking. Refund money is still paid back through Razorpay; this is the record.</p>
+  <select id="ifs" aria-label="Show">${[['open', 'Open'], ['resolved', 'Resolved'], ['all', 'All']].map(([v, t]) => `<option value="${v}"${S.ifilter === v ? ' selected' : ''}>${t}</option>`).join('')}</select>
+  <button class="btn btn-primary btn-sm" type="button" data-act="newIssue">Log an issue</button></div>
+  <div class="list">${rows.length ? rows.map((i) => `<button class="row mrow" data-issue="${i.id}"><span><b>${esc(i.ref)}</b> ${esc(i.customer)}<br><span class="meta">${esc(KIND_LABEL[i.kind])}${i.amount ? ' · ' + rupee(i.amount) : ''} · ${when(i.created_at)}</span></span><span class="meta">${esc((i.note || '').slice(0, 60))}</span><span class="pill ${i.status === 'resolved' ? 'paid' : 'new'}">${esc(STATUS_LABEL[i.status])}</span></button>`).join('') : '<p class="muted" style="padding:16px">Nothing here. Good.</p>'}</div>`;
+}
+function openIssue(id) {
+  const i = id === 'new' ? { id: 'new', lead_id: S.issueLead || '', kind: 'complaint', status: 'open', amount: '', note: '', resolution: '' } : S.issues.find((x) => x.id === id); if (!i) return;
+  S.open = null; S.openCust = null; S.openMech = null; S.openCoupon = null; S.openIssue = id;
+  const recent = S.leads.slice(0, 200), w = warrantyInfo(S.leads.find((l) => l.id === i.lead_id), WARRANTY_DAYS);
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${id === 'new' ? 'Log an issue' : 'Issue'}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  <div class="card" style="margin-top:12px"><div class="inline-form">
+    <label class="label" for="il">Booking</label><select id="il"${id === 'new' ? '' : ' disabled'}><option value="">Not linked to a booking</option>${recent.map((l) => `<option value="${l.id}"${l.id === i.lead_id ? ' selected' : ''}>${esc(l.ref)} · ${esc(l.name)}</option>`).join('')}</select>
+    <p class="tiny muted" id="iw">${i.lead_id ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''}</p>
+    <label class="label" for="ik">Type</label><select id="ik"${id === 'new' ? '' : ' disabled'}>${Object.entries(KIND_LABEL).map(([k, t]) => `<option value="${k}"${k === i.kind ? ' selected' : ''}>${t}</option>`).join('')}</select>
+    <label class="label" for="ia">Refund amount in rupees (refunds only)</label><input id="ia" inputmode="numeric" maxlength="6" value="${esc(i.amount ?? '')}">
+    <label class="label" for="in">What happened</label><textarea id="in" rows="3" maxlength="1000">${esc(i.note || '')}</textarea>
+    <label class="label" for="is">Status</label><select id="is">${Object.entries(STATUS_LABEL).map(([k, t]) => `<option value="${k}"${k === i.status ? ' selected' : ''}>${t}</option>`).join('')}</select>
+    <label class="label" for="ir">How it was resolved</label><textarea id="ir" rows="3" maxlength="1000">${esc(i.resolution || '')}</textarea>
+    <button class="btn btn-primary" style="margin-top:8px" type="button" data-act="saveIssue">Save</button></div></div>`;
+  $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
 }
 function homeimgs() {
   const rows = S.homeimgs;
