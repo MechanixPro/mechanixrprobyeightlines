@@ -1,4 +1,4 @@
-"""Builds the website logo files from the client's logo artwork (assets/img/brand-src/logo-original.png).
+"""Builds the website logo files from the client's logo artwork (brand-src/logo-original.png).
 Removes the plain background, drops the "An 8-Lines Group Company" line, and writes transparent PNG/WebP files.
 Run: python3 scripts/make_logo.py"""
 import base64, io, os
@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
-SRC = os.path.join(ROOT, 'assets', 'img', 'brand-src', 'logo-original.png')
+SRC = os.path.join(ROOT, 'brand-src', 'logo-original.png')
 OUT = os.path.join(ROOT, 'assets', 'img')
 NAVY = np.array([20, 41, 90], dtype=float)
 
