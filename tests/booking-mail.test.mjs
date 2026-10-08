@@ -47,3 +47,10 @@ test('send-invoice is admin-only, logs the mail, and the admin invoice has an em
   assert.match(f, /from\('admins'\)/); assert.match(f, /invoiceEmail\(/); assert.match(f, /template: 'invoice'/);
   assert.match(read('../admin/admin.js'), /data-act="invEmail"/); assert.match(read('../admin/admin.js'), /functions\.invoke\('send-invoice'/);
 });
+
+test('the invoice email shows the special discount with its reason, and a refund when the customer overpaid', () => {
+  const inv = adminInvoice({ ref: 'MP-2', name: 'Asha', phone: '9876543210', service_id: 'general', addons: [], extra_discount: 200, extra_discount_note: 'Regular customer', paid_amount: 1299 }, [{ id: 'general', kind: 'service', name: 'General service', price: 1299 }], { date: '2026-10-08T05:00:00Z' });
+  const m = invoiceEmail({ ...SITE, invoice: inv, company: { legalName: 'NOVA VENTURES', addressLines: [], city: 'Bengaluru', state: 'Karnataka', pincode: '560102', gstin: '29DVCPR0895G1Z3' } });
+  for (const t of ['Special discount', 'Regular customer', 'Refund due to you', '200.00']) assert.ok(m.html.includes(t), t);
+  assert.match(m.text, /Special discount \(Regular customer\): -₹200\.00/);
+});

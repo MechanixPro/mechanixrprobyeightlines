@@ -14,17 +14,19 @@ export function buildInvoice(lead, services, opts = {}) {
   for (const id of lead.addons || []) { const a = byId.get(id); if (a && a.kind === 'addon') lines.push({ name: a.name, amount: a.price }); }
 
   const subtotal = lines.reduce((s, l) => s + paise(l.amount), 0);
-  const discount = Math.min(subtotal, paise(lead.coupon_discount));
+  const couponDiscount = Math.min(subtotal, paise(lead.coupon_discount));
+  const extraDiscount = Math.min(subtotal - couponDiscount, paise(lead.extra_discount)); // a last-minute discount at the customer's request
+  const discount = couponDiscount + extraDiscount;
   const total = subtotal - discount;
   const taxable = Math.round(total / 1.18);
   const gst = total - taxable, cgst = Math.round(gst / 2), sgst = gst - cgst;
-  const paid = Math.min(total, paise(lead.paid_amount));
+  const paidRaw = paise(lead.paid_amount), paid = Math.min(total, paidRaw);
   const when = new Date(opts.date || Date.now());
   const dateLabel = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(when);
   return {
     number: 'INV-' + lead.ref, ref: lead.ref, dateLabel, customer: { name: lead.name, phone: lead.phone },
-    lines, subtotal: rupees(subtotal), discount: rupees(discount), total: rupees(total),
+    lines, subtotal: rupees(subtotal), discount: rupees(discount), couponDiscount: rupees(couponDiscount), extraDiscount: rupees(extraDiscount), extraNote: String(lead.extra_discount_note || '').slice(0, 80), total: rupees(total),
     taxable: rupees(taxable), cgst: rupees(cgst), sgst: rupees(sgst), gstRate: 18,
-    paid: rupees(paid), balance: rupees(total - paid),
+    paid: rupees(paid), balance: rupees(total - paid), refund: rupees(Math.max(0, paidRaw - total)),
   };
 }

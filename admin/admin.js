@@ -456,6 +456,18 @@ const ACT = {
   },
   invoice() { const l = S.leads.find((x) => x.id === S.open); if (l) openInvoice(l); },
   invPrint() { window.print(); },
+  async invDiscount() {
+    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    const v0 = buildInvoice({ ...l, extra_discount: 0 }, S.services), left = Math.round((v0.subtotal - v0.couponDiscount) * 100) / 100;
+    const raw = parseFloat($('#inv-disc').value) || 0, kind = $('#inv-disc-kind').value;
+    if (raw < 0) return toast('The discount cannot be negative');
+    const amount = Math.min(Math.round(kind === 'pct' ? (left * Math.min(100, raw)) / 100 : raw), Math.round(left));
+    const note = $('#inv-disc-note').value.trim().slice(0, 80) || null;
+    const { error } = await sb.from('leads').update({ extra_discount: amount, extra_discount_note: amount ? note : null }).eq('id', l.id);
+    if (error) return toast('Could not save the discount: ' + error.message);
+    await audit('invoice_discount', { ref: l.ref, amount, note }); toast(amount ? 'Discount of ' + rupee(amount) + ' applied' : 'Discount removed');
+    await loadLeads(); openInvoice(S.leads.find((x) => x.id === l.id), { quick: true });
+  },
   async invEmail(btn) {
     const l = S.leads.find((x) => x.id === S.open); if (!l) return;
     btn.disabled = true; const old = btn.textContent; btn.textContent = 'Sending…';
@@ -603,8 +615,8 @@ function countUp(el, to, ms) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = inr(to); return; }
   let t0 = null; const tick = (t) => { if (t0 === null) t0 = t; const k = Math.min(1, (t - t0) / ms); el.textContent = inr(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); }; requestAnimationFrame(tick);
 }
-async function openInvoice(lead) {
-  const co = await loadCompany(), v = buildInvoice(lead, S.services), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+async function openInvoice(lead, opts = {}) {
+  const co = await loadCompany(), v = buildInvoice(lead, S.services), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || opts.quick;
   $('#inv')?.remove();
   const addr = [...(co.addressLines || []), [co.city, co.state, co.pincode].filter(Boolean).join(' ')].filter(Boolean).map(esc).join('<br>');
   const el = document.createElement('div'); el.id = 'inv'; el.className = 'inv-wrap'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Invoice ' + v.number);
@@ -616,11 +628,13 @@ async function openInvoice(lead) {
     <p class="inv-to"><span>Billed to</span><b>${esc(v.customer.name)}</b> · ${esc(v.customer.phone)}</p>
     <table class="inv-table"><thead><tr><th>Item</th><th class="num">Amount (incl. GST)</th></tr></thead><tbody>
       ${v.lines.length ? v.lines.map((l, i) => `<tr class="inv-line" style="--i:${i}"><td>${esc(l.name)}</td><td class="num">${inr(l.amount)}</td></tr>`).join('') : '<tr><td colspan="2" class="muted">No priced items on this booking.</td></tr>'}
-      ${v.discount ? `<tr class="inv-line" style="--i:${v.lines.length}"><td>Coupon discount</td><td class="num">− ${inr(v.discount)}</td></tr>` : ''}</tbody></table>
+      ${v.couponDiscount ? `<tr class="inv-line" style="--i:${v.lines.length}"><td>Coupon discount</td><td class="num">− ${inr(v.couponDiscount)}</td></tr>` : ''}${v.extraDiscount ? `<tr class="inv-line" style="--i:${v.lines.length + 1}"><td>Special discount${v.extraNote ? ' (' + esc(v.extraNote) + ')' : ''}</td><td class="num">− ${inr(v.extraDiscount)}</td></tr>` : ''}</tbody></table>
     <dl class="inv-tot"><dt>Taxable value</dt><dd data-to="${v.taxable}">${inr(v.taxable)}</dd><dt>CGST @ 9%</dt><dd data-to="${v.cgst}">${inr(v.cgst)}</dd><dt>SGST @ 9%</dt><dd data-to="${v.sgst}">${inr(v.sgst)}</dd>
-      <dt class="grand">Total</dt><dd class="grand" data-to="${v.total}">${inr(v.total)}</dd>${v.paid ? `<dt>Paid so far</dt><dd data-to="${v.paid}">${inr(v.paid)}</dd><dt class="grand">Balance due</dt><dd class="grand" data-to="${v.balance}">${inr(v.balance)}</dd>` : ''}</dl>
+      <dt class="grand">Total</dt><dd class="grand" data-to="${v.total}">${inr(v.total)}</dd>${v.paid ? `<dt>Paid so far</dt><dd data-to="${v.paid}">${inr(v.paid)}</dd><dt class="grand">Balance due</dt><dd class="grand" data-to="${v.balance}">${inr(v.balance)}</dd>` : ''}${v.refund ? `<dt class="grand">Refund due to customer</dt><dd class="grand" data-to="${v.refund}">${inr(v.refund)}</dd>` : ''}</dl>
     <div class="inv-stamp ${v.balance === 0 && v.total > 0 ? 'paid' : 'due'}" aria-hidden="true">${v.balance === 0 && v.total > 0 ? 'PAID' : 'DUE'}</div>
     <p class="inv-foot">Prices include 18% GST. Parts are OEM certified, work is done by Mechanix Pro certified mechanics, and every service carries a 30-day warranty. Computer-generated invoice.</p>
+    <div class="inv-adjust"><label for="inv-disc"><b>Last-minute discount</b> <span class="tiny muted">at the customer's request, on top of any coupon</span></label>
+      <div class="inv-adjust-row"><select id="inv-disc-kind" aria-label="Discount type"><option value="amt">₹ amount</option><option value="pct">% of the bill</option></select><input id="inv-disc" inputmode="numeric" maxlength="6" placeholder="0" value="${v.extraDiscount || ''}" aria-label="Discount"><input id="inv-disc-note" maxlength="80" placeholder="Reason, for example: regular customer" value="${esc(v.extraNote)}" aria-label="Reason"><button class="btn btn-dark btn-sm" type="button" data-act="invDiscount">Apply</button></div></div>
     <div class="inv-actions"><button class="btn btn-primary btn-sm" type="button" data-act="invPrint">Print or save as PDF</button><button class="btn btn-dark btn-sm" type="button" data-act="invEmail">Email to customer</button><button class="btn btn-ghost btn-sm" type="button" data-act="invClose">Close</button></div>
   </div>`;
   document.body.appendChild(el);

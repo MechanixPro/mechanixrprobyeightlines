@@ -90,3 +90,7 @@
 .split-sample{margin:10px 0 0;font-size:14px;color:var(--ink-2)}
 .rtable .tot td{border-top:2px solid var(--line)}
 @media(prefers-reduced-motion:reduce){.split-bar .sb-mech,.split-bar .sb-co{transition:none}}
+
+.inv-adjust{margin:16px 0 4px;padding:12px;border:1px dashed #C9D1E0;border-radius:14px;background:#FAFBFD}
+.inv-adjust-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.inv-adjust-row input,.inv-adjust-row select{min-width:0}.inv-adjust-row #inv-disc{width:96px}.inv-adjust-row #inv-disc-note{flex:1;min-width:180px}
+@media print{.inv-adjust{display:none!important}}

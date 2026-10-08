@@ -45,3 +45,29 @@ test('admin wires the invoice: button, animation, print, company details, reduce
   assert.match(css, /@media print/); assert.match(css, /prefers-reduced-motion/); assert.match(css, /\.inv-line/);
   assert.match(readFileSync(new URL('../scripts/build_admin.sh', import.meta.url), 'utf8'), /company\.json/);
 });
+
+test('a last-minute discount at the customer\'s request comes off the bill, after any coupon, and the GST is worked out on what is left', () => {
+  const v = buildInvoice({ ...lead, coupon_discount: 100, extra_discount: 200, extra_discount_note: 'Regular customer' }, services);
+  assert.equal(v.couponDiscount, 100); assert.equal(v.extraDiscount, 200); assert.equal(v.extraNote, 'Regular customer'); assert.equal(v.discount, 300);
+  assert.equal(v.total, 1198); assert.equal(v.taxable, 1015.25); assert.equal(+(v.cgst + v.sgst).toFixed(2), +(v.total - v.taxable).toFixed(2));
+});
+test('the discounts can never take the bill below zero', () => {
+  const v = buildInvoice({ ...lead, extra_discount: 99999 }, services);
+  assert.equal(v.total, 0); assert.equal(v.extraDiscount, 1498);
+});
+test('if the customer already paid more than the new total, the invoice shows a refund due', () => {
+  const v = buildInvoice({ ...lead, extra_discount: 400, paid_amount: 1498 }, services);
+  assert.equal(v.total, 1098); assert.equal(v.balance, 0); assert.equal(v.refund, 400);
+  assert.equal(buildInvoice({ ...lead, paid_amount: 349 }, services).refund, 0);
+});
+test('the invoice screen has a discount box (amount or percent, with a reason) that saves to the booking and redraws the bill', () => {
+  const a = readFileSync(new URL('../admin/admin.js', import.meta.url), 'utf8');
+  for (const id of ['inv-disc', 'inv-disc-kind', 'inv-disc-note']) assert.ok(a.includes(id), id);
+  assert.match(a, /data-act="invDiscount"/); assert.match(a, /extra_discount/); assert.match(a, /invoice_discount/);
+  assert.match(a, /Refund due/);
+});
+test('the database keeps the extra discount and its reason on the booking', () => {
+  const sql = readFileSync(new URL('../supabase/migrations/20261025000000_invoice_discount.sql', import.meta.url), 'utf8');
+  assert.match(sql, /add column if not exists extra_discount integer not null default 0/); assert.match(sql, /add column if not exists extra_discount_note text/);
+  assert.doesNotMatch(sql, /add column (?!if not exists)/);
+});
