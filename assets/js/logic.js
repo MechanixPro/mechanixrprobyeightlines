@@ -46,7 +46,7 @@
     if (st.km) lines.push('Last service: ' + KM_TXT[st.km]);
     if (st.issues.length) lines.push('Problems: ' + st.issues.map(function (i) { return ISSUE_TXT[i] || i; }).join(', '));
     if (String(st.note || '').trim()) lines.push('Note: ' + st.note.trim());
-    lines.push('Where: ' + placeTxt, 'Area: ' + st.area);
+    lines.push('Where: ' + placeTxt, 'Area: ' + st.area + (/^\d{6}$/.test(String(st.pin || '')) ? ' (' + st.pin + ')' : ''));
     if (String(st.address || '').trim()) lines.push('Address: ' + st.address.trim());
     if (cleanReg(st.reg)) lines.push('Registration: ' + cleanReg(st.reg));
     if (validGeo(st.lat, st.lng)) lines.push('Map pin: ' + mapsLink(st.lat, st.lng));
@@ -65,7 +65,7 @@
       big_bike: st.cc === 'big', bike_type: st.type, service_id: st.service, addons: st.addons, km_band: st.km, issues: st.issues,
       note: String(st.note || '').trim(), place: st.place, contact_pref: st.contact === 'call' ? 'call' : 'whatsapp', ref_code: st.ref_code || null, coupon_code: cleanCoupon(st.coupon) || null, request_type: st.requestType === 'callback' ? 'callback' : 'quote', reg_no: cleanReg(st.reg) || null, reminder_opt_in: st.reminder === true,
       email: validEmail(st.email) ? String(st.email).trim().toLowerCase() : null, email_marketing: validEmail(st.email) && st.emailOffers === true, campaign: st.campaign || null,
-      address: String(st.address || '').trim() || null, lat: validGeo(st.lat, st.lng) ? st.lat : null, lng: validGeo(st.lat, st.lng) ? st.lng : null,
+      address: String(st.address || '').trim() || null, pincode: /^\d{6}$/.test(String(st.pin || '').replace(/\s/g, '')) ? String(st.pin).replace(/\s/g, '') : '', lat: validGeo(st.lat, st.lng) ? st.lat : null, lng: validGeo(st.lat, st.lng) ? st.lng : null,
       preferred_date: asap ? (todayIso || dateIso) : dateIso, preferred_slot: asap ? 'asap' : (st.slot || (st.hour >= 9 ? hourGroup(st.hour) : '')), preferred_time: !asap && st.hour >= 9 && st.hour <= 19 ? windowLabel(st.hour) : null, consent_whatsapp: !!st.consent
     };
   }
@@ -85,13 +85,21 @@
   /* Other Bengaluru localities, so a visitor outside our service areas still gets their real area filled in. Approximate centres. */
   var LOCALITIES = { 'Indiranagar': [12.9784, 77.6408], 'Whitefield': [12.9698, 77.7500], 'Jayanagar': [12.9250, 77.5938], 'Basavanagudi': [12.9422, 77.5750], 'Malleshwaram': [13.0035, 77.5643], 'Rajajinagar': [12.9910, 77.5520], 'Yeshwanthpur': [13.0285, 77.5400], 'Hebbal': [13.0358, 77.5970], 'Yelahanka': [13.1007, 77.5963], 'RT Nagar': [13.0210, 77.5950], 'Banashankari': [12.9255, 77.5468], 'Bannerghatta Road': [12.8890, 77.5970], 'Kengeri': [12.9170, 77.4830], 'Vijayanagar': [12.9719, 77.5320], 'Rajarajeshwari Nagar': [12.9260, 77.5190], 'Domlur': [12.9610, 77.6387], 'HAL / Old Airport Road': [12.9591, 77.6644], 'CV Raman Nagar': [12.9855, 77.6640], 'KR Puram': [13.0007, 77.6960], 'Mahadevapura': [12.9910, 77.6970], 'Brookefield': [12.9660, 77.7170], 'Varthur': [12.9390, 77.7440], 'Hennur': [13.0360, 77.6420], 'Kalyan Nagar': [13.0280, 77.6400], 'Banaswadi': [13.0120, 77.6520], 'Frazer Town': [13.0000, 77.6150], 'MG Road': [12.9750, 77.6070], 'Ulsoor': [12.9810, 77.6200], 'Richmond Town': [12.9600, 77.5970], 'Sadashivanagar': [13.0070, 77.5800], 'Nagarbhavi': [12.9610, 77.5120], 'Peenya': [13.0300, 77.5200], 'Hoodi': [12.9920, 77.7160], 'Begur': [12.8700, 77.6270], 'Kanakapura Road': [12.8700, 77.5640], 'Uttarahalli': [12.9070, 77.5400], 'Hulimavu': [12.8800, 77.6020], 'Bommasandra': [12.8160, 77.6900], 'Kadugodi': [12.9970, 77.7580], 'Jigani': [12.7850, 77.6370], 'Anekal': [12.7110, 77.6950] };
   /* The place name for a spot: one of our service areas (served), or the nearest known locality (not served yet), or "Other area". */
+  var BENGALURU = { south: 12.78, north: 13.22, west: 77.38, east: 77.85 };
+  function inBengaluru(lat, lng) { return lat >= BENGALURU.south && lat <= BENGALURU.north && lng >= BENGALURU.west && lng <= BENGALURU.east; }
   function nearestPlace(lat, lng) {
     if (!validGeo(lat, lng)) return null;
-    var area = nearestArea(lat, lng);
-    if (area && area !== 'Other area') return { name: area, served: true };
+    if (!inBengaluru(lat, lng)) return { name: 'Other area', served: false };
     var best = null, bd = Infinity;
-    Object.keys(LOCALITIES).forEach(function (n) { var d = distanceKm(lat, lng, LOCALITIES[n][0], LOCALITIES[n][1]); if (d < bd) { bd = d; best = n; } });
-    return bd <= 8 ? { name: best, served: false } : { name: 'Other area', served: false };
+    [AREA_COORDS, LOCALITIES].forEach(function (set) { Object.keys(set).forEach(function (n) { var d = distanceKm(lat, lng, set[n][0], set[n][1]); if (d < bd) { bd = d; best = n; } }); });
+    return { name: best || 'Bengaluru', served: true };
+  }
+  /* A PIN code the visitor typed: do we serve it, and which area is it? Bengaluru is 560001 to 560110. */
+  function pinInfo(raw, pins) {
+    var pin = String(raw || '').replace(/\s/g, '');
+    if (!/^\d{6}$/.test(pin)) return null;
+    var name = (pins && pins[pin]) || '', n = +pin;
+    return { pin: pin, name: name, served: !!name || (n >= 560001 && n <= 560110), known: !!name };
   }
   function mapsLink(lat, lng) { return 'https://maps.google.com/?q=' + lat.toFixed(5) + ',' + lng.toFixed(5); }
   var CRUISER_NAMES = /Avenger|Dominar|Intruder|Thunderbird|Bullet|Classic|Meteor|Himalayan|Scram|Interceptor|Continental|Shotgun|Guerrilla|Hunter|CB350|H.ness/i;
@@ -170,7 +178,8 @@
   }
   function cleanCoupon(v) { return String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 20); }
   function prefillExtras(search, serviceIds) {
-    var p = new URLSearchParams(search || ''), out = { nick: '', service: '' };
+    var p = new URLSearchParams(search || ''), out = { nick: '', service: '', pin: '' };
+    var pn = (p.get('pin') || '').replace(/\s/g, ''); if (/^\d{6}$/.test(pn)) out.pin = pn;
     out.nick = (p.get('nick') || '').replace(/<[^>]*>/g, '').replace(/[<>"\u0000-\u001f]/g, '').trim().slice(0, 24);
     var wantS = (p.get('service') || '').trim().toLowerCase(); if (wantS && (serviceIds || []).indexOf(wantS) > -1) out.service = wantS;
     return out;
@@ -206,5 +215,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { nearestPlace: nearestPlace, prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { pinInfo: pinInfo, inBengaluru: inBengaluru, nearestPlace: nearestPlace, prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });

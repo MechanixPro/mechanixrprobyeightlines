@@ -22,7 +22,7 @@ FOOTER = '''<footer>
       <p>Your roadside first responders. Doorstep bike service and breakdown help in Bengaluru.</p>
       <p><span data-phone>+91 XXXXX XXXXX</span> · <a href="mailto:hello@mechanixpro.in" style="display:inline">hello@mechanixpro.in</a></p>
     </div>
-    <div><b>Areas</b>{area_links}</div>
+    <div><b>Areas</b>{area_links}<a href="/areas/">All Bengaluru PIN codes</a></div>
     <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
   </div>
   <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Mechanix Pro is a brand of {company_name}, {company_addr}. GSTIN {company_gstin}</p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p></div>
@@ -50,11 +50,11 @@ HEAD = '''<!doctype html>
 {nav}<main id="main" class="{main}">
 '''
 FOOT = '''</main>
-{footer}{extra}</body>
+{footer}{extra}<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pincheck.js" defer></script></body>
 </html>
 '''
 LEGAL_JS = '<script src="/assets/js/page.js" defer></script>'
-APP_JS = '<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/model-photos.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/app.js" defer></script>'
+APP_JS = '<script src="/assets/js/pincodes.js" defer></script>\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/model-photos.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/app.js" defer></script>'
 FLOAT = '''<a class="wa-fab" href="#" data-wa="general" aria-label="Chat on WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp us</a>
 <div class="mbar" id="mbar"><a class="btn btn-ghost" href="#" data-call aria-label="Call us"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call</a><a class="btn btn-wa" href="#" data-wa="general">WhatsApp</a><a class="btn btn-primary" href="/book/">Get a quote</a></div>
 '''
@@ -179,7 +179,7 @@ LEGAL = {
  'contact': ('Contact Mechanix Pro', 'Reach Mechanix Pro for bookings, support and partnerships in Bengaluru.', '''
 <p class="muted" style="font-size:20px">Fastest: message us on WhatsApp. We reply from 8 AM to 9 PM, every day.</p>
 <p><a class="btn btn-wa" href="#" data-wa="Contact">Chat on WhatsApp</a></p>
-<div class="card" style="margin-top:20px"><div class="price-row"><span>Phone</span><b data-phone>+91 XXXXX XXXXX</b></div><div class="price-row"><span>Email</span><b>hello@mechanixpro.in</b></div><div class="price-row"><span>Areas</span><b>South-East Bengaluru</b></div></div>
+<div class="card" style="margin-top:20px"><div class="price-row"><span>Phone</span><b data-phone>+91 XXXXX XXXXX</b></div><div class="price-row"><span>Email</span><b>hello@mechanixpro.in</b></div><div class="price-row"><span>Areas</span><b>All of Bengaluru (560001 to 560110)</b></div></div>
 <h2>Garage partners</h2><p>Run a two-wheeler workshop in Bengaluru and want more jobs? Email us with your garage name, area and number of mechanics.</p>
 <p class="tiny muted">[Registered business name], [registered address], Bengaluru, Karnataka. GSTIN [GSTIN].</p>'''),
 }
@@ -298,6 +298,21 @@ for slug, (title, desc, h1, lead, points, msg, cta) in GROUP.items():
 '''
     write(f'{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='page') + body + foot())
     urls.append((f'/{slug}/', '0.6'))
+
+# ---- Every Bengaluru PIN code: a small script for the PIN check, and a page that lists them all ----
+_pins = json.load(open(os.path.join(ROOT, 'src', 'pincodes.json'), encoding='utf-8'))['pins']
+with open(os.path.join(ROOT, 'assets', 'js', 'pincodes.js'), 'w', encoding='utf-8') as _f:
+    _f.write('/* Bengaluru PIN codes we serve: PIN -> main area name. Written by scripts/build_pages.py from src/pincodes.json. */\nwindow.MXP_PINS = ' + json.dumps({k: v['name'] for k, v in _pins.items()}, ensure_ascii=False, separators=(',', ':')) + ';\n')
+_rows = ''.join(f'<li class="pin-row"><b>{k}</b><span>{html.escape(v["name"])}</span><small>{html.escape(", ".join(a for a in v["areas"] if a != v["name"])[:140])}</small></li>' for k, v in _pins.items())
+_areas_body = f'''<h1 style="font-size:clamp(34px,6vw,52px)">We serve all of Bengaluru.</h1>
+<p class="muted" style="font-size:20px">Mechanix Pro comes to your home or office in every Bengaluru PIN code, 560001 to 560110. Check yours below, then build your service.</p>
+<div class="pincheck card" data-pincheck><label class="label" for="pc-in">Your PIN code</label><div class="pc-row"><input id="pc-in" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="e.g. 560102"><a class="btn btn-primary" href="/book/">Build your service</a></div><p class="pc-out" role="status" aria-live="polite"></p></div>
+<h2>All {len(_pins)} PIN codes</h2>
+<ul class="pin-list">{_rows}</ul>
+<p class="tiny muted">PIN codes and area names are from the India Post directory. Not in Bengaluru? Build your service anyway and we will tell you when we reach you.</p>
+'''
+write('areas/index.html', HEAD.format(title='Bike Service in All Bengaluru PIN Codes | Mechanix Pro', desc=f'Doorstep bike and scooter service in all of Bengaluru, every PIN code from 560001 to 560110. Check your PIN code and get a quote on WhatsApp.', url=f'{SITE}/areas/', site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='page') + _areas_body + foot())
+urls.append(('/areas/', '0.7'))
 
 MAIN = [
   ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from {{text:basic}}, Mechanix Pro-certified mechanics, OEM-certified parts, {{days}}-day service warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n<script src="/assets/js/showcase.js" defer></script>', '1.0'),

@@ -39,8 +39,8 @@ test('leadPayload carries lat, lng and address, or nulls', () => {
 
 test('nearestPlace names the real locality, and says whether we serve it', () => {
   const a = L.nearestPlace(12.9121, 77.6446); assert.equal(a.name, 'HSR Layout'); assert.equal(a.served, true);
-  const b = L.nearestPlace(12.9784, 77.6408); assert.equal(b.name, 'Indiranagar'); assert.equal(b.served, false);
-  const c = L.nearestPlace(12.9698, 77.7500); assert.equal(c.name, 'Whitefield'); assert.equal(c.served, false);
+  const b = L.nearestPlace(12.9784, 77.6408); assert.equal(b.name, 'Indiranagar'); assert.equal(b.served, true);
+  const c = L.nearestPlace(12.9698, 77.7500); assert.equal(c.name, 'Whitefield'); assert.equal(c.served, true);
   assert.equal(L.nearestPlace(13.0827, 80.2707).name, 'Other area');
   assert.equal(L.nearestPlace(NaN, 1), null);
 });

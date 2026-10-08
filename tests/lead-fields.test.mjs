@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { cleanLeadFields } from '../supabase/functions/_shared/lead-fields.ts';
 
 test('empty body gives safe defaults', () => {
-  assert.deepEqual(cleanLeadFields({}), { km_band: null, issues: [], note: null, place: 'home', contact_pref: 'whatsapp', bike_type: null, ref_code: null, campaign: null, address: null, lat: null, lng: null, email: null, email_marketing: false, request_type: 'quote', reg_no: null, reminder_opt_in: false, preferred_time: null });
+  assert.deepEqual(cleanLeadFields({}), { km_band: null, issues: [], note: null, place: 'home', contact_pref: 'whatsapp', bike_type: null, ref_code: null, campaign: null, address: null, pincode: null, lat: null, lng: null, email: null, email_marketing: false, request_type: 'quote', reg_no: null, reminder_opt_in: false, preferred_time: null });
 });
 test('known values pass through', () => {
   const r = cleanLeadFields({ km_band: 'mid', issues: ['brake', 'chain'], note: 'rattle', place: 'road', contact_pref: 'call', bike_type: 's', ref_code: 'asha', campaign: 'Monsoon-Check' });
-  assert.deepEqual(r, { km_band: 'mid', issues: ['brake', 'chain'], note: 'rattle', place: 'road', contact_pref: 'call', bike_type: 's', ref_code: 'ASHA', campaign: 'monsoon-check', address: null, lat: null, lng: null, email: null, email_marketing: false, request_type: 'quote', reg_no: null, reminder_opt_in: false, preferred_time: null });
+  assert.deepEqual(r, { km_band: 'mid', issues: ['brake', 'chain'], note: 'rattle', place: 'road', contact_pref: 'call', bike_type: 's', ref_code: 'ASHA', campaign: 'monsoon-check', address: null, pincode: null, lat: null, lng: null, email: null, email_marketing: false, request_type: 'quote', reg_no: null, reminder_opt_in: false, preferred_time: null });
 });
 test('unknown enum values are rejected to defaults', () => {
   const r = cleanLeadFields({ km_band: 'huge', place: 'moon', contact_pref: 'fax', bike_type: 'x' });

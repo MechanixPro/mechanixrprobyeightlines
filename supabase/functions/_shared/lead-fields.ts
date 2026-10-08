@@ -27,6 +27,7 @@ export function cleanLeadFields(b: Record<string, unknown>) {
     ref_code: strip(b.ref_code, 40).toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 20) || null,
     campaign: strip(b.campaign, 100).toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 60) || null,
     address: strip(b.address, 200) || null,
+    pincode: /^\d{6}$/.test(String(b.pincode ?? '').replace(/\s/g, '')) ? String(b.pincode).replace(/\s/g, '') : null,
     lat: geo ? r5(lat) : null,
     lng: geo ? r5(lng) : null,
     email: cleanEmail(b.email),

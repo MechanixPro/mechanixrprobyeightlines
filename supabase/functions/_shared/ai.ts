@@ -23,7 +23,7 @@ Services (prices include GST; bikes above 180cc add ${rupee(ctx.surcharge)} to b
 ${svc}
 Add-ons:
 ${add}
-Areas served: ${ctx.info.areas ?? 'South-East Bengaluru'}
+Areas served: ${ctx.info.areas ?? 'All of Bengaluru (PIN codes 560001 to 560110)'}
 Hours: ${ctx.info.hours ?? '8 AM to 9 PM'}. Warranty: ${ctx.info.warranty ?? '30 days on our service work'}.
 Parts are OEM certified and mechanics are Mechanix Pro certified. Parts and extra work are charged only after the customer approves an itemised estimate from the mechanic.
 Free cancellation up to 2 hours before the slot (checkup and quote fee refunded). Time slots: morning (9–12), afternoon (12–4), evening (4–8), or asap for emergencies.

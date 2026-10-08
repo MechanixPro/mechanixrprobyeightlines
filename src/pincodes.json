@@ -1,0 +1,892 @@
+{
+ "_source": "India Post PIN code directory via api.postalpincode.in, read on 2026-10-08. Bengaluru PIN codes 560001-560110 (560031, 560044, 560101 and 560106 are not in use).",
+ "pins": {
+  "560001": {
+   "name": "MG Road and Vidhana Soudha",
+   "areas": [
+    "Bangalore",
+    "Bangalore Bazaar",
+    "CMM Court Complex",
+    "Dr. Ambedkar Veedhi",
+    "HighCourt",
+    "Legislators Home",
+    "Mahatma Gandhi Road",
+    "Rajbhavan (Bangalore)",
+    "Vasanthanagar",
+    "Vidhana Soudha"
+   ],
+   "district": "Bangalore"
+  },
+  "560002": {
+   "name": "City Market",
+   "areas": [
+    "Bangalore City",
+    "Bangalore Corporation Building"
+   ],
+   "district": "Bangalore"
+  },
+  "560003": {
+   "name": "Malleswaram",
+   "areas": [
+    "Malleswaram",
+    "Palace Guttahalli",
+    "Swimming Pool Extn",
+    "Vyalikaval Extn"
+   ],
+   "district": "Bangalore"
+  },
+  "560004": {
+   "name": "Basavanagudi",
+   "areas": [
+    "Basavanagudi",
+    "Mavalli",
+    "Pampamahakavi Road",
+    "Thyagarajnagar"
+   ],
+   "district": "Bangalore"
+  },
+  "560005": {
+   "name": "Fraser Town",
+   "areas": [
+    "Fraser Town"
+   ],
+   "district": "Bangalore"
+  },
+  "560006": {
+   "name": "JC Nagar",
+   "areas": [
+    "J.C.Nagar",
+    "Training Command IAF"
+   ],
+   "district": "Bangalore"
+  },
+  "560007": {
+   "name": "Agram",
+   "areas": [
+    "Agram",
+    "Air Force Hospital"
+   ],
+   "district": "Bangalore"
+  },
+  "560008": {
+   "name": "HAL II Stage",
+   "areas": [
+    "H.A.L II Stage",
+    "Hulsur Bazaar"
+   ],
+   "district": "Bangalore"
+  },
+  "560009": {
+   "name": "KG Road",
+   "areas": [
+    "Bangalore Dist Offices Bldg",
+    "K. G. Road"
+   ],
+   "district": "Bangalore"
+  },
+  "560010": {
+   "name": "Rajajinagar",
+   "areas": [
+    "Industrial Estate (Bangalore)",
+    "Rajajinagar",
+    "Rajajinagar IVth Block"
+   ],
+   "district": "Bangalore"
+  },
+  "560011": {
+   "name": "Jayanagar",
+   "areas": [
+    "Jayangar III Block",
+    "Madhavan Park"
+   ],
+   "district": "Bangalore"
+  },
+  "560012": {
+   "name": "Science Institute",
+   "areas": [
+    "Science Institute"
+   ],
+   "district": "Bangalore"
+  },
+  "560013": {
+   "name": "Jalahalli",
+   "areas": [
+    "Jalahalli"
+   ],
+   "district": "Bangalore"
+  },
+  "560014": {
+   "name": "Jalahalli East",
+   "areas": [
+    "Jalahalli East"
+   ],
+   "district": "Bangalore"
+  },
+  "560015": {
+   "name": "Jalahalli West",
+   "areas": [
+    "Jalahalli West"
+   ],
+   "district": "Bangalore"
+  },
+  "560016": {
+   "name": "Ramamurthy Nagar",
+   "areas": [
+    "Doorvaninagar",
+    "Krishnarajapuram R S",
+    "Ramamurthy Nagar"
+   ],
+   "district": "Bangalore"
+  },
+  "560017": {
+   "name": "Vimanapura",
+   "areas": [
+    "NAL",
+    "Vimanapura"
+   ],
+   "district": "Bangalore"
+  },
+  "560018": {
+   "name": "Chamrajpet",
+   "areas": [
+    "Chamrajpet (Bangalore)"
+   ],
+   "district": "Bangalore"
+  },
+  "560019": {
+   "name": "Gaviopuram Extension",
+   "areas": [
+    "Gaviopuram Extension"
+   ],
+   "district": "Bangalore"
+  },
+  "560020": {
+   "name": "Seshadripuram",
+   "areas": [
+    "Seshadripuram"
+   ],
+   "district": "Bangalore"
+  },
+  "560021": {
+   "name": "Gayathrinagar",
+   "areas": [
+    "Gayathrinagar",
+    "Srirampuram"
+   ],
+   "district": "Bangalore"
+  },
+  "560022": {
+   "name": "Yeshwanthpur",
+   "areas": [
+    "Yeshwanthpur Bazar",
+    "Yeswanthpura"
+   ],
+   "district": "Bangalore"
+  },
+  "560023": {
+   "name": "Magadi Road",
+   "areas": [
+    "Magadi Road"
+   ],
+   "district": "Bangalore"
+  },
+  "560024": {
+   "name": "Hebbal",
+   "areas": [
+    "Anandnagar (Bangalore)",
+    "H.A. Farm",
+    "Hebbal Kempapura"
+   ],
+   "district": "Bangalore"
+  },
+  "560025": {
+   "name": "Richmond Town",
+   "areas": [
+    "Bangalore Sub Foreign Post",
+    "CMP Centre And School",
+    "Museum Road",
+    "Richmond Town"
+   ],
+   "district": "Bangalore"
+  },
+  "560026": {
+   "name": "Deepanjalinagar",
+   "areas": [
+    "Deepanjalinagar",
+    "Governmemnt Electric Factory"
+   ],
+   "district": "Bangalore"
+  },
+  "560027": {
+   "name": "Shanthinagar",
+   "areas": [
+    "Sampangiramnagar",
+    "Shanthinagar",
+    "Wilson Garden"
+   ],
+   "district": "Bangalore"
+  },
+  "560028": {
+   "name": "Tyagrajnagar",
+   "areas": [
+    "Tyagrajnagar"
+   ],
+   "district": "Bangalore"
+  },
+  "560029": {
+   "name": "Tavarekere",
+   "areas": [
+    "Dharmaram College",
+    "Tavarekere"
+   ],
+   "district": "Bangalore"
+  },
+  "560030": {
+   "name": "Adugodi",
+   "areas": [
+    "Adugodi"
+   ],
+   "district": "Bangalore"
+  },
+  "560032": {
+   "name": "RT Nagar",
+   "areas": [
+    "P&T Col. Kavalbyrasandra",
+    "R T Nagar"
+   ],
+   "district": "Bangalore"
+  },
+  "560033": {
+   "name": "Maruthi Sevanagar",
+   "areas": [
+    "Maruthi Sevanagar"
+   ],
+   "district": "Bangalore"
+  },
+  "560034": {
+   "name": "Koramangala",
+   "areas": [
+    "Agara",
+    "Koramangala",
+    "Koramangala I Block",
+    "St. John's Medical College"
+   ],
+   "district": "Bangalore"
+  },
+  "560035": {
+   "name": "Carmelaram",
+   "areas": [
+    "Carmelram"
+   ],
+   "district": "Bangalore"
+  },
+  "560036": {
+   "name": "Devasandra",
+   "areas": [
+    "Devasandra",
+    "Krishnarajapuram"
+   ],
+   "district": "Bangalore"
+  },
+  "560037": {
+   "name": "Marathahalli",
+   "areas": [
+    "Doddanekkundi",
+    "Kundalahalli",
+    "Marathahalli Colony",
+    "Rameshnagar"
+   ],
+   "district": "Bangalore"
+  },
+  "560038": {
+   "name": "Indiranagar",
+   "areas": [
+    "Indiranagar (Bangalore)"
+   ],
+   "district": "Bangalore"
+  },
+  "560039": {
+   "name": "Nayandahalli",
+   "areas": [
+    "Nayandahalli"
+   ],
+   "district": "Bangalore"
+  },
+  "560040": {
+   "name": "Vijayanagar",
+   "areas": [
+    "Chandra Lay Out",
+    "Vijayanagar (Bangalore)",
+    "Vijayanagar East"
+   ],
+   "district": "Bangalore"
+  },
+  "560041": {
+   "name": "Jayanagar",
+   "areas": [
+    "Jayanagar",
+    "Tilaknagar (Bangalore)"
+   ],
+   "district": "Bangalore"
+  },
+  "560042": {
+   "name": "Sivan Chetty Gardens",
+   "areas": [
+    "Sivan Chetty Gardens"
+   ],
+   "district": "Bangalore"
+  },
+  "560043": {
+   "name": "Banaswadi",
+   "areas": [
+    "Banaswadi",
+    "Horamavu",
+    "Jalavayuvihar",
+    "Kalyananagar"
+   ],
+   "district": "Bangalore"
+  },
+  "560045": {
+   "name": "Nagawara",
+   "areas": [
+    "Arabic College",
+    "Venkateshapura"
+   ],
+   "district": "Bangalore"
+  },
+  "560046": {
+   "name": "Benson Town",
+   "areas": [
+    "Benson Town",
+    "Jayamahal Road"
+   ],
+   "district": "Bangalore"
+  },
+  "560047": {
+   "name": "Austin Town",
+   "areas": [
+    "Austin Town",
+    "Viveknagar (Bangalore)"
+   ],
+   "district": "Bangalore"
+  },
+  "560048": {
+   "name": "Hoodi",
+   "areas": [
+    "Hoodi",
+    "Mahadevapura"
+   ],
+   "district": "Bangalore"
+  },
+  "560049": {
+   "name": "Bhattarahalli",
+   "areas": [
+    "Bhattarahalli",
+    "Bidrahalli",
+    "Mundur",
+    "Virgonagar"
+   ],
+   "district": "Bangalore"
+  },
+  "560050": {
+   "name": "Banashankari",
+   "areas": [
+    "Ashoknagar (Bangalore)",
+    "Banashankari",
+    "Dasarahalli(Srinagar)",
+    "State Bank Of Mysore Colony"
+   ],
+   "district": "Bangalore"
+  },
+  "560051": {
+   "name": "Shivajinagar",
+   "areas": [
+    "H.K.P. Road"
+   ],
+   "district": "Bangalore"
+  },
+  "560052": {
+   "name": "Vasanthnagar",
+   "areas": [
+    "Vasanthnagar"
+   ],
+   "district": "Bangalore"
+  },
+  "560053": {
+   "name": "Chickpet",
+   "areas": [
+    "Chickpet"
+   ],
+   "district": "Bangalore"
+  },
+  "560054": {
+   "name": "Mathikere",
+   "areas": [
+    "Mathikere",
+    "Msrit",
+    "Sri Chowdeshwari"
+   ],
+   "district": "Bangalore"
+  },
+  "560055": {
+   "name": "Malleswaram",
+   "areas": [
+    "Malleswaram West"
+   ],
+   "district": "Bangalore"
+  },
+  "560056": {
+   "name": "Mallathahalli",
+   "areas": [
+    "Bnagalore Viswavidalaya",
+    "Mallathahalli"
+   ],
+   "district": "Bangalore"
+  },
+  "560057": {
+   "name": "Peenya",
+   "areas": [
+    "Peenya Dasarahalli"
+   ],
+   "district": "Bangalore"
+  },
+  "560058": {
+   "name": "Peenya",
+   "areas": [
+    "Laggere",
+    "Peenya I Stage",
+    "Peenya Small Industries"
+   ],
+   "district": "Bangalore"
+  },
+  "560059": {
+   "name": "RV Niketan",
+   "areas": [
+    "Rv Niketan"
+   ],
+   "district": "Bangalore"
+  },
+  "560060": {
+   "name": "Kengeri",
+   "areas": [
+    "Chudenapura",
+    "Kengeri",
+    "Sulikere"
+   ],
+   "district": "Bangalore"
+  },
+  "560061": {
+   "name": "Subramanyapura",
+   "areas": [
+    "Chikkalasandra",
+    "Subramanyapura"
+   ],
+   "district": "Bangalore"
+  },
+  "560062": {
+   "name": "Konanakunte",
+   "areas": [
+    "Doddakallasandra",
+    "Konanakunte"
+   ],
+   "district": "Bangalore"
+  },
+  "560063": {
+   "name": "Yelahanka",
+   "areas": [
+    "A F Station Yelahanka",
+    "BSF Campus Yelahanka"
+   ],
+   "district": "Bangalore"
+  },
+  "560064": {
+   "name": "Jakkur",
+   "areas": [
+    "Attur",
+    "CRPF Campus Yelahanka",
+    "Jakkur",
+    "Rajanakunte",
+    "Singanayakanahalli",
+    "Yelahanka",
+    "Yelahanka Satellite Town"
+   ],
+   "district": "Bangalore"
+  },
+  "560065": {
+   "name": "GKVK",
+   "areas": [
+    "G.K.V.K."
+   ],
+   "district": "Bangalore"
+  },
+  "560066": {
+   "name": "Whitefield",
+   "areas": [
+    "EPIP",
+    "Whitefield"
+   ],
+   "district": "Bangalore"
+  },
+  "560067": {
+   "name": "Kadugodi",
+   "areas": [
+    "Devanagundi",
+    "Kadugodi",
+    "Kadugodi Extention SO",
+    "Kalkunte",
+    "Kannamangala",
+    "Medimallasandra",
+    "Naduvathi",
+    "Samethanahalli"
+   ],
+   "district": "Bangalore"
+  },
+  "560068": {
+   "name": "Begur",
+   "areas": [
+    "Begur",
+    "Bommanahalli (Bangalore)",
+    "Madivala",
+    "Singasandra"
+   ],
+   "district": "Bangalore"
+  },
+  "560069": {
+   "name": "Jayanagar",
+   "areas": [
+    "Jayangar East S.O"
+   ],
+   "district": "Bangalore"
+  },
+  "560070": {
+   "name": "Padmanabhanagar",
+   "areas": [
+    "B Sk II Stage",
+    "Jayanagar West",
+    "Padmanabhnagar",
+    "Tyagrajnagar"
+   ],
+   "district": "Bangalore"
+  },
+  "560071": {
+   "name": "Domlur",
+   "areas": [
+    "Domlur"
+   ],
+   "district": "Bangalore"
+  },
+  "560072": {
+   "name": "Nagarbhavi",
+   "areas": [
+    "Nagarbhavi"
+   ],
+   "district": "Bangalore"
+  },
+  "560073": {
+   "name": "Nagasandra",
+   "areas": [
+    "Bagalgunte",
+    "Chikkabidarkal",
+    "Nagasandra (Bangalore)",
+    "Nelakadiranahalli"
+   ],
+   "district": "Bangalore"
+  },
+  "560074": {
+   "name": "Kumbalgodu",
+   "areas": [
+    "Kumbalagodu",
+    "Kumbalgodu Gollahalli",
+    "Ramohalli"
+   ],
+   "district": "Bangalore"
+  },
+  "560075": {
+   "name": "Thippasandra",
+   "areas": [
+    "Jeevanbhimanagar",
+    "New Thippasandra"
+   ],
+   "district": "Bangalore"
+  },
+  "560076": {
+   "name": "Bannerghatta Road",
+   "areas": [
+    "Bannerghatta Road",
+    "Hulimavu",
+    "JP Nagar VIII phase",
+    "Mico Layout",
+    "Mount St Joseph"
+   ],
+   "district": "Bangalore"
+  },
+  "560077": {
+   "name": "Kothanur",
+   "areas": [
+    "Doddagubbi",
+    "Dr. Shivarama Karanth Nagar",
+    "Kothanur"
+   ],
+   "district": "Bangalore"
+  },
+  "560078": {
+   "name": "JP Nagar",
+   "areas": [
+    "J P Nagar",
+    "JP Nagar III Phase",
+    "Kumaraswamy Layout",
+    "Yelachenahalli"
+   ],
+   "district": "Bangalore"
+  },
+  "560079": {
+   "name": "Basaveshwaranagar",
+   "areas": [
+    "Basaveshwaranagar",
+    "K H B Colony",
+    "Kamakshipalya"
+   ],
+   "district": "Bangalore"
+  },
+  "560080": {
+   "name": "Sadashivanagar",
+   "areas": [
+    "Sadashivanagar"
+   ],
+   "district": "Bangalore"
+  },
+  "560081": {
+   "name": "Chandapura",
+   "areas": [
+    "Chandapura"
+   ],
+   "district": "Bangalore"
+  },
+  "560082": {
+   "name": "Bolare",
+   "areas": [
+    "Bolare",
+    "Kagalipura",
+    "Somanhalli",
+    "Taralu",
+    "Thataguni",
+    "Thattekuppe",
+    "Udaypura"
+   ],
+   "district": "Bangalore"
+  },
+  "560083": {
+   "name": "Gottigere",
+   "areas": [
+    "Bannerghatta",
+    "Gottigere",
+    "Kalkere",
+    "Ragihalli",
+    "Sakalavara"
+   ],
+   "district": "Bangalore"
+  },
+  "560084": {
+   "name": "Lingarajapuram",
+   "areas": [
+    "Lingarajapuram",
+    "St. Thomas Town"
+   ],
+   "district": "Bangalore"
+  },
+  "560085": {
+   "name": "Banashankari",
+   "areas": [
+    "Banashankari III Stage",
+    "Girinagar (Bangalore)",
+    "Kathriguppe"
+   ],
+   "district": "Bangalore"
+  },
+  "560086": {
+   "name": "Mahalakshmipuram",
+   "areas": [
+    "Mahalakshmipuram Layout",
+    "West of Chord Road II stage"
+   ],
+   "district": "Bangalore"
+  },
+  "560087": {
+   "name": "Gunjur",
+   "areas": [
+    "Gunjur",
+    "Muthusandra",
+    "Vartur"
+   ],
+   "district": "Bangalore"
+  },
+  "560088": {
+   "name": "Hessarghatta",
+   "areas": [
+    "Hessarghatta"
+   ],
+   "district": "Bangalore Rural"
+  },
+  "560089": {
+   "name": "Hessarghatta Lake",
+   "areas": [
+    "Byatha",
+    "Hessarghatta Lake",
+    "Kakolu",
+    "Shivakote"
+   ],
+   "district": "Bangalore Rural"
+  },
+  "560090": {
+   "name": "Chikkabanavara",
+   "areas": [
+    "Chikkabanavara",
+    "Silvepura",
+    "Tarabanahalli"
+   ],
+   "district": "Bangalore Rural"
+  },
+  "560091": {
+   "name": "Kodigehalli",
+   "areas": [
+    "Bapagrama",
+    "Herohalli",
+    "Kodigehalli",
+    "Viswaneedam"
+   ],
+   "district": "Bangalore"
+  },
+  "560092": {
+   "name": "Sahakaranagar",
+   "areas": [
+    "Amruthahalli",
+    "Byatarayanapura",
+    "Kodigehalli",
+    "Sahakaranagar"
+   ],
+   "district": "Bangalore"
+  },
+  "560093": {
+   "name": "CV Raman Nagar",
+   "areas": [
+    "C.V.Raman Nagar"
+   ],
+   "district": "Bangalore"
+  },
+  "560094": {
+   "name": "RMV Extension",
+   "areas": [
+    "ISRO Anthariksha Bhavan",
+    "R.M.V. Extension II Stage"
+   ],
+   "district": "Bangalore"
+  },
+  "560095": {
+   "name": "Koramangala",
+   "areas": [
+    "Koramangala VI Bk"
+   ],
+   "district": "Bangalore"
+  },
+  "560096": {
+   "name": "Nandini Layout",
+   "areas": [
+    "Nandinilayout"
+   ],
+   "district": "Bangalore"
+  },
+  "560097": {
+   "name": "Vidyaranyapura",
+   "areas": [
+    "Vidyaranyapura"
+   ],
+   "district": "Bangalore"
+  },
+  "560098": {
+   "name": "Rajarajeshwari Nagar",
+   "areas": [
+    "Rajarajeshwarinagar"
+   ],
+   "district": "Bangalore"
+  },
+  "560099": {
+   "name": "Bommasandra",
+   "areas": [
+    "Bommasandra Industrial Estate",
+    "Chandapura",
+    "Huskur",
+    "Muthanallur"
+   ],
+   "district": "Bangalore"
+  },
+  "560100": {
+   "name": "Electronic City",
+   "areas": [
+    "Electronics City",
+    "Wipro Limited"
+   ],
+   "district": "Bangalore"
+  },
+  "560102": {
+   "name": "HSR Layout",
+   "areas": [
+    "HSR Layout"
+   ],
+   "district": "Bangalore"
+  },
+  "560103": {
+   "name": "Bellandur",
+   "areas": [
+    "Bellandur",
+    "Panathur"
+   ],
+   "district": "Bangalore"
+  },
+  "560104": {
+   "name": "Hampinagar",
+   "areas": [
+    "Hampinagar"
+   ],
+   "district": "Bangalore"
+  },
+  "560105": {
+   "name": "Jigani",
+   "areas": [
+    "Haragadde",
+    "Hennagara",
+    "Hulimangala",
+    "Jigani",
+    "Kallubalu"
+   ],
+   "district": "Bangalore"
+  },
+  "560107": {
+   "name": "Achitnagar",
+   "areas": [
+    "Achitnagar"
+   ],
+   "district": "Bangalore Rural"
+  },
+  "560108": {
+   "name": "Anjanapura",
+   "areas": [
+    "Anjanapura"
+   ],
+   "district": "Bangalore"
+  },
+  "560109": {
+   "name": "Thalaghattapura",
+   "areas": [
+    "Thalaghattapura"
+   ],
+   "district": "Bangalore"
+  },
+  "560110": {
+   "name": "Ullal Upanagar",
+   "areas": [
+    "Ullalu Upanagar"
+   ],
+   "district": "Bangalore"
+  }
+ }
+}

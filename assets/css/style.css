@@ -487,3 +487,10 @@ footer .brand{background:#fff;padding:8px 14px;border-radius:14px;display:inline
 .story-stats .odo-plus{font-size:clamp(40px,11vw,80px)}
 .story-dark .story-copy{margin-bottom:34px}
 @media(min-width:760px){.story-stats{grid-template-columns:1fr 1fr;gap:48px}}
+
+/* PIN code check and the all-PIN-codes page */
+.pincheck{max-width:520px;margin:14px 0}.pc-row{display:flex;gap:10px;flex-wrap:wrap}.pc-row input{flex:1;min-width:150px;font-size:18px;letter-spacing:.08em}
+.pc-out{margin:10px 0 0;min-height:24px;font-weight:600}.pc-out.ok{color:#1A7F4B}.pc-out.no{color:#9A4A00}.pc-out a{margin-left:4px}
+.pin-list{list-style:none;margin:16px 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.pin-row{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+.pin-row b{font-variant-numeric:tabular-nums;color:var(--navy)}.pin-row span{font-weight:600}.pin-row small{grid-column:2;color:var(--muted);font-size:12.5px;line-height:1.35}

@@ -51,7 +51,7 @@
   function services() { return items.filter(function (x) { return x.kind === 'service' && !(isEV() && ['basic', 'general', 'full'].indexOf(x.id) > -1); }); }
   function addons() { return items.filter(function (x) { return x.kind === 'addon'; }); }
   function load() {
-    var d = { reg: '', reminder: false, requestType: 'quote', email: '', emailOffers: false, coupon: '', address: '', lat: null, lng: null, contact: 'whatsapp', step: 0, brand: '', model: '', type: '', cc: 'std', nick: '', km: '', issues: [], note: '', service: 'general', picked: false, addons: [], place: 'home', area: '', dateIso: '', hour: null, slot: '', name: '', phone: '', consent: true };
+    var d = { reg: '', reminder: false, requestType: 'quote', email: '', emailOffers: false, coupon: '', address: '', lat: null, lng: null, contact: 'whatsapp', step: 0, brand: '', model: '', type: '', cc: 'std', nick: '', km: '', issues: [], note: '', service: 'general', picked: false, addons: [], place: 'home', area: '', pin: '', areaAuto: false, dateIso: '', hour: null, slot: '', name: '', phone: '', consent: true };
     try { var s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s === 'object') for (var k in d) if (k in s) d[k] = s[k]; } catch (e) {}
     return d;
   }
@@ -114,6 +114,13 @@
   }
 
   /* ---------- builder render ---------- */
+  /* The PIN code the visitor typed: say whether we serve it, and which area it is. We serve all of Bengaluru (560001 to 560110). */
+  function pinNote() {
+    var i = L.pinInfo(st.pin, window.MXP_PINS || {});
+    if (!i) return st.pin ? 'Type all 6 digits of your PIN code.' : 'We serve all of Bengaluru. Your PIN code fills in your area.';
+    if (i.known) return 'Yes, we serve ' + i.name + ' (' + i.pin + ').';
+    return i.served ? 'Yes, ' + i.pin + ' is in Bengaluru and we serve it.' : i.pin + ' is outside Bengaluru. Send it anyway and we will tell you when we reach you.';
+  }
   var lastStep = -1, lastTotal = null;
   var calmMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   /* The estimate counts to its new value when a choice changes it, so the visitor sees the effect of what they picked. */
@@ -178,6 +185,7 @@
       var hasPin = L.validGeo(st.lat, st.lng);
       h += '<div class="locate"><button type="button" class="btn btn-ghost btn-sm" data-act="locate"' + (locating ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg>' + (locating ? 'Finding you…' : hasPin ? 'Update my location' : 'Use my current location') + '</button>' + (hasPin ? '<button type="button" class="btn btn-ghost btn-sm" data-act="clearloc">Remove</button>' : '') + '</div>';
       if (locMsg || hasPin) h += '<p class="small locmsg" role="status">' + esc(locMsg || ('Location saved. Nearest area: ' + (st.area || 'Other area') + '.')) + '</p>';
+      h += '<label class="label" for="f-pin">PIN code</label><input id="f-pin" data-f="pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="e.g. 560102" value="' + esc(st.pin) + '"><p class="small pininfo" id="pinInfo" role="status" aria-live="polite" style="margin:6px 0 0">' + esc(pinNote()) + '</p>';
       h += '<label class="label" for="f-area">Area</label><select id="f-area" data-f="area"><option value="">Choose your area</option>' + (st.area && AREAS.indexOf(st.area) < 0 ? '<option selected>' + esc(st.area) + '</option>' : '') + AREAS.map(function (a) { return '<option' + (st.area === a ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + '</select>';
       h += '<label class="label" for="f-address">Flat, street or landmark <span class="muted" style="font-weight:400">(helps the mechanic find you)</span></label><input id="f-address" data-f="address" maxlength="200" autocomplete="street-address" placeholder="e.g. Flat 4B, Green Apartments, 27th Main" value="' + esc(st.address) + '">';
       if (st.place !== 'road') h += schedulePicker();
@@ -418,10 +426,16 @@
     if (t.id === 'mfilter') { var q = t.value.trim().toLowerCase(); document.querySelectorAll('.model-tile').forEach(function (b) { b.hidden = q !== '' && b.getAttribute('data-name').indexOf(q) === -1; }); return; }
     var f = t.getAttribute && t.getAttribute('data-f');
     if (!f || !t.closest('#builder')) return;
-    st[f] = f === 'phone' ? t.value.replace(/\D/g, '').slice(0, 10) : f === 'coupon' ? L.cleanCoupon(t.value) : t.value;
+    st[f] = f === 'phone' ? t.value.replace(/\D/g, '').slice(0, 10) : f === 'pin' ? t.value.replace(/\D/g, '').slice(0, 6) : f === 'coupon' ? L.cleanCoupon(t.value) : t.value;
     if (f === 'phone' && t.value !== st.phone) t.value = st.phone;
     if (f === 'coupon' && t.value !== st.coupon) t.value = st.coupon;
     if (f === 'nick' || f === 'model') renderSummary();
+    if (f === 'pin') {
+      if (t.value !== st.pin) t.value = st.pin;
+      var pi = L.pinInfo(st.pin, window.MXP_PINS || {}), note = $('#pinInfo'); if (note) note.textContent = pinNote();
+      if (pi && pi.known && (!st.area || st.areaAuto)) { st.area = pi.name; st.areaAuto = true; var sel = $('#f-area'); if (sel) { if (![].some.call(sel.options, function (o) { return o.value === pi.name || o.text === pi.name; })) { var op = document.createElement('option'); op.textContent = pi.name; sel.insertBefore(op, sel.options[1] || null); } sel.value = pi.name; } }
+    }
+    if (f === 'area') st.areaAuto = false;
     if (f === 'model') { applyModel(); var mi = $('#modelInfo'), cs = $('#ccSeg'); if (mi) mi.textContent = modelNote(); if (cs) cs.innerHTML = ccSeg(); }
     save();
   });
@@ -439,7 +453,7 @@
       else {
         st.area = place.name;
         if (!st.address || /^Near /.test(st.address)) st.address = place.name === 'Other area' ? '' : 'Near ' + place.name;
-        locMsg = place.served ? 'Location saved. Your area is ' + place.name + '.' : place.name === 'Other area' ? 'You are outside our current areas. Send it anyway and we will tell you when we reach you.' : 'You are near ' + place.name + ', which we do not serve yet. Send it anyway and we will tell you when we reach you.';
+        locMsg = place.served ? 'Location saved. You are in ' + place.name + ', and we serve all of Bengaluru.' : 'You are outside Bengaluru. Send it anyway and we will tell you when we reach you.';
       }
       save(); render();
     }, function (err) {
@@ -503,9 +517,10 @@
     if (pre.brand) { if (st.brand !== pre.brand) { st.brand = pre.brand; st.model = ''; } if (pre.model) st.model = pre.model; st.step = 0; }
     var ex = L.prefillExtras(location.search, items.map(function (x) { return x.id; }));
     if (ex.nick) st.nick = ex.nick;
+    if (ex.pin) { st.pin = ex.pin; var pi0 = L.pinInfo(ex.pin, window.MXP_PINS || {}); if (pi0 && pi0.known && !st.area) { st.area = pi0.name; st.areaAuto = true; } }
     if (ex.service && svc(ex.service) && !service) { st.service = ex.service; st.picked = true; }
     if (service && svc(service)) st.service = service;
-    if (ex.nick || pre.brand || ex.service) save();
+    if (ex.nick || pre.brand || ex.service || ex.pin) save();
     if (st.step > 3) st.step = 0;
     var t0 = todayIso(); calY = +t0.slice(0, 4); calM = +t0.slice(5, 7) - 1;
     if (st.dateIso && st.dateIso < t0) { st.dateIso = ''; st.hour = null; st.slot = ''; }

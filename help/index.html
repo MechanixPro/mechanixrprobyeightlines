@@ -10,14 +10,10 @@
 <meta property="og:title" content="How Doorstep Bike Service Works and FAQ | Mechanix Pro"><meta property="og:description" content="How Mechanix Pro works: build your service, get a WhatsApp quote, approve, and we service your bike at your door in Bengaluru. Answers to common questions."><meta property="og:url" content="https://mechanixpro.in/help/"><meta property="og:image" content="https://mechanixpro.in/assets/img/og.png"><meta property="og:type" content="website"><meta property="og:site_name" content="Mechanix Pro"><meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32"><link rel="icon" href="/assets/img/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="/assets/css/style.css">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"Do you service bikes at home in Bengaluru?","acceptedAnswer":{"@type":"Answer","text":"Yes. A Mechanix Pro-certified mechanic comes to your home, office or roadside in our service areas. If a job needs workshop tools, we pick up the bike with your OTP consent and bring it back."}},
-{"@type":"Question","name":"How much does a bike service cost?","acceptedAnswer":{"@type":"Answer","text":"Basic service is ₹599, General service ₹1,299 and Full service ₹1,999 for bikes and scooters up to 180cc. Bikes above 180cc add ₹300. Prices include GST. Your exact quote comes on WhatsApp after our expert checks your bike, and parts are charged only after you approve them."}},
-{"@type":"Question","name":"How do I get a quote and confirm my booking?","acceptedAnswer":{"@type":"Answer","text":"Build your service on the website and send it to us on WhatsApp. Our expert calls or messages you, confirms what is needed and sends your quote. Once you approve, we confirm your slot and send a secure link to pay ₹349, which is adjusted in your final bill."}},
-{"@type":"Question","name":"Is there a warranty?","acceptedAnswer":{"@type":"Answer","text":"Our service work is covered for 30 days from the service date. Parts also carry the manufacturer's warranty."}}
-]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Which parts of Bengaluru do you serve?","acceptedAnswer":{"@type":"Answer","text":"All of Bengaluru. We come to every PIN code from 560001 to 560110, including HSR Layout, Koramangala, Indiranagar, Whitefield, Jayanagar, JP Nagar, Hebbal and Electronic City. Type your PIN code on the home page to check it."}},{"@type":"Question","name":"Do you service bikes at home in Bengaluru?","acceptedAnswer":{"@type":"Answer","text":"Yes. A Mechanix Pro-certified mechanic comes to your home, office or roadside in our service areas. If a job needs workshop tools, we pick up the bike with your OTP consent and bring it back."}},{"@type":"Question","name":"How much does a bike service cost?","acceptedAnswer":{"@type":"Answer","text":"Basic service is ₹599, General service ₹1,299 and Full service ₹1,999 for bikes and scooters up to 180cc. Bikes above 180cc add ₹300. Prices include GST. Your exact quote comes on WhatsApp after our expert checks your bike, and parts are charged only after you approve them."}},{"@type":"Question","name":"How do I get a quote and confirm my booking?","acceptedAnswer":{"@type":"Answer","text":"Build your service on the website and send it to us on WhatsApp. Our expert calls or messages you, confirms what is needed and sends your quote. Once you approve, we confirm your slot and send a secure link to pay ₹349, which is adjusted in your final bill."}},{"@type":"Question","name":"Is there a warranty?","acceptedAnswer":{"@type":"Answer","text":"Our service work is covered for 30 days from the service date. Parts also carry the manufacturer's warranty."}}]}</script>
 <script src="/assets/js/loader.js"></script>
 <script src="/assets/js/config.js" defer></script>
+<script src="/assets/js/pincodes.js" defer></script>
 <script src="/assets/js/bikes.js" defer></script>
 <script src="/assets/js/model-photos.js" defer></script>
 <script src="/assets/js/logic.js" defer></script>
@@ -54,6 +50,7 @@
 <section id="faq">
   <div class="wrap" style="max-width:760px">
     <div class="sec-head"><h2>Questions, answered.</h2></div>
+    <details><summary>Which parts of Bengaluru do you serve?</summary><p>All of Bengaluru. We come to every PIN code from 560001 to 560110, including HSR Layout, Koramangala, Indiranagar, Whitefield, Jayanagar, JP Nagar, Hebbal and Electronic City. Type your PIN code on the home page to check it.</p></details>
     <details><summary>How do I confirm my booking?</summary><p>Approve the quote on WhatsApp and we confirm a slot. We then send a secure Razorpay link to pay the <span data-fee="advance">₹349</span> checkup and quote fee. It confirms your booking and is adjusted in your final bill if you go ahead with the service.</p></details>
     <details><summary>Can my bike be serviced at home?</summary><p>Most routine services (oil, filters, chain, brakes, battery, tyres) can be done at your doorstep. If your problem needs workshop tools, our expert tells you on WhatsApp and we pick up the bike only after you share a one-time code.</p></details>
     <details><summary>How does the quote work?</summary><p>Send us your build on WhatsApp. An expert calls or messages you, asks what is wrong, and sends an itemised quote. Nothing starts until you approve it.</p></details>
@@ -63,13 +60,14 @@
     <details><summary>Is there a warranty?</summary><p>Our service work is covered for 30 days from the service date. Parts also carry the manufacturer's warranty.</p></details>
   </div>
 </section>
-<section id="areas">
+<section id="areas" class="reveal">
   <div class="wrap">
-    <div class="sec-head"><h2>Where we serve.</h2><p>Starting in South-East Bengaluru. More areas every month.</p></div>
-    <div class="areas">
-      <a href="/bike-service-hsr-layout/">HSR Layout</a><a href="/bike-service-koramangala/">Koramangala</a><a href="/bike-service-btm-layout/">BTM Layout</a><a href="/bike-service-bellandur/">Bellandur</a><a href="/bike-service-electronic-city/">Electronic City</a><a href="/bike-service-marathahalli/">Marathahalli</a>
+    <div class="sec-head"><h2>All of Bengaluru.</h2><p>We come to every PIN code in the city, 560001 to 560110. Type yours to check.</p></div>
+    <div class="pincheck card" data-pincheck><label class="label" for="pc-in">Your PIN code</label><div class="pc-row"><input id="pc-in" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="e.g. 560102"></div><p class="pc-out" role="status" aria-live="polite"></p></div>
+    <div class="areas" style="margin-top:18px">
+      <a href="/bike-service-hsr-layout/">HSR Layout</a><a href="/bike-service-koramangala/">Koramangala</a><a href="/bike-service-btm-layout/">BTM Layout</a><a href="/bike-service-bellandur/">Bellandur</a><a href="/bike-service-electronic-city/">Electronic City</a><a href="/bike-service-marathahalli/">Marathahalli</a><a href="/areas/">All PIN codes</a>
     </div>
-    <p class="tiny muted" style="margin-top:14px">Not listed? Build your service anyway and choose "Other area". We will tell you when we reach you.</p>
+    <p class="tiny muted" style="margin-top:14px">Outside Bengaluru? Build your service anyway and we will tell you when we reach you.</p>
   </div>
 </section>
 <section>
@@ -89,12 +87,12 @@
       <p>Your roadside first responders. Doorstep bike service and breakdown help in Bengaluru.</p>
       <p><span data-phone>+91 XXXXX XXXXX</span> · <a href="mailto:hello@mechanixpro.in" style="display:inline">hello@mechanixpro.in</a></p>
     </div>
-    <div><b>Areas</b><a href="/bike-service-hsr-layout/">HSR Layout</a><a href="/bike-service-koramangala/">Koramangala</a><a href="/bike-service-btm-layout/">BTM Layout</a><a href="/bike-service-bellandur/">Bellandur</a><a href="/bike-service-electronic-city/">Electronic City</a><a href="/bike-service-marathahalli/">Marathahalli</a></div>
+    <div><b>Areas</b><a href="/bike-service-hsr-layout/">HSR Layout</a><a href="/bike-service-koramangala/">Koramangala</a><a href="/bike-service-btm-layout/">BTM Layout</a><a href="/bike-service-bellandur/">Bellandur</a><a href="/bike-service-electronic-city/">Electronic City</a><a href="/bike-service-marathahalli/">Marathahalli</a><a href="/areas/">All Bengaluru PIN codes</a></div>
     <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
   </div>
   <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Mechanix Pro is a brand of NOVA VENTURES, Haralur Main Rd, 1st Sector, HSR Layout, Bengaluru 560102. GSTIN 29DVCPR0895G1Z3</p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p></div>
 </footer>
 <a class="wa-fab" href="#" data-wa="general" aria-label="Chat on WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp us</a>
 <div class="mbar" id="mbar"><a class="btn btn-ghost" href="#" data-call aria-label="Call us"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call</a><a class="btn btn-wa" href="#" data-wa="general">WhatsApp</a><a class="btn btn-primary" href="/book/">Get a quote</a></div>
-</body>
+<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pincheck.js" defer></script></body>
 </html>
