@@ -29,7 +29,7 @@ test('submit-lead works out the coupon on the server and saves code and discount
 });
 
 test('submit-lead sends the confirmation email after saving, logs it, and can never block the booking', () => {
-  assert.match(src, /import \{ sendEmail \} from '\.\.\/_shared\/resend\.ts'/);
+  assert.match(src, /import \{ sendEmail, FROM_BOOKING \} from '\.\.\/_shared\/resend\.ts'/);
   assert.match(src, /import \{ bookingReceived \} from '\.\.\/_shared\/email-templates\.ts'/);
   assert.match(src, /import \{ formatWhen \} from '\.\.\/_shared\/when\.ts'/);
   const afterInsert = src.slice(src.indexOf("from('leads').insert("));

@@ -4,7 +4,7 @@ import { adminDb, env, json, corsHeaders, sha256Hex, priceBooking, respectQuietH
 import { whatsappReady, sendTemplate, TPL } from '../_shared/whatsapp.ts';
 import { cleanLeadFields } from '../_shared/lead-fields.ts';
 import { applyCoupon, normalizeCode } from '../_shared/coupons.ts';
-import { sendEmail } from '../_shared/resend.ts';
+import { sendEmail, FROM_BOOKING } from '../_shared/resend.ts';
 import { bookingReceived } from '../_shared/email-templates.ts';
 import { formatWhen } from '../_shared/when.ts';
 
@@ -98,13 +98,15 @@ Deno.serve(async (req) => {
       if (extra.email_marketing) { upd.email_marketing_consent = true; upd.email_unsubscribed_at = null; }
       await db.from('customers').update(upd).eq('id', cust.id);
       const { data: feeRow } = await db.from('services').select('price').eq('id', 'advance').maybeSingle();
-      const mail = bookingReceived({ checkupFee: feeRow?.price ?? null,
+      const brand = clean(b.bike_brand, 30), model = clean(b.bike_model, 40), nick = clean(b.bike_nickname, 24);
+      const buildQ = new URLSearchParams({ ...(brand && brand !== 'Other' ? { brand } : {}), ...(model ? { model } : {}), ...(nick ? { nick } : {}), service: serviceId }).toString();
+      const mail = bookingReceived({ checkupFee: feeRow?.price ?? null, nick: nick || null, buildUrl: env('SITE_URL', 'https://mechanixpro.in') + '/book/?' + buildQ,
         siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 97430 31301'), phoneTel: env('PHONE_TEL', '+919743031301'),
         whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/919743031301'), email: 'hello@mechanixpro.in',
-        name, ref: lead.ref, bike: [clean(b.bike_brand, 30), clean(b.bike_model, 40)].filter((x) => x && x !== 'Other').join(' ') || 'Your bike',
+        name, ref: lead.ref, bike: (() => { const base = [brand, model].filter((x) => x && x !== 'Other').join(' ') || 'Your bike'; return nick ? `"${nick}" (${base})` : base; })(),
         service: priced.service.name, area: clean(b.area, 40) || 'Bengaluru', whenText: isCallback ? 'We will call you back soon' : formatWhen(date, slot, extra.preferred_time), estimate: priced.total,
       });
-      const r = await sendEmail({ to: extra.email, subject: mail.subject, html: mail.html, text: mail.text, tags: { template: 'booking_received' } });
+      const r = await sendEmail({ to: extra.email, subject: mail.subject, html: mail.html, text: mail.text, from: FROM_BOOKING, tags: { template: 'booking_received' } });
       await db.from('email_log').insert({ lead_id: lead.id, to_email: extra.email, template: 'booking_received', status: r.ok ? 'sent' : r.skipped ? 'skipped' : 'failed', provider_id: r.id ?? null, error: r.error ?? null });
     } catch (e) { console.error('email failed', e); }
   }

@@ -158,6 +158,12 @@
     return true;
   }
   function cleanCoupon(v) { return String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 20); }
+  function prefillExtras(search, serviceIds) {
+    var p = new URLSearchParams(search || ''), out = { nick: '', service: '' };
+    out.nick = (p.get('nick') || '').replace(/<[^>]*>/g, '').replace(/[<>"\u0000-\u001f]/g, '').trim().slice(0, 24);
+    var wantS = (p.get('service') || '').trim().toLowerCase(); if (wantS && (serviceIds || []).indexOf(wantS) > -1) out.service = wantS;
+    return out;
+  }
   function prefillFromQuery(search, bikes) {
     var p = new URLSearchParams(search || ''), out = { brand: '', model: '' };
     var wantB = (p.get('brand') || '').trim().toLowerCase(), wantM = (p.get('model') || '').trim().toLowerCase();
@@ -165,6 +171,19 @@
     for (var i = 0; i < brands.length; i++) if (brands[i].toLowerCase() === wantB) { out.brand = brands[i]; break; }
     if (out.brand && wantM) { var list = bikes[out.brand]; for (var j = 0; j < list.length; j++) if (list[j][0].toLowerCase() === wantM) { out.model = list[j][0]; break; } }
     return out;
+  }
+  /* A calendar file for the visitor's chosen slot (India time, one hour). Empty when there is no slot, e.g. roadside help. */
+  function icsFor(st, ref, serviceName) {
+    if (!st || st.place === 'road' || !st.dateIso || st.hour == null) return '';
+    var d = st.dateIso.replace(/-/g, ''), h = function (n) { return String(n).padStart(2, '0') + '0000'; };
+    var esc = function (t) { return String(t || '').replace(/[\\;,]/g, function (c) { return '\\' + c; }).replace(/\n/g, '\\n'); };
+    var bike = st.nick ? '"' + st.nick + '" (' + [st.brand, st.model].filter(Boolean).join(' ') + ')' : [st.brand, st.model].filter(Boolean).join(' ') || 'your bike';
+    return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Mechanix Pro//Booking//EN', 'BEGIN:VEVENT',
+      'UID:' + (ref || 'draft') + '@mechanixpro.in', 'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, ''),
+      'DTSTART;TZID=Asia/Kolkata:' + d + 'T' + h(st.hour), 'DTEND;TZID=Asia/Kolkata:' + d + 'T' + h(st.hour + 1),
+      'SUMMARY:' + esc('Mechanix Pro: ' + (serviceName || 'bike service')), 'LOCATION:' + esc(st.area || 'Bengaluru'),
+      'DESCRIPTION:' + esc('Doorstep service for ' + bike + '. Booking ' + (ref || '(pending)') + '. Quote and approval on WhatsApp.'),
+      'END:VEVENT', 'END:VCALENDAR', ''].join('\r\n');
   }
   function captureAttribution(search, store) {
     var p = new URLSearchParams(search || ''), saved = {};
@@ -176,5 +195,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });

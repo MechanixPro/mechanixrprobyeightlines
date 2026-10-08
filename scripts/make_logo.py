@@ -81,6 +81,8 @@ save(fit(tag, 640), 'logo-tagline')
 # Email header logo (PNG, because email apps do not show WebP or SVG).
 em = fit(mark, 160); em.quantize(256, method=Image.FASTOCTREE).save(os.path.join(OUT, 'email-logo.png'), optimize=True)
 
+em2 = fit(word, 340); em2.quantize(256, method=Image.FASTOCTREE).save(os.path.join(OUT, 'email-wordmark.png'), optimize=True)
+
 # Square icons on white, with room around the shield.
 def square(size, fill=(255, 255, 255, 255), inner=0.70):
     c = Image.new('RGBA', (size, size), fill)
@@ -105,3 +107,9 @@ print('mark', mark.size, 'full', full.size, 'svg bytes', os.path.getsize(os.path
 
 og = Image.new('RGB', (1200, 630), (255, 255, 255)); f = full.copy(); f.thumbnail((900, 520), Image.LANCZOS)
 og.paste(f, ((1200 - f.width) // 2, (630 - f.height) // 2), f); og.save(os.path.join(OUT, 'og.png'), optimize=True)
+
+# favicon.ico for browsers that ask for /favicon.ico directly.
+ico = Image.new('RGBA', (64, 64), (0, 0, 0, 0)); im2 = fit(mark, 58)
+if im2.height > 62: im2 = im2.resize((round(im2.width * 62 / im2.height), 62), Image.LANCZOS)
+ico.paste(im2, ((64 - im2.width) // 2, (64 - im2.height) // 2), im2)
+ico.save(os.path.join(ROOT, 'favicon.ico'), sizes=[(16, 16), (32, 32), (48, 48), (64, 64)])

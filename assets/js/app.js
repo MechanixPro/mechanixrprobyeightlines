@@ -330,6 +330,16 @@
   document.addEventListener('mouseout', function (e) { if (!e.relatedTarget && e.clientY <= 0) maybePrompt('exit'); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeExit(); });
   document.addEventListener('click', function (e) { if (e.target && e.target.id === 'exitSheet') closeExit(); });
+  /* Returning visitors who left a build behind get it handed back, so they can pick up where they stopped. */
+  function welcomeBack() {
+    if ($('#builder') || !hasBuild()) return;
+    try { if (sessionStorage.getItem('mxp_welcome') === '1') return; } catch (e) {}
+    var d = document.createElement('aside'); d.className = 'welcome'; d.setAttribute('aria-label', 'Your saved build');
+    d.innerHTML = '<button type="button" class="welcome-x" aria-label="Close">&times;</button><b>Welcome back!</b><p>' + esc(bikeTitle()) + ' is waiting. ' + (svc(st.service) ? esc(svc(st.service).name) + ' from ' + rupee(total()) + '.' : '') + '</p><a class="btn btn-primary btn-sm" href="/book/">Continue your build</a>';
+    function close() { d.classList.remove('in'); setTimeout(function () { d.remove(); }, 300); try { sessionStorage.setItem('mxp_welcome', '1'); } catch (e) {} }
+    d.querySelector('.welcome-x').addEventListener('click', close);
+    setTimeout(function () { document.body.appendChild(d); requestAnimationFrame(function () { d.classList.add('in'); }); }, 4200);
+  }
   function armIdle() { clearTimeout(idleTimer); idleTimer = setTimeout(function () { maybePrompt('idle'); }, 45000); }
   ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(function (ev) { document.addEventListener(ev, armIdle, { passive: true }); });
   function finish(ref) {
@@ -337,8 +347,24 @@
     track('generate_lead', { service: st.service, area: st.area, value: total() });
     var url = waLink(buildMessage(ref));
     sending = false; render();
-    toast(ref ? 'Booking ' + ref + ' saved. Opening WhatsApp…' : 'Opening WhatsApp…');
-    setTimeout(function () { location.href = url; }, 400);
+    showDone(ref, url);
+  }
+  /* After sending: a thank-you popup that names the visitor's own bike, shows what happens next, and offers a calendar entry. WhatsApp opens by itself after a few seconds. */
+  function showDone(ref, url) {
+    closeExit();
+    var old = $('#doneSheet'); if (old) old.remove();
+    var name = st.nick ? esc(st.nick) : esc(bikeTitle()), sv = svc(st.service), ics = L.icsFor(st, ref, sv ? sv.name : ''), secs = 5;
+    var d = document.createElement('div'); d.className = 'sheetx'; d.id = 'doneSheet'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'doneT');
+    d.innerHTML = '<div class="sheetx-panel done fade"><div class="done-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>' +
+      '<h3 id="doneT">' + name + ' is in the queue.</h3>' + (ref ? '<p class="done-ref">Reference <b>' + esc(ref) + '</b></p>' : '') +
+      '<ol class="done-steps"><li>Our expert checks what ' + name + ' needs.</li><li>Your quote arrives on WhatsApp.</li><li>You approve, and we come to you.</li></ol>' +
+      '<a class="btn btn-wa" id="doneWa" href="' + esc(url) + '">Open WhatsApp now</a>' +
+      '<div class="done-more">' + (ics ? '<a class="btn btn-ghost btn-sm" download="mechanix-pro-service.ics" href="data:text/calendar;charset=utf-8,' + encodeURIComponent(ics) + '">Add to calendar</a>' : '') + '<button type="button" class="btn btn-ghost btn-sm" data-act="copyBuild">Copy my build link</button></div>' +
+      '<p class="tiny muted" id="doneCount" role="status">Opening WhatsApp in ' + secs + '…</p></div>';
+    document.body.appendChild(d);
+    var go = d.querySelector('#doneWa'); if (go) go.focus();
+    var cnt = d.querySelector('#doneCount'), t = setInterval(function () { secs--; if (!document.body.contains(d)) return clearInterval(t); if (secs <= 0) { clearInterval(t); location.href = url; } else cnt.textContent = 'Opening WhatsApp in ' + secs + '…'; }, 1000);
+    d.addEventListener('click', function (e) { if (e.target === d || (e.target.closest && e.target.closest('[data-act=copyBuild]'))) clearInterval(t); });
   }
 
   /* ---------- events ---------- */
@@ -471,14 +497,18 @@
     }
     var pre = L.prefillFromQuery(location.search, BIKES);
     if (pre.brand) { if (st.brand !== pre.brand) { st.brand = pre.brand; st.model = ''; } if (pre.model) st.model = pre.model; st.step = 0; }
+    var ex = L.prefillExtras(location.search, items.map(function (x) { return x.id; }));
+    if (ex.nick) st.nick = ex.nick;
+    if (ex.service && svc(ex.service) && !service) { st.service = ex.service; st.picked = true; }
     if (service && svc(service)) st.service = service;
+    if (ex.nick || pre.brand || ex.service) save();
     if (st.step > 3) st.step = 0;
     var t0 = todayIso(); calY = +t0.slice(0, 4); calM = +t0.slice(5, 7) - 1;
     if (st.dateIso && st.dateIso < t0) { st.dateIso = ''; st.hour = null; st.slot = ''; }
     if (st.dateIso) { calY = +st.dateIso.slice(0, 4); calM = +st.dateIso.slice(5, 7) - 1; }
     if (st.hour != null && st.hour >= 12) clockMode = 'pm';
     applyModel();
-    render(); renderPrices(); loadPrices(); armIdle();
+    render(); renderPrices(); loadPrices(); armIdle(); welcomeBack();
     var phoneEls = document.querySelectorAll('[data-phone]'); for (var i = 0; i < phoneEls.length; i++) if (C.phoneDisplay) phoneEls[i].textContent = C.phoneDisplay;
     var tel0 = L.callLink(C.callNumber) || L.callLink(C.whatsapp); if (tel0) document.querySelectorAll('[data-call]').forEach(function (a) { a.setAttribute('href', tel0); });
     var sb = $('#sosBtn'); if (sb) sb.addEventListener('click', sos);

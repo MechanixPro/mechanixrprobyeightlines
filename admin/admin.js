@@ -379,6 +379,13 @@ const ACT = {
   },
   invoice() { const l = S.leads.find((x) => x.id === S.open); if (l) openInvoice(l); },
   invPrint() { window.print(); },
+  async invEmail(btn) {
+    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    btn.disabled = true; const old = btn.textContent; btn.textContent = 'Sending…';
+    const { data, error } = await sb.functions.invoke('send-invoice', { body: { lead_id: l.id } });
+    btn.disabled = false; btn.textContent = old;
+    toast(error || !data || data.error ? 'Could not send: ' + ((data && data.error) || (error && error.message) || 'try again') : 'Invoice emailed to the customer');
+  },
   invClose() { $('#inv')?.remove(); },
   async confirmBooking() {
     const l = S.leads.find((x) => x.id === S.open);
@@ -534,7 +541,7 @@ async function openInvoice(lead) {
       <dt class="grand">Total</dt><dd class="grand" data-to="${v.total}">${inr(v.total)}</dd>${v.paid ? `<dt>Paid so far</dt><dd data-to="${v.paid}">${inr(v.paid)}</dd><dt class="grand">Balance due</dt><dd class="grand" data-to="${v.balance}">${inr(v.balance)}</dd>` : ''}</dl>
     <div class="inv-stamp ${v.balance === 0 && v.total > 0 ? 'paid' : 'due'}" aria-hidden="true">${v.balance === 0 && v.total > 0 ? 'PAID' : 'DUE'}</div>
     <p class="inv-foot">Prices include 18% GST. Parts are OEM certified, work is done by Mechanix Pro certified mechanics, and every service carries a 30-day warranty. Computer-generated invoice.</p>
-    <div class="inv-actions"><button class="btn btn-primary btn-sm" type="button" data-act="invPrint">Print or save as PDF</button><button class="btn btn-ghost btn-sm" type="button" data-act="invClose">Close</button></div>
+    <div class="inv-actions"><button class="btn btn-primary btn-sm" type="button" data-act="invPrint">Print or save as PDF</button><button class="btn btn-dark btn-sm" type="button" data-act="invEmail">Email to customer</button><button class="btn btn-ghost btn-sm" type="button" data-act="invClose">Close</button></div>
   </div>`;
   document.body.appendChild(el);
   const reveal = () => { const g = el.querySelector('.inv-gen'); if (g) g.remove(); const paper = el.querySelector('.inv-paper'); paper.hidden = false; paper.classList.add('in'); el.querySelectorAll('.inv-tot [data-to]').forEach((d) => countUp(d, +d.dataset.to, 900)); el.querySelector('[data-act="invPrint"]').focus(); };

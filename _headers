@@ -41,7 +41,7 @@
 /assets/img/og.png
   Cache-Control: public, max-age=0, must-revalidate
 
-/assets/img/email-logo.png
+/assets/img/email-*
   Cache-Control: public, max-age=0, must-revalidate
 
 /sw.js

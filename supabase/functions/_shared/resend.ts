@@ -1,6 +1,7 @@
 // Sends email through Resend. The API key comes from the RESEND_API_KEY secret, never from the repo.
 import { cleanEmail } from './email-address.ts';
 export const FROM_DEFAULT = 'Mechanix Pro <no-reply@mechanixpro.in>';
+export const FROM_BOOKING = 'Mechanix Pro Bookings <booking@mechanixpro.in>';
 export const REPLY_TO = 'hello@mechanixpro.in';
 export type OutMail = { to: string; subject: string; html: string; text: string; from?: string; unsubscribeUrl?: string; tags?: Record<string, string> };
 const tagValue = (v: string) => String(v).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 256);

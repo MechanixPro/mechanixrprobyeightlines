@@ -10,10 +10,10 @@ test('escapeHtml escapes the five dangerous characters', () => assert.equal(esca
 test('every email has a subject, an HTML body and a plain-text body', () => {
   for (const m of all()) { assert.ok(m.subject.length > 5); assert.ok(m.html.length > 500); assert.ok(m.text.length > 40); }
 });
-test('every email uses the brand: navy header, ember accent, logo with alt text, 600px layout', () => {
+test('every email uses the brand: white header with the logo and name, ember accent, 600px layout', () => {
   for (const { html } of all()) {
-    assert.match(html, /#14295A/i); assert.match(html, /#F2801F/i);
-    assert.match(html, /<img[^>]+logo[^>]+alt="Mechanix Pro"/i);
+    assert.match(html, /#F2801F/i);
+    assert.match(html, /<img[^>]+logo[^>]+alt="Mechanix Pro"/i); assert.match(html, /<img[^>]+email-wordmark[^>]+alt="MECHANIX PRO"/i);
     assert.match(html, /width="600"/);
     assert.match(html, /<meta name="viewport"/);
   }
