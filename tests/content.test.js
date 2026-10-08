@@ -74,8 +74,8 @@ test('every model photo file is listed in the credits data and nothing else is s
 
 test('the home page shows real photos for the hero and the five bike types, not drawings', () => {
   const h = read('index.html');
-  assert.match(h, /class="hero-photo"[\s\S]*models\/honda-activa-6g\.webp/);
-  for (const slug of ['tvs-jupiter', 'hero-splendor-plus', 'bajaj-pulsar-ns160', 'royal-enfield-classic-500', 'ola-electric-s1-pro']) assert.ok(h.includes('/assets/img/models/' + slug + '.webp'), slug);
+  assert.match(h, /class="hero-photo"[\s\S]*photos\/oil-change-900\.webp/);
+  for (const slug of ['honda-dio', 'hero-splendor-plus', 'bajaj-pulsar-ns160', 'royal-enfield-bullet-350', 'ola-electric-s1-pro']) assert.ok(h.includes('/assets/img/models/' + slug + '.webp'), slug);
   assert.doesNotMatch(h, /hero-bike\.svg|type-(scooter|commuter|sports|cruiser|electric)\.svg/);
 });
 test('the services page shows real photos of the parts', () => {

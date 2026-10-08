@@ -48,7 +48,7 @@ HEAD = '''<!doctype html>
 {scripts}
 </head>
 <body class="{body}">
-<div class="loader" aria-hidden="true"><img src="/assets/img/logo-full.webp" alt="" width="220" height="160"><i></i></div>
+<div class="loader" aria-hidden="true"><div class="ld-stage"><div class="ld-mark"><img src="/assets/img/logo-mark.webp" alt="" width="124" height="129"><u class="ld-shine"></u></div><img class="ld-word" src="/assets/img/logo-wordmark.webp" alt="" width="260" height="23"><img class="ld-tag" src="/assets/img/logo-tagline.webp" alt="" width="260" height="15"></div><i class="ld-road"></i></div>
 {nav}<main id="main" class="{main}">
 '''
 FOOT = '''</main>

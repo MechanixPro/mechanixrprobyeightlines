@@ -60,6 +60,10 @@ while r < H and not ta[r].any(): r += 1
 r0 = r
 while r < H and ta[r].any(): r += 1
 word = Image.fromarray(out[r0:r, :, :]); word = word.crop(word.getbbox())
+while r < H and not ta[r].any(): r += 1
+t0 = r
+while r < H and ta[r].any(): r += 1
+tag = Image.fromarray(out[t0:r, :, :]); tag = tag.crop(tag.getbbox())
 
 def fit(img, w):
     return img.resize((w, round(img.height * w / img.width)), Image.LANCZOS)
@@ -72,6 +76,7 @@ def save(img, name):
 save(fit(full, 1000), 'logo-full')
 save(fit(mark, 400), 'logo-mark')
 save(fit(word, 640), 'logo-wordmark')
+save(fit(tag, 640), 'logo-tagline')
 
 # Email header logo (PNG, because email apps do not show WebP or SVG).
 em = fit(mark, 160); em.quantize(256, method=Image.FASTOCTREE).save(os.path.join(OUT, 'email-logo.png'), optimize=True)
