@@ -33,3 +33,6 @@ test('page exists, is noindex, is not in the sitemap, and uses no inline script'
   assert.match(h, /noindex/); assert.match(h, /unsub\.js/); assert.doesNotMatch(h, /<script(?![^>]*src)/);
   assert.doesNotMatch(read('../sitemap.xml'), /unsubscribe/);
 });
+test('the unsubscribe function is public, so the one-click link in mail apps works without a login', () => {
+  assert.match(read('../supabase/config.toml'), /\[functions\.unsubscribe\]\s*verify_jwt = false/);
+});

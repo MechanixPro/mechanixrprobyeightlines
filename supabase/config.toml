@@ -7,6 +7,9 @@ verify_jwt = false
 verify_jwt = false
 [functions.follow-up]
 verify_jwt = false
+[functions.unsubscribe]
+verify_jwt = false
+
 [functions.payment-link]
 verify_jwt = true
 
