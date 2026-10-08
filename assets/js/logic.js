@@ -95,9 +95,10 @@
     return { name: best || 'Bengaluru', served: true };
   }
   /* A PIN code the visitor typed: do we serve it, and which area is it? Bengaluru is 560001 to 560110. */
-  function pinInfo(raw, pins) {
+  function pinInfo(raw, pins, off) {
     var pin = String(raw || '').replace(/\s/g, '');
     if (!/^\d{6}$/.test(pin)) return null;
+    if (off && off[pin]) return { pin: pin, name: '', served: false, known: false }; // paused by the company in the admin
     var name = (pins && pins[pin]) || '', n = +pin;
     return { pin: pin, name: name, served: !!name || (n >= 560001 && n <= 560110), known: !!name };
   }

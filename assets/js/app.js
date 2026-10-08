@@ -116,7 +116,7 @@
   /* ---------- builder render ---------- */
   /* The PIN code the visitor typed: say whether we serve it, and which area it is. We serve all of Bengaluru (560001 to 560110). */
   function pinNote() {
-    var i = L.pinInfo(st.pin, window.MXP_PINS || {});
+    var i = L.pinInfo(st.pin, window.MXP_PINS || {}, window.MXP_PINS_OFF || {});
     if (!i) return st.pin ? 'Type all 6 digits of your PIN code.' : 'We serve all of Bengaluru. Your PIN code fills in your area.';
     if (i.known) return 'Yes, we serve ' + i.name + ' (' + i.pin + ').';
     return i.served ? 'Yes, ' + i.pin + ' is in Bengaluru and we serve it.' : i.pin + ' is outside Bengaluru. Send it anyway and we will tell you when we reach you.';
@@ -348,6 +348,8 @@
     d.querySelector('.welcome-x').addEventListener('click', close);
     setTimeout(function () { document.body.appendChild(d); requestAnimationFrame(function () { d.classList.add('in'); }); }, 4200);
   }
+  /* The company changed the PIN code list in the admin: refresh the note under the PIN field. */
+  document.addEventListener('mxp:pins', function () { var n = $('#pinInfo'); if (n) n.textContent = pinNote(); });
   function armIdle() { clearTimeout(idleTimer); idleTimer = setTimeout(function () { maybePrompt('idle'); }, 45000); }
   ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(function (ev) { document.addEventListener(ev, armIdle, { passive: true }); });
   function finish(ref) {
@@ -432,7 +434,7 @@
     if (f === 'nick' || f === 'model') renderSummary();
     if (f === 'pin') {
       if (t.value !== st.pin) t.value = st.pin;
-      var pi = L.pinInfo(st.pin, window.MXP_PINS || {}), note = $('#pinInfo'); if (note) note.textContent = pinNote();
+      var pi = L.pinInfo(st.pin, window.MXP_PINS || {}, window.MXP_PINS_OFF || {}), note = $('#pinInfo'); if (note) note.textContent = pinNote();
       if (pi && pi.known && (!st.area || st.areaAuto)) { st.area = pi.name; st.areaAuto = true; var sel = $('#f-area'); if (sel) { if (![].some.call(sel.options, function (o) { return o.value === pi.name || o.text === pi.name; })) { var op = document.createElement('option'); op.textContent = pi.name; sel.insertBefore(op, sel.options[1] || null); } sel.value = pi.name; } }
     }
     if (f === 'area') st.areaAuto = false;

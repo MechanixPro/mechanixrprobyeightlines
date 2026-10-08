@@ -1,10 +1,10 @@
 /* "Do you serve my PIN code?" Works on any page with a [data-pincheck] box. Needs assets/js/pincodes.js. Nothing is sent anywhere. */
 (function () {
   'use strict';
-  var pins = window.MXP_PINS || {};
   function say(pin) {
     if (!/^\d{6}$/.test(pin)) return { text: '', cls: '' };
-    var n = +pin, name = pins[pin];
+    var pins = window.MXP_PINS || {}, off = window.MXP_PINS_OFF || {}, n = +pin, name = pins[pin];
+    if (off[pin]) return { text: 'We do not serve ' + pin + ' yet. Build your service anyway and we will tell you when we reach you.', cls: 'no' };
     if (name) return { text: 'Yes, we serve ' + name + ' (' + pin + ').', cls: 'ok', link: pin };
     if (n >= 560001 && n <= 560110) return { text: 'Yes, ' + pin + ' is in Bengaluru and we serve it.', cls: 'ok', link: pin };
     return { text: pin + ' is outside Bengaluru. Build your service anyway and we will tell you when we reach you.', cls: 'no' };
@@ -18,5 +18,6 @@
       if (r.link) { var a = document.createElement('a'); a.href = '/book/?pin=' + r.link; a.textContent = ' Build your service'; out.appendChild(a); }
     }
     input.addEventListener('input', update);
+    document.addEventListener('mxp:pins', update);
   });
 })();

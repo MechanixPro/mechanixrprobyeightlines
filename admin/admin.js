@@ -5,6 +5,7 @@ import { customerRows, searchCustomers, mechanicStats } from './people.js';
 import { couponRows } from './coupon-view.js';
 import { rangeFor, buildReport, reportCsv, payoutReport } from './report.js';
 import { splitJob } from './split.js';
+import { pinRows, validPin, cleanPin, cleanPinName } from './pins-view.js';
 import { buildInvoice } from './invoice.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
@@ -22,7 +23,7 @@ if (!C.supabaseUrl || !C.supabaseAnonKey) {
   throw new Error('Supabase not configured');
 }
 const sb = createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
-const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], ifilter: 'open', selMode: false, sel: new Set(), range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
+const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
 
 function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
@@ -64,7 +65,7 @@ async function boot() {
   if (!me) { $('#loginErr').textContent = 'This account is not an admin. Ask the owner to add you.'; await sb.auth.signOut(); return; }
   S.me = me;
   $('#login').hidden = true; $('#view').hidden = false; $('#tabs').hidden = false; $('#signOut').hidden = false;
-  await Promise.all([loadLeads(), loadServices(), loadSettings(), loadPeople(), loadHome(), loadIssues()]);
+  await Promise.all([loadLeads(), loadServices(), loadSettings(), loadPeople(), loadHome(), loadIssues(), loadPins()]);
   render();
   S.channel = sb.channel('mxp-admin')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async (p) => { if (p.eventType === 'INSERT') toast('New booking ' + (p.new?.ref ?? '')); await loadLeads(); if (!['prices', 'settings', 'offers', 'homeimgs'].includes(S.tab)) render(); if (S.open) openLead(S.open, true); })
@@ -84,6 +85,7 @@ async function loadPeople() {
 }
 async function loadHome() { const { data } = await sb.from('home_images').select('*').order('position').order('created_at'); S.homeimgs = data ?? []; }
 async function loadIssues() { const { data } = await sb.from('issues').select('*').order('created_at', { ascending: false }).limit(500); S.issues = data ?? []; }
+async function loadPins() { const { data } = await sb.from('service_pincodes').select('*').order('pin').limit(2000); S.pins = data ?? []; }
 async function loadServices() { const { data } = await sb.from('services').select('*').order('sort'); S.services = data ?? []; }
 async function loadSettings() { const { data } = await sb.from('settings').select('*'); S.settings = Object.fromEntries((data ?? []).map((r) => [r.key, r.value])); }
 const svcName = (id) => S.services.find((s) => s.id === id)?.name ?? id ?? '—';
@@ -94,16 +96,17 @@ document.addEventListener('click', (e) => {
   const r = e.target.closest('[data-lead]'); if (r) { if (S.selMode) { const id = r.dataset.lead; if (S.sel.has(id)) S.sel.delete(id); else S.sel.add(id); render(); } else openLead(r.dataset.lead); return; }
   const cu = e.target.closest('[data-cust]'); if (cu) { openCustomer(cu.dataset.cust); return; }
   const is = e.target.closest('[data-issue]'); if (is) { openIssue(is.dataset.issue); return; }
+  const pn = e.target.closest('[data-pin]'); if (pn) { openPin(pn.dataset.pin); return; }
   const me = e.target.closest('[data-mech]'); if (me) { openMechanic(me.dataset.mech); return; }
   const co = e.target.closest('[data-coupon]'); if (co) { openCoupon(co.dataset.coupon); return; }
   const a = e.target.closest('[data-act]'); if (a && ACT[a.dataset.act]) ACT[a.dataset.act](a);
 });
-document.addEventListener('input', (e) => { if (e.target.id === 'mr-range' || e.target.id === 'mr') { const v = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)); if (e.target.id === 'mr-range') $('#mr').value = v; else $('#mr-range').value = v; updateSplitPreview(); }  if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
+document.addEventListener('input', (e) => { if (e.target.id === 'mr-range' || e.target.id === 'mr') { const v = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)); if (e.target.id === 'mr-range') $('#mr').value = v; else $('#mr-range').value = v; updateSplitPreview(); }  if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'pq') { S.pq = e.target.value; const l = $('#pinlist'); if (l) { const keep = e.target; render(); const again = $('#pq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
 document.addEventListener('change', (e) => { if (e.target.id === 'il') { const l = S.leads.find((x) => x.id === e.target.value), w = warrantyInfo(l, WARRANTY_DAYS); $('#iw').textContent = l ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''; } if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'ifs') { S.ifilter = e.target.value; render(); } if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if ($('#inv')) $('#inv').remove(); else if (!$('#sheet').hidden) closeSheet(); } });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
-function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, issues, offers, reports, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, issues, pins, offers, reports, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -393,6 +396,27 @@ const ACT = {
     await audit('booking_deleted', { count: ids.length }); toast(ids.length + ' deleted');
     S.selMode = false; S.sel = new Set(); await loadLeads(); render();
   },
+  addPin() { openPin('new'); },
+  async savePin() {
+    const isNew = S.openPin === 'new', pin = isNew ? cleanPin($('#pp').value) : S.openPin, name = cleanPinName($('#pn').value), active = $('#pa').checked;
+    if (!validPin(pin)) return toast('A PIN code has 6 digits');
+    if (name.length < 2) return toast('Enter the area name');
+    if (isNew && S.pins.some((x) => x.pin === pin)) return toast('That PIN code is already in the list');
+    const { error } = isNew ? await sb.from('service_pincodes').insert({ pin, name, active }) : await sb.from('service_pincodes').update({ name, active }).eq('pin', pin);
+    if (error) return toast('Could not save: ' + error.message);
+    await audit(isNew ? 'pin_added' : 'pin_updated', { pin, name, active }); toast('Saved'); await loadPins(); closeSheet(); render();
+  },
+  async togglePin() {
+    const p = S.pins.find((x) => x.pin === S.openPin); if (!p) return;
+    const { error } = await sb.from('service_pincodes').update({ active: !p.active }).eq('pin', p.pin); if (error) return toast('Could not save: ' + error.message);
+    await audit('pin_updated', { pin: p.pin, active: !p.active }); toast(p.active ? p.pin + ' paused' : p.pin + ' is served again'); await loadPins(); closeSheet(); render();
+  },
+  async deletePin() {
+    const p = S.pins.find((x) => x.pin === S.openPin); if (!p) return;
+    if (!confirm(`Delete PIN code ${p.pin} (${p.name})? To stop serving it but keep it listed, untick "We serve this PIN code" instead.`)) return;
+    const { error } = await sb.from('service_pincodes').delete().eq('pin', p.pin); if (error) return toast('Could not delete: ' + error.message);
+    await audit('pin_deleted', { pin: p.pin }); toast('Deleted ' + p.pin); closeSheet(); await loadPins(); render();
+  },
   async deleteCustomer() {
     const c = S.customers.find((x) => x.id === S.openCust); if (!c) return;
     const theirs = S.leads.filter((l) => l.customer_id === c.id);
@@ -594,6 +618,25 @@ function openIssue(id) {
     <label class="label" for="is">Status</label><select id="is">${Object.entries(STATUS_LABEL).map(([k, t]) => `<option value="${k}"${k === i.status ? ' selected' : ''}>${t}</option>`).join('')}</select>
     <label class="label" for="ir">How it was resolved</label><textarea id="ir" rows="3" maxlength="1000">${esc(i.resolution || '')}</textarea>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-primary" type="button" data-act="saveIssue">Save</button>${isOwner() && id !== 'new' ? '<button class="btn btn-ghost" type="button" data-act="deleteIssue">Delete issue</button>' : ''}</div></div></div>`;
+  $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
+}
+/* ---------- PIN codes we serve ---------- */
+function pins() {
+  const rows = pinRows(S.pins, S.pq), served = S.pins.filter((p) => p.active).length;
+  return `<div class="toolbar"><p class="small muted" style="margin:0;flex:1">We serve all of Bengaluru. This list is what the website's PIN check and booking form use, and it updates there straight away. Add a PIN code to serve a new area; pause one to stop serving it. ${served} served, ${S.pins.length - served} paused.</p>
+  <input id="pq" type="search" placeholder="Search PIN or area" value="${esc(S.pq)}" aria-label="Search PIN codes">${isOwner() ? '<button class="btn btn-primary btn-sm" type="button" data-act="addPin">Add PIN code</button>' : ''}</div>
+  <div class="list" id="pinlist">${rows.length ? rows.map((r) => `<button class="row mrow" data-pin="${r.pin}"><span><b>${esc(r.pin)}</b><br><span class="meta">${esc(r.name)}</span></span><span class="meta"></span><span class="pill ${r.active ? 'paid' : 'off'}">${r.status}</span></button>`).join('') : '<p class="muted" style="padding:16px">No PIN codes match.</p>'}</div>`;
+}
+function openPin(pin) {
+  const p = pin === 'new' ? { pin: '', name: '', active: true } : S.pins.find((x) => x.pin === pin); if (!p) return;
+  S.open = null; S.openCust = null; S.openMech = null; S.openCoupon = null; S.openIssue = null; S.openPin = pin;
+  const ro = isOwner() ? '' : ' disabled';
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${pin === 'new' ? 'Add a PIN code' : esc(p.pin)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  <div class="card" style="margin-top:12px"><div class="inline-form">
+    <label class="label" for="pp">PIN code (6 digits)</label><input id="pp" inputmode="numeric" maxlength="6" value="${esc(p.pin)}"${pin === 'new' ? ro : ' disabled'}>
+    <label class="label" for="pn">Area name shown to customers</label><input id="pn" maxlength="60" value="${esc(p.name)}"${ro} placeholder="For example: Anekal">
+    <label class="check"><input type="checkbox" id="pa"${p.active ? ' checked' : ''}${ro}><span>We serve this PIN code</span></label>
+    ${isOwner() ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-primary" type="button" data-act="savePin">Save</button>' + (pin !== 'new' ? '<button class="btn btn-ghost" type="button" data-act="togglePin">' + (p.active ? 'Pause serving' : 'Serve again') + '</button><button class="btn btn-ghost" type="button" data-act="deletePin">Delete PIN code</button>' : '') + '</div>' : '<p class="tiny muted">Only the owner can change PIN codes.</p>'}</div></div>`;
   $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
 }
 function homeimgs() {

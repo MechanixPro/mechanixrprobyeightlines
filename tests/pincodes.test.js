@@ -49,3 +49,8 @@ test('area wording says we serve all of Bengaluru everywhere customers or the AI
   assert.match(read('supabase/migrations/20261023000000_serve_all_bengaluru.sql'), /pincode/);
   assert.match(read('supabase/functions/_shared/lead-fields.ts'), /pincode/);
 });
+
+test('a PIN code the company has paused is reported as not served', () => {
+  assert.deepEqual(L.pinInfo('560102', { '560102': 'HSR Layout' }, { '560102': true }), { pin: '560102', name: '', served: false, known: false });
+  assert.equal(L.pinInfo('560110', {}, {}).served, true);
+});
