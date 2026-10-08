@@ -121,6 +121,15 @@
     if (i.known) return 'Yes, we serve ' + i.name + ' (' + i.pin + ').';
     return i.served ? 'Yes, ' + i.pin + ' is in Bengaluru and we serve it.' : i.pin + ' is outside Bengaluru. Send it anyway and we will tell you when we reach you.';
   }
+  /* The visitor's own PIN (or exact spot) drops onto a small map of Bengaluru. Redraws only when it changes, so typing elsewhere does not replay it. */
+  var lastPinKey = null;
+  function drawPinMap() {
+    var el = $('#pinMap'); if (!el || !window.MXP_PINMAP) return;
+    var i = L.pinInfo(st.pin, window.MXP_PINS || {}, window.MXP_PINS_OFF || {}), ok = !!(i && i.served && (window.MXP_PIN_GEO || {})[i.pin]);
+    var key = (ok ? i.pin : '') + '|' + (st.lat || '') + '|' + (st.lng || '');
+    window.MXP_PINMAP.draw(el, { pin: ok ? i.pin : '', lat: st.lat, lng: st.lng });
+    el.classList.add('pm-still'); if (key === lastPinKey) el.classList.add('pm-again'); lastPinKey = key;
+  }
   var lastStep = -1, lastTotal = null;
   var calmMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   /* The estimate counts to its new value when a choice changes it, so the visitor sees the effect of what they picked. */
@@ -185,7 +194,7 @@
       var hasPin = L.validGeo(st.lat, st.lng);
       h += '<div class="locate"><button type="button" class="btn btn-ghost btn-sm" data-act="locate"' + (locating ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg>' + (locating ? 'Finding you…' : hasPin ? 'Update my location' : 'Use my current location') + '</button>' + (hasPin ? '<button type="button" class="btn btn-ghost btn-sm" data-act="clearloc">Remove</button>' : '') + '</div>';
       if (locMsg || hasPin) h += '<p class="small locmsg" role="status">' + esc(locMsg || ('Location saved. Nearest area: ' + (st.area || 'Other area') + '.')) + '</p>';
-      h += '<label class="label" for="f-pin">PIN code</label><input id="f-pin" data-f="pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="e.g. 560102" value="' + esc(st.pin) + '"><p class="small pininfo" id="pinInfo" role="status" aria-live="polite" style="margin:6px 0 0">' + esc(pinNote()) + '</p>';
+      h += '<label class="label" for="f-pin">PIN code</label><input id="f-pin" data-f="pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="e.g. 560102" value="' + esc(st.pin) + '"><p class="small pininfo" id="pinInfo" role="status" aria-live="polite" style="margin:6px 0 0">' + esc(pinNote()) + '</p><div class="pm pm-mini" id="pinMap"></div>';
       h += '<label class="label" for="f-area">Area</label><select id="f-area" data-f="area"><option value="">Choose your area</option>' + (st.area && AREAS.indexOf(st.area) < 0 ? '<option selected>' + esc(st.area) + '</option>' : '') + AREAS.map(function (a) { return '<option' + (st.area === a ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + '</select>';
       h += '<label class="label" for="f-address">Flat, street or landmark <span class="muted" style="font-weight:400">(helps the mechanic find you)</span></label><input id="f-address" data-f="address" maxlength="200" autocomplete="street-address" placeholder="e.g. Flat 4B, Green Apartments, 27th Main" value="' + esc(st.address) + '">';
       if (st.place !== 'road') h += schedulePicker();
@@ -209,6 +218,7 @@
     h += '</div>';
     el.innerHTML = h;
     var nowTotal = total(); tickTotal(lastTotal, nowTotal); lastTotal = nowTotal; lastStep = s;
+    if (s === 3) drawPinMap();
     if (s === 3 && C.turnstileSiteKey) mountTurnstile();
     renderSummary();
   }
@@ -372,7 +382,7 @@
     d.innerHTML = '<div class="rcpt-wrap"><div class="confetti" aria-hidden="true">' + pieces + '</div>' +
       '<div class="rcpt-slot" aria-hidden="true"><i class="rcpt-led"></i></div>' +
       '<div class="rcpt-paper"><div class="rcpt-head"><span class="rcpt-ico" aria-hidden="true"><img src="/assets/img/logo-mark.webp" alt="" width="34" height="35"></span><h3 id="doneT">Thank you!</h3><p>' + name + ' is in the queue.</p></div>' +
-      '<div class="rcpt-perf" aria-hidden="true"><i></i><i></i></div>' +
+      '<div class="rcpt-perf" aria-hidden="true"><i></i><i></i></div>' + (st.pin || st.lat ? '<div class="pm pm-mini rcpt-map" id="rcptMap"></div>' : '') +
       '<dl class="rcpt-rows"><div><dt>Reference</dt><dd>' + (ref ? esc(ref) : 'Pending') + '</dd></div><div><dt>Estimate</dt><dd>from ' + rupee(total()) + '</dd></div><div><dt>Bike</dt><dd>' + esc(bikeTitle()) + '</dd></div><div><dt>Service</dt><dd>' + esc(sv ? sv.name : '') + '</dd></div><div><dt>When</dt><dd>' + esc(when) + '</dd></div><div><dt>Status</dt><dd><span class="rcpt-chip">Request received</span></dd></div></dl>' +
       '<div class="rcpt-barcode" aria-hidden="true"><svg viewBox="0 0 ' + barW + ' 46" preserveAspectRatio="none">' + svgBars + '</svg><small>' + (ref ? esc(ref) : 'MECHANIX PRO') + '</small></div>' +
       '<p class="rcpt-foot">Your quote arrives on WhatsApp. Nothing starts until you approve it.</p>' +
@@ -380,6 +390,7 @@
       '<div class="done-more">' + (ics ? '<a class="btn btn-ghost btn-sm" download="mechanix-pro-service.ics" href="data:text/calendar;charset=utf-8,' + encodeURIComponent(ics) + '">Add to calendar</a>' : '') + '<button type="button" class="btn btn-ghost btn-sm" data-act="copyBuild">Copy my build link</button></div>' +
       '<p class="tiny muted" id="doneCount" role="status">Opening WhatsApp in ' + secs + '…</p></div></div>';
     document.body.appendChild(d);
+    var rm = d.querySelector('#rcptMap'); if (rm && window.MXP_PINMAP) { var ri = L.pinInfo(st.pin, window.MXP_PINS || {}, window.MXP_PINS_OFF || {}); window.MXP_PINMAP.draw(rm, { pin: ri && ri.served ? ri.pin : '', lat: st.lat, lng: st.lng }); }
     var go = d.querySelector('#doneWa'); if (go) go.focus({ preventScroll: true });
     var cnt = d.querySelector('#doneCount'), t = setInterval(function () { secs--; if (!document.body.contains(d)) return clearInterval(t); if (secs <= 0) { clearInterval(t); location.href = url; } else cnt.textContent = 'Opening WhatsApp in ' + secs + '…'; }, 1000);
     d.addEventListener('click', function (e) { if (e.target === d || (e.target.closest && e.target.closest('[data-act=copyBuild]'))) clearInterval(t); });
@@ -442,7 +453,7 @@
     if (f === 'nick' || f === 'model') renderSummary();
     if (f === 'pin') {
       if (t.value !== st.pin) t.value = st.pin;
-      var pi = L.pinInfo(st.pin, window.MXP_PINS || {}, window.MXP_PINS_OFF || {}), note = $('#pinInfo'); if (note) note.textContent = pinNote();
+      var pi = L.pinInfo(st.pin, window.MXP_PINS || {}, window.MXP_PINS_OFF || {}), note = $('#pinInfo'); if (note) note.textContent = pinNote(); drawPinMap();
       if (pi && pi.known && (!st.area || st.areaAuto)) { st.area = pi.name; st.areaAuto = true; var sel = $('#f-area'); if (sel) { if (![].some.call(sel.options, function (o) { return o.value === pi.name || o.text === pi.name; })) { var op = document.createElement('option'); op.textContent = pi.name; sel.insertBefore(op, sel.options[1] || null); } sel.value = pi.name; } }
     }
     if (f === 'area') st.areaAuto = false;

@@ -50,7 +50,7 @@ HEAD = '''<!doctype html>
 {nav}<main id="main" class="{main}">
 '''
 FOOT = '''</main>
-{footer}{extra}<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script></body>
+{footer}{extra}<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pingeo.js" defer></script><script src="/assets/js/pinmap.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script></body>
 </html>
 '''
 LEGAL_JS = '<script src="/assets/js/page.js" defer></script>'
@@ -309,7 +309,7 @@ with open(os.path.join(ROOT, 'assets', 'js', 'pingeo.js'), 'w', encoding='utf-8'
 _rows = ''.join(f'<li class="pin-row"><b>{k}</b><span>{html.escape(v["name"])}</span><small>{html.escape(", ".join(a for a in v["areas"] if a != v["name"])[:140])}</small></li>' for k, v in _pins.items())
 _areas_body = f'''<h1 style="font-size:clamp(34px,6vw,52px)">We serve all of Bengaluru.</h1>
 <p class="muted" style="font-size:20px">Mechanix Pro comes to your home or office in every Bengaluru PIN code, 560001 to 560110. Check yours below, then build your service.</p>
-<div class="pincheck card" data-pincheck><label class="label" for="pc-in">Your PIN code</label><div class="pc-row"><input id="pc-in" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="e.g. 560102"><a class="btn btn-primary" href="/book/">Build your service</a></div><p class="pc-out" role="status" aria-live="polite"></p></div>
+<div class="pincheck card" data-pincheck><label class="label" for="pc-in">Your PIN code</label><div class="pc-row"><input id="pc-in" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="e.g. 560102"><a class="btn btn-primary" href="/book/">Build your service</a></div><p class="pc-out" role="status" aria-live="polite"></p><div class="pm" data-pinmap></div></div>
 <h2>All {len(_pins)} PIN codes</h2>
 <ul class="pin-list">{_rows}</ul>
 <p class="tiny muted">PIN codes and area names are from the India Post directory. Not in Bengaluru? Build your service anyway and we will tell you when we reach you.</p>

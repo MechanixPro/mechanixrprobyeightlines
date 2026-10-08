@@ -12,9 +12,14 @@
   document.querySelectorAll('[data-pincheck]').forEach(function (box) {
     var input = box.querySelector('input'), out = box.querySelector('.pc-out');
     if (!input || !out) return;
+    var map = box.querySelector('[data-pinmap]'), shown = false;
+    function drawMap(pin, ok) { if (map && window.MXP_PINMAP) window.MXP_PINMAP.draw(map, ok ? { pin: pin } : {}); }
+    if (map && 'IntersectionObserver' in window) { var io = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { shown = true; if (!/^\d{6}$/.test(input.value)) drawMap('', false); io.disconnect(); } }, { threshold: 0.3 }); io.observe(map); }
+    else if (map) { shown = true; drawMap('', false); }
     function update() {
       var v = input.value.replace(/\D/g, '').slice(0, 6); if (v !== input.value) input.value = v;
       var r = say(v); out.className = 'pc-out ' + r.cls; out.textContent = r.text;
+      if (map && (shown || v.length === 6)) drawMap(v, r.cls === 'ok' && !!(window.MXP_PIN_GEO || {})[v]);
       if (r.link) { var a = document.createElement('a'); a.href = '/book/?pin=' + r.link; a.textContent = ' Build your service'; out.appendChild(a); }
     }
     input.addEventListener('input', update);

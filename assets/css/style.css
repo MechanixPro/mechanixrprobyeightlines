@@ -550,3 +550,18 @@ input,select,textarea{border-color:var(--line);border-radius:12px}
 @keyframes rcptLed{0%,100%{opacity:1}50%{opacity:.35}}
 @keyframes cfFall{0%{opacity:1;transform:translateY(0) rotate(var(--r))}100%{opacity:0;transform:translateY(420px) rotate(calc(var(--r) + 540deg))}}
 @media(prefers-reduced-motion:reduce){.rcpt-paper{clip-path:none;animation:none}.rcpt-paper>*{animation:none}.confetti{display:none}.rcpt-led{animation:none}}
+
+/* PIN map: Bengaluru as dots, your PIN drops in with a ripple */
+.pm{margin-top:14px;border-radius:20px;background:radial-gradient(circle at 50% 40%,#fff,#EEF1F7);overflow:hidden}
+.pm svg{display:block;width:100%;height:auto;max-height:300px}.pm-mini{max-width:260px;margin:12px 0 0}.rcpt-map{margin:14px auto 4px;background:#F5F5F7}
+.pm-glow circle{fill:#DCE2EE;opacity:.85}.pm-dot{fill:var(--navy);opacity:.7;transform-box:fill-box;transform-origin:center;animation:pmDot .5s ease both;animation-delay:calc(var(--i,0) * 9ms)}
+.pm-again .pm-dot,.pm-still .pm-dot{animation:none}
+.pm-pin{fill:var(--ember);stroke:#fff;stroke-width:1.5;animation:pmDrop .75s cubic-bezier(.3,1.5,.5,1) both;transform-origin:0 0}
+.pm-pin circle{fill:#fff;stroke:none}
+.pm-ripple{fill:none;stroke:var(--ember);stroke-width:2;opacity:0;transform-origin:0 0;animation:pmRipple 2.2s ease-out .55s infinite}.pm-r2{animation-delay:1.65s}
+.pm-again .pm-pin{animation:none}.pm-again .pm-ripple{animation:pmRipple 2.2s ease-out infinite}
+@keyframes pmDot{from{opacity:0;transform:scale(0)}to{opacity:.7;transform:none}}
+@keyframes pmDrop{0%{opacity:0;transform:translateY(-46px) scale(.6)}60%{opacity:1;transform:translateY(0) scale(1.08)}100%{opacity:1;transform:none}}
+@keyframes pmRipple{0%{opacity:.7;transform:scale(.5)}100%{opacity:0;transform:scale(4)}}
+@media(prefers-reduced-motion:reduce){.pm-dot,.pm-pin{animation:none}.pm-ripple{animation:none;opacity:.35;transform:scale(2)}}
+.pm-glow{filter:blur(4px)}
