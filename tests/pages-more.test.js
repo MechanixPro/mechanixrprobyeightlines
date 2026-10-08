@@ -44,5 +44,5 @@ test('fleet and societies pages exist, open WhatsApp with their own message, and
 });
 test('the build copies the new folders to the public site', () => {
   const sh = read('scripts/build_site.sh');
-  for (const d of ['bike-service', 'fleet', 'societies']) assert.ok(sh.includes(d), d);
+  for (const d of ['bike-service', 'fleet', 'societies', 'areas']) assert.ok(sh.includes(d), d);
 });
