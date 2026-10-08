@@ -208,6 +208,7 @@
       h += '<label class="check"><input type="checkbox" data-act="reminder"' + (st.reminder ? ' checked' : '') + '><span>Remind me when my next service is due.</span></label>';
       h += '<label class="label" for="f-coupon">Coupon code <span class="muted" style="font-weight:400">(optional)</span></label><input id="f-coupon" data-f="coupon" maxlength="20" autocapitalize="characters" autocomplete="off" placeholder="e.g. MONSOON10" value="' + esc(st.coupon) + '"><p class="tiny muted" style="margin:6px 0 0">Your expert applies it to your quote on WhatsApp.</p>';
       h += '<label class="check"><input type="checkbox" data-act="consent"' + (st.consent ? ' checked' : '') + '><span>Send me my quote, booking updates and reminders on WhatsApp. Reply STOP anytime. See our <a href="/privacy/">Privacy Policy</a>.</span></label>';
+      h += '<p class="note pay-note" style="margin-top:14px"><b>Payment and cancellation:</b> nothing is charged now. After you approve the quote, the ₹' + fee('advance', 349) + ' checkup and quote fee locks your slot and is adjusted in your final bill. Cancel more than 2 hours before your slot for a full refund. <a href="/refund-policy/">Read the refund policy</a>.</p>';
       h += '<p class="note" style="margin-top:14px"><b>What happens next:</b> you send this on WhatsApp. Our expert calls or messages you, checks what is needed, and sends your quote. Work starts only after you approve it.</p>';
       if (C.turnstileSiteKey) h += '<div id="ts" style="margin-top:12px"></div>';
     }
@@ -315,6 +316,26 @@
     if (navigator.share) navigator.share({ title: 'My bike service build', text: text, url: link }).catch(function () {});
     else window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
   }
+  /* Referral: the booking reference travels as ?ref=, which the site already saves with the next booking. */
+  function shareRef(ref) {
+    var link = location.origin + '/' + (ref ? '?ref=' + encodeURIComponent(ref) : ''), text = 'I booked a doorstep bike service with Mechanix Pro in Bengaluru. Quote first, work after your OK: ' + link;
+    if (navigator.share) navigator.share({ title: 'Mechanix Pro', text: text, url: link }).catch(function () {});
+    else window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
+  }
+  var installEvt = null;
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); installEvt = e; });
+  function standalone() { return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
+  function isIos() { return /iphone|ipad|ipod/i.test(navigator.userAgent || ''); }
+  function installBox() {
+    if (standalone()) return '';
+    if (installEvt) return '<button type="button" class="btn btn-ghost btn-sm" data-act="installApp">Add Mechanix Pro to my phone</button>';
+    if (isIos()) return '<p class="tiny muted" style="margin:6px 0 0">Keep us one tap away: in Safari tap Share, then Add to Home Screen.</p>';
+    return '';
+  }
+  function installApp(btn) {
+    if (!installEvt) return;
+    installEvt.prompt(); installEvt.userChoice.then(function () { installEvt = null; if (btn && btn.parentNode) btn.remove(); }, function () {});
+  }
   /* "Save my build and call me back": an explicit request, so we only save what the visitor chose to send. */
   function callback() {
     errMsg = '';
@@ -387,19 +408,19 @@
       '<div class="rcpt-barcode" aria-hidden="true"><svg viewBox="0 0 ' + barW + ' 46" preserveAspectRatio="none">' + svgBars + '</svg><small>' + (ref ? esc(ref) : 'MECHANIX PRO') + '</small></div>' +
       '<p class="rcpt-foot">Your quote arrives on WhatsApp. Nothing starts until you approve it.</p>' +
       '<a class="btn btn-wa" id="doneWa" href="' + esc(url) + '">Open WhatsApp now</a>' +
-      '<div class="done-more">' + (ics ? '<a class="btn btn-ghost btn-sm" download="mechanix-pro-service.ics" href="data:text/calendar;charset=utf-8,' + encodeURIComponent(ics) + '">Add to calendar</a>' : '') + '<button type="button" class="btn btn-ghost btn-sm" data-act="copyBuild">Copy my build link</button></div>' +
+      '<div class="done-more">' + (ics ? '<a class="btn btn-ghost btn-sm" download="mechanix-pro-service.ics" href="data:text/calendar;charset=utf-8,' + encodeURIComponent(ics) + '">Add to calendar</a>' : '') + '<button type="button" class="btn btn-ghost btn-sm" data-act="copyBuild">Copy my build link</button>' + (ref ? '<a class="btn btn-ghost btn-sm" href="/track/?ref=' + encodeURIComponent(ref) + '">Track this booking</a>' : '') + '<button type="button" class="btn btn-ghost btn-sm" data-act="shareRef" data-ref="' + (ref ? esc(ref) : '') + '">Tell a friend</button>' + installBox() + '</div>' +
       '<p class="tiny muted" id="doneCount" role="status">Opening WhatsApp in ' + secs + '…</p></div></div>';
     document.body.appendChild(d);
     var rm = d.querySelector('#rcptMap'); if (rm && window.MXP_PINMAP) { var ri = L.pinInfo(st.pin, window.MXP_PINS || {}, window.MXP_PINS_OFF || {}); window.MXP_PINMAP.draw(rm, { pin: ri && ri.served ? ri.pin : '', lat: st.lat, lng: st.lng }); }
     var go = d.querySelector('#doneWa'); if (go) go.focus({ preventScroll: true });
     var cnt = d.querySelector('#doneCount'), t = setInterval(function () { secs--; if (!document.body.contains(d)) return clearInterval(t); if (secs <= 0) { clearInterval(t); location.href = url; } else cnt.textContent = 'Opening WhatsApp in ' + secs + '…'; }, 1000);
-    d.addEventListener('click', function (e) { if (e.target === d || (e.target.closest && e.target.closest('[data-act=copyBuild]'))) clearInterval(t); });
+    d.addEventListener('click', function (e) { if (e.target === d || (e.target.closest && e.target.closest('.done-more'))) { clearInterval(t); cnt.textContent = ''; } });
   }
 
   /* ---------- events ---------- */
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-act]');
-    if (b && (b.closest('#builder') || b.closest('#exitSheet'))) {
+    if (b && (b.closest('#builder') || b.closest('#exitSheet') || b.closest('#doneSheet'))) {
       var a = b.getAttribute('data-act'), v = b.getAttribute('data-v');
       if (a === 'brand') { if (st.brand !== v) { st.brand = v; st.model = ''; st.type = ''; } }
       else if (a === 'cc') st.cc = v;
@@ -411,6 +432,8 @@
       else if (a === 'sendDraft') { sendDraft(); return; }
       else if (a === 'copyBuild') { copyBuild(); return; }
       else if (a === 'shareBuild') { shareBuild(); return; }
+      else if (a === 'shareRef') { shareRef(b.getAttribute('data-ref')); return; }
+      else if (a === 'installApp') { installApp(b); return; }
       else if (a === 'callback') { callback(); return; }
       else if (a === 'closeExit') { closeExit(); return; }
       else if (a === 'clearloc') { st.lat = null; st.lng = null; locMsg = ''; }

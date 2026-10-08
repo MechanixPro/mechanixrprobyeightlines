@@ -1,0 +1,142 @@
+{
+ "lang": "hi",
+ "name": "हिन्दी",
+ "note": "Draft translations. A fluent reader must check every line and set reviewed to true. The page is published only when every line is reviewed.",
+ "strings": [
+  {
+   "en": "Your bike, serviced where you are.",
+   "t": "आपकी बाइक की सर्विस, जहाँ आप हैं वहीं।",
+   "reviewed": false
+  },
+  {
+   "en": "A Mechanix Pro-certified mechanic comes to your home or office in Bengaluru. Tell us what your bike needs, get a quote on WhatsApp, and we start only after you say yes.",
+   "t": "Mechanix Pro का प्रमाणित मैकेनिक बेंगलुरु में आपके घर या ऑफिस आता है। बताइए आपकी बाइक को क्या चाहिए, WhatsApp पर कोटेशन पाइए, और काम हम तभी शुरू करते हैं जब आप हाँ कहें।",
+   "reviewed": false
+  },
+  {
+   "en": "Build your service in under a minute, or just message us. Your quote comes on WhatsApp.",
+   "t": "एक मिनट से कम में अपनी सर्विस बनाइए, या बस हमें मैसेज करें। आपका कोटेशन WhatsApp पर आएगा।",
+   "reviewed": false
+  },
+  {
+   "en": "Build your service",
+   "t": "अपनी सर्विस बनाइए",
+   "reviewed": false
+  },
+  {
+   "en": "Get a quote on WhatsApp",
+   "t": "WhatsApp पर कोटेशन पाइए",
+   "reviewed": false
+  },
+  {
+   "en": "Call us",
+   "t": "हमें कॉल करें",
+   "reviewed": false
+  },
+  {
+   "en": "Quote first, work after your OK",
+   "t": "पहले कोटेशन, आपकी हाँ के बाद काम",
+   "reviewed": false
+  },
+  {
+   "en": "OEM-certified parts, fitted after your approval",
+   "t": "OEM-प्रमाणित पार्ट्स, आपकी मंज़ूरी के बाद ही लगाए जाते हैं",
+   "reviewed": false
+  },
+  {
+   "en": "OTP-safe bike handover",
+   "t": "OTP से सुरक्षित बाइक हैंडओवर",
+   "reviewed": false
+  },
+  {
+   "en": "Which bike do you ride?",
+   "t": "आप कौन सी बाइक चलाते हैं?",
+   "reviewed": false
+  },
+  {
+   "en": "From your phone to your doorstep.",
+   "t": "आपके फ़ोन से आपके दरवाज़े तक।",
+   "reviewed": false
+  },
+  {
+   "en": "Three steps. Your quote comes on WhatsApp and nothing starts until you say yes.",
+   "t": "तीन कदम। आपका कोटेशन WhatsApp पर आता है और आपकी हाँ से पहले कुछ शुरू नहीं होता।",
+   "reviewed": false
+  },
+  {
+   "en": "Get your quote",
+   "t": "कोटेशन पाइए",
+   "reviewed": false
+  },
+  {
+   "en": "We come to you",
+   "t": "हम आपके पास आते हैं",
+   "reviewed": false
+  },
+  {
+   "en": "Prices, up front.",
+   "t": "कीमतें, पहले से साफ़।",
+   "reviewed": false
+  },
+  {
+   "en": "Basic service",
+   "t": "बेसिक सर्विस",
+   "reviewed": false
+  },
+  {
+   "en": "General service",
+   "t": "जनरल सर्विस",
+   "reviewed": false
+  },
+  {
+   "en": "Full service",
+   "t": "फुल सर्विस",
+   "reviewed": false
+  },
+  {
+   "en": "Repair or problem check",
+   "t": "रिपेयर या समस्या की जाँच",
+   "reviewed": false
+  },
+  {
+   "en": "Ready when your bike is.",
+   "t": "आपकी बाइक जब तैयार हो, हम तैयार हैं।",
+   "reviewed": false
+  },
+  {
+   "en": "All of Bengaluru.",
+   "t": "पूरा बेंगलुरु।",
+   "reviewed": false
+  },
+  {
+   "en": "Your PIN code",
+   "t": "आपका पिन कोड",
+   "reviewed": false
+  },
+  {
+   "en": "Get help",
+   "t": "मदद पाइए",
+   "reviewed": false
+  },
+  {
+   "en": "Breakdown or puncture right now?",
+   "t": "अभी ब्रेकडाउन या पंचर हुआ है?",
+   "reviewed": false
+  },
+  {
+   "en": "Share your location and we send the nearest mechanic.",
+   "t": "अपनी लोकेशन भेजिए, हम सबसे नज़दीकी मैकेनिक भेजते हैं।",
+   "reviewed": false
+  },
+  {
+   "en": "Services and prices",
+   "t": "सेवाएँ और कीमतें",
+   "reviewed": false
+  },
+  {
+   "en": "How it works",
+   "t": "यह कैसे काम करता है",
+   "reviewed": false
+  }
+ ]
+}

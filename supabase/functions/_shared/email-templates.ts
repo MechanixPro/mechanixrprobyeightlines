@@ -102,6 +102,19 @@ ${d.ctaText && d.ctaUrl ? `<div style="margin:24px 0 4px">${button(d.ctaText, d.
   return { subject: d.subject, html: layout({ preheader: d.preheader, title: d.subject, body, site: d, footerNote: note }), text };
 }
 
+export type ServiceDueData = Site & { name: string; bike: string; lastService?: string | null; buildUrl: string; unsubscribeUrl: string };
+export function serviceDue(d: ServiceDueData): Mail {
+  const subject = 'Time for your next bike service';
+  const body = `${h1(`Hi ${firstText(d.name)}, ${d.bike} may be due a service.`)}
+${p(`It has been a while since${d.lastService ? ` your ${escapeHtml(d.lastService)}` : ' your last Mechanix Pro service'}. A regular service keeps your bike safe, smooth and cheaper to run. You asked us to remind you, so here we are.`)}
+${buildCard({ bike: d.bike, service: d.lastService || 'Your last package', buildUrl: d.buildUrl })}
+${p('Open your build, change anything you like, and send it on WhatsApp. You get a quote first and nothing starts until you approve it.')}
+${button('Book the next service', d.buildUrl)}${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}`;
+  const note = `You are receiving this because you asked us to remind you when your next service is due. <a href="${escapeHtml(d.unsubscribeUrl)}" style="color:${MUTED};text-decoration:underline">Unsubscribe</a> any time.`;
+  const text = `Hi ${firstText(d.name)}, ${d.bike} may be due a service.\n\nIt has been a while since ${d.lastService ? `your ${d.lastService}` : 'your last Mechanix Pro service'}. You asked us to remind you.\n\nBook the next service: ${d.buildUrl}\nWhatsApp: ${d.whatsappUrl}\n\nYou asked us to remind you when your next service is due. Unsubscribe: ${d.unsubscribeUrl}\n\nMechanix Pro, Bengaluru · ${d.email}`;
+  return { subject, html: layout({ preheader: 'Your reminder from Mechanix Pro. Quote first, work after your OK.', title: subject, body, site: d, footerNote: note }), text };
+}
+
 const inr2 = (n: number) => '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export type InvoiceMailData = Site & { invoice: Invoice; company: { legalName: string; addressLines: string[]; city: string; state: string; pincode: string; gstin: string } };
 export function invoiceEmail(d: InvoiceMailData): Mail {
@@ -114,10 +127,10 @@ export function invoiceEmail(d: InvoiceMailData): Mail {
     + (v.extraDiscount ? `<tr><td style="padding:12px 0;border-bottom:1px solid ${LINE};font:15px ${FONT};color:${INK}">Special discount${v.extraNote ? ` (${escapeHtml(v.extraNote)})` : ''}</td><td align="right" style="padding:12px 0;border-bottom:1px solid ${LINE};font:600 15px ${FONT};color:${INK}">− ${inr2(v.extraDiscount)}</td></tr>` : '');
   const body = `${h1('Your invoice')}
 ${p(`Hi ${first(v.customer.name)}, here is the invoice for booking <b>${escapeHtml(v.ref)}</b>. Invoice <b>${escapeHtml(v.number)}</b>, dated ${escapeHtml(v.dateLabel)}.`)}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 6px"><tr><td style="font:600 12px ${FONT};letter-spacing:1px;text-transform:uppercase;color:${MUTED};padding-bottom:6px;border-bottom:2px solid ${EMBER}">Item</td><td align="right" style="font:600 12px ${FONT};letter-spacing:1px;text-transform:uppercase;color:${MUTED};padding-bottom:6px;border-bottom:2px solid ${EMBER}">Amount (incl. GST)</td></tr>${items}</table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 6px"><tr><td style="font:600 12px ${FONT};letter-spacing:1px;text-transform:uppercase;color:${MUTED};padding-bottom:6px;border-bottom:2px solid ${EMBER}">Item</td><td align="right" style="font:600 12px ${FONT};letter-spacing:1px;text-transform:uppercase;color:${MUTED};padding-bottom:6px;border-bottom:2px solid ${EMBER}">Amount (${v.basis === 'excl' ? 'excl.' : 'incl.'} GST)</td></tr>${items}</table>
 <table role="presentation" width="60%" align="right" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 18px">${line('Taxable value', inr2(v.taxable))}${line('CGST @ 9%', inr2(v.cgst))}${line('SGST @ 9%', inr2(v.sgst))}${line('Total', inr2(v.total), true)}${v.paid ? line('Paid so far', inr2(v.paid)) + line('Balance due', inr2(v.balance), true) : ''}${v.refund ? line('Refund due to you', inr2(v.refund), true) : ''}</table>
 <div style="clear:both"></div>
-<p style="margin:18px 0 6px;font:13px/1.55 ${FONT};color:${MUTED}">Issued by <b>${escapeHtml(c.legalName)}</b> (trading as Mechanix Pro), ${escapeHtml(addr)}. GSTIN ${escapeHtml(c.gstin)}. Prices include 18% GST. Parts are OEM certified, work is done by Mechanix Pro certified mechanics, and every service carries a 30-day warranty.</p>
+<p style="margin:18px 0 6px;font:13px/1.55 ${FONT};color:${MUTED}">Issued by <b>${escapeHtml(c.legalName)}</b> (trading as Mechanix Pro), ${escapeHtml(addr)}. GSTIN ${escapeHtml(c.gstin)}. ${v.basis === 'excl' ? 'Amounts are before GST. GST is added at 18% and shown below.' : 'Prices include 18% GST.'} Parts are OEM certified, work is done by Mechanix Pro certified mechanics, and every service carries a 30-day warranty.</p>
 ${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}${button('Call us', 'tel:' + d.phoneTel, NAVY, '#ffffff')}`;
   const text = `Your invoice ${v.number} (${v.dateLabel}) for booking ${v.ref}\n\n${v.lines.map((l) => `${l.name}: ${inr2(l.amount)}`).join('\n')}${v.couponDiscount ? `\nCoupon discount: -${inr2(v.couponDiscount)}` : ''}${v.extraDiscount ? `\nSpecial discount${v.extraNote ? ` (${v.extraNote})` : ''}: -${inr2(v.extraDiscount)}` : ''}\n\nTaxable value: ${inr2(v.taxable)}\nCGST @ 9%: ${inr2(v.cgst)}\nSGST @ 9%: ${inr2(v.sgst)}\nTotal: ${inr2(v.total)}${v.paid ? `\nPaid so far: ${inr2(v.paid)}\nBalance due: ${inr2(v.balance)}` : ''}${v.refund ? `\nRefund due to you: ${inr2(v.refund)}` : ''}\n\nIssued by ${c.legalName} (Mechanix Pro), ${addr}. GSTIN ${c.gstin}. Prices include 18% GST.\n\nWhatsApp: ${d.whatsappUrl}\nCall: ${d.phoneDisplay}`;
   return { subject, html: layout({ preheader: `Invoice ${v.number}: total ${inr2(v.total)}`, title: subject, body, site: d }), text };

@@ -1,0 +1,142 @@
+{
+ "lang": "kn",
+ "name": "ಕನ್ನಡ",
+ "note": "Draft translations. A fluent reader must check every line and set reviewed to true. The page is published only when every line is reviewed.",
+ "strings": [
+  {
+   "en": "Your bike, serviced where you are.",
+   "t": "ನಿಮ್ಮ ಬೈಕ್, ನೀವಿರುವಲ್ಲಿಯೇ ಸರ್ವಿಸ್.",
+   "reviewed": false
+  },
+  {
+   "en": "A Mechanix Pro-certified mechanic comes to your home or office in Bengaluru. Tell us what your bike needs, get a quote on WhatsApp, and we start only after you say yes.",
+   "t": "Mechanix Pro ಪ್ರಮಾಣೀಕೃತ ಮೆಕ್ಯಾನಿಕ್ ಬೆಂಗಳೂರಿನಲ್ಲಿ ನಿಮ್ಮ ಮನೆ ಅಥವಾ ಕಚೇರಿಗೆ ಬರುತ್ತಾರೆ. ನಿಮ್ಮ ಬೈಕ್‌ಗೆ ಏನು ಬೇಕು ಎಂದು ತಿಳಿಸಿ, WhatsApp ನಲ್ಲಿ ಕೋಟ್ ಪಡೆಯಿರಿ; ನೀವು ಒಪ್ಪಿದ ಮೇಲೆಯೇ ನಾವು ಕೆಲಸ ಆರಂಭಿಸುತ್ತೇವೆ.",
+   "reviewed": false
+  },
+  {
+   "en": "Build your service in under a minute, or just message us. Your quote comes on WhatsApp.",
+   "t": "ಒಂದು ನಿಮಿಷದೊಳಗೆ ನಿಮ್ಮ ಸರ್ವಿಸ್ ರೂಪಿಸಿ, ಇಲ್ಲವೇ ನಮಗೆ ಸಂದೇಶ ಕಳುಹಿಸಿ. ನಿಮ್ಮ ಕೋಟ್ WhatsApp ನಲ್ಲಿ ಬರುತ್ತದೆ.",
+   "reviewed": false
+  },
+  {
+   "en": "Build your service",
+   "t": "ನಿಮ್ಮ ಸರ್ವಿಸ್ ರೂಪಿಸಿ",
+   "reviewed": false
+  },
+  {
+   "en": "Get a quote on WhatsApp",
+   "t": "WhatsApp ನಲ್ಲಿ ಕೋಟ್ ಪಡೆಯಿರಿ",
+   "reviewed": false
+  },
+  {
+   "en": "Call us",
+   "t": "ನಮಗೆ ಕರೆ ಮಾಡಿ",
+   "reviewed": false
+  },
+  {
+   "en": "Quote first, work after your OK",
+   "t": "ಮೊದಲು ಕೋಟ್, ನಿಮ್ಮ ಒಪ್ಪಿಗೆಯ ನಂತರ ಕೆಲಸ",
+   "reviewed": false
+  },
+  {
+   "en": "OEM-certified parts, fitted after your approval",
+   "t": "OEM-ಪ್ರಮಾಣೀಕೃತ ಬಿಡಿಭಾಗಗಳು, ನಿಮ್ಮ ಒಪ್ಪಿಗೆಯ ನಂತರವೇ ಅಳವಡಿಕೆ",
+   "reviewed": false
+  },
+  {
+   "en": "OTP-safe bike handover",
+   "t": "OTP ಮೂಲಕ ಸುರಕ್ಷಿತ ಬೈಕ್ ಹಸ್ತಾಂತರ",
+   "reviewed": false
+  },
+  {
+   "en": "Which bike do you ride?",
+   "t": "ನೀವು ಯಾವ ಬೈಕ್ ಓಡಿಸುತ್ತೀರಿ?",
+   "reviewed": false
+  },
+  {
+   "en": "From your phone to your doorstep.",
+   "t": "ನಿಮ್ಮ ಫೋನ್‌ನಿಂದ ನಿಮ್ಮ ಬಾಗಿಲಿಗೆ.",
+   "reviewed": false
+  },
+  {
+   "en": "Three steps. Your quote comes on WhatsApp and nothing starts until you say yes.",
+   "t": "ಮೂರು ಹಂತಗಳು. ನಿಮ್ಮ ಕೋಟ್ WhatsApp ನಲ್ಲಿ ಬರುತ್ತದೆ; ನೀವು ಒಪ್ಪುವವರೆಗೆ ಏನೂ ಆರಂಭವಾಗುವುದಿಲ್ಲ.",
+   "reviewed": false
+  },
+  {
+   "en": "Get your quote",
+   "t": "ನಿಮ್ಮ ಕೋಟ್ ಪಡೆಯಿರಿ",
+   "reviewed": false
+  },
+  {
+   "en": "We come to you",
+   "t": "ನಾವೇ ನಿಮ್ಮ ಬಳಿ ಬರುತ್ತೇವೆ",
+   "reviewed": false
+  },
+  {
+   "en": "Prices, up front.",
+   "t": "ಬೆಲೆಗಳು, ಮೊದಲೇ ಸ್ಪಷ್ಟ.",
+   "reviewed": false
+  },
+  {
+   "en": "Basic service",
+   "t": "ಬೇಸಿಕ್ ಸರ್ವಿಸ್",
+   "reviewed": false
+  },
+  {
+   "en": "General service",
+   "t": "ಜನರಲ್ ಸರ್ವಿಸ್",
+   "reviewed": false
+  },
+  {
+   "en": "Full service",
+   "t": "ಫುಲ್ ಸರ್ವಿಸ್",
+   "reviewed": false
+  },
+  {
+   "en": "Repair or problem check",
+   "t": "ರಿಪೇರಿ ಅಥವಾ ಸಮಸ್ಯೆ ಪರಿಶೀಲನೆ",
+   "reviewed": false
+  },
+  {
+   "en": "Ready when your bike is.",
+   "t": "ನಿಮ್ಮ ಬೈಕ್ ಸಿದ್ಧವಾದಾಗ, ನಾವು ಸಿದ್ಧ.",
+   "reviewed": false
+  },
+  {
+   "en": "All of Bengaluru.",
+   "t": "ಇಡೀ ಬೆಂಗಳೂರು.",
+   "reviewed": false
+  },
+  {
+   "en": "Your PIN code",
+   "t": "ನಿಮ್ಮ ಪಿನ್ ಕೋಡ್",
+   "reviewed": false
+  },
+  {
+   "en": "Get help",
+   "t": "ಸಹಾಯ ಪಡೆಯಿರಿ",
+   "reviewed": false
+  },
+  {
+   "en": "Breakdown or puncture right now?",
+   "t": "ಈಗಲೇ ಬ್ರೇಕ್‌ಡೌನ್ ಅಥವಾ ಪಂಕ್ಚರ್ ಆಗಿದೆಯೇ?",
+   "reviewed": false
+  },
+  {
+   "en": "Share your location and we send the nearest mechanic.",
+   "t": "ನಿಮ್ಮ ಸ್ಥಳ ಹಂಚಿಕೊಳ್ಳಿ, ಹತ್ತಿರದ ಮೆಕ್ಯಾನಿಕ್ ಅನ್ನು ಕಳುಹಿಸುತ್ತೇವೆ.",
+   "reviewed": false
+  },
+  {
+   "en": "Services and prices",
+   "t": "ಸೇವೆಗಳು ಮತ್ತು ಬೆಲೆಗಳು",
+   "reviewed": false
+  },
+  {
+   "en": "How it works",
+   "t": "ಇದು ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ",
+   "reviewed": false
+  }
+ ]
+}

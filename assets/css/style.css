@@ -624,3 +624,40 @@ a.soon-card:hover .soon-ico{transform:rotate(-8deg) scale(1.08)}
 
 /* zoomed map: strokes and text keep a steady size on screen */
 .pm svg{--z:1}.pm-route{stroke-width:calc(2.6px * var(--z));stroke-dasharray:calc(1px * var(--z)) calc(7px * var(--z))}.pm-sel-area{stroke-width:calc(1.8px * var(--z))}.pm-area{stroke-width:calc(.9px * var(--z))}
+
+/* home: prices, fee explainer, reviews and mechanics (the last two appear only when there is real content) */
+.price-cards{list-style:none;margin:0;padding:0;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
+.price-cards li{background:var(--card);border-radius:var(--r-lg);padding:24px 22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;border:1px solid transparent}
+.price-cards li.pop{border-color:var(--ember);box-shadow:var(--shadow-lg)}
+.price-cards h3{margin:0}.price-cards .pr{font:700 34px/1.1 var(--display);letter-spacing:-.03em;color:var(--navy)}
+.price-cards p{margin:0;color:var(--ink-2);font-size:15px;flex:1}.price-cards a{font-weight:600;min-height:44px;display:inline-flex;align-items:center}
+.fee-explain{margin-top:22px;padding:26px 24px}.fee-explain h3{margin:0 0 12px}
+.fee-explain ol{margin:0;padding:0;list-style:none;display:grid;gap:12px;counter-reset:fx}
+@media(min-width:760px){.fee-explain ol{grid-template-columns:repeat(2,1fr);gap:16px 28px}}
+.fee-explain li{counter-increment:fx;position:relative;padding-left:40px;color:var(--ink-2)}
+.fee-explain li::before{content:counter(fx);position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--ember-soft);color:var(--ember-2);font-weight:700;display:grid;place-items:center}
+.fee-explain li b{color:var(--ink)}
+.review-list,.mech-list{list-style:none;margin:0;padding:0;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.review-list li,.mech-list li{background:var(--card);border-radius:var(--r-lg);padding:22px;box-shadow:var(--shadow)}
+.review-list blockquote{margin:0 0 12px;font-size:18px}.review-list p{margin:0;color:var(--muted);font-size:14px}
+.mech-list li{display:flex;flex-direction:column;gap:4px}.mech-list img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:var(--r-md);margin-bottom:8px}.mech-list span{color:var(--ink-2);font-size:15px}
+.pay-note{background:var(--ember-soft)}
+
+/* track your booking */
+.track-form{max-width:520px;margin:18px 0}
+.track-card{max-width:620px;margin-top:18px}
+.track-steps{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:12px}
+.track-steps li{display:flex;align-items:center;gap:12px;color:var(--muted)}
+.track-steps i{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);background:var(--card);flex:none;position:relative}
+.track-steps li.done{color:var(--ink)}.track-steps li.done i{background:var(--ok);border-color:var(--ok)}
+.track-steps li.done i::after{content:"";position:absolute;left:5px;top:2px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.track-steps li.now{color:var(--ink);font-weight:700}.track-steps li.now i{border-color:var(--ember);background:var(--ember-soft);box-shadow:0 0 0 5px var(--ember-soft)}
+.track-steps.closed li{opacity:.55}
+.track-note{margin:0 0 14px}.track-rows{margin-top:6px}
+@media(prefers-reduced-motion:no-preference){.track-steps li.now i{animation:trk 1.8s ease-in-out infinite}@keyframes trk{50%{box-shadow:0 0 0 9px transparent}}}
+
+/* instagram */
+.ig-grid{list-style:none;margin:0;padding:0;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.ig-grid li{background:var(--card);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow)}
+.ig-grid iframe{display:block;width:100%;height:540px;border:0}
+#instagram .btn svg{width:20px;height:20px;margin-right:8px}
