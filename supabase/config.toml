@@ -21,7 +21,8 @@ site_url = "https://admin.mechanixpro.in"
 additional_redirect_urls = ["https://mechanixpro-admin.pages.dev"]
 
 [auth.email]
-enable_signup = false
+# Keep this true: it switches the Email sign-in provider on (login codes and passwords). Public sign-ups are blocked by [auth] enable_signup = false above.
+enable_signup = true
 enable_confirmations = true
 otp_length = 6
 otp_expiry = 600

@@ -24,3 +24,11 @@ test('the admin login offers an email code and checks it, without creating new u
   const html = read('admin/index.html');
   assert.match(html, /id="sendCode"/); assert.match(html, /id="code"[^>]*inputmode="numeric"/);
 });
+
+test('the Email sign-in provider stays on while public sign-ups stay off', () => {
+  const fs = require('node:fs');
+  const toml = fs.readFileSync(require('node:path').join(__dirname, '..', 'supabase/config.toml'), 'utf8');
+  assert.match(toml, /\[auth\]\s*\n[^\[]*enable_signup = false/);
+  const email = toml.slice(toml.indexOf('[auth.email]'));
+  assert.match(email.slice(0, email.indexOf('[auth.email.template')), /enable_signup = true/);
+});
