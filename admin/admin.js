@@ -8,6 +8,7 @@ import { splitJob } from './split.js';
 import { pinRows, validPin, cleanPin, cleanPinName } from './pins-view.js';
 import { interestCounts, waitlistRows, interestLabel } from './waitlist-view.js';
 import { buildInvoice } from './invoice.js';
+import { buildNewBooking } from './new-booking.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
 const C = window.MXP || {};
@@ -187,6 +188,42 @@ function updateSplitPreview() {
   const bar = $('#split-bar'), sample = $('#split-sample');
   if (bar) { bar.setAttribute('aria-label', `Mechanic ${rate} percent, company ${100 - rate} percent`); bar.innerHTML = `<span class="sb-mech" style="width:${rate}%">${rate >= 14 ? 'Mechanic ' + rate + '%' : ''}</span><span class="sb-co" style="width:${100 - rate}%">${100 - rate >= 14 ? 'Company ' + (100 - rate) + '%' : ''}</span>`; }
   if (sample) sample.textContent = `On a ${rupee(1000)} job: the mechanic gets ${rupee(sp.mechanic)} and the company keeps ${rupee(sp.company)}.` + (sp.gst ? ` (${rupee(sp.gst)} is GST.)` : '');
+}
+function openNewBooking() {
+  const svcs = S.services.filter((x) => x.kind === 'service' && x.active), adds = S.services.filter((x) => x.kind === 'addon' && x.active);
+  const sel = (id, opts, d) => `<select id="${id}">${opts.map(([v, t]) => `<option value="${v}"${v === d ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
+  S.open = null; S.openCust = null; S.openMech = null;
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">Add booking</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  <p class="small muted" style="margin:8px 0 0">Name and mobile number are all you need. Add the rest if you have it, so the mechanic and the invoice have the details.</p>
+  <div class="card" style="margin-top:12px"><h3>Customer</h3><div class="inline-form">
+    <label class="label" for="nb-name">Name *</label><input id="nb-name" maxlength="60" autocomplete="off">
+    <label class="label" for="nb-phone">Mobile number *</label><input id="nb-phone" inputmode="numeric" maxlength="14" placeholder="10 digits" autocomplete="off">
+    <label class="label" for="nb-email">Email (for the confirmation and invoice)</label><input id="nb-email" type="email" maxlength="120" autocomplete="off">
+    <label class="label" for="nb-source">How did they reach us?</label>${sel('nb-source', [['phone', 'Phone call'], ['whatsapp', 'WhatsApp'], ['walk_in', 'Walk-in or referral']], 'phone')}
+    <label class="check"><input type="checkbox" id="nb-wa"><span>The customer agreed to WhatsApp updates</span></label></div></div>
+  <div class="card" style="margin-top:12px"><h3>Bike</h3><div class="inline-form">
+    <label class="label" for="nb-brand">Brand</label><input id="nb-brand" maxlength="30" placeholder="Honda, Royal Enfield…">
+    <label class="label" for="nb-model">Model</label><input id="nb-model" maxlength="40" placeholder="Activa 6G, Classic 350…">
+    <label class="label" for="nb-nick">Nickname (optional)</label><input id="nb-nick" maxlength="24">
+    <label class="label" for="nb-reg">Registration number (optional)</label><input id="nb-reg" maxlength="14" placeholder="KA 03 AB 1234">
+    <label class="check"><input type="checkbox" id="nb-big"><span>Above 180cc (adds the big-bike charge to service packages)</span></label></div></div>
+  <div class="card" style="margin-top:12px"><h3>Service</h3><div class="inline-form">
+    <label class="label" for="nb-service">Package</label>${sel('nb-service', [['', 'Not decided yet'], ...svcs.map((x) => [x.id, `${x.name} · ${rupee(x.price)}`])], '')}
+    <div><span class="label">Add-ons</span>${adds.map((a) => `<label class="check"><input type="checkbox" data-nb-addon="${esc(a.id)}"><span>${esc(a.name)} · ${rupee(a.price)}</span></label>`).join('')}</div>
+    <label class="label" for="nb-km">Since the last service</label>${sel('nb-km', [['', 'Not known'], ['new', 'New bike'], ['lt3', 'Under 3,000 km'], ['mid', '3,000–6,000 km'], ['gt6', 'Over 6,000 km'], ['unsure', 'Not sure']], '')}
+    <label class="label" for="nb-note">Problems or notes</label><textarea id="nb-note" rows="3" maxlength="1000"></textarea></div></div>
+  <div class="card" style="margin-top:12px"><h3>Where and when</h3><div class="inline-form">
+    <label class="label" for="nb-place">Where is the bike?</label>${sel('nb-place', [['home', 'At home or office'], ['road', 'Stuck on the road'], ['pickup', 'Needs pickup'], ['unsure', 'Not sure']], 'home')}
+    <label class="label" for="nb-area">Area</label><input id="nb-area" maxlength="40" placeholder="HSR Layout">
+    <label class="label" for="nb-pin">PIN code</label><input id="nb-pin" inputmode="numeric" maxlength="6" placeholder="560102">
+    <label class="label" for="nb-addr">Address or landmark</label><input id="nb-addr" maxlength="200">
+    <label class="label" for="nb-date">Day</label><input id="nb-date" type="date">
+    <label class="label" for="nb-slot">Time slot</label>${sel('nb-slot', [['', 'Pick a slot'], ['morning', 'Morning 9–12'], ['afternoon', 'Afternoon 12–4'], ['evening', 'Evening 4–8'], ['asap', 'ASAP']], '')}
+    <label class="label" for="nb-time">Exact time (optional)</label><input id="nb-time" maxlength="30" placeholder="10:30 AM">
+    <label class="label" for="nb-status">Status</label>${sel('nb-status', [['contacted', 'Contacted'], ['quoted', 'Quoted'], ['payment_sent', 'Payment sent'], ['paid', 'Paid'], ['scheduled', 'Scheduled'], ['new', 'New']], 'contacted')}
+    <label class="check"><input type="checkbox" id="nb-rem"><span>Remind them when the next service is due</span></label>
+    <button class="btn btn-primary" style="margin-top:8px" type="button" data-act="saveNewBooking">Save booking</button></div></div>`;
+  $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0; $('#nb-name').focus();
 }
 function openMechanic(id) {
   const m = id === 'new' ? { id: 'new', name: '', phone: '', area: '', active: true, payout_rate: 0, city: 'Bengaluru', specialties: '', experience_years: 0, certified: true, notes: '' } : S.mechanics.find((x) => x.id === id); if (!m) return;
@@ -496,6 +533,28 @@ const ACT = {
   },
   invoice() { const l = S.leads.find((x) => x.id === S.open); if (l) openInvoice(l); },
   invPrint() { window.print(); },
+  invEdit() { const b = $('#invEditBox'); if (!b) return; b.hidden = !b.hidden; if (!b.hidden) b.scrollIntoView({ block: 'nearest' }); },
+  invAddRow() { $('#ie-rows').insertAdjacentHTML('beforeend', invEditRow('', '')); $('#ie-rows').lastElementChild.querySelector('input').focus(); },
+  invDelRow(btn) { btn.closest('.ie-row').remove(); },
+  async invSaveEdit() {
+    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    const lines = [...document.querySelectorAll('#ie-rows .ie-row')].map((r) => ({ name: r.querySelector('[data-ie=name]').value.trim(), amount: parseFloat(r.querySelector('[data-ie=amount]').value) })).filter((x) => x.name || x.amount);
+    if (!lines.length) return toast('Add at least one item');
+    if (lines.some((x) => !x.name)) return toast('Give every amount an item name');
+    if (lines.some((x) => !(x.amount >= 0) || x.amount > 1000000)) return toast('Check the amounts');
+    const override = { basis: $('#ie-basis').value === 'incl' ? 'incl' : 'excl', lines: lines.map((x) => ({ name: x.name.slice(0, 80), amount: Math.round(x.amount * 100) / 100 })) };
+    const { error } = await sb.from('leads').update({ invoice_override: override }).eq('id', l.id);
+    if (error) return toast('Could not save the invoice: ' + error.message);
+    await audit('invoice_edited', { ref: l.ref, basis: override.basis, lines: override.lines.length }); toast('Invoice updated');
+    await loadLeads(); openInvoice(S.leads.find((x) => x.id === l.id), { quick: true });
+  },
+  async invResetEdit() {
+    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    const { error } = await sb.from('leads').update({ invoice_override: null }).eq('id', l.id);
+    if (error) return toast('Could not reset the invoice: ' + error.message);
+    await audit('invoice_reset', { ref: l.ref }); toast('Back to package prices');
+    await loadLeads(); openInvoice(S.leads.find((x) => x.id === l.id), { quick: true });
+  },
   async invDiscount() {
     const l = S.leads.find((x) => x.id === S.open); if (!l) return;
     const v0 = buildInvoice({ ...l, extra_discount: 0 }, S.services), left = Math.round((v0.subtotal - v0.couponDiscount) * 100) / 100;
@@ -539,13 +598,23 @@ const ACT = {
     if (error) return toast(error.message);
     await audit('marked_paid_manually', { ref: l.ref, amount }); toast('Marked paid'); await loadLeads(); openLead(l.id, true);
   },
-  async newLead() {
-    const name = prompt('Customer name'); if (!name) return;
-    const phone = (prompt('Mobile number (10 digits)') || '').replace(/\D/g, '').slice(-10);
-    if (!/^[6-9]\d{9}$/.test(phone)) return toast('Invalid mobile number');
-    const { data, error } = await sb.from('leads').insert({ name: name.trim().slice(0, 60), phone, source: 'phone', status: 'contacted', consent_whatsapp: false }).select('id').single();
+  newLead() { openNewBooking(); },
+  async saveNewBooking() {
+    const v = (id) => ($('#' + id)?.value ?? '');
+    const f = { name: v('nb-name'), phone: v('nb-phone'), email: v('nb-email'), source: v('nb-source'), status: v('nb-status'), brand: v('nb-brand'), model: v('nb-model'), nickname: v('nb-nick'), regNo: v('nb-reg'), bigBike: $('#nb-big').checked,
+      service: v('nb-service'), addons: [...document.querySelectorAll('[data-nb-addon]:checked')].map((x) => x.dataset.nbAddon), area: v('nb-area'), pincode: v('nb-pin'), address: v('nb-addr'), place: v('nb-place'),
+      date: v('nb-date'), slot: v('nb-slot'), time: v('nb-time'), km: v('nb-km'), note: v('nb-note'), whatsapp: $('#nb-wa').checked, reminder: $('#nb-rem').checked };
+    const r = buildNewBooking(f, { services: S.services, today: new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10) });
+    if (r.error) return toast(r.error);
+    const cust = { phone: r.customer.phone, name: r.customer.name }; if (r.customer.email) cust.email = r.customer.email;
+    const { data: c, error: ce } = await sb.from('customers').upsert(cust, { onConflict: 'phone' }).select('id').single();
+    if (ce) return toast(ce.message);
+    let bikeId = null;
+    if (r.bike) { const { data: b } = await sb.from('bikes').insert({ customer_id: c.id, ...r.bike }).select('id').single(); bikeId = b?.id ?? null; }
+    const { data, error } = await sb.from('leads').insert({ ...r.lead, customer_id: c.id, bike_id: bikeId }).select('id').single();
     if (error) return toast(error.message);
-    await audit('lead_created', { phone_last4: phone.slice(-4) }); await loadLeads(); renderList(); openLead(data.id);
+    await audit('lead_created', { phone_last4: r.customer.phone.slice(-4), source: r.lead.source });
+    toast('Booking added'); await loadLeads(); S.tab === 'leads' ? renderList() : render(); openLead(data.id);
   },
   csv() {
     const rows = [['Ref', 'Created', 'Name', 'Phone', 'Source', 'Area', 'Service', 'Estimate', 'Date', 'Slot', 'Status', 'Paid', 'UTM source', 'UTM campaign']].concat(filtered().map((l) => [l.ref, l.created_at, l.name, l.phone, l.source, l.area, svcName(l.service_id), l.est_total, l.preferred_date, l.preferred_slot, LABEL[l.status], l.paid_amount, l.utm?.utm_source, l.utm?.utm_campaign]));
@@ -690,6 +759,7 @@ function countUp(el, to, ms) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = inr(to); return; }
   let t0 = null; const tick = (t) => { if (t0 === null) t0 = t; const k = Math.min(1, (t - t0) / ms); el.textContent = inr(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); }; requestAnimationFrame(tick);
 }
+const invEditRow = (name, amount) => `<div class="inv-adjust-row ie-row"><input data-ie="name" maxlength="80" placeholder="Item, for example: Clutch plate set" value="${esc(name)}" aria-label="Item name"><input data-ie="amount" inputmode="decimal" maxlength="9" placeholder="Amount" value="${esc(amount)}" aria-label="Amount"><button class="btn btn-ghost btn-sm" type="button" data-act="invDelRow" aria-label="Remove this item">Remove</button></div>`;
 async function openInvoice(lead, opts = {}) {
   const co = await loadCompany(), v = buildInvoice(lead, S.services), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || opts.quick;
   $('#inv')?.remove();
@@ -701,16 +771,20 @@ async function openInvoice(lead, opts = {}) {
     <div class="inv-head"><div><img src="/assets/img/logo.svg" alt="" width="40" height="42"><b class="inv-co">${esc(co.legalName)}</b><span class="inv-sub">Trading as ${esc(co.brand)}<br>${addr}${co.gstin ? '<br>GSTIN ' + esc(co.gstin) : ''}</span></div>
       <div class="inv-meta"><h2>TAX INVOICE</h2><span>${esc(v.number)}</span><span>${esc(v.dateLabel)}</span></div></div>
     <p class="inv-to"><span>Billed to</span><b>${esc(v.customer.name)}</b> · ${esc(v.customer.phone)}</p>
-    <table class="inv-table"><thead><tr><th>Item</th><th class="num">Amount (incl. GST)</th></tr></thead><tbody>
+    <table class="inv-table"><thead><tr><th>Item</th><th class="num">Amount (${v.basis === 'excl' ? 'excl.' : 'incl.'} GST)</th></tr></thead><tbody>
       ${v.lines.length ? v.lines.map((l, i) => `<tr class="inv-line" style="--i:${i}"><td>${esc(l.name)}</td><td class="num">${inr(l.amount)}</td></tr>`).join('') : '<tr><td colspan="2" class="muted">No priced items on this booking.</td></tr>'}
       ${v.couponDiscount ? `<tr class="inv-line" style="--i:${v.lines.length}"><td>Coupon discount</td><td class="num">− ${inr(v.couponDiscount)}</td></tr>` : ''}${v.extraDiscount ? `<tr class="inv-line" style="--i:${v.lines.length + 1}"><td>Special discount${v.extraNote ? ' (' + esc(v.extraNote) + ')' : ''}</td><td class="num">− ${inr(v.extraDiscount)}</td></tr>` : ''}</tbody></table>
     <dl class="inv-tot"><dt>Taxable value</dt><dd data-to="${v.taxable}">${inr(v.taxable)}</dd><dt>CGST @ 9%</dt><dd data-to="${v.cgst}">${inr(v.cgst)}</dd><dt>SGST @ 9%</dt><dd data-to="${v.sgst}">${inr(v.sgst)}</dd>
       <dt class="grand">Total</dt><dd class="grand" data-to="${v.total}">${inr(v.total)}</dd>${v.paid ? `<dt>Paid so far</dt><dd data-to="${v.paid}">${inr(v.paid)}</dd><dt class="grand">Balance due</dt><dd class="grand" data-to="${v.balance}">${inr(v.balance)}</dd>` : ''}${v.refund ? `<dt class="grand">Refund due to customer</dt><dd class="grand" data-to="${v.refund}">${inr(v.refund)}</dd>` : ''}</dl>
     <div class="inv-stamp ${v.balance === 0 && v.total > 0 ? 'paid' : 'due'}" aria-hidden="true">${v.balance === 0 && v.total > 0 ? 'PAID' : 'DUE'}</div>
-    <p class="inv-foot">Prices include 18% GST. Parts are OEM certified, work is done by Mechanix Pro certified mechanics, and every service carries a 30-day warranty. Computer-generated invoice.</p>
+    <p class="inv-foot">${v.basis === 'excl' ? 'Amounts are before GST. GST is added at 18% and shown below.' : 'Prices include 18% GST.'} Parts are OEM certified, work is done by Mechanix Pro certified mechanics, and every service carries a 30-day warranty. Computer-generated invoice.</p>
     <div class="inv-adjust"><label for="inv-disc"><b>Last-minute discount</b> <span class="tiny muted">at the customer's request, on top of any coupon</span></label>
       <div class="inv-adjust-row"><select id="inv-disc-kind" aria-label="Discount type"><option value="amt">₹ amount</option><option value="pct">% of the bill</option></select><input id="inv-disc" inputmode="numeric" maxlength="6" placeholder="0" value="${v.extraDiscount || ''}" aria-label="Discount"><input id="inv-disc-note" maxlength="80" placeholder="Reason, for example: regular customer" value="${esc(v.extraNote)}" aria-label="Reason"><button class="btn btn-dark btn-sm" type="button" data-act="invDiscount">Apply</button></div></div>
-    <div class="inv-actions"><button class="btn btn-primary btn-sm" type="button" data-act="invPrint">Print or save as PDF</button><button class="btn btn-dark btn-sm" type="button" data-act="invEmail">Email to customer</button><button class="btn btn-ghost btn-sm" type="button" data-act="invClose">Close</button></div>
+    <div class="inv-edit card" id="invEditBox" hidden><b>Edit invoice</b> <span class="tiny muted">Change the items and amounts for this booking. The invoice and the email use what you save.</span>
+      <label class="label" for="ie-basis">The amounts below are</label><select id="ie-basis"><option value="excl"${v.basis === 'excl' ? ' selected' : ''}>Before GST (18% GST is added on top)</option><option value="incl"${v.basis === 'incl' ? ' selected' : ''}>Including GST (GST is worked out from the amount)</option></select>
+      <div id="ie-rows">${v.lines.map((l) => invEditRow(l.name, l.amount)).join('')}</div>
+      <div class="inv-adjust-row"><button class="btn btn-ghost btn-sm" type="button" data-act="invAddRow">Add an item</button><button class="btn btn-primary btn-sm" type="button" data-act="invSaveEdit">Save invoice</button>${lead.invoice_override ? '<button class="btn btn-ghost btn-sm" type="button" data-act="invResetEdit">Back to package prices</button>' : ''}</div></div>
+    <div class="inv-actions"><button class="btn btn-primary btn-sm" type="button" data-act="invPrint">Print or save as PDF</button><button class="btn btn-ghost btn-sm" type="button" data-act="invEdit">Edit invoice</button><button class="btn btn-dark btn-sm" type="button" data-act="invEmail">Email to customer</button><button class="btn btn-ghost btn-sm" type="button" data-act="invClose">Close</button></div>
   </div>`;
   document.body.appendChild(el);
   const reveal = () => { const g = el.querySelector('.inv-gen'); if (g) g.remove(); const paper = el.querySelector('.inv-paper'); paper.hidden = false; paper.classList.add('in'); el.querySelectorAll('.inv-tot [data-to]').forEach((d) => countUp(d, +d.dataset.to, 900)); el.querySelector('[data-act="invPrint"]').focus(); };

@@ -10,5 +10,5 @@ python3 scripts/sync_prices.py || echo "(price sync skipped)"
 python3 scripts/build_pages.py >/dev/null
 cp favicon.ico index.html 404.html offline.html sw.js manifest.webmanifest robots.txt sitemap.xml _headers _redirects "$out/"
 cp -R assets "$out/assets"
-for d in book services help contact terms privacy refund-policy credits unsubscribe areas coming-soon bike-service fleet societies bike-service-*; do [ -d "$d" ] && cp -R "$d" "$out/$d"; done
+for d in book services help contact terms privacy refund-policy credits unsubscribe track hi kn areas coming-soon bike-service fleet societies bike-service-*; do [ -d "$d" ] && cp -R "$d" "$out/$d"; done
 echo "Site built in dist-site/ ($(find "$out" -type f | wc -l | tr -d ' ') files)"

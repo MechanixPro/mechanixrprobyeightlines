@@ -10,7 +10,7 @@ NAV = '''<a class="skip" href="#main">Skip to content</a>
   <a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="27"><img class="wm" src="/assets/img/logo-wordmark.webp" alt="" width="137" height="12"></a>
   <nav class="links" aria-label="Main"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a></nav>
   <details class="menu"><summary aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
-    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
+    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
   <a class="btn btn-ghost btn-sm call-btn" href="#" data-call><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call us</a>
   <a class="btn btn-primary btn-sm cta" href="/book/">Get a quote</a>
 </div></header>
@@ -23,7 +23,7 @@ FOOTER = '''<footer>
       <p><span data-phone>+91 XXXXX XXXXX</span> · <a href="mailto:hello@mechanixpro.in" style="display:inline">hello@mechanixpro.in</a></p>
     </div>
     <div><b>Areas</b>{area_links}<a href="/areas/">All Bengaluru PIN codes</a></div>
-    <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
+    <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
   </div>
   <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Mechanix Pro is a brand of {company_name}, {company_addr}. GSTIN {company_gstin}</p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p></div>
 </footer>
@@ -445,6 +445,83 @@ _overview = f'''<section class="soon-hero soon-hero-sm"><div class="soon-glow" a
 <section id="interest" class="band"><div class="wrap"><div class="sec-head"><h2>Get early-bird access.</h2><p>Tell us what you are interested in. We will message you when it starts.</p></div>{soon_form()}</div></section>'''
 soon_page('', 'Coming Soon: Car Service, E-challan, Bike Rental and More | Mechanix Pro', 'New from Mechanix Pro: car service, e-challan services, AI PDI reports, AI damage analysis, bike rental, OEM parts, insurance claim service and a franchise model. Join the waitlist for early-bird access.', _overview)
 
+def _load_json(name):
+    p = os.path.join(ROOT, 'src', name)
+    return json.load(open(p, encoding='utf-8')) if os.path.exists(p) else []
+
+def reviews_html():
+    """Real reviews only: every entry needs a name, text, date and a link to where it was posted. An empty src/reviews.json shows nothing."""
+    items = [r for r in _load_json('reviews.json') if all(str(r.get(k, '')).strip() for k in ('name', 'text', 'date', 'url'))]
+    if not items: return ''
+    cards = ''.join(f'<li><blockquote>{html.escape(r["text"])}</blockquote><p><b>{html.escape(r["name"])}</b> · {html.escape(r["date"])} · <a href="{html.escape(r["url"])}" rel="noopener nofollow">Source</a></p></li>' for r in items)
+    return f'<section id="reviews" class="reveal"><div class="wrap"><div class="sec-head"><h2>What riders say.</h2><p>Real reviews, each linked to where it was posted.</p></div><ul class="review-list">{cards}</ul></div></section>'
+
+def mechanics_html():
+    """Real mechanics only: name and years of experience are required. A photo is optional and needs alt text. An empty src/mechanics.json shows nothing."""
+    items = [m for m in _load_json('mechanics.json') if str(m.get('name', '')).strip() and str(m.get('years', '')).strip()]
+    if not items: return ''
+    def card(m):
+        img = f'<img src="{html.escape(m["photo"])}" width="320" height="320" loading="lazy" decoding="async" alt="{html.escape(m.get("alt") or m["name"])}">' if m.get('photo') else ''
+        spec = f'<span>{html.escape(m["speciality"])}</span>' if m.get('speciality') else ''
+        return f'<li>{img}<b>{html.escape(m["name"])}</b><span>{html.escape(str(m["years"]))} years of experience</span>{spec}</li>'
+    return f'<section id="mechanics" class="reveal"><div class="wrap"><div class="sec-head"><h2>Meet the mechanics.</h2><p>Mechanix Pro-certified, and the people who come to your door.</p></div><ul class="mech-list">{"".join(card(m) for m in items)}</ul></div></section>'
+
+IG_POST = re.compile(r'^https://www\.instagram\.com/(p|reel)/([A-Za-z0-9_-]{5,30})/?(\?.*)?$')
+def instagram_html():
+    """Follow card, always. Real posts appear below it only for links listed in src/instagram.json (Instagram's own embed, lazy-loaded)."""
+    d = _load_json('instagram.json') or {}
+    if not isinstance(d, dict): d = {}
+    handle = re.sub(r'[^A-Za-z0-9_.]', '', str(d.get('handle', 'themechanixpro'))) or 'themechanixpro'
+    profile = f'https://www.instagram.com/{handle}/'
+    posts = []
+    for u in d.get('posts', []):
+        m = IG_POST.match(str(u).strip())
+        if m: posts.append((m.group(1), m.group(2)))
+    embeds = ''.join(f'<li><iframe src="https://www.instagram.com/{kind}/{code}/embed" title="Instagram post from Mechanix Pro" loading="lazy" width="400" height="520" scrolling="no" allowtransparency="true"></iframe></li>' for kind, code in posts[:6])
+    icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>'
+    grid = f'<ul class="ig-grid">{embeds}</ul>' if embeds else ''
+    return f'<section id="instagram" class="reveal"><div class="wrap"><div class="sec-head"><h2>Follow our work.</h2><p>Real bikes and doorsteps, on Instagram at @{handle}.</p></div>{grid}<p style="margin-top:18px"><a class="btn btn-primary" href="{profile}" rel="me noopener" target="_blank">{icon}Follow @{handle}</a></p></div></section>'
+
+# Track page: a customer looks up their booking with the reference and the mobile number they booked with.
+_tr = HEAD.format(title='Track Your Booking | Mechanix Pro', desc='Check the progress of your Mechanix Pro booking with your reference and mobile number.', url=f'{SITE}/track/', site=SITE, schema='', scripts=LEGAL_JS + '<script src="/assets/js/track.js" defer></script>', body='', nav=NAV, main='page')
+_tr = _tr.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
+write('track/index.html', _tr + '''<h1 style="font-size:40px">Track your booking.</h1>
+<p class="muted" style="font-size:18px">Enter the reference from your confirmation (it looks like MP-AB12CD) and the mobile number you booked with.</p>
+<form class="card track-form" id="trackForm" novalidate>
+  <label class="label" for="tr-ref">Booking reference</label><input id="tr-ref" name="ref" autocapitalize="characters" autocomplete="off" maxlength="9" placeholder="MP-AB12CD">
+  <label class="label" for="tr-phone">Mobile number</label><input id="tr-phone" name="phone" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="10-digit number">
+  <button class="btn btn-primary" type="submit" id="trGo" style="margin-top:14px">Check progress</button>
+  <p class="small" id="trMsg" role="status" aria-live="polite"></p>
+</form>
+<div id="trResult" aria-live="polite"></div>
+<p class="tiny muted">Can't find it? Message us on WhatsApp with your name and number and we will tell you where it stands.</p>''' + foot(FLOAT))
+
+
+# ---- Languages: Kannada and Hindi copies of the home page, published only when every line has been reviewed by a fluent reader ----
+LANG_META = {'kn': 'kn-IN', 'hi': 'hi-IN'}
+def i18n_ready(data):
+    """True only when there is at least one string and every string is marked reviewed."""
+    items = data.get('strings') or []
+    return bool(items) and all(x.get('reviewed') is True and str(x.get('t', '')).strip() for x in items)
+
+def i18n_apply(page, data):
+    """Swaps each English line for its translation, longest lines first so a short line never breaks a longer one. A line missing from the page is an error."""
+    for x in sorted(data['strings'], key=lambda x: -len(x['en'])):
+        if x['en'] not in page: raise SystemExit('i18n: line not found on the page: ' + x['en'][:60])
+        page = page.replace(x['en'], html.escape(x['t'], quote=False))
+    return page
+
+def i18n_build(english_page, slug_url):
+    """Returns ({lang: page}, hreflang block) for the languages that are ready."""
+    made, links = {}, []
+    for code, tag in LANG_META.items():
+        fp = os.path.join(ROOT, 'src', 'i18n', code + '.json')
+        if not os.path.exists(fp): continue
+        data = json.load(open(fp, encoding='utf-8'))
+        if not i18n_ready(data): print(f'i18n: {code} not published (lines still need review)'); continue
+        made[code] = (i18n_apply(english_page, data), data.get('name', code), tag)
+    return made
+
 MAIN = [
   ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from {{text:basic}}, Mechanix Pro-certified mechanics, OEM-certified parts, {{days}}-day service warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n<script src="/assets/js/showcase.js" defer></script>', '1.0'),
   ('book', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.9'),
@@ -454,8 +531,17 @@ MAIN = [
 for slug, src, title, desc, ld, body, scripts, prio in MAIN:
     url = f'{SITE}/{slug}/' if slug else f'{SITE}/'
     schema = ('<script type="application/ld+json">' + open(os.path.join(ROOT, 'src', ld), encoding='utf-8').read() + '</script>') if ld else ''
-    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards())
+    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
     out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(FLOAT)
+    if src == 'home':
+        langs = i18n_build(out, url)
+        if langs:
+            alt = f'<link rel="alternate" hreflang="en-IN" href="{SITE}/">' + ''.join(f'<link rel="alternate" hreflang="{tag}" href="{SITE}/{code}/">' for code, (_, _, tag) in langs.items()) + '<link rel="alternate" hreflang="x-default" href="{SITE}/">'.replace('{SITE}', SITE)
+            switch = '<p class="tiny lang-links wrap">' + ' · '.join(['<a href="/" hreflang="en-IN">English</a>'] + [f'<a href="/{code}/" hreflang="{tag}" lang="{tag}">{name}</a>' for code, (_, name, tag) in langs.items()]) + '</p>'
+            out = out.replace('</head>', alt + '</head>', 1).replace('</footer>', switch + '</footer>', 1)
+            for code, (pg, name, tag) in langs.items():
+                pg = pg.replace('<html lang="en-IN">', f'<html lang="{tag}">', 1).replace(f'<link rel="canonical" href="{url}">', f'<link rel="canonical" href="{SITE}/{code}/">', 1).replace('</head>', alt + '</head>', 1).replace('</footer>', switch + '</footer>', 1)
+                write(f'{code}/index.html', pg); urls.append((f'/{code}/', '0.8'))
     write(f'{slug}/index.html' if slug else 'index.html', out)
     if slug: urls.append((f'/{slug}/', prio))
 urls[0] = ('/', '1.0')
