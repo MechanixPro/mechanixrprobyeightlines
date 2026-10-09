@@ -91,7 +91,8 @@ test('track-booking and service-reminder are public functions with their own che
 test('Instagram: follow card and footer link always; posts only for valid post links; no tracking token kept', () => {
   const h = read('index.html');
   assert.match(h, /id="instagram"/); assert.match(h, /href="https:\/\/www\.instagram\.com\/themechanixpro\/"/);
-  assert.doesNotMatch(h, /stkn=/); assert.doesNotMatch(h, /<iframe[^>]*instagram/); // no posts listed yet, so nothing is embedded
+  assert.doesNotMatch(h, /stkn=|utm_source|srtk|exln/);
+  for (const c of ['p/DeR2Vd_SRh-', 'p/DeQe_BOCEKp', 'reel/DeQd2W9iUYD']) assert.ok(h.includes('instagram.com/' + c + '/embed'), c);
   assert.match(read('_headers'), /frame-src[^;]*https:\/\/www\.instagram\.com/);
   assert.match(read('src/home.jsonld'), /"sameAs":\["https:\/\/www\.instagram\.com\/themechanixpro\/"\]/);
   const out = py('def _load_json', '# Track page', { 'instagram.json': JSON.stringify({ handle: 'themechanixpro', posts: ['https://www.instagram.com/p/ABCde12345/', 'https://evil.example/p/ABCde12345/', 'https://www.instagram.com/reel/Zz9_-Aaaaa/?igsh=x', 'javascript:alert(1)'] }) }, 'import re\nprint(instagram_html())');
