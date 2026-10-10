@@ -65,6 +65,6 @@ test('the pay page asks for the reference and number, loads Razorpay checkout, i
   const h = read('pay/index.html'), j = read('assets/js/pay.js'), hd = read('_headers');
   assert.match(h, /noindex/); assert.match(h, /id="payForm"/); assert.equal((h.match(/<h1[ >]/g) || []).length, 1);
   assert.match(j, /checkout\.razorpay\.com\/v1\/checkout\.js/); assert.match(j, /payment\.failed/); assert.match(j, /ondismiss/); assert.match(j, /functions\/v1\/' \+ fn/); assert.match(j, /call\('create-order'/); assert.match(j, /call\('verify-payment'/);
-  assert.match(hd, /script-src[^;]*https:\/\/checkout\.razorpay\.com/); assert.match(hd, /frame-src[^;]*https:\/\/api\.razorpay\.com/);
+  assert.match(hd, /script-src[^;]*https:\/\/checkout\.razorpay\.com/); assert.match(hd, /script-src[^;]*https:\/\/cdn\.razorpay\.com/); assert.match(hd, /frame-src[^;]*https:\/\/api\.razorpay\.com/);
   assert.doesNotMatch(read('sitemap.xml'), /\/pay\//); assert.match(read('scripts/build_site.sh'), /\bpay\b/);
 });
