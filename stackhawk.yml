@@ -1,0 +1,20 @@
+# HawkScan config for the public Mechanix Pro website (static pages on Cloudflare Pages).
+# The Supabase functions (submit-lead, create-order, ...) are deliberately out of scope: scanning them would create real leads and payment orders.
+app:
+  applicationId: 47f9cb1d-d948-47f3-9b92-4f602fd742dd
+  env: ${STACKHAWK_ENV:Production}
+  host: ${APP_HOST:https://mechanixpro.in}
+  excludePaths:
+    - "/admin.*"
+hawk:
+  spider:
+    base: true
+    maxDurationMinutes: 10
+  failureThreshold: high
+tags:
+  - name: _STACKHAWK_AGENT
+    value: ${HAWK_AGENT:none}
+  - name: _STACKHAWK_GIT_COMMIT_SHA
+    value: ${COMMIT_SHA:none}
+  - name: _STACKHAWK_GIT_BRANCH
+    value: ${BRANCH_NAME:none}
