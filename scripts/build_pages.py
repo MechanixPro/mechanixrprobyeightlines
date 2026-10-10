@@ -490,6 +490,20 @@ def instagram_html():
     grid = f'<ul class="ig-grid">{embeds}</ul>' if embeds else ''
     return f'<section id="instagram" class="reveal"><div class="wrap"><div class="sec-head"><h2>Follow our work.</h2><p>Real bikes and doorsteps, on Instagram at @{handle}.</p></div>{grid}<p style="margin-top:18px"><a class="btn btn-primary" href="{profile}" rel="me noopener" target="_blank">{icon}Follow @{handle}</a></p></div></section>'
 
+# Pay page: pay a booking with Razorpay Standard Checkout. Kept out of search and the sitemap, and not linked from the site until live keys are set.
+_pay = HEAD.format(title='Pay for Your Booking | Mechanix Pro', desc='Pay for your Mechanix Pro booking securely with Razorpay.', url=f'{SITE}/pay/', site=SITE, schema='', scripts=LEGAL_JS + '<script src="/assets/js/pay.js" defer></script>', body='', nav=NAV, main='page')
+_pay = _pay.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
+write('pay/index.html', _pay + '''<h1 style="font-size:40px">Pay for your booking.</h1>
+<p class="muted" style="font-size:18px">Enter your booking reference (like MP-AB12CD) and the mobile number you booked with. You pay securely with Razorpay: UPI, cards, wallets or net banking.</p>
+<form class="card track-form" id="payForm" novalidate>
+  <label class="label" for="pay-ref">Booking reference</label><input id="pay-ref" name="ref" autocapitalize="characters" autocomplete="off" maxlength="9" placeholder="MP-AB12CD">
+  <label class="label" for="pay-phone">Mobile number</label><input id="pay-phone" name="phone" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="10-digit number">
+  <button class="btn btn-primary" type="submit" id="payGo" style="margin-top:14px">Pay now</button>
+  <p class="small" id="payMsg" role="status" aria-live="polite"></p>
+</form>
+<div id="payResult" aria-live="polite"></div>
+<p class="tiny muted">The amount is what is due on your booking, such as the {{fee:advance}} checkup and quote fee, which is adjusted in your final bill if you go ahead. We never see your card details. Need help? Message us on WhatsApp.</p>''' + foot(FLOAT))
+
 # Track page: a customer looks up their booking with the reference and the mobile number they booked with.
 _tr = HEAD.format(title='Track Your Booking | Mechanix Pro', desc='Check the progress of your Mechanix Pro booking with your reference and mobile number.', url=f'{SITE}/track/', site=SITE, schema='', scripts=LEGAL_JS + '<script src="/assets/js/track.js" defer></script>', body='', nav=NAV, main='page')
 _tr = _tr.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
