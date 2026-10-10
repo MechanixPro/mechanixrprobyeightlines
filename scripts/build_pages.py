@@ -121,7 +121,7 @@ for slug, name, pins, locs, why in AREAS:
     ]
     schema = '<script type="application/ld+json">' + json.dumps({
       "@context": "https://schema.org", "@type": "AutoRepair", "name": f"Mechanix Pro — {name}", "url": url,
-      "image": f"{SITE}/assets/img/og.png", "telephone": "+91-9743031301", "priceRange": "{{text:repair}}–{{text:full}}",
+      "image": f"{SITE}/assets/img/og.png", "telephone": "+91-8310621498", "priceRange": "{{text:repair}}–{{text:full}}",
       "areaServed": {"@type": "Place", "name": f"{name}, Bengaluru"},
       "address": {"@type": "PostalAddress", "addressLocality": "Bengaluru", "addressRegion": "Karnataka", "addressCountry": "IN"}}, ensure_ascii=False) + '</script>\n<script type="application/ld+json">' + json.dumps({
       "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]}, ensure_ascii=False) + '</script>'
@@ -256,7 +256,7 @@ for brand, name, t, big in load_bikes():
     book = f'/book/?brand={urllib.parse.quote(brand, safe="")}&amp;model={urllib.parse.quote(name, safe="")}'
     schema = '<script type="application/ld+json">' + json.dumps({
       "@context": "https://schema.org", "@type": "AutoRepair", "name": f"Mechanix Pro: {full} service", "url": url,
-      "image": f"{SITE}/assets/img/models/{slug}.webp", "telephone": "+91-9743031301", "priceRange": "{{text:repair}}–{{text:full}}",
+      "image": f"{SITE}/assets/img/models/{slug}.webp", "telephone": "+91-8310621498", "priceRange": "{{text:repair}}–{{text:full}}",
       "areaServed": {"@type": "City", "name": "Bengaluru"},
       "address": {"@type": "PostalAddress", "addressLocality": "Bengaluru", "addressRegion": "Karnataka", "addressCountry": "IN"}}, ensure_ascii=False) + '</script>'
     price_rows = ''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES if k in ('basic', 'general', 'full', 'repair'))

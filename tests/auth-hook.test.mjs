@@ -28,7 +28,7 @@ test('a header with several signatures passes if any one matches', async () => {
   assert.equal(await verifyWebhook(SECRET, { id: 'm', timestamp: String(NOW), signature: 'v1,AAAA ' + sign('m', NOW, body) }, body, NOW), true);
 });
 test('the login mail carries the code and comes from the hook payload', () => {
-  const m = loginMailFor({ user: { email: 'hello@mechanixpro.in' }, email_data: { token: '482913', email_action_type: 'magiclink' } }, { siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 97430 31301', phoneTel: '+919743031301', whatsappUrl: 'https://wa.me/919743031301', email: 'hello@mechanixpro.in' });
+  const m = loginMailFor({ user: { email: 'hello@mechanixpro.in' }, email_data: { token: '482913', email_action_type: 'magiclink' } }, { siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 83106 21498', phoneTel: '+918310621498', whatsappUrl: 'https://wa.me/918310621498', email: 'hello@mechanixpro.in' });
   assert.equal(m.to, 'hello@mechanixpro.in'); assert.match(m.html, /482913/); assert.match(m.text, /482913/); assert.match(m.subject, /login code/i);
   assert.equal(loginMailFor({ user: {}, email_data: {} }, {}), null);
 });
