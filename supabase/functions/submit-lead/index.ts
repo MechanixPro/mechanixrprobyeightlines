@@ -6,6 +6,8 @@ import { cleanLeadFields } from '../_shared/lead-fields.ts';
 import { applyCoupon, normalizeCode } from '../_shared/coupons.ts';
 import { sendEmail, FROM_BOOKING } from '../_shared/resend.ts';
 import { bookingReceived } from '../_shared/email-templates.ts';
+import { slotFee } from '../_shared/checkout.ts';
+import { isReturningCustomer } from '../_shared/customer.ts';
 import { formatWhen } from '../_shared/when.ts';
 
 const SLOTS = ['morning', 'afternoon', 'evening', 'asap'];
@@ -97,10 +99,14 @@ Deno.serve(async (req) => {
       const upd: Record<string, unknown> = { email: extra.email };
       if (extra.email_marketing) { upd.email_marketing_consent = true; upd.email_unsubscribed_at = null; }
       await db.from('customers').update(upd).eq('id', cust.id);
-      const { data: feeRow } = await db.from('services').select('price').eq('id', 'advance').maybeSingle();
+      const { data: feeRows } = await db.from('services').select('id,price').in('id', ['advance', 'newfee']);
+      const feeOf = (id: string) => Number(feeRows?.find((f: { id: string }) => f.id === id)?.price ?? 0);
+      const returning = await isReturningCustomer(db, { id: lead.id, phone });
+      const newCustomer = !returning && feeOf('newfee') > 0;
+      const slot = slotFee({ returning, advance: feeOf('advance'), newFee: feeOf('newfee') });
       const brand = clean(b.bike_brand, 30), model = clean(b.bike_model, 40), nick = clean(b.bike_nickname, 24);
       const buildQ = new URLSearchParams({ ...(brand && brand !== 'Other' ? { brand } : {}), ...(model ? { model } : {}), ...(nick ? { nick } : {}), service: serviceId }).toString();
-      const mail = bookingReceived({ checkupFee: feeRow?.price ?? null, nick: nick || null, buildUrl: env('SITE_URL', 'https://mechanixpro.in') + '/book/?' + buildQ,
+      const mail = bookingReceived({ checkupFee: slot || null, newCustomer, nick: nick || null, buildUrl: env('SITE_URL', 'https://mechanixpro.in') + '/book/?' + buildQ,
         siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 83106 21498'), phoneTel: env('PHONE_TEL', '+918310621498'),
         whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918310621498'), email: 'hello@mechanixpro.in',
         name, ref: lead.ref, bike: (() => { const base = [brand, model].filter((x) => x && x !== 'Other').join(' ') || 'Your bike'; return nick ? `"${nick}" (${base})` : base; })(),
