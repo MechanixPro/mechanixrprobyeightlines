@@ -1,5 +1,7 @@
 # Mechanix Pro — project guide for Claude Code
 
+> **Start here:** read `docs/PROJECT-MEMORY.md` first. It has the current state, settled business facts, deploy commands, the ads setup and the open items. The sections below are the original brief.
+
 Doorstep bike service + roadside help, Bengaluru. Domain: mechanixpro.in (GoDaddy → Cloudflare).
 Client budget for this phase: ₹22,000 (website + admin panel + WhatsApp AI automation). ₹10,000 advance received.
 
