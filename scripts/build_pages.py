@@ -55,7 +55,7 @@ FOOT = '''</main>
 </html>
 '''
 LEGAL_JS = '<script src="/assets/js/page.js" defer></script>'
-APP_JS = '<script src="/assets/js/pincodes.js" defer></script>\n<script src="/assets/js/pingeo.js" defer></script>\n<script src="/assets/js/pins-live.js" defer></script>\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/model-photos.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/app.js" defer></script>'
+APP_JS = '<script src="/assets/js/pincodes.js" defer></script>\n<script src="/assets/js/pingeo.js" defer></script>\n<script src="/assets/js/pins-live.js" defer></script>\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/model-photos.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/gmaps.js" defer></script>\n<script src="/assets/js/app.js" defer></script>'
 FLOAT = '''<a class="wa-fab" href="#" data-wa="general" aria-label="Chat on WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp us</a>
 <div class="mbar" id="mbar"><a class="btn btn-ghost" href="#" data-call aria-label="Call us"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call</a><a class="btn btn-wa" href="#" data-wa="general">WhatsApp</a><a class="btn btn-primary" href="/book/">Get a quote</a></div>
 '''
@@ -181,6 +181,7 @@ LEGAL = {
 <p class="muted" style="font-size:20px">Fastest: message us on WhatsApp. We reply from 8 AM to 9 PM, every day.</p>
 <p><a class="btn btn-wa" href="#" data-wa="Contact">Chat on WhatsApp</a></p>
 <div class="card" style="margin-top:20px"><div class="price-row"><span>Phone</span><b data-phone>+91 XXXXX XXXXX</b></div><div class="price-row"><span>Email</span><b>hello@mechanixpro.in</b></div><div class="price-row"><span>Areas</span><b>All of Bengaluru (560001 to 560110)</b></div></div>
+<!--FINDUS-->
 <h2>Garage partners</h2><p>Run a two-wheeler workshop in Bengaluru and want more jobs? Email us with your garage name, area and number of mechanics.</p>
 <p class="tiny muted">[Registered business name], [registered address], Bengaluru, Karnataka. GSTIN [GSTIN].</p>'''),
 }
@@ -203,9 +204,15 @@ def credits_html():
 
 LEGAL = {k: (t, d, company_fill(body)) for k, (t, d, body) in LEGAL.items()}
 LEGAL['terms'] = (LEGAL['terms'][0], LEGAL['terms'][1], LEGAL['terms'][2] + credits_html())
+def findus_html():
+    addr = ', '.join(COMPANY['addressLines']) + f", {COMPANY['city']}, {COMPANY['state']} {COMPANY['pincode']}"
+    q = urllib.parse.quote(addr, safe='')
+    return (f'<section id="findus"><h2>Find us.</h2><p>{html.escape(addr)}</p>'
+            f'<div class="gmap" data-gmap-embed data-q="{html.escape(addr)}" data-title="Map of the Mechanix Pro office"></div>'
+            f'<p><a class="btn btn-ghost" href="https://www.google.com/maps/search/?api=1&amp;query={q}" target="_blank" rel="noopener">Get directions in Google Maps</a></p></section>')
 for slug, (title, desc, body) in LEGAL.items():
     url = f'{SITE}/{slug}/'
-    write(f'{slug}/index.html', HEAD.format(title=html.escape(title + ' | Mechanix Pro'), desc=html.escape(desc), url=url, site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='page') + f'<h1 style="font-size:40px">{title}</h1>\n' + body + foot())
+    write(f'{slug}/index.html', HEAD.format(title=html.escape(title + ' | Mechanix Pro'), desc=html.escape(desc), url=url, site=SITE, schema='', scripts=LEGAL_JS + ('<script src="/assets/js/gmaps.js" defer></script>' if slug == 'contact' else ''), body='', nav=NAV, main='page') + f'<h1 style="font-size:40px">{title}</h1>\n' + body.replace('<!--FINDUS-->', findus_html()) + foot())
     urls.append((f'/{slug}/', '0.3'))
 
 # Unsubscribe page: linked from marketing emails, kept out of search results and the sitemap.

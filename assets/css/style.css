@@ -670,3 +670,13 @@ a.soon-card:hover .soon-ico{transform:rotate(-8deg) scale(1.08)}
 .offer-price span{color:var(--ink-2)}
 .page-offer .offer-price b{color:#fff}.page-offer .offer-price span{color:#D5DDF0}
 .page-offer .hero .btn-ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.45)}
+
+/* Google Maps: address search and Find us */
+.gsearch{position:relative}
+.gs-list{list-style:none;margin:6px 0 0;padding:6px;background:var(--card);border-radius:var(--r-md);box-shadow:var(--shadow-lg);border:1px solid var(--line);position:absolute;z-index:20;left:0;right:0}
+.gs-list button{display:block;width:100%;text-align:left;background:none;border:0;border-radius:10px;padding:10px 12px;min-height:44px;font:inherit;color:var(--ink);cursor:pointer}
+.gs-list button:hover,.gs-list button:focus-visible{background:var(--ember-soft)}
+.gs-list b{display:block;font-weight:600}.gs-list span{display:block;color:var(--muted);font-size:14px}
+.gmap{position:relative;border-radius:var(--r-lg);overflow:hidden;background:var(--soft);aspect-ratio:16/10;margin:12px 0}
+.gmap:not(:has(iframe)){display:none}
+.gmap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}

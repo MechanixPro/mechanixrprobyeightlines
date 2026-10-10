@@ -194,6 +194,7 @@
       var hasPin = L.validGeo(st.lat, st.lng);
       h += '<div class="locate"><button type="button" class="btn btn-ghost btn-sm" data-act="locate"' + (locating ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg>' + (locating ? 'Finding you…' : hasPin ? 'Update my location' : 'Use my current location') + '</button>' + (hasPin ? '<button type="button" class="btn btn-ghost btn-sm" data-act="clearloc">Remove</button>' : '') + '</div>';
       if (locMsg || hasPin) h += '<p class="small locmsg" role="status">' + esc(locMsg || ('Location saved. Nearest area: ' + (st.area || 'Other area') + '.')) + '</p>';
+      if (C.googleMapsKey && window.MXP_GMAPS) h += '<label class="label" for="f-gsearch">Search your address <span class="muted" style="font-weight:400">(fills your area and PIN)</span></label><div class="gsearch"><input id="f-gsearch" type="search" role="combobox" aria-expanded="false" aria-controls="gs-list" aria-autocomplete="list" autocomplete="off" maxlength="120" placeholder="Society, street or landmark"><ul id="gs-list" class="gs-list" role="listbox" aria-label="Address suggestions" hidden></ul></div><p class="small gsmsg" id="gsMsg" role="status" aria-live="polite"></p>';
       h += '<label class="label" for="f-pin">PIN code</label><input id="f-pin" data-f="pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="e.g. 560102" value="' + esc(st.pin) + '"><p class="small pininfo" id="pinInfo" role="status" aria-live="polite" style="margin:6px 0 0">' + esc(pinNote()) + '</p><div class="pm pm-mini" id="pinMap"></div>';
       h += '<label class="label" for="f-area">Area</label><select id="f-area" data-f="area"><option value="">Choose your area</option>' + (st.area && AREAS.indexOf(st.area) < 0 ? '<option selected>' + esc(st.area) + '</option>' : '') + AREAS.map(function (a) { return '<option' + (st.area === a ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + '</select>';
       h += '<label class="label" for="f-address">Flat, street or landmark <span class="muted" style="font-weight:400">(helps the mechanic find you)</span></label><input id="f-address" data-f="address" maxlength="200" autocomplete="street-address" placeholder="e.g. Flat 4B, Green Apartments, 27th Main" value="' + esc(st.address) + '">';
@@ -429,6 +430,7 @@
       else if (a === 'model') { st.model = v; applyModel(); }
       else if (a === 'contact') { st.contact = v; }
       else if (a === 'locate') { locate(); return; }
+      else if (a === 'gpick') { gsPick(+b.getAttribute('data-i')); return; }
       else if (a === 'sendDraft') { sendDraft(); return; }
       else if (a === 'copyBuild') { copyBuild(); return; }
       else if (a === 'shareBuild') { shareBuild(); return; }
@@ -468,6 +470,7 @@
   document.addEventListener('input', function (e) {
     var t = e.target;
     if (t.id === 'mfilter') { var q = t.value.trim().toLowerCase(); document.querySelectorAll('.model-tile').forEach(function (b) { b.hidden = q !== '' && b.getAttribute('data-name').indexOf(q) === -1; }); return; }
+    if (t.id === 'f-gsearch') { gsSearch(t.value); return; }
     var f = t.getAttribute && t.getAttribute('data-f');
     if (!f || !t.closest('#builder')) return;
     st[f] = f === 'phone' ? t.value.replace(/\D/g, '').slice(0, 10) : f === 'pin' ? t.value.replace(/\D/g, '').slice(0, 6) : f === 'coupon' ? L.cleanCoupon(t.value) : t.value;
@@ -486,6 +489,39 @@
   function scrollToBuilder() { var b = $('#build'); if (b && b.getBoundingClientRect().top < 0) b.scrollIntoView({ behavior: 'smooth' }); }
 
   /* Use the phone's location: pick the nearest service area and attach a map pin. No third-party lookup, so nothing leaves the site. */
+  /* Address search (Google Places): the picked place fills the address, PIN, area and map pin. */
+  var gsItems = [], gsTimer = 0, gsSeq = 0;
+  function gsClose() { var u = $('#gs-list'), i = $('#f-gsearch'); if (u) { u.hidden = true; u.innerHTML = ''; } if (i) i.setAttribute('aria-expanded', 'false'); }
+  function gsSearch(text) {
+    clearTimeout(gsTimer);
+    if (text.trim().length < 3) { gsClose(); return; }
+    gsTimer = setTimeout(function () {
+      var seq = ++gsSeq;
+      window.MXP_GMAPS.suggest(text.trim()).then(function (list) {
+        if (seq !== gsSeq) return; gsItems = list;
+        var u = $('#gs-list'), i = $('#f-gsearch'); if (!u) return;
+        u.innerHTML = list.map(function (x, n) { return '<li role="option"><button type="button" data-act="gpick" data-i="' + n + '"><b>' + esc(x.main) + '</b><span>' + esc(x.secondary) + '</span></button></li>'; }).join('');
+        u.hidden = !list.length; if (i) i.setAttribute('aria-expanded', String(!!list.length));
+        var m = $('#gsMsg'); if (m) m.textContent = list.length ? '' : 'No match. Type your address in the box below.';
+      }).catch(function () { var m = $('#gsMsg'); if (m) m.textContent = 'Address search is not available right now. Type your address below.'; });
+    }, 300);
+  }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') gsClose(); });
+  function gsPick(n) {
+    var item = gsItems[n]; if (!item) return;
+    gsClose();
+    window.MXP_GMAPS.details(item).then(function (pl) {
+      var f = L.placeToFields(pl);
+      if (!f) { locMsg = 'Could not read that address. Type it below.'; return render(); }
+      st.lat = f.lat; st.lng = f.lng; st.address = f.address;
+      if (!f.inBengaluru) { locMsg = 'That address is outside Bengaluru. Send it anyway and we will tell you when we reach you.'; save(); return render(); }
+      var place = L.nearestPlace(f.lat, f.lng);
+      st.pin = f.pin || L.pinFromLocation(f.lat, f.lng, window.MXP_PIN_GEO) || st.pin;
+      if (place) { st.area = place.name === 'Other area' ? st.area : place.name; st.areaAuto = true; }
+      locMsg = 'Address saved' + (st.pin ? ', PIN code ' + st.pin + ' (please check it)' : '') + '. We serve all of Bengaluru.';
+      save(); render();
+    }).catch(function () { locMsg = 'Address search is not available right now. Type your address below.'; render(); });
+  }
   function locate() {
     if (!navigator.geolocation) { locMsg = 'Your browser cannot share location. Type your address below.'; return render(); }
     locating = true; locMsg = ''; render();
