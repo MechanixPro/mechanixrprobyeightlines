@@ -89,3 +89,12 @@ test('the ads playbook exists and promises no results', () => {
   assert.match(d, /60%/); assert.match(d, /Negative keywords/i); assert.match(d, /cost per request/i);
   assert.doesNotMatch(d, /guarantee|will get you \d+|\d+x return/i);
 });
+
+test('tags: the Google Ads tag ID alone loads the tag, and no conversion is sent until the conversion label is set', () => {
+  const a = run({ googleAdsId: 'AW-18504366564' });
+  assert.equal(a.calls.scripts.filter((s) => /gtag\/js\?id=AW-18504366564/.test(s)).length, 1);
+  a.win.window.gtag = (...x) => a.calls.gtag.push(x); a.win.mxpTrack('generate_lead', { value: 1 });
+  assert.ok(a.calls.gtag.some((x) => x[0] === 'event' && x[1] === 'generate_lead'));
+  assert.ok(!a.calls.gtag.some((x) => x[1] === 'conversion'));
+  assert.match(read('assets/js/config.js'), /googleAdsId: 'AW-\d+'/);
+});

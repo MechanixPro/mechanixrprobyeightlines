@@ -12,6 +12,7 @@ window.MXP = {
   turnstileSiteKey: '',            // Cloudflare Turnstile site key (bot protection on the booking form)
 
   gaId: '',                        // Google Analytics 4, e.g. G-ABC123
+  googleAdsId: 'AW-18504366564',   // Google Ads tag ID (turns the Google tag on)
   googleAdsSendTo: '',             // Google Ads conversion, e.g. AW-1234567890/AbCdEfGh
   googleMapsKey: 'AIzaSyCgu-ZcTzcl7b4ptDdpwWNlK8wUJPds6RU',               // Google Maps key (public browser key, restricted to mechanixpro.in). Turns on address search and the Find us map
   googleAddressSearch: false,      // true shows address search in the booking form. Turn on only after Places API (New) works for the key
