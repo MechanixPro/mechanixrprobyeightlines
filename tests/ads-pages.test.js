@@ -128,3 +128,7 @@ test('the Performance Max pack respects asset length limits and avoids licensed 
   assert.equal(descs.length, 5); for (const x of descs) assert.ok(x.length <= 90, x); assert.ok(descs[4].length <= 60);
   assert.match(d, /Final URL expansion: OFF/); assert.match(d, /Wikimedia/); assert.doesNotMatch(d, /cheapest|best price|guarantee|% off/i);
 });
+
+test('the security policy allows the Indian Google domain that Ads conversions use for visitors in India', () => {
+  assert.match(read('_headers'), /connect-src[^;]*https:\/\/www\.google\.co\.in/);
+});
