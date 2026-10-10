@@ -723,3 +723,8 @@ body.page-book .pro{bottom:calc(132px + env(safe-area-inset-bottom,0px))}
 .hero .btn-ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.45)}
 .sphere-host{display:block;width:66px;height:66px}
 .is-sphere .sphere-svg{width:66px;height:66px;display:block}
+
+/* how it works video */
+.how-video{margin:0;max-width:880px}
+.how-video video{display:block;width:100%;height:auto;aspect-ratio:16/9;border-radius:var(--r-lg);background:#0F1F45;box-shadow:var(--shadow-lg)}
+.how-video figcaption{margin-top:12px;color:var(--muted);font-size:14px}
