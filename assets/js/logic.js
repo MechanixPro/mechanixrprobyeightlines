@@ -109,6 +109,14 @@
     var address = String(pl.formattedAddress || '').replace(/,\s*India\s*$/, '').replace(/[<>\u0000-\u001f]/g, '').trim().slice(0, 200);
     return { address: address, pin: pin, lat: lat, lng: lng, locality: loc, inBengaluru: inBengaluru(lat, lng) };
   }
+  /* Is this finished booking a lead worth counting in Google Ads? A complete request, inside the area we serve. Casual taps and out-of-area requests are tracked, but not used for bidding. */
+  function leadQuality(st, pins, off) {
+    var complete = String(st.name || '').trim().length >= 2 && /^[6-9]\d{9}$/.test(st.phone || '') && !!st.service && (st.place === 'road' || (!!st.dateIso && st.hour != null));
+    if (!complete) return { qualified: false, reason: 'incomplete' };
+    if (st.area === 'Other area') return { qualified: false, reason: 'outside_area' };
+    if (st.pin) { var pi = pinInfo(st.pin, pins || {}, off || {}); if (!pi || !pi.served) return { qualified: false, reason: 'pin_not_served' }; }
+    return { qualified: true, reason: 'ok' };
+  }
   /* A PIN code the visitor typed: do we serve it, and which area is it? Bengaluru is 560001 to 560110. */
   function pinInfo(raw, pins, off) {
     var pin = String(raw || '').replace(/\s/g, '');
@@ -246,5 +254,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { placeToFields: placeToFields, receiptBars: receiptBars, pinFromLocation: pinFromLocation, pinInfo: pinInfo, inBengaluru: inBengaluru, nearestPlace: nearestPlace, prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { leadQuality: leadQuality, placeToFields: placeToFields, receiptBars: receiptBars, pinFromLocation: pinFromLocation, pinInfo: pinInfo, inBengaluru: inBengaluru, nearestPlace: nearestPlace, prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });
