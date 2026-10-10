@@ -56,7 +56,7 @@ A hand-off for anyone (or any future Claude session) who continues this work. It
 
 ## 6. Open items
 
-- **New WhatsApp and call number:** the owner wants to change `9743031301` (WhatsApp and call). Needs the new 10 digits; update `config.js`, email defaults, JSON-LD telephone, Supabase secrets (`PHONE_DISPLAY`, `PHONE_TEL`, `WHATSAPP_URL`) and tests, then deploy. The WhatsApp Business API number, if used, is changed in Meta.
+- **Phone number:** changed on 2026-10-10 to **+91 83106 21498** for both WhatsApp and calls (`assets/js/config.js`, email defaults in the Supabase functions, JSON-LD, `scripts/build_email_templates.mjs`). The owner still plans a separate dedicated WhatsApp number for the chatbot and a separate call/support number later (see `docs/WHATSAPP-BOT.md`); they are separate settings (`whatsapp` and `callNumber`).
 - **Address search** (Google Places) is built but switched off (`googleAddressSearch: false`) until Places API (New) works for the Maps key. The Find us map works.
 - **Service-due reminder emails:** function deployed; the daily pg_cron job still needs creating (`docs/SERVICE-REMINDER.md`, needs `CRON_SECRET`).
 - **Admin "Email to customer"** has not been tested by the owner with a real booking. The test lead `MP-C509DA` and older tests (`MP-0CBEAC`, `MP-A77ACB`, `MP-0379BE`) should be deleted in the admin.

@@ -23,7 +23,7 @@ test('never for a customer without email, unsubscribed or blocked', () => {
   assert.equal(isReminderDue(lead({}), cust({ blocked: true }), now), false);
 });
 test('the email names the bike, links to the build and has an unsubscribe link', () => {
-  const m = serviceDue({ siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 97430 31301', phoneTel: '+919743031301', whatsappUrl: 'https://wa.me/919743031301', email: 'hello@mechanixpro.in',
+  const m = serviceDue({ siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 83106 21498', phoneTel: '+918310621498', whatsappUrl: 'https://wa.me/918310621498', email: 'hello@mechanixpro.in',
     name: 'Asha Rao', bike: '"Raja" (Honda Activa 6G)', lastService: 'General service', buildUrl: 'https://mechanixpro.in/book/?model=Activa', unsubscribeUrl: 'https://mechanixpro.in/unsubscribe/?c=1&t=2' });
   assert.match(m.subject, /service/i);
   assert.match(m.html, /Raja/); assert.match(m.html, /Unsubscribe/); assert.match(m.html, /book\/\?model=Activa/);

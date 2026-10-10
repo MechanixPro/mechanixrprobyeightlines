@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { bookingReceived, bookingConfirmed, otpCode, marketing, escapeHtml } from '../supabase/functions/_shared/email-templates.ts';
 
-const SITE = { siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 97430 31301', phoneTel: '+919743031301', whatsappUrl: 'https://wa.me/919743031301', email: 'hello@mechanixpro.in' };
+const SITE = { siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 83106 21498', phoneTel: '+918310621498', whatsappUrl: 'https://wa.me/918310621498', email: 'hello@mechanixpro.in' };
 const received = () => bookingReceived({ ...SITE, name: 'Asha', ref: 'MP-1042', bike: 'Honda Activa 6G', service: 'General service', area: 'HSR Layout', whenText: 'Tomorrow, 11 Oct · Morning (9 AM – 12 PM)', estimate: 1299 });
 const all = () => [received(), bookingConfirmed({ ...SITE, name: 'Asha', ref: 'MP-1042', bike: 'Honda Activa 6G', service: 'General service', area: 'HSR Layout', whenText: 'Saturday, 11 Oct · Morning', mechanicName: 'Kiran', amountDue: 1299 }), otpCode({ ...SITE, code: '482913', minutes: 10 }), marketing({ ...SITE, subject: 'Monsoon check', preheader: 'Get your bike ready', headline: 'Ready for the rains?', body: 'First paragraph.\n\nSecond paragraph.', ctaText: 'Book a service', ctaUrl: 'https://mechanixpro.in/book/', unsubscribeUrl: 'https://mechanixpro.in/unsubscribe?t=abc' })];
 
@@ -33,7 +33,7 @@ test('the booking-received email shows the reference, bike, service, area, time 
 test('the booking-received email says a quote follows on WhatsApp and nothing starts without approval', () => {
   const { html, text } = received();
   assert.match(html, /quote/i); assert.match(html, /approve/i); assert.match(text, /approve/i);
-  assert.ok(html.includes('https://wa.me/919743031301')); assert.ok(html.includes('tel:+919743031301'));
+  assert.ok(html.includes('https://wa.me/918310621498')); assert.ok(html.includes('tel:+918310621498'));
 });
 test('customer-supplied text is escaped in the HTML', () => {
   const { html } = bookingReceived({ ...SITE, name: '<script>alert(1)</script>', ref: 'MP-1', bike: '"><img src=x>', service: 'S', area: 'A', whenText: 'W', estimate: 1 });

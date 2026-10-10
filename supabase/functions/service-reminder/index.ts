@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
   if (!safeEqual(req.headers.get('x-cron-secret') ?? '', env('CRON_SECRET', '__unset__'))) return new Response('Forbidden', { status: 403 });
   const db = adminDb(), now = new Date();
   const siteUrl = env('SITE_URL', 'https://mechanixpro.in'), fnUrl = env('SUPABASE_URL') + '/functions/v1', secret = env('SUPABASE_SERVICE_ROLE_KEY');
-  const site = { siteUrl, phoneDisplay: env('PHONE_DISPLAY', '+91 97430 31301'), phoneTel: env('PHONE_TEL', '+919743031301'), whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/919743031301'), email: 'hello@mechanixpro.in' };
+  const site = { siteUrl, phoneDisplay: env('PHONE_DISPLAY', '+91 83106 21498'), phoneTel: env('PHONE_TEL', '+918310621498'), whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918310621498'), email: 'hello@mechanixpro.in' };
   const cutoff = new Date(now.getTime() - DUE_DAYS * 86400_000).toISOString();
   const { data: leads } = await db.from('leads').select('id,name,status,reminder_opt_in,reminder_sent_at,completed_at,customer_id,bike_id,service_id')
     .eq('status', 'completed').eq('reminder_opt_in', true).is('reminder_sent_at', null).lte('completed_at', cutoff).limit(40);

@@ -6,7 +6,7 @@ import { bookingReceived, bookingConfirmed, invoiceEmail } from '../supabase/fun
 import { buildInvoice as serverInvoice } from '../supabase/functions/_shared/invoice.ts';
 import { buildInvoice as adminInvoice } from '../admin/invoice.js';
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
-const SITE = { siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 97430 31301', phoneTel: '+919743031301', whatsappUrl: 'https://wa.me/919743031301', email: 'hello@mechanixpro.in' };
+const SITE = { siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 83106 21498', phoneTel: '+918310621498', whatsappUrl: 'https://wa.me/918310621498', email: 'hello@mechanixpro.in' };
 
 test('booking mail comes from booking@, login and offer mail from no-reply@', () => {
   assert.equal(FROM_BOOKING, 'Mechanix Pro Bookings <booking@mechanixpro.in>');

@@ -15,8 +15,8 @@ Deno.serve(async (req) => {
   let payload: HookPayload;
   try { payload = JSON.parse(raw); } catch { return reply(400, { error: { http_code: 400, message: 'Bad request' } }); }
   const mail = loginMailFor(payload, {
-    siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 97430 31301'), phoneTel: env('PHONE_TEL', '+919743031301'),
-    whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/919743031301'), email: 'hello@mechanixpro.in',
+    siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 83106 21498'), phoneTel: env('PHONE_TEL', '+918310621498'),
+    whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918310621498'), email: 'hello@mechanixpro.in',
   });
   if (!mail) return reply(400, { error: { http_code: 400, message: 'Nothing to send' } });
 
