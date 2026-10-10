@@ -9,6 +9,7 @@ import { pinRows, validPin, cleanPin, cleanPinName } from './pins-view.js';
 import { interestCounts, waitlistRows, interestLabel } from './waitlist-view.js';
 import { buildInvoice } from './invoice.js';
 import { buildNewBooking } from './new-booking.js';
+import { adsConversions } from './ads-export.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
 const C = window.MXP || {};
@@ -287,6 +288,10 @@ function payoutTable(p) {
   <tr class="tot"><td><b>Total</b></td><td></td><td><b>${p.totals.jobs}</b></td><td><b>${rupee(p.totals.collected)}</b></td>${p.totals.gst ? `<td><b>${rupee(p.totals.gst)}</b></td>` : ''}<td><b>${rupee(p.totals.mechanic)}</b></td><td><b>${rupee(p.totals.company)}</b></td></tr></tbody></table></div></div>`;
 }
 function reportData() { return buildReport(S.leads, { services: S.services, mechanics: S.mechanics }, rangeFor(S.range)); }
+function adsInfoText() {
+  const r = adsConversions(S.leads), k = r.skipped;
+  return `${r.rows.length} completed job${r.rows.length === 1 ? '' : 's'} ready to send` + (k.noClick ? `. ${k.noClick} completed job${k.noClick === 1 ? ' has' : 's have'} no Google click ID (not from a Google ad)` : '') + (k.tooOld ? `. ${k.tooOld} too old (over 90 days)` : '') + '.';
+}
 function reports() {
   const r = reportData(), t = r.totals;
   const table = (title, rows) => `<div class="card"><h3>${title}</h3>${rows.length ? `<table class="rtable"><thead><tr><th></th><th>Bookings</th><th>Collected</th></tr></thead><tbody>${rows.map((x) => `<tr><td>${esc(x.name)}</td><td>${x.count}</td><td>${rupee(x.collected)}</td></tr>`).join('')}</tbody></table>` : '<p class="small muted">No bookings in this period.</p>'}</div>`;
@@ -299,7 +304,7 @@ function reports() {
     <div class="kpi"><b>${rupee(t.avgOrder)}</b><span>Average paid order</span></div>
     <div class="kpi"><b>${rupee(t.discount)}</b><span>Coupon discount given</span></div>
   </div>
-  <div class="split2">${table('By service', r.byService)}${table('By area', r.byArea)}${table('By mechanic', r.byMechanic)}${table('By source', r.bySource)}</div>${payoutTable(payoutReport(r.leads, S.mechanics, basis()))}`;
+  <div class="split2">${table('By service', r.byService)}${table('By area', r.byArea)}${table('By mechanic', r.byMechanic)}${table('By source', r.bySource)}</div><div class="card" style="margin-top:12px"><h3>Google Ads: completed jobs</h3><p class="small muted" style="margin:0 0 8px">Tell Google which ad clicks became real customers, so it finds more like them. Download the file and upload it in Google Ads (steps in docs/GOOGLE-ADS-OFFLINE.md). Only completed jobs from the last 90 days that have a Google click ID are included.</p><p class="small" id="adsInfo" style="margin:0 0 10px">${adsInfoText()}</p><button class="btn btn-ghost btn-sm" type="button" data-act="adsExport">Download Google Ads upload file</button></div>${payoutTable(payoutReport(r.leads, S.mechanics, basis()))}`;
 }
 
 function filtered() {
@@ -360,6 +365,12 @@ const ACT = {
     const r = reportData(), csv = reportCsv(r.leads, { services: S.services, mechanics: S.mechanics });
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'mechanixpro-report-' + S.range + '-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
     audit('exported_report', { range: S.range, rows: r.leads.length });
+  },
+  adsExport() {
+    const r = adsConversions(S.leads);
+    if (!r.rows.length) return toast('No completed jobs from Google ads yet. Mark jobs Completed in Bookings, and they appear here.');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([r.csv], { type: 'text/csv' })); a.download = 'mechanixpro-google-ads-conversions-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
+    audit('exported_ads_conversions', { rows: r.rows.length });
   },
   newCoupon() { openCoupon('new'); },
   async saveCoupon() {
