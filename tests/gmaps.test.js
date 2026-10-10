@@ -32,7 +32,7 @@ test('placeToFields flags a place outside Bengaluru and returns nothing for junk
 test('the Maps key is a public browser key (empty or an AIza key), and the booking form only shows address search when it is set', () => {
   assert.match(read('assets/js/config.js'), /googleMapsKey: '(AIza[\w-]{30,})?'/);
   const a = read('assets/js/app.js');
-  assert.match(a, /C\.googleMapsKey/); assert.match(a, /data-act="gpick"/); assert.match(a, /id="f-gsearch"/);
+  assert.match(a, /C\.googleMapsKey && C\.googleAddressSearch === true/); assert.match(read('assets/js/config.js'), /googleAddressSearch: (false|true)/); assert.match(a, /data-act="gpick"/); assert.match(a, /id="f-gsearch"/);
 });
 test('gmaps.js loads Google only when a key is set, restricts to India and Bengaluru, and uses a session token', () => {
   const g = read('assets/js/gmaps.js');

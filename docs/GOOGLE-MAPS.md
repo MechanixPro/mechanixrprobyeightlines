@@ -37,6 +37,8 @@ Paste the key into `assets/js/config.js`:
 googleMapsKey: 'AIza...your key...',
 ```
 
+Address search also needs `googleAddressSearch: true` in the same file (it is `false` until Places API (New) works for the key). The Find us map needs only the key.
+
 Then build and deploy the site (`sh scripts/build_site.sh`, then deploy). Or send the key to Claude and ask it to do this.
 
 ## 5. Check it
