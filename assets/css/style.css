@@ -721,3 +721,5 @@ body.page-book .pro{bottom:calc(132px + env(safe-area-inset-bottom,0px))}
 .pro.teaser .pro-say{margin:0;font-size:15px}
 /* ghost buttons on the dark home hero were hard to read */
 .hero .btn-ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.45)}
+.sphere-host{display:block;width:66px;height:66px}
+.is-sphere .sphere-svg{width:66px;height:66px;display:block}

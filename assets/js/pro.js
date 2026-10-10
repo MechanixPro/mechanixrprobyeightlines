@@ -10,9 +10,11 @@
   var KEY = 'mxp_pro_off', SEEN = 'mxp_pro_seen';
   try { var off = +localStorage.getItem(KEY) || 0; if (off && Date.now() - off < 30 * 86400000) return; } catch (e) {}
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function track(n, p) { try { if (window.mxpTrack) window.mxpTrack(n, p || {}); } catch (e) {} }
+  var variant = 'pro';
+  function track(n, p) { try { if (window.mxpTrack) { p = p || {}; p.variant = variant; window.mxpTrack(n, p); } } catch (e) {} }
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
 
+  function build(def) {
   // The character. Brand colours; the badge is the real logo mark. Poses are CSS classes on the svg.
   var ART = '<svg class="pro-svg s-idle" viewBox="0 0 100 120" aria-hidden="true" focusable="false">' +
     '<g class="pro-bob">' +
@@ -33,7 +35,9 @@
 
   var root = el('aside', 'pro'); root.id = 'pro'; root.setAttribute('aria-label', 'Pro, the Mechanix Pro helper');
   var launch = el('button', 'pro-launch'); launch.type = 'button'; launch.setAttribute('aria-expanded', 'false'); launch.setAttribute('aria-controls', 'pro-card'); launch.setAttribute('aria-label', 'Open Pro, the Mechanix Pro helper');
-  launch.innerHTML = ART; // fixed artwork only, never visitor text
+  var sph = null;
+  if (variant === 'sphere' && def && window.MXP_SPHERE) { var host = el('span', 'sphere-host'); launch.appendChild(host); launch.classList.add('is-sphere'); sph = window.MXP_SPHERE.create(host, def, { reduce: reduce }); sph.play('idle'); }
+  else launch.innerHTML = ART; // fixed artwork only, never visitor text
   var dot = el('i', 'pro-dot'); dot.hidden = true; launch.appendChild(dot);
   var card = el('div', 'pro-card'); card.id = 'pro-card';
   var say = el('p', 'pro-say'); say.setAttribute('role', 'status'); say.setAttribute('aria-live', 'polite');
@@ -46,7 +50,9 @@
   root.appendChild(card); root.appendChild(launch); document.body.appendChild(root);
 
   var svg = launch.querySelector('.pro-svg'), poseTimer = 0, quiet = false, opened = false;
+  var SPHERE_ANIM = { wave: 'happy', think: 'listening', nod: 'curious', cheer: 'celebrate', idle: 'idle' };
   function pose(name) {
+    if (sph) { sph.play(SPHERE_ANIM[name] || 'idle'); clearTimeout(poseTimer); if (name !== 'idle') poseTimer = setTimeout(function () { sph.play('idle'); }, reduce ? 4000 : 5200); return; }
     svg.setAttribute('class', 'pro-svg s-' + name); void svg.getBoundingClientRect();
     clearTimeout(poseTimer); if (name !== 'idle') poseTimer = setTimeout(function () { svg.setAttribute('class', 'pro-svg s-idle'); }, reduce ? 4000 : 3400);
   }
@@ -96,4 +102,18 @@
       if (d.pin !== p.pin && /^\d{6}$/.test(d.pin || '')) show(S.react('pin', { served: d.pinServed, name: d.pinName }), true, true);
     });
   }
+  }
+
+  // Which helper? config.js helperStyle: 'pro' (the mechanic), 'sphere', or 'ab' (each visitor gets one, the same one every visit, so the two can be compared).
+  var style = C.helperStyle || 'pro';
+  if (style === 'ab') { try { style = localStorage.getItem('mxp_pro_variant'); if (style !== 'pro' && style !== 'sphere') { style = Math.random() < 0.5 ? 'pro' : 'sphere'; localStorage.setItem('mxp_pro_variant', style); } } catch (e) { style = 'pro'; } }
+  if (style !== 'sphere') { build(null); return; }
+  var done = false, fallback = setTimeout(function () { if (!done) { done = true; variant = 'pro'; build(null); } }, 4000); // never leave the visitor without a helper
+  var sc = document.createElement('script'); sc.src = '/assets/js/sphere.js';
+  sc.onload = function () {
+    fetch('/assets/data/sphere.json').then(function (r) { return r.json(); }).then(function (def) { if (done) return; done = true; clearTimeout(fallback); variant = 'sphere'; build(def); })
+      .catch(function () { if (!done) { done = true; clearTimeout(fallback); variant = 'pro'; build(null); } });
+  };
+  sc.onerror = function () { if (!done) { done = true; clearTimeout(fallback); variant = 'pro'; build(null); } };
+  document.head.appendChild(sc);
 })();
