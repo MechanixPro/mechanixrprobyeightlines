@@ -603,7 +603,7 @@ const ACT = {
     // supabase-js hides the body of a non-2xx answer inside error.context, so read the real reason from there.
     const why = data?.error || (error?.context?.json ? (await error.context.json().catch(() => null))?.error : '') || '';
     if (error || data?.error) return toast('Could not create link: ' + (why || (error && error.message) || 'try again'));
-    toast(data.whatsapp_sent ? 'Payment link sent on WhatsApp' : 'Link created. WhatsApp automation is not connected yet, so tap Send link on WhatsApp.'); await loadLeads(); openLead(l.id, true);
+    toast(data.whatsapp_sent ? 'Payment link sent on WhatsApp' + (data.emailed ? ' and email' : '') : data.emailed ? 'Link emailed to the customer. To send on WhatsApp too, tap Send link on WhatsApp.' : data.has_email ? 'Link created, but the email could not be sent. Tap Send link on WhatsApp.' : 'Link created. No email on file and WhatsApp automation is not connected, so tap Send link on WhatsApp.'); await loadLeads(); openLead(l.id, true);
   },
   async markPaid() {
     const l = S.leads.find((x) => x.id === S.open), amount = parseInt($('#pa').value, 10);

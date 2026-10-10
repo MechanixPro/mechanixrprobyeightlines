@@ -502,7 +502,7 @@ write('pay/index.html', _pay + '''<h1 style="font-size:40px">Pay for your bookin
   <p class="small" id="payMsg" role="status" aria-live="polite"></p>
 </form>
 <div id="payResult" aria-live="polite"></div>
-<p class="tiny muted">The amount is what is due on your booking, such as the {{fee:advance}} checkup and quote fee ({{fee:newfee}} for new customers), which is adjusted in your final bill if you go ahead. We never see your card details. Need help? Message us on WhatsApp.</p>''' + foot(FLOAT))
+<p class="tiny muted">The amount is what is due on your booking, such as the {{fee:advance}} checkup and quote fee ({{fee:newfee}} for new customers), which is adjusted in your final bill if you go ahead. We never see your card details. Need help? <a href="#" data-wa="general">Message us on WhatsApp</a>.</p>''' + foot())
 
 # Track page: a customer looks up their booking with the reference and the mobile number they booked with.
 _tr = HEAD.format(title='Track Your Booking | Mechanix Pro', desc='Check the progress of your Mechanix Pro booking with your reference and mobile number.', url=f'{SITE}/track/', site=SITE, schema='', scripts=LEGAL_JS + '<script src="/assets/js/track.js" defer></script>', body='', nav=NAV, main='page')
