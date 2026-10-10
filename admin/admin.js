@@ -32,6 +32,8 @@ function toast(m) { const t = document.createElement('div'); t.className = 'toas
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
 const basis = () => (S.settings.payout_basis === 'before_gst' ? 'before_gst' : 'collected');
 const fee = (id, d) => S.services.find((x) => x.id === id)?.price ?? d;
+// New customers pay the small slot fee; a phone with an earlier completed job pays the checkup and quote fee.
+const slotFeeFor = (l) => (S.leads.some((x) => x.phone === l.phone && x.id !== l.id && x.status === 'completed') ? fee('advance', 349) : fee('newfee', 99));
 const isOwner = () => S.me?.role === 'owner';
 
 /* ---------- auth ---------- */
@@ -341,7 +343,7 @@ async function openLead(id, silent) {
     <label class="check"><input type="checkbox" id="lai"${l.ai_enabled ? ' checked' : ''}><span>AI assistant replies and automatic reminders for this booking</span></label>
     <button class="btn btn-primary" style="margin-top:14px" type="button" data-act="save">Save changes</button></div>
   <div class="card" style="margin-top:12px"><h3>Payment</h3>${l.payment_link ? `<p class="small">Link sent: <a href="${esc(l.payment_link)}" target="_blank" rel="noopener">${esc(l.payment_link)}</a> (${rupee(l.amount_due)})</p>` : ''}
-    <label class="label" for="pa">Amount</label><input id="pa" inputmode="numeric" value="${esc(l.amount_due || fee('advance', 199))}">
+    <label class="label" for="pa">Amount <span class="muted" style="font-weight:400">(${S.leads.some((x) => x.phone === l.phone && x.id !== l.id && x.status === 'completed') ? 'returning customer' : 'new customer'} slot fee by default)</span></label><input id="pa" inputmode="numeric" value="${esc(l.amount_due || slotFeeFor(l))}">
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${isOwner() ? '<button class="btn btn-ghost btn-sm" type="button" data-act="deleteLead">Delete booking</button>' : ''}<button class="btn btn-ghost btn-sm" type="button" data-act="issueFromLead">Log an issue</button><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button><button class="btn btn-primary btn-sm" type="button" data-act="confirmBooking">Confirm booking and email customer</button><button class="btn btn-dark btn-sm" type="button" data-act="payLink">Create & send payment link</button><button class="btn btn-ghost btn-sm" type="button" data-act="markPaid">Mark paid manually</button></div>
     <p class="tiny muted">Paid bookings stop all automatic reminders.</p></div>
   <div class="card" style="margin-top:12px"><h3>WhatsApp conversation</h3><div class="chat">${(msgs ?? []).map((m) => `<div class="bubble ${m.direction}">${esc(m.body)}<small>${m.direction === 'in' ? 'Customer' : m.sender === 'ai' ? 'AI assistant' : m.sender === 'staff' ? 'Team' : 'Automatic'} · ${when(m.created_at)}</small></div>`).join('') || '<p class="muted small">No messages yet. The conversation appears here once WhatsApp automation is connected.</p>'}</div></div>`;
@@ -665,7 +667,7 @@ function settings() {
   const st = S.settings, bi = st.business_info || {}, q = st.quiet_hours || { start: 21, end: 9 }, dis = isOwner() ? '' : ' disabled';
   return `<h1 style="font-size:34px">Settings</h1><div class="split2"><div class="card"><h3>WhatsApp automation</h3>
   <label class="check"><input type="checkbox" id="st-ai"${st.ai_enabled !== false ? ' checked' : ''}${dis}><span><b>AI replies and reminders on</b><br><span class="tiny muted">Turn off to answer every chat yourself.</span></span></label>
-  <p class="tiny muted" style="margin:10px 0 0">The checkup and quote fee and the above-180cc surcharge are now edited in the <b>Prices</b> tab, so every page shows the same number.</p>
+  <p class="tiny muted" style="margin:10px 0 0">The checkup and quote fee, the new customer slot fee and the above-180cc surcharge are edited in the <b>Prices</b> tab, so every page shows the same number.</p>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="label" for="st-q1">No messages after (hour)</label><input id="st-q1" type="number" min="0" max="23" value="${q.start}"${dis}></div><div><label class="label" for="st-q2">Resume at (hour)</label><input id="st-q2" type="number" min="0" max="23" value="${q.end}"${dis}></div></div></div>
   <div class="card"><h3>Mechanic payouts</h3><p class="small muted" style="margin:0 0 8px">Each mechanic's percentage is set on their own page. Choose what the percentage is worked out on.</p>
   <label class="label" for="st-basis">Work out the split on</label><select id="st-basis"${dis}><option value="collected"${basis() === 'collected' ? ' selected' : ''}>The amount collected (GST included)</option><option value="before_gst"${basis() === 'before_gst' ? ' selected' : ''}>The amount before GST (GST is kept aside)</option></select>

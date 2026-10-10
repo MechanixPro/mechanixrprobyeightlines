@@ -16,6 +16,7 @@
     { id: 'tyre', kind: 'addon', name: 'Tyre and puncture check', price: 49 },
     { id: 'battery', kind: 'addon', name: 'Battery health test', price: 0 },
     { id: 'advance', kind: 'fee', name: 'Checkup and quote fee', price: 349 },
+    { id: 'newfee', kind: 'fee', name: 'New customer slot fee', price: 99 },
     { id: 'bigbike', kind: 'fee', name: 'Above-180cc surcharge', price: 300 }
   ];
   var ICONS = {
@@ -83,7 +84,7 @@
   }
 
   function fee(id, d) { var x = svc(id); return x ? x.price : d; }
-  function cfg() { return { bigBikeSurcharge: fee('bigbike', 300), bookingAdvance: fee('advance', 199) }; }
+  function cfg() { return { bigBikeSurcharge: fee('bigbike', 300), bookingAdvance: fee('advance', 349) }; }
   function priceLabel(n) { return n === 0 ? 'Free' : '\u20b9' + n.toLocaleString('en-IN'); }
   /* Prices typed on the pages are build-time defaults. Once the live prices load, every [data-price] and [data-fee] shows the live number. */
   function applyLivePrices() {
@@ -216,7 +217,7 @@
       h += '<label class="check"><input type="checkbox" data-act="reminder"' + (st.reminder ? ' checked' : '') + '><span>Remind me when my next service is due.</span></label>';
       h += '<label class="label" for="f-coupon">Coupon code <span class="muted" style="font-weight:400">(optional)</span></label><input id="f-coupon" data-f="coupon" maxlength="20" autocapitalize="characters" autocomplete="off" placeholder="e.g. MONSOON10" value="' + esc(st.coupon) + '"><p class="tiny muted" style="margin:6px 0 0">Your expert applies it to your quote on WhatsApp.</p>';
       h += '<label class="check"><input type="checkbox" data-act="consent"' + (st.consent ? ' checked' : '') + '><span>Send me my quote, booking updates and reminders on WhatsApp. Reply STOP anytime. See our <a href="/privacy/">Privacy Policy</a>.</span></label>';
-      h += '<p class="note pay-note" style="margin-top:14px"><b>Payment and cancellation:</b> nothing is charged now. After you approve the quote, the ₹' + fee('advance', 349) + ' checkup and quote fee locks your slot and is adjusted in your final bill. Cancel more than 2 hours before your slot for a full refund. <a href="/refund-policy/">Read the refund policy</a>.</p>';
+      h += '<p class="note pay-note" style="margin-top:14px"><b>Payment and cancellation:</b> nothing is charged now. After you approve the quote, a slot fee locks your visit: ₹' + fee('newfee', 99) + ' for new customers, ₹' + fee('advance', 349) + ' for returning customers. It is adjusted in your final bill. Cancel more than 2 hours before your slot for a full refund. <a href="/refund-policy/">Read the refund policy</a>.</p>';
       h += '<p class="note" style="margin-top:14px"><b>What happens next:</b> you send this on WhatsApp. Our expert calls or messages you, checks what is needed, and sends your quote. Work starts only after you approve it.</p>';
       if (C.turnstileSiteKey) h += '<div id="ts" style="margin-top:12px"></div>';
     }
@@ -575,7 +576,7 @@
     var rows = sv ? '<div><dt>' + esc(sv.name) + '</dt><dd>' + rupee(sv.price) + '</dd></div>' : '';
     if (extra) rows += '<div><dt>Above 180cc</dt><dd>+' + rupee(extra) + '</dd></div>';
     st.addons.forEach(function (a) { var x = svc(a); if (x) rows += '<div><dt>' + esc(x.name) + '</dt><dd>' + (x.price ? '+' + rupee(x.price) : 'Free') + '</dd></div>'; });
-    el.innerHTML = '<div class="card"><small>Your package for</small><h3>' + esc(bikeTitle().replace(/^./, function (c) { return c.toUpperCase(); })) + '</h3><dl>' + rows + '</dl>' + includedBox(sv, 'Included') + '<div class="tot tear"><span>Starting estimate, GST included</span><b>' + rupee(total()) + '</b></div><p>' + '₹' + fee('advance', 199) + ' checkup and quote fee confirms your booking and is adjusted in your final bill if you go ahead. Final quote comes on WhatsApp.</p></div>';
+    el.innerHTML = '<div class="card"><small>Your package for</small><h3>' + esc(bikeTitle().replace(/^./, function (c) { return c.toUpperCase(); })) + '</h3><dl>' + rows + '</dl>' + includedBox(sv, 'Included') + '<div class="tot tear"><span>Starting estimate, GST included</span><b>' + rupee(total()) + '</b></div><p>' + 'New customers pay only ₹' + fee('newfee', 99) + ' (returning customers ₹' + fee('advance', 349) + ') to confirm the booking, adjusted in your final bill if you go ahead. Final quote comes on WhatsApp.</p></div>';
   }
   function loadPrices() {
     if (!C.supabaseUrl || !C.supabaseAnonKey) return;

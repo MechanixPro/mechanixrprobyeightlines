@@ -41,7 +41,7 @@ test('every price shown on a generated page equals site.json and can be refreshe
   for (const f of pages()) {
     const h = read(f);
     for (const m of h.matchAll(/<span data-price="([a-z]+)">([^<]*)<\/span>/g)) { const n = site.services[m[1]]?.price ?? site.addons[m[1]]; assert.equal(m[2], n === 0 ? 'Free' : inr(n), f + ' ' + m[1]); }
-    for (const m of h.matchAll(/<span data-fee="([a-z]+)">([^<]*)<\/span>/g)) assert.equal(m[2], inr(m[1] === 'advance' ? site.advance : site.bigBike), f + ' ' + m[1]);
+    for (const m of h.matchAll(/<span data-fee="([a-z]+)">([^<]*)<\/span>/g)) assert.equal(m[2], inr(m[1] === 'advance' ? site.advance : m[1] === 'newfee' ? site.newCustomerFee : site.bigBike), f + ' ' + m[1]);
   }
   const home = read('index.html'); for (const id of ['basic', 'general', 'full']) assert.ok(home.includes(`data-price="${id}"`), 'home ' + id);
   const sv = read('services/index.html'); for (const id of [...Object.keys(site.services), ...Object.keys(site.addons)]) assert.ok(sv.includes(`data-price="${id}"`), 'services ' + id);

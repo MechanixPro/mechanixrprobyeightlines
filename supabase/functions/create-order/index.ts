@@ -2,7 +2,8 @@
 // Step 1 of Razorpay Standard Checkout, used by the /pay/ page. Public, so the booking reference and the mobile number it was made with must both match.
 // Creates a Razorpay order for what is due and returns what the checkout window needs. The key secret never leaves the server.
 import { adminDb, env, json, corsHeaders, sha256Hex } from '../_shared/util.ts';
-import { cleanOrderRequest, orderBody } from '../_shared/checkout.ts';
+import { cleanOrderRequest, orderBody, slotFee } from '../_shared/checkout.ts';
+import { isReturningCustomer } from '../_shared/customer.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
@@ -27,8 +28,10 @@ Deno.serve(async (req) => {
   if (lead.status === 'paid' || lead.status === 'completed') return json(req, { error: 'This booking is already paid. Thank you!' }, 409);
   if (lead.status === 'lost') return json(req, { error: 'This booking is closed. Message us on WhatsApp to start again.' }, 409);
 
-  const { data: fee } = await db.from('services').select('price').eq('id', 'advance').maybeSingle();
-  const o = orderBody(lead, Number(fee?.price ?? 0), Date.now());
+  const { data: fees } = await db.from('services').select('id,price').in('id', ['advance', 'newfee']);
+  const feeOf = (id: string) => Number(fees?.find((f: { id: string }) => f.id === id)?.price ?? 0);
+  const returning = await isReturningCustomer(db, lead);
+  const o = orderBody(lead, slotFee({ returning, advance: feeOf('advance'), newFee: feeOf('newfee') }), Date.now());
   if (!o.ok) return json(req, { error: o.error }, 400);
 
   const r = await fetch('https://api.razorpay.com/v1/orders', {

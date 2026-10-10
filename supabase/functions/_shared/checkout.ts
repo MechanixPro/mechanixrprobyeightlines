@@ -14,6 +14,12 @@ export function orderBody(lead: { id: string; ref: string; amount_due?: number |
   return { ok: true, body: { amount, currency: 'INR', receipt: `${lead.ref}-${now.toString(36)}`.slice(0, 40), notes: { lead_id: lead.id, ref: lead.ref } } };
 }
 
+// The slot fee: new customers pay the smaller new customer fee, returning customers the checkup and quote fee. Never free by mistake.
+export function slotFee(o: { returning: boolean; advance: number; newFee: number }): number {
+  const adv = Number(o.advance), nf = Number(o.newFee);
+  return !o.returning && nf > 0 ? nf : adv;
+}
+
 export const cleanOrderRequest = cleanLookup;
 
 export function cleanVerify(b: Record<string, unknown>): { ok: true; order_id: string; payment_id: string; signature: string } | { ok: false } {

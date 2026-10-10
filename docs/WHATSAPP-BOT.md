@@ -28,7 +28,7 @@ Prices come from the admin Prices tab. Check them before pasting these answers i
 - **Where do you work?** All of Bengaluru, PIN codes 560001 to 560110. Outside Bengaluru, send your details and we will say when we reach you.
 - **How does it work?** Tell us your bike and what it needs. We send a quote on WhatsApp. Work starts only after you say yes.
 - **What does a service cost?** Starting prices, GST included, for bikes up to 180cc: Basic ₹599, General ₹1,299, Full ₹1,999, Repair or problem check ₹349. Above 180cc add ₹300 to Basic, General and Full. Your exact quote comes on WhatsApp.
-- **What is the ₹349 fee?** The checkup and quote fee. It locks your slot after you approve the quote. If you go ahead with the service it is adjusted in your final bill.
+- **What is the ₹349 fee?** The checkup and quote fee. New customers pay only ₹99 to lock their slot; returning customers pay ₹349. It locks your slot after you approve the quote. If you go ahead with the service it is adjusted in your final bill.
 - **Can I cancel?** Free up to 2 hours before your slot, and the ₹349 is refunded in full. Less than 2 hours before, or after the mechanic has left, the fee covers the visit and is not refunded. See https://mechanixpro.in/refund-policy/
 - **Which parts do you use?** OEM-certified parts, fitted only after you approve the quote.
 - **Is there a warranty?** 30 days on our service work.

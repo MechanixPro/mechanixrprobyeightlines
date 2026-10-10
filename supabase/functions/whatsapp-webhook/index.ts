@@ -3,6 +3,8 @@
 import { adminDb, env, hmacSha256Hex, safeEqual, last10, getSetting, priceBooking, rupee } from '../_shared/util.ts';
 import { sendText, whatsappReady } from '../_shared/whatsapp.ts';
 import { aiReady, aiReply, systemPrompt } from '../_shared/ai.ts';
+import { slotFee } from '../_shared/checkout.ts';
+import { isReturningCustomer } from '../_shared/customer.ts';
 import { createPaymentLink, razorpayReady } from '../_shared/razorpay.ts';
 
 const STOP_WORDS = /^\s*(stop|unsubscribe|cancel messages|band karo)\s*$/i;
@@ -84,7 +86,8 @@ async function handleMessage(db: ReturnType<typeof adminDb>, msg: any, profileNa
   ]);
   const services = (allRows ?? []).filter((r) => r.kind !== 'fee');
   const feeOf = (id: string, d: number) => Number((allRows ?? []).find((r) => r.id === id && r.kind === 'fee')?.price ?? d);
-  const advance = feeOf('advance', 199), surcharge = feeOf('bigbike', 300);
+  const returning = await isReturningCustomer(db, { id: lead.id, phone: lead.phone });
+  const standardFee = feeOf('advance', 349), advance = slotFee({ returning, advance: standardFee, newFee: feeOf('newfee', 99) }), surcharge = feeOf('bigbike', 300);
   const today = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
   const view = { ref: lead.ref, name: lead.name, area: lead.area, service_id: lead.service_id, addons: lead.addons, estimate: lead.est_total, preferred_date: lead.preferred_date, preferred_slot: lead.preferred_slot, status: lead.status, payment_link_sent: !!lead.payment_link };
   const ai = await aiReply(systemPrompt({ services: services ?? [], lead: view, advance: Number(advance), surcharge: Number(surcharge), info, today }), (history ?? []).reverse());
@@ -110,7 +113,7 @@ async function handleMessage(db: ReturnType<typeof adminDb>, msg: any, profileNa
       try {
         const amount = Number(advance);
         const link = lead.payment_link && lead.amount_due === amount ? { id: lead.payment_link_id, url: lead.payment_link }
-          : await createPaymentLink({ amount, ref: lead.ref, leadId: lead.id, name: merged.name, phone, description: `Mechanix Pro booking ${lead.ref} — slot advance (adjusted in final bill)` });
+          : await createPaymentLink({ amount, ref: lead.ref, leadId: lead.id, name: merged.name, phone, description: `Mechanix Pro booking ${lead.ref} — slot fee (adjusted in final bill)` });
         Object.assign(upd, { payment_link: link.url, payment_link_id: link.id, amount_due: amount, status: 'payment_sent', followup_step: 2, next_followup_at: new Date(Date.now() + 2 * 3600_000).toISOString() });
         reply += `\n\nPay ${rupee(amount)} to lock your slot: ${link.url}`;
       } catch (e) { console.error('payment link', e); reply += '\n\nOur team will send your payment link in a moment.'; }
