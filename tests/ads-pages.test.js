@@ -108,3 +108,13 @@ test('the security policy lets the Google Ads tag do its calls', () => {
 test('the real conversion label is set in config.js', () => {
   assert.match(read('assets/js/config.js'), /googleAdsSendTo: 'AW-18504366564\/[A-Za-z0-9_-]{10,}'/);
 });
+
+test('the Google Ads campaign pack respects the length limits and uses real pages', () => {
+  const d = read('docs/GOOGLE-ADS-CAMPAIGN.md');
+  const block = (title) => d.split(title)[1].split('```')[1].trim().split('\n');
+  const heads = block('**Headlines**'), descs = block('**Descriptions**');
+  assert.equal(heads.length, 12); for (const h of heads) assert.ok(h.length <= 30, h);
+  assert.equal(descs.length, 4); for (const x of descs) assert.ok(x.length <= 90, x);
+  assert.match(d, /offers\/bike-service\//); assert.match(d, /₹165/); assert.match(d, /Negative keywords/);
+  assert.doesNotMatch(d, /cheapest|best price|guarantee|free service|% off/i);
+});
