@@ -11,14 +11,14 @@
   } catch (e) {}
 
   function load(src) { var s = doc.createElement('script'); s.async = true; s.src = src; (doc.head || doc.getElementsByTagName('head')[0]).appendChild(s); }
-  if (C.gaId || C.googleAdsSendTo) {
-    var first = C.gaId || C.googleAdsSendTo.split('/')[0];
-    load('https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(first));
+  var adsId = C.googleAdsId || (C.googleAdsSendTo ? C.googleAdsSendTo.split('/')[0] : '');
+  if (C.gaId || adsId) {
+    load('https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(C.gaId || adsId));
     window.dataLayer = window.dataLayer || [];
     window.gtag = function () { window.dataLayer.push(arguments); };
     window.gtag('js', new Date());
     if (C.gaId) window.gtag('config', C.gaId);
-    if (C.googleAdsSendTo) window.gtag('config', C.googleAdsSendTo.split('/')[0]);
+    if (adsId) window.gtag('config', adsId);
   }
   if (C.metaPixelId) {
     window.fbq = function () { (window.fbq.q = window.fbq.q || []).push(arguments); };
