@@ -98,3 +98,9 @@ test('tags: the Google Ads tag ID alone loads the tag, and no conversion is sent
   assert.ok(!a.calls.gtag.some((x) => x[1] === 'conversion'));
   assert.match(read('assets/js/config.js'), /googleAdsId: 'AW-\d+'/);
 });
+
+test('the security policy lets the Google Ads tag do its calls', () => {
+  const h = read('_headers');
+  assert.match(h, /script-src[^;]*https:\/\/googleads\.g\.doubleclick\.net/); assert.match(h, /script-src[^;]*https:\/\/www\.googleadservices\.com/);
+  assert.match(h, /connect-src[^;]*https:\/\/www\.google\.com/); assert.match(h, /connect-src[^;]*doubleclick\.net/);
+});
