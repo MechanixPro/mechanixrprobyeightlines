@@ -38,6 +38,8 @@ export async function sendSmart(db: SupabaseClient, lead: { id: string; phone: s
   const id = inServiceWindow(lead.last_customer_msg_at)
     ? await sendText(lead.phone, text)
     : await sendTemplate(lead.phone, template.name, template.params);
+  // Nothing was sent (WhatsApp not connected, or Meta refused it): do not log it, or the chat would show a message the customer never got.
+  if (!id) return null;
   await db.from('messages').insert({ lead_id: lead.id, phone: lead.phone, direction: 'out', sender, body: text, wa_message_id: id });
   return id;
 }

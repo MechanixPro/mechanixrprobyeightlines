@@ -25,3 +25,9 @@ test('the admin tells the truth about where the link went', () => {
   const a = read('admin/admin.js');
   assert.match(a, /data\.emailed/);
 });
+
+test('a WhatsApp message is logged as sent only when WhatsApp really accepted it', () => {
+  const w = read('supabase/functions/_shared/whatsapp.ts');
+  const fn = w.slice(w.indexOf('export async function sendSmart'));
+  assert.match(fn, /if \(!id\) return null;[\s\S]*messages'\)\.insert/);
+});
