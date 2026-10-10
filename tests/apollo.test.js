@@ -37,5 +37,5 @@ test('the ID is set in config.js, the script ships on every page but only runs o
 });
 test('the security policy allows Apollo and nothing else new', () => {
   const h = read('_headers');
-  assert.match(h, /script-src[^;]*https:\/\/assets\.apollo\.io/); assert.match(h, /connect-src[^;]*https:\/\/\*\.apollo\.io/);
+  assert.match(h, /script-src[^;]*https:\/\/assets\.apollo\.io/); assert.match(h, /connect-src[^;]*https:\/\/\*\.apollo\.io/); assert.match(h, /connect-src[^;]*https:\/\/aplo-evnt\.com/);
 });
