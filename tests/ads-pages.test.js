@@ -118,3 +118,13 @@ test('the Google Ads campaign pack respects the length limits and uses real page
   assert.match(d, /offers\/bike-service\//); assert.match(d, /₹165/); assert.match(d, /Negative keywords/);
   assert.doesNotMatch(d, /cheapest|best price|guarantee|free service|% off/i);
 });
+
+test('the Performance Max pack respects asset length limits and avoids licensed photos', () => {
+  const d = read('docs/GOOGLE-ADS-PMAX.md');
+  const block = (title) => d.split(title)[1].split('```')[1].trim().split('\n');
+  const heads = block('**Headlines**'), longs = block('**Long headlines**'), descs = block('**Descriptions**');
+  assert.equal(heads.length, 15); for (const h of heads) assert.ok(h.length <= 30, h);
+  assert.equal(longs.length, 5); for (const x of longs) assert.ok(x.length <= 90, x);
+  assert.equal(descs.length, 5); for (const x of descs) assert.ok(x.length <= 90, x); assert.ok(descs[4].length <= 60);
+  assert.match(d, /Final URL expansion: OFF/); assert.match(d, /Wikimedia/); assert.doesNotMatch(d, /cheapest|best price|guarantee|% off/i);
+});
