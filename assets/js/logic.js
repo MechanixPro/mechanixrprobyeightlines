@@ -94,6 +94,21 @@
     [AREA_COORDS, LOCALITIES].forEach(function (set) { Object.keys(set).forEach(function (n) { var d = distanceKm(lat, lng, set[n][0], set[n][1]); if (d < bd) { bd = d; best = n; } }); });
     return { name: best || 'Bengaluru', served: true };
   }
+  /* A place picked from Google's address search -> the booking form fields. Plain numbers in, so it can be tested without Google. */
+  function placeToFields(pl) {
+    if (!pl || !pl.location) return null;
+    var lat = Number(pl.location.lat), lng = Number(pl.location.lng);
+    if (!validGeo(lat, lng)) return null;
+    lat = Math.round(lat * 1e5) / 1e5; lng = Math.round(lng * 1e5) / 1e5;
+    var comps = pl.addressComponents || [], pin = '', loc = '';
+    comps.forEach(function (c) {
+      var t = c.types || [];
+      if (t.indexOf('postal_code') > -1 && /^\d{6}$/.test(String(c.longText || '').replace(/\s/g, ''))) pin = String(c.longText).replace(/\s/g, '');
+      if (!loc && (t.indexOf('sublocality_level_1') > -1 || t.indexOf('sublocality') > -1 || t.indexOf('neighborhood') > -1)) loc = String(c.longText || '');
+    });
+    var address = String(pl.formattedAddress || '').replace(/,\s*India\s*$/, '').replace(/[<>\u0000-\u001f]/g, '').trim().slice(0, 200);
+    return { address: address, pin: pin, lat: lat, lng: lng, locality: loc, inBengaluru: inBengaluru(lat, lng) };
+  }
   /* A PIN code the visitor typed: do we serve it, and which area is it? Bengaluru is 560001 to 560110. */
   function pinInfo(raw, pins, off) {
     var pin = String(raw || '').replace(/\s/g, '');
@@ -231,5 +246,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { receiptBars: receiptBars, pinFromLocation: pinFromLocation, pinInfo: pinInfo, inBengaluru: inBengaluru, nearestPlace: nearestPlace, prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { placeToFields: placeToFields, receiptBars: receiptBars, pinFromLocation: pinFromLocation, pinInfo: pinInfo, inBengaluru: inBengaluru, nearestPlace: nearestPlace, prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });
