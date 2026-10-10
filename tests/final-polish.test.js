@@ -37,7 +37,7 @@ test('home shows no reviews or mechanics block while there is no real content', 
 test('reviews appear only when complete (name, text, date, link) and mechanics need a name and years', () => {
   const rev = [{ name: 'Asha', text: 'Great', date: '2026-10-01', url: 'https://g.page/r/x' }, { name: 'No link', text: 'x', date: '2026-10-01' }];
   const mech = [{ name: 'Ravi', years: 6, speciality: 'Scooters' }, { name: 'No years' }];
-  const out = py('def _load_json', '# Track page', { 'reviews.json': JSON.stringify(rev), 'mechanics.json': JSON.stringify(mech) }, 'print(reviews_html()); print(mechanics_html())');
+  const out = py('def _load_json', '# Pay page:', { 'reviews.json': JSON.stringify(rev), 'mechanics.json': JSON.stringify(mech) }, 'print(reviews_html()); print(mechanics_html())');
   assert.match(out, /Asha/); assert.doesNotMatch(out, /No link/); assert.match(out, /Ravi/); assert.match(out, /6 years of experience/); assert.doesNotMatch(out, /No years/);
 });
 test('a language page is only built when every line is reviewed', () => {
@@ -95,7 +95,7 @@ test('Instagram: follow card and footer link always; posts only for valid post l
   for (const c of ['p/DeR2Vd_SRh-', 'p/DeQe_BOCEKp', 'reel/DeQd2W9iUYD', 'p/DeSu9N4CPkc', 'p/DeSwMMviLK1']) assert.ok(h.includes('instagram.com/' + c + '/embed'), c);
   assert.match(read('_headers'), /frame-src[^;]*https:\/\/www\.instagram\.com/);
   assert.match(read('src/home.jsonld'), /"sameAs":\["https:\/\/www\.instagram\.com\/themechanixpro\/"\]/);
-  const out = py('def _load_json', '# Track page', { 'instagram.json': JSON.stringify({ handle: 'themechanixpro', posts: ['https://www.instagram.com/p/ABCde12345/', 'https://evil.example/p/ABCde12345/', 'https://www.instagram.com/reel/Zz9_-Aaaaa/?igsh=x', 'javascript:alert(1)'] }) }, 'import re\nprint(instagram_html())');
+  const out = py('def _load_json', '# Pay page:', { 'instagram.json': JSON.stringify({ handle: 'themechanixpro', posts: ['https://www.instagram.com/p/ABCde12345/', 'https://evil.example/p/ABCde12345/', 'https://www.instagram.com/reel/Zz9_-Aaaaa/?igsh=x', 'javascript:alert(1)'] }) }, 'import re\nprint(instagram_html())');
   assert.match(out, /instagram\.com\/p\/ABCde12345\/embed/); assert.match(out, /instagram\.com\/reel\/Zz9_-Aaaaa\/embed/);
   assert.doesNotMatch(out, /evil\.example|javascript:/); assert.match(out, /loading="lazy"/);
 });
