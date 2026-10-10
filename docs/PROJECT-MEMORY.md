@@ -21,7 +21,7 @@ A hand-off for anyone (or any future Claude session) who continues this work. It
 - **Hosting:** Cloudflare Pages projects `mechanixpro-site` and `mechanixpro-admin` (Cloudflare account hello@mechanixpro.in; never touch the info@ziyam.in account). Domain `mechanixpro.in` (GoDaddy registration, Cloudflare DNS), admin at `admin.mechanixpro.in`.
 - **Deploy:** `npx wrangler pages deploy dist-site --project-name mechanixpro-site --branch main` and the same for `dist-admin` / `mechanixpro-admin`. A push to GitHub `main` also triggers a Cloudflare Git build.
 - **Backend:** Supabase project `mejdxsbpyscujpvbwvmg` (Postgres with RLS, Auth, Edge Functions in Deno, Storage). CLI is linked: `npx supabase db push --yes`, `npx supabase functions deploy <name> --use-api`, `npx supabase db query --linked "..."`. Migrations are in `supabase/migrations/` (latest `20261029000000_invoice_override.sql`).
-- **Edge functions:** `submit-lead`, `confirm-booking`, `send-invoice`, `send-broadcast`, `unsubscribe`, `join-waitlist`, `track-booking`, `service-reminder`, `auth-email`, `whatsapp-webhook`, `follow-up`, `payment-link`, `razorpay-webhook`. Shared code in `supabase/functions/_shared/`.
+- **Edge functions:** `submit-lead`, `confirm-booking`, `send-invoice`, `send-broadcast`, `unsubscribe`, `join-waitlist`, `track-booking`, `service-reminder`, `aisensy-lead`, `auth-email`, `whatsapp-webhook`, `follow-up`, `payment-link`, `razorpay-webhook`. Shared code in `supabase/functions/_shared/`.
 - **Secrets** live only in Supabase function secrets (`npx supabase secrets set NAME=value`): the Resend key, Anthropic key, Razorpay, WhatsApp token, `CRON_SECRET`, `ALLOWED_ORIGINS`, `IP_SALT`, and similar. Never put them in the repo or in chat.
 - **Public config** is `assets/js/config.js`: WhatsApp and call number, Supabase URL and anon key, Google tag IDs, Maps key, and switches. These are visible to every visitor by design.
 - **Auth email:** login codes go through a Supabase "Send Email" hook to `auth-email`, then Resend (`docs/AUTH-EMAIL.md`).
@@ -63,6 +63,7 @@ A hand-off for anyone (or any future Claude session) who continues this work. It
 - **Languages:** Kannada and Hindi need a fluent reviewer.
 - **Instagram:** add more post links to `src/instagram.json`; up to six show.
 - **Reviews and mechanic photos:** none yet. The site stays honest until real ones exist.
+- **WhatsApp chatbot:** two options are prepared in `docs/WHATSAPP-BOT.md` (our own bot, or AiSensy feeding bookings into `aisensy-lead`). Decision after the first week of ads. The owner wants a separate dedicated WhatsApp number and a separate call/support number (`whatsapp` vs `callNumber` in `config.js`). `aisensy-lead` is deployed but returns 403 until `AISENSY_WEBHOOK_SECRET` is set.
 - **AI chat helper:** built on branch `feat/site-assistant`, not deployed; wait for the client to confirm.
 - **Cloudflare:** the AI-bots switch decision and a www to apex redirect rule are still open. Outer-town PIN codes (5621xx) are not added.
 - **Ads review:** after 3 to 4 days check the Channels and Search terms reports; if most spend lands on Display or YouTube, move to a Search campaign.
