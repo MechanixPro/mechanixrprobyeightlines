@@ -17,5 +17,6 @@ window.MXP = {
   googleMapsKey: 'AIzaSyCgu-ZcTzcl7b4ptDdpwWNlK8wUJPds6RU',               // Google Maps key (public browser key, restricted to mechanixpro.in). Turns on address search and the Find us map
   googleAddressSearch: false,      // true shows address search in the booking form. Turn on only after Places API (New) works for the key
   helperStyle: 'ab',               // The helper character: 'pro' (mechanic), 'sphere', or 'ab' (half the visitors see each, so you can compare)
+  apolloAppId: '6ac9ea0d24cdaa0014db50b0', // Apollo website tracker. Loads only on the Fleets and Apartments pages
   metaPixelId: '',                 // Meta (Instagram and Facebook) Pixel ID, digits only
 };
