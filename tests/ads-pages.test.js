@@ -60,7 +60,7 @@ test('tags: Google loads once with the analytics ID, and a lead counts as an Ads
   assert.equal(calls.scripts.filter((s) => /googletagmanager\.com\/gtag\/js\?id=G-TEST123/.test(s)).length, 1);
   win.window.gtag = (...a) => calls.gtag.push(a); // after load, calls go here
   win.mxpTrack('generate_lead', { value: 1299 });
-  assert.ok(calls.gtag.some((a) => a[0] === 'event' && a[1] === 'conversion' && a[2].send_to === 'AW-111/abc' && a[2].value === 1299));
+  assert.ok(calls.gtag.some((a) => a[0] === 'event' && a[1] === 'conversion' && a[2].send_to === 'AW-111/abc' && a[2].value === 1 && a[2].currency === 'INR'));
 });
 test('tags: the Meta Pixel loads only with a pixel ID and a lead sends the Lead event', () => {
   const { win, calls } = run({ metaPixelId: '123456789' });
@@ -103,4 +103,8 @@ test('the security policy lets the Google Ads tag do its calls', () => {
   const h = read('_headers');
   assert.match(h, /script-src[^;]*https:\/\/googleads\.g\.doubleclick\.net/); assert.match(h, /script-src[^;]*https:\/\/www\.googleadservices\.com/);
   assert.match(h, /connect-src[^;]*https:\/\/www\.google\.com/); assert.match(h, /connect-src[^;]*doubleclick\.net/);
+});
+
+test('the real conversion label is set in config.js', () => {
+  assert.match(read('assets/js/config.js'), /googleAdsSendTo: 'AW-18504366564\/[A-Za-z0-9_-]{10,}'/);
 });

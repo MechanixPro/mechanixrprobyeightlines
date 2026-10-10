@@ -33,7 +33,7 @@
     try {
       if (window.gtag) {
         window.gtag('event', name, params);
-        if (name === 'generate_lead' && C.googleAdsSendTo) window.gtag('event', 'conversion', { send_to: C.googleAdsSendTo, value: params.value || 0, currency: 'INR' });
+        if (name === 'generate_lead' && C.googleAdsSendTo) window.gtag('event', 'conversion', { send_to: C.googleAdsSendTo, value: 1, currency: 'INR' }); // a lead counts as 1: the price shown is only an estimate, not money earned
       }
       if (window.fbq) {
         if (name === 'generate_lead') window.fbq('track', 'Lead', { value: params.value || 0, currency: 'INR' });
