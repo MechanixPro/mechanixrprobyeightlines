@@ -344,6 +344,8 @@ async function openLead(id, silent) {
     <button class="btn btn-primary" style="margin-top:14px" type="button" data-act="save">Save changes</button></div>
   <div class="card" style="margin-top:12px"><h3>Payment</h3>${l.payment_link ? `<p class="small">Payment link: <a href="${esc(l.payment_link)}" target="_blank" rel="noopener">${esc(l.payment_link)}</a> (${rupee(l.amount_due)})</p><p><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="https://wa.me/91${esc(l.phone)}?text=${encodeURIComponent('Hi ' + String(l.name).split(' ')[0] + ', here is your secure link to pay ' + rupee(l.amount_due) + ' for booking ' + l.ref + ': ' + l.payment_link)}">Send link on WhatsApp</a></p>` : ''}
     <label class="label" for="pa">Amount <span class="muted" style="font-weight:400">(${S.leads.some((x) => x.phone === l.phone && x.id !== l.id && x.status === 'completed') ? 'returning customer' : 'new customer'} slot fee by default)</span></label><input id="pa" inputmode="numeric" value="${esc(l.amount_due || slotFeeFor(l))}">
+    <label class="label" for="pe">Customer email <span class="muted" style="font-weight:400">(the payment link is emailed here)</span></label><input id="pe" type="email" inputmode="email" autocomplete="off" maxlength="254" placeholder="name@example.com" value="${esc(S.customers.find((c) => c.id === l.customer_id)?.email || '')}">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-primary btn-sm" type="button" data-act="emailLink">Email payment link</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${isOwner() ? '<button class="btn btn-ghost btn-sm" type="button" data-act="deleteLead">Delete booking</button>' : ''}<button class="btn btn-ghost btn-sm" type="button" data-act="issueFromLead">Log an issue</button><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button><button class="btn btn-primary btn-sm" type="button" data-act="confirmBooking">Confirm booking and email customer</button><button class="btn btn-dark btn-sm" type="button" data-act="payLink">Create & send payment link</button><button class="btn btn-ghost btn-sm" type="button" data-act="markPaid">Mark paid manually</button></div>
     <p class="tiny muted">Paid bookings stop all automatic reminders.</p></div>
   <div class="card" style="margin-top:12px"><h3>WhatsApp conversation</h3><div class="chat">${(msgs ?? []).map((m) => `<div class="bubble ${m.direction}">${esc(m.body)}<small>${m.direction === 'in' ? 'Customer' : m.sender === 'ai' ? 'AI assistant' : m.sender === 'staff' ? 'Team' : 'Automatic'} · ${when(m.created_at)}</small></div>`).join('') || '<p class="muted small">No messages yet. The conversation appears here once WhatsApp automation is connected.</p>'}</div></div>`;
@@ -604,6 +606,16 @@ const ACT = {
     const why = data?.error || (error?.context?.json ? (await error.context.json().catch(() => null))?.error : '') || '';
     if (error || data?.error) return toast('Could not create link: ' + (why || (error && error.message) || 'try again'));
     toast(data.whatsapp_sent ? 'Payment link sent on WhatsApp' + (data.emailed ? ' and email' : '') : data.emailed ? 'Link emailed to the customer. To send on WhatsApp too, tap Send link on WhatsApp.' : data.has_email ? 'Link created, but the email could not be sent. Tap Send link on WhatsApp.' : 'Link created. No email on file and WhatsApp automation is not connected, so tap Send link on WhatsApp.'); await loadLeads(); openLead(l.id, true);
+  },
+  async emailLink() {
+    const l = S.leads.find((x) => x.id === S.open), amount = parseInt($('#pa').value, 10), email = $('#pe').value.trim();
+    if (!(amount > 0)) return toast('Enter an amount');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return toast('Enter the customer email first');
+    const { data, error } = await sb.functions.invoke('payment-link', { body: { lead_id: l.id, amount, email, resend: true, send_whatsapp: false } });
+    const why = data?.error || (error?.context?.json ? (await error.context.json().catch(() => null))?.error : '') || '';
+    if (error || data?.error) return toast('Could not email the link: ' + (why || (error && error.message) || 'try again'));
+    toast(data.emailed ? 'Payment link emailed to ' + email : 'Link is ready but the email could not be sent. Tap Send link on WhatsApp instead.');
+    await loadLeads(); await loadPeople(); openLead(l.id, true);
   },
   async markPaid() {
     const l = S.leads.find((x) => x.id === S.open), amount = parseInt($('#pa').value, 10);
