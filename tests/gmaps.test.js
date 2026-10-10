@@ -29,8 +29,8 @@ test('placeToFields flags a place outside Bengaluru and returns nothing for junk
   assert.equal(L.placeToFields({ formattedAddress: 'x', location: { lat: 'a', lng: 1 } }), null);
 });
 
-test('the Maps key is a public setting, empty by default, and the booking form only shows address search when it is set', () => {
-  assert.match(read('assets/js/config.js'), /googleMapsKey: ''/);
+test('the Maps key is a public browser key (empty or an AIza key), and the booking form only shows address search when it is set', () => {
+  assert.match(read('assets/js/config.js'), /googleMapsKey: '(AIza[\w-]{30,})?'/);
   const a = read('assets/js/app.js');
   assert.match(a, /C\.googleMapsKey/); assert.match(a, /data-act="gpick"/); assert.match(a, /id="f-gsearch"/);
 });
