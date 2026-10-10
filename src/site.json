@@ -17,8 +17,7 @@
         "• Chain Cleaning & Lubrication",
         "• Air Filter Check",
         "• Clutch Check",
-        "• Throttle Check",
-        "• Bike Washing & Cleaning"
+        "• Throttle Check"
       ]
     },
     "general": {
@@ -36,8 +35,8 @@
         "• Clutch & Throttle Adjustment",
         "• Lights & Electrical Check",
         "• Suspension Check",
-        "• Bike Washing & Cleaning",
-        "• Extra parts (Chargeble)"
+        "• Extra parts (Chargeble)",
+        "• Washing & Cleaning (EXTRA)"
       ]
     },
     "full": {
@@ -78,7 +77,7 @@
     },
     "sos": {
       "name": "Roadside emergency",
-      "price": 349,
+      "price": 699,
       "includes": [
         "Mechanic dispatched to your location now",
         "• Quick roadside assistance",

@@ -10,7 +10,7 @@ NAV = '''<a class="skip" href="#main">Skip to content</a>
   <a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="27"><img class="wm" src="/assets/img/logo-wordmark.webp" alt="" width="137" height="12"></a>
   <nav class="links" aria-label="Main"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a></nav>
   <details class="menu"><summary aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
-    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
+    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
   <a class="btn btn-ghost btn-sm call-btn" href="#" data-call><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call us</a>
   <a class="btn btn-primary btn-sm cta" href="/book/">Get a quote</a>
 </div></header>
@@ -23,7 +23,7 @@ FOOTER = '''<footer>
       <p><span data-phone>+91 XXXXX XXXXX</span> · <a href="mailto:hello@mechanixpro.in" style="display:inline">hello@mechanixpro.in</a></p>
     </div>
     <div><b>Areas</b>{area_links}<a href="/areas/">All Bengaluru PIN codes</a></div>
-    <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
+    <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
   </div>
   <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Mechanix Pro is a brand of {company_name}, {company_addr}. GSTIN {company_gstin}</p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p></div>
 </footer>
@@ -43,6 +43,7 @@ HEAD = '''<!doctype html>
 {schema}
 <script src="/assets/js/loader.js"></script>
 <script src="/assets/js/config.js" defer></script>
+<script src="/assets/js/tags.js" defer></script>
 {scripts}
 </head>
 <body class="{body}">
@@ -148,7 +149,7 @@ LEGAL = {
  'privacy': ('Privacy Policy', 'How Mechanix Pro collects, uses and protects your personal data.', '''
 <p class="muted">Last updated: [date]. This policy follows India's Digital Personal Data Protection Act, 2023.</p>
 <h2>Who we are</h2><p>Mechanix Pro is operated by [Registered business name], [registered address], Bengaluru, Karnataka ("we", "us").</p>
-<h2>What we collect</h2><ul><li>Name and mobile number; email if you give it.</li><li>Your location (a map pin and nearest area) only if you tap "Use my current location". You can remove it before sending.</li><li>Service details: area or address, bike brand, model, nickname and registration number, the service you choose, photos taken during inspection.</li><li>WhatsApp messages you send us about your booking.</li><li>Payment status from Razorpay. We never see or store your card or UPI PIN.</li><li>Basic technical data (device, browser, approximate location from IP) for security and to prevent misuse.</li></ul>
+<h2>What we collect</h2><ul><li>Name and mobile number; email if you give it.</li><li>Website analytics and advertising tags (Google and Meta) record which pages and ads brought you here and whether you sent a request. They do not receive your name, number or email.</li><li>Your location (a map pin and nearest area) only if you tap "Use my current location". You can remove it before sending.</li><li>Service details: area or address, bike brand, model, nickname and registration number, the service you choose, photos taken during inspection.</li><li>WhatsApp messages you send us about your booking.</li><li>Payment status from Razorpay. We never see or store your card or UPI PIN.</li><li>Basic technical data (device, browser, approximate location from IP) for security and to prevent misuse.</li></ul>
 <h2>Why we use it</h2><p>To confirm and deliver your service, send booking updates and reminders on WhatsApp (only if you agree), process payments, give warranty support, prevent fraud and meet tax law. With your consent we may send offers; you can stop them anytime by replying STOP.</p>
 <h2>Automated replies</h2><p>Some WhatsApp replies are written by an AI assistant trained on our services and prices. A team member reviews conversations and you can ask for a person at any time.</p>
 <h2>Who we share it with</h2><p>Only as needed: the mechanic assigned to your job; service providers who process data for us — Supabase (database), Cloudflare (hosting and security), Meta (WhatsApp), Razorpay (payments), Anthropic (AI replies), Google (analytics, if enabled); and authorities where the law requires. We do not sell your data.</p>
@@ -521,6 +522,46 @@ def i18n_build(english_page, slug_url):
         if not i18n_ready(data): print(f'i18n: {code} not published (lines still need review)'); continue
         made[code] = (i18n_apply(english_page, data), data.get('name', code), tag)
     return made
+
+# ---- Ad landing pages (kept out of search and the sitemap) and the roadside help page ----
+_TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"/></svg>'
+PROMISES = '<section class="strip" aria-label="Our promises"><div class="wrap"><ul><li>Quote first, work after your OK</li><li>OEM-certified parts, fitted after your approval</li><li>{{days}}-day service warranty</li><li>OTP-safe bike handover</li></ul></div></section>'
+def offer_page(o):
+    sid, slug = o['service'], o['slug']
+    book = f'/book/?service={sid}&campaign={slug}'
+    checks = ''.join(f'<li>{html.escape(c)}</li>' for c in o['checks'])
+    wa = html.escape(o['wa'] + f' (campaign: {slug})')
+    body = f'''<section class="hero"><div class="wrap"><div class="hero-copy">
+  <h1>{html.escape(o['headline'])}</h1>
+  <p class="lead">{html.escape(o['lead'])}</p>
+  <p class="offer-price"><b>{{{{text:{sid}}}}}</b> <span>starting price, GST included. Your exact quote comes on WhatsApp.</span></p>
+  <div class="row"><a class="btn btn-primary" href="{book}">Build your service</a><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{wa}">Get a quote on WhatsApp</a><a class="btn btn-ghost" href="#" data-call>Call us</a></div>
+</div></div></section>
+{PROMISES}
+<section><div class="wrap pricing"><div class="sec-head"><h2>{html.escape(o['checks_title'])}.</h2><p>Parts and oil above standard grade are quoted first and fitted only after you approve.</p></div><ul class="tick">{checks}</ul></div></section>
+<section class="band"><div class="wrap"><div class="sec-head"><h2>How it works.</h2></div>
+<ol class="steps3"><li><b>Build</b><span>Pick your bike and what it needs. See a starting price right away.</span></li><li><b>Get your quote</b><span>Our expert checks the details and sends your quote on WhatsApp.</span></li><li><b>We come to you</b><span>Approve the quote, pick a slot, and a Mechanix Pro-certified mechanic services your bike at your door. The {{{{fee:advance}}}} checkup and quote fee is adjusted in your bill if you go ahead.</span></li></ol></div></section>
+<section><div class="wrap"><div class="final"><h2>Ready when your bike is.</h2><p>Build your service in under a minute, or just message us.</p><div class="row"><a class="btn btn-primary" href="{book}">Build your service</a><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{wa}">Get a quote on WhatsApp</a></div></div></div></section>'''
+    page = HEAD.format(title=html.escape(o['title'] + ' | Mechanix Pro'), desc=html.escape(o['lead']), url=f'{SITE}/offers/{slug}/', site=SITE, schema='', scripts=LEGAL_JS, body='page-offer', nav=NAV, main='')
+    page = page.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
+    write(f'offers/{slug}/index.html', page + body + foot(FLOAT))
+for _o in _load_json('offers.json'): offer_page(_o)
+
+_road = HEAD.format(title='Bike Breakdown and Puncture Help in Bengaluru | Mechanix Pro', desc='Bike broken down or punctured in Bengaluru? Share your location and Mechanix Pro sends the nearest mechanic. Call or WhatsApp now.', url=f'{SITE}/roadside/', site=SITE, schema='', scripts=LEGAL_JS, body='page-offer', nav=NAV, main='')
+_road_wa = html.escape('Hi Mechanix Pro, my bike has broken down. I am sharing my live location now.')
+write('roadside/index.html', _road + f'''<section class="hero"><div class="wrap"><div class="hero-copy">
+  <h1>Bike broken down in Bengaluru? We send the nearest mechanic.</h1>
+  <p class="lead">Share your live location on WhatsApp and tell us what happened. A Mechanix Pro mechanic comes to you, and you approve any extra work before it starts.</p>
+  <p class="offer-price"><b>{{{{text:sos}}}}</b> <span>roadside emergency visit, GST included.</span></p>
+  <div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{_road_wa}">Send my location on WhatsApp</a><a class="btn btn-primary" href="#" data-call>Call us now</a></div>
+</div></div></section>
+{PROMISES}
+<section><div class="wrap pricing"><div class="sec-head"><h2>Tell us what happened.</h2><p>The more you tell us, the better the mechanic can prepare.</p></div>
+<ul class="tick"><li>Puncture or flat tyre</li><li>Bike will not start</li><li>Battery or self-start problem</li><li>Brakes, chain or clutch trouble</li><li>Engine heating or a strange noise</li><li>Electric scooter that stopped or lost range</li></ul></div></section>
+<section class="band"><div class="wrap"><div class="sec-head"><h2>While you wait.</h2></div>
+<ol class="steps3"><li><b>Get safe</b><span>Move the bike off the road if you can, switch on the hazard lights, and stand well away from traffic.</span></li><li><b>Send your location</b><span>Tap the WhatsApp button and share your live location, so the mechanic can find you.</span></li><li><b>Approve before we start</b><span>The mechanic checks the problem and quotes first. Nothing extra starts until you say yes.</span></li></ol></div></section>
+<section><div class="wrap"><div class="final"><h2>Stuck right now?</h2><p>Message us with your location, or call.</p><div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{_road_wa}">Send my location on WhatsApp</a><a class="btn btn-ghost" href="#" data-call>Call us now</a></div></div></div></section>''' + foot(FLOAT))
+urls.append(('/roadside/', '0.8'))
 
 MAIN = [
   ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from {{text:basic}}, Mechanix Pro-certified mechanics, OEM-certified parts, {{days}}-day service warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n<script src="/assets/js/showcase.js" defer></script>', '1.0'),
