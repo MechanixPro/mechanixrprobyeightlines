@@ -11,7 +11,7 @@ ADDON_NAMES = {'wash': 'Foam wash', 'chain': 'Chain clean and lube', 'brake': 'B
 def write_defaults(site):
     rows = [f"    {{ id: '{k}', kind: 'service', name: {q(v['name'])}, price: {v['price']}, description: {q(DESC.get(k, ''))}, includes: [{', '.join(q(x) for x in v['includes'])}] }}" for k, v in site['services'].items()]
     rows += [f"    {{ id: '{k}', kind: 'addon', name: {q(ADDON_NAMES.get(k, k))}, price: {n} }}" for k, n in site['addons'].items()]
-    rows += [f"    {{ id: 'advance', kind: 'fee', name: 'Checkup and quote fee', price: {site['advance']} }}", f"    {{ id: 'bigbike', kind: 'fee', name: 'Above-180cc surcharge', price: {site['bigBike']} }}"]
+    rows += [f"    {{ id: 'advance', kind: 'fee', name: 'Checkup and quote fee', price: {site['advance']} }}", f"    {{ id: 'newfee', kind: 'fee', name: 'New customer slot fee', price: {site.get('newCustomerFee', 99)} }}", f"    {{ id: 'bigbike', kind: 'fee', name: 'Above-180cc surcharge', price: {site['bigBike']} }}"]
     s = open(APP, encoding='utf-8').read()
     s = re.sub(r"  var DEFAULT_ITEMS = \[.*?\n  \];\n", lambda m: "  var DEFAULT_ITEMS = [\n" + ",\n".join(rows) + "\n  ];\n", s, count=1, flags=re.S)
     open(APP, 'w', encoding='utf-8').write(s)
@@ -34,8 +34,8 @@ def main():
         elif r['kind'] == 'addon' and r['id'] in site['addons'] and site['addons'][r['id']] != r['price']:
             changed.append(f"{r['id']} {site['addons'][r['id']]} -> {r['price']}"); site['addons'][r['id']] = r['price']
         elif r['kind'] == 'fee':
-            k = 'advance' if r['id'] == 'advance' else 'bigBike' if r['id'] == 'bigbike' else None
-            if k and site[k] != r['price']: changed.append(f"{r['id']} {site[k]} -> {r['price']}"); site[k] = r['price']
+            k = {'advance': 'advance', 'bigbike': 'bigBike', 'newfee': 'newCustomerFee'}.get(r['id'])
+            if k and site.get(k) != r['price']: changed.append(f"{r['id']} {site.get(k)} -> {r['price']}"); site[k] = r['price']
     json.dump(site, open(SITE, 'w', encoding='utf-8'), indent=2, ensure_ascii=False); open(SITE, 'a').write('\n')
     write_defaults(site)
     print('sync_prices:', ('updated ' + ', '.join(changed)) if changed else 'already up to date')

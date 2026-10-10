@@ -9,7 +9,7 @@ Two ways to take the ₹349 checkup and quote fee and final bills. Both mark the
 
 | Step | Where | What |
 |---|---|---|
-| 1 | function `create-order` | Checks the reference and number, works out what is due (the amount the admin set, else the ₹349 fee, minimum ₹1), creates a Razorpay order, returns the order id and the **public** key id |
+| 1 | function `create-order` | Checks the reference and number, works out what is due (the amount the admin set, else the slot fee: ₹99 for a new customer, ₹349 for a returning one (a phone with an earlier completed job), minimum ₹1), creates a Razorpay order, returns the order id and the **public** key id |
 | 2 | `/pay/` page (`assets/js/pay.js`) | Opens Razorpay's window with that order. Handles cancel and failed payments |
 | 3 | function `verify-payment` | Checks the signature (HMAC-SHA256 of `order_id|payment_id` with the key secret), asks Razorpay for the payment itself (must be captured and belong to that order), then marks the booking Paid once. The same payment cannot be counted twice |
 

@@ -90,12 +90,12 @@ def _price(key):
     d = SITE_DATA['services'].get(key)
     return d['price'] if d else SITE_DATA['addons'][key]
 def tok(s):
-    """Fills {{price:id}} (a span the browser can refresh), {{text:id}}, {{fee:advance|bigbike}}, {{feetext:..}}, {{days}} and {{includes_li:id}} from src/site.json."""
+    """Fills {{price:id}} (a span the browser can refresh), {{text:id}}, {{fee:advance|newfee|bigbike}}, {{feetext:..}}, {{days}} and {{includes_li:id}} from src/site.json."""
     def rep(m):
         kind, key = m.group(1), m.group(2)
         if kind == 'price': return f'<span data-price="{key}">{_inr(_price(key))}</span>'
         if kind == 'text': return _inr(_price(key))
-        fee = SITE_DATA['advance'] if key == 'advance' else SITE_DATA['bigBike']
+        fee = SITE_DATA['advance'] if key == 'advance' else SITE_DATA['newCustomerFee'] if key == 'newfee' else SITE_DATA['bigBike']
         if kind == 'fee': return f'<span data-fee="{key}">{_inr(fee)}</span>'
         if kind == 'feetext': return _inr(fee)
         if kind == 'includes_li': return ''.join(f'<li>{html.escape(x)}</li>' for x in SITE_DATA['services'][key]['includes'])
@@ -160,7 +160,7 @@ LEGAL = {
  'terms': ('Terms & Conditions', 'Terms for booking and using Mechanix Pro doorstep bike services.', '''
 <p class="muted">Last updated: [date]. Draft — to be reviewed by a lawyer before launch.</p>
 <h2>1. Service</h2><p>Mechanix Pro, operated by [Registered business name] (GSTIN [GSTIN]), provides two-wheeler service and repair at your location in our service areas in Bengaluru, through trained mechanics from our partner workshops.</p>
-<h2>2. Booking</h2><p>You can request a booking on our website or WhatsApp. A booking is confirmed when we confirm your slot and you pay the checkup and quote fee (currently {{fee:advance}}). The fee is adjusted in your final bill if you go ahead with the service.</p>
+<h2>2. Booking</h2><p>You can request a booking on our website or WhatsApp. A booking is confirmed when we confirm your slot and you pay the checkup and quote fee (currently {{fee:advance}}). The fee is adjusted in your final bill if you go ahead with the service. New customers, meaning a mobile number with no earlier completed job, pay a reduced slot fee of {{fee:newfee}} instead, on the same terms.</p>
 <h2>3. Prices and extra work</h2><p>Listed prices include GST and cover the labour and items described for each package. Parts used are OEM-certified. Parts, oil above standard grade and work outside the package are charged only after you approve an itemised estimate.</p>
 <h2>4. Payment</h2><p>The checkup and quote fee and final payments are made through Razorpay (UPI, cards, wallets, net banking) or as agreed with us. Invoices show GST separately.</p>
 <h2>5. Cancellation</h2><p>See our <a href="/refund-policy/">Refund & Cancellation Policy</a>.</p>
@@ -172,7 +172,7 @@ LEGAL = {
 <h2>11. Contact</h2><p>hello@mechanixpro.in · <span data-phone>+91 XXXXX XXXXX</span></p>'''),
  'refund-policy': ('Refund & Cancellation Policy', 'How cancellations and refunds work for Mechanix Pro bookings.', '''
 <p class="muted">Last updated: [date].</p>
-<h2>Cancelling a booking</h2><ul><li><b>More than 2 hours before your slot:</b> free. Your {{fee:advance}} checkup and quote fee is refunded in full.</li><li><b>Less than 2 hours before, or after the mechanic has left:</b> the {{fee:advance}} checkup and quote fee covers the visit and is not refunded.</li><li><b>Emergency (SOS) visits:</b> cancellable free until a mechanic is assigned.</li></ul>
+<h2>Cancelling a booking</h2><ul><li><b>More than 2 hours before your slot:</b> free. Your {{fee:advance}} checkup and quote fee is refunded in full.</li><li><b>Less than 2 hours before, or after the mechanic has left:</b> the {{fee:advance}} checkup and quote fee covers the visit and is not refunded.</li><li><b>New customers:</b> the {{fee:newfee}} slot fee follows the same rules, so it is refunded in full if you cancel more than 2 hours before your slot.</li><li><b>Emergency (SOS) visits:</b> cancellable free until a mechanic is assigned.</li></ul>
 <h2>If we cancel</h2><p>If we cannot reach you in your slot, we offer another slot or a full refund — your choice.</p>
 <h2>Service issues</h2><p>If something we fixed fails within {{days}} days, we redo that work free. If we cannot fix it, we refund the charge for that item.</p>
 <h2>How refunds are paid</h2><p>Refunds go to your original payment method through Razorpay within 5–7 working days of approval.</p>
@@ -273,7 +273,7 @@ for brand, name, t, big in load_bikes():
 <div class="card">{price_rows}</div>
 <p class="tiny muted" style="margin-top:8px">Starting from {{{{text:{first}}}}} for the {first_name}. GST included.{surcharge} Your exact quote comes on WhatsApp.</p>
 <h2>How it works</h2>
-<ol><li>Build your service and send it on WhatsApp.</li><li>Our expert checks what is needed and sends your quote.</li><li>You approve, we confirm your slot, and the mechanic arrives. The {{{{fee:advance}}}} checkup and quote fee is adjusted in your bill if you go ahead.</li></ol>
+<ol><li>Build your service and send it on WhatsApp.</li><li>Our expert checks what is needed and sends your quote.</li><li>You approve, we confirm your slot, and the mechanic arrives. The {{{{fee:advance}}}} checkup and quote fee ({{{{fee:newfee}}}} for new customers) is adjusted in your bill if you go ahead.</li></ol>
 <div class="final" style="margin-top:32px"><h2>Book a service for your {html.escape(name)}.</h2><p>Takes under a minute.</p><a class="btn btn-primary" href="{book}">Build your service</a></div>
 '''
     write(f'bike-service/{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=LEGAL_JS, body='', nav=NAV, main='page') + body + foot())
@@ -502,7 +502,7 @@ write('pay/index.html', _pay + '''<h1 style="font-size:40px">Pay for your bookin
   <p class="small" id="payMsg" role="status" aria-live="polite"></p>
 </form>
 <div id="payResult" aria-live="polite"></div>
-<p class="tiny muted">The amount is what is due on your booking, such as the {{fee:advance}} checkup and quote fee, which is adjusted in your final bill if you go ahead. We never see your card details. Need help? Message us on WhatsApp.</p>''' + foot(FLOAT))
+<p class="tiny muted">The amount is what is due on your booking, such as the {{fee:advance}} checkup and quote fee ({{fee:newfee}} for new customers), which is adjusted in your final bill if you go ahead. We never see your card details. Need help? Message us on WhatsApp.</p>''' + foot(FLOAT))
 
 # Track page: a customer looks up their booking with the reference and the mobile number they booked with.
 _tr = HEAD.format(title='Track Your Booking | Mechanix Pro', desc='Check the progress of your Mechanix Pro booking with your reference and mobile number.', url=f'{SITE}/track/', site=SITE, schema='', scripts=LEGAL_JS + '<script src="/assets/js/track.js" defer></script>', body='', nav=NAV, main='page')
