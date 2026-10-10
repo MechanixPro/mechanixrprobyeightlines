@@ -65,6 +65,18 @@ ${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}${button('Call us', '
   return { subject, html: layout({ preheader: 'Your quote comes on WhatsApp. Nothing starts until you approve it.', title: subject, body, site: d }), text };
 }
 
+export type PaymentLinkData = Site & { name: string; ref: string; amount: number; payUrl: string };
+export function paymentLinkEmail(d: PaymentLinkData): Mail {
+  const subject = `Pay ${rupee(d.amount)} to confirm booking ${d.ref}`;
+  const body = `${h1(`Your secure payment link, ${firstText(d.name)}.`)}
+${p(`Please pay <b>${rupee(d.amount)}</b> for booking <b>${escapeHtml(d.ref)}</b> to lock your slot. It is adjusted in your final bill if you go ahead with the service.`)}
+${button('Pay securely', d.payUrl)}
+${p('You can pay by UPI, card, wallet or net banking on Razorpay. We never ask for your card number, PIN or OTP on chat, call or email.')}
+${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}${button('Call us', 'tel:' + d.phoneTel, NAVY, '#ffffff')}`;
+  const text = `Your secure payment link, ${firstText(d.name)}.\n\nPlease pay ${rupee(d.amount)} for booking ${d.ref} to lock your slot. It is adjusted in your final bill if you go ahead.\n\nPay securely: ${d.payUrl}\n\nWe never ask for your card number, PIN or OTP on chat, call or email.\n\nWhatsApp: ${d.whatsappUrl}\nCall: ${d.phoneDisplay}`;
+  return { subject, html: layout({ preheader: `Pay ${rupee(d.amount)} for ${d.ref}`, title: subject, body, site: d }), text };
+}
+
 export type ConfirmedData = BookingData & { mechanicName?: string | null; amountDue?: number | null };
 export function bookingConfirmed(d: ConfirmedData): Mail {
   const subject = `Your service is confirmed ${d.ref}`;
