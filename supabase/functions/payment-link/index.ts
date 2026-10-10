@@ -23,21 +23,31 @@ Deno.serve(async (req) => {
   const { data: lead } = await db.from('leads').select('*').eq('id', String(b.lead_id ?? '')).maybeSingle();
   if (!lead) return json(req, { error: 'Booking not found' }, 404);
 
+  // An address typed in the admin is saved on the customer (no marketing consent implied) and used for this email.
+  const typed = String(b.email ?? '').trim().toLowerCase();
+  const typedOk = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/.test(typed) && typed.length <= 254;
+  if (typed && !typedOk) return json(req, { error: 'That email address does not look right' }, 400);
+  if (typedOk && lead.customer_id) await db.from('customers').update({ email: typed }).eq('id', lead.customer_id);
+
   try {
-    const link = await createPaymentLink({ amount, ref: lead.ref, leadId: lead.id, name: lead.name, phone: lead.phone, description: `Mechanix Pro booking ${lead.ref}` });
-    await db.from('leads').update({ payment_link: link.url, payment_link_id: link.id, amount_due: amount, status: 'payment_sent', followup_step: 2, next_followup_at: new Date(Date.now() + 2 * 3600_000).toISOString() }).eq('id', lead.id);
+    // Resend reuses the link already made for this amount, so the customer never gets two different links.
+    const reuse = b.resend === true && lead.payment_link && Number(lead.amount_due) === amount;
+    const link = reuse ? { id: lead.payment_link_id as string, url: lead.payment_link as string }
+      : await createPaymentLink({ amount, ref: lead.ref, leadId: lead.id, name: lead.name, phone: lead.phone, description: `Mechanix Pro booking ${lead.ref}` });
+    if (!reuse) await db.from('leads').update({ payment_link: link.url, payment_link_id: link.id, amount_due: amount, status: 'payment_sent', followup_step: 2, next_followup_at: new Date(Date.now() + 2 * 3600_000).toISOString() }).eq('id', lead.id);
     const first = String(lead.name).split(' ')[0];
-    const sent = b.send_whatsapp === false ? null : await sendSmart(db, lead, `Hi ${first}, here is your secure link to pay ${rupee(amount)} for booking ${lead.ref}: ${link.url}`, { name: TPL.payment(), params: [first, String(amount), lead.ref, link.url] }, 'staff');
+    const sent = b.send_whatsapp === false || reuse ? null : await sendSmart(db, lead, `Hi ${first}, here is your secure link to pay ${rupee(amount)} for booking ${lead.ref}: ${link.url}`, { name: TPL.payment(), params: [first, String(amount), lead.ref, link.url] }, 'staff');
     // Email the link too when the customer gave an address. A failure here never blocks the link.
     let emailed = false, hasEmail = false;
     try {
       const { data: cust } = lead.customer_id ? await db.from('customers').select('email').eq('id', lead.customer_id).maybeSingle() : { data: null };
-      if (cust?.email) {
+      const to = typedOk ? typed : cust?.email;
+      if (to) {
         hasEmail = true;
         const mail = paymentLinkEmail({ siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 83106 21498'), phoneTel: env('PHONE_TEL', '+918310621498'),
           whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918310621498'), email: 'hello@mechanixpro.in', name: lead.name, ref: lead.ref, amount, payUrl: link.url });
-        const r = await sendEmail({ to: cust.email, subject: mail.subject, html: mail.html, text: mail.text, from: FROM_BOOKING, tags: { template: 'payment_link' } });
-        await db.from('email_log').insert({ lead_id: lead.id, to_email: cust.email, template: 'payment_link', status: r.ok ? 'sent' : r.skipped ? 'skipped' : 'failed', provider_id: r.id ?? null, error: r.error ?? null });
+        const r = await sendEmail({ to, subject: mail.subject, html: mail.html, text: mail.text, from: FROM_BOOKING, tags: { template: 'payment_link' } });
+        await db.from('email_log').insert({ lead_id: lead.id, to_email: to, template: 'payment_link', status: r.ok ? 'sent' : r.skipped ? 'skipped' : 'failed', provider_id: r.id ?? null, error: r.error ?? null });
         emailed = r.ok;
       }
     } catch (e) { console.error('payment link email', e); }

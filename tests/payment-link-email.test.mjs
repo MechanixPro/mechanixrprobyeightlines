@@ -31,3 +31,9 @@ test('a WhatsApp message is logged as sent only when WhatsApp really accepted it
   const fn = w.slice(w.indexOf('export async function sendSmart'));
   assert.match(fn, /if \(!id\) return null;[\s\S]*messages'\)\.insert/);
 });
+
+test('the admin can email the payment link to an address typed in, and resend the same link', () => {
+  const f = read('supabase/functions/payment-link/index.ts'), a = read('admin/admin.js');
+  assert.match(f, /b\.email/); assert.match(f, /resend/); assert.match(f, /email_unsubscribed_at|customers'\)\.update\(\{ email/);
+  assert.match(a, /id="pe"/); assert.match(a, /data-act="emailLink"/); assert.match(a, /emailLink\(\)/);
+});
