@@ -5,11 +5,11 @@
   var L = window.MXP_LOGIC;
   var KEY = 'mxp_build_v1';
   var DEFAULT_ITEMS = [
-    { id: 'basic', kind: 'service', name: 'Basic service', price: 599, description: 'Oil level check, chain lube, brake adjust, wash', includes: ['• 20+ Point Bike Checkup', '• Engine Check', '• Brake Check', '• Tyre Check', '• Battery Check', '• Lights & Indicators Check', '• Horn Check', '• Chain Cleaning & Lubrication', '• Air Filter Check', '• Clutch Check', '• Throttle Check', '• Bike Washing & Cleaning'] },
-    { id: 'general', kind: 'service', name: 'General service', price: 1299, description: 'Engine oil change, filter clean, 20-point check', includes: ['• 30+ Point Bike Checkup', '• Engine Oil Replacement (As per your choice)', '• Brake Check & Adjustment', '• Tyre Check', '• Battery Check', '• Chain Cleaning & Lubrication', '• Air Filter Cleaning', '• Spark Plug Check', '• Clutch & Throttle Adjustment', '• Lights & Electrical Check', '• Suspension Check', '• Bike Washing & Cleaning', '• Extra parts (Chargeble)'] },
+    { id: 'basic', kind: 'service', name: 'Basic service', price: 599, description: 'Oil level check, chain lube, brake adjust, wash', includes: ['• 20+ Point Bike Checkup', '• Engine Check', '• Brake Check', '• Tyre Check', '• Battery Check', '• Lights & Indicators Check', '• Horn Check', '• Chain Cleaning & Lubrication', '• Air Filter Check', '• Clutch Check', '• Throttle Check'] },
+    { id: 'general', kind: 'service', name: 'General service', price: 1299, description: 'Engine oil change, filter clean, 20-point check', includes: ['• 30+ Point Bike Checkup', '• Engine Oil Replacement (As per your choice)', '• Brake Check & Adjustment', '• Tyre Check', '• Battery Check', '• Chain Cleaning & Lubrication', '• Air Filter Cleaning', '• Spark Plug Check', '• Clutch & Throttle Adjustment', '• Lights & Electrical Check', '• Suspension Check', '• Extra parts (Chargeble)', '• Washing & Cleaning (EXTRA)'] },
     { id: 'full', kind: 'service', name: 'Full service', price: 1999, description: 'General service plus throttle body clean, brake pads check, polish', includes: ['• 40+ Point Complete Bike Checkup', '• Engine Oil Replacement', '• Engine Performance Check', '• Brake Servicing', '• Tyre & Wheel Check', '• Battery & Electrical Check', '• Air Filter Cleaning / Replacement', '• Spark Plug Check / Replacement', '• Chain Servicing', '• Clutch Servicing', '• Suspension Check', '• Complete Bike Cleaning', '• Required Minor Parts Replacement', '• Extra Parts (Chargeble)', '• Final Quality Inspection'] },
     { id: 'repair', kind: 'service', name: 'Repair or problem check', price: 349, description: 'Checkup and quote visit; repair quoted before work starts', includes: ['AT YOUR DOOR STEP', '• Diagnose the bike problem', '• Identify the cause of the issue', '• Complete vehicle inspection', '• Check engine, brakes, battery & electricals', '• Check unusual noise, vibration or starting issues', '• Get a clear repair estimate before work', '• Customer approval required before any repair', '• Genuine parts replacement, if required'] },
-    { id: 'sos', kind: 'service', name: 'Roadside emergency', price: 349, description: 'Puncture, battery or breakdown; mechanic dispatched now', includes: ['Mechanic dispatched to your location now', '• Quick roadside assistance', '• Bike breakdown diagnosis', '• Puncture assistance', '• Battery jump-start assistance', '• Starting problem assistance', '• Minor on-the-spot repairs', '• Fuel-related assistance', '• Emergency towing support, if required', '• Repair estimate before major work', '• No major repair without customer approval'] },
+    { id: 'sos', kind: 'service', name: 'Roadside emergency', price: 699, description: 'Puncture, battery or breakdown; mechanic dispatched now', includes: ['Mechanic dispatched to your location now', '• Quick roadside assistance', '• Bike breakdown diagnosis', '• Puncture assistance', '• Battery jump-start assistance', '• Starting problem assistance', '• Minor on-the-spot repairs', '• Fuel-related assistance', '• Emergency towing support, if required', '• Repair estimate before major work', '• No major repair without customer approval'] },
     { id: 'wash', kind: 'addon', name: 'Foam wash', price: 199 },
     { id: 'chain', kind: 'addon', name: 'Chain clean and lube', price: 149 },
     { id: 'brake', kind: 'addon', name: 'Brake tuning', price: 99 },
@@ -283,7 +283,7 @@
     }).then(function (r) { clearTimeout(t); return r.json().then(function (j) { if (!r.ok) throw Object.assign(new Error(j.error || 'Failed'), { status: r.status }); return j; }); });
   }
   function track(name, params) {
-    try { if (window.gtag) { window.gtag('event', name, params || {}); if (name === 'generate_lead' && C.googleAdsSendTo) window.gtag('event', 'conversion', { send_to: C.googleAdsSendTo, value: total(), currency: 'INR' }); } } catch (e) {}
+    try { if (window.mxpTrack) window.mxpTrack(name, Object.assign({ value: name === 'generate_lead' ? total() : undefined }, params || {})); } catch (e) {}
   }
   function send() {
     if (!validate()) return render();
@@ -540,15 +540,9 @@
       .then(function (rows) { if (Array.isArray(rows) && rows.length) { items = rows; if (!svc(st.service)) st.service = services()[0].id; st.addons = st.addons.filter(svc); render(); renderPrices(); applyLivePrices(); } })
       .catch(function () {});
   }
-  function analytics() {
-    if (!C.gaId) return;
-    var s = document.createElement('script'); s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(C.gaId); document.head.appendChild(s);
-    window.dataLayer = window.dataLayer || []; window.gtag = function () { window.dataLayer.push(arguments); };
-    window.gtag('js', new Date()); window.gtag('config', C.gaId); if (C.googleAdsSendTo) window.gtag('config', C.googleAdsSendTo.split('/')[0]);
-  }
 
   function init() {
-    utm(); analytics();
+    utm();
     var attr = L.captureAttribution(location.search, (function () { try { return sessionStorage; } catch (e) { return { getItem: function () { return null; }, setItem: function () {} }; } })());
     st.ref_code = attr.ref_code; st.campaign = attr.campaign;
     var p = new URLSearchParams(location.search), area = p.get('area'), service = p.get('service');

@@ -1,0 +1,42 @@
+[
+  {
+    "slug": "bike-service",
+    "service": "general",
+    "title": "Bike service at your door in Bengaluru",
+    "headline": "Bike service at your door in Bengaluru.",
+    "lead": "A Mechanix Pro-certified mechanic comes to your home or office. Get a quote on WhatsApp first, and we start only after you say yes.",
+    "checks_title": "What a General service covers",
+    "checks": ["Engine oil change (your choice of oil)", "Brake check and adjustment", "Chain clean and lube", "Air filter clean and spark plug check", "Clutch and throttle adjustment", "Lights, battery and electrical check", "Suspension check", "Wash and wipe"],
+    "wa": "Hi Mechanix Pro, I need a bike service at my home in Bengaluru."
+  },
+  {
+    "slug": "monsoon-check",
+    "service": "basic",
+    "title": "Get your bike monsoon-ready",
+    "headline": "Get your bike monsoon-ready.",
+    "lead": "Wet roads are hard on brakes, tyres, chains and batteries. A mechanic checks them at your door, and you approve any extra work first.",
+    "checks_title": "What we check before the rains",
+    "checks": ["Brakes, so you can stop on wet roads", "Tyre condition and pressure", "Battery and starting", "Lights, indicators and horn", "Chain cleaning and lubrication", "Air filter", "Clutch and throttle", "A wash to finish"],
+    "wa": "Hi Mechanix Pro, I want a monsoon check for my bike."
+  },
+  {
+    "slug": "pre-trip-check",
+    "service": "general",
+    "title": "Check your bike before a long ride",
+    "headline": "Check your bike before a long ride.",
+    "lead": "Brakes, tyres, chain, oil and lights, checked at your door before you set off. You get the findings in plain words and a quote before any extra work.",
+    "checks_title": "What we check before you go",
+    "checks": ["Engine oil level and change", "Brakes and brake pads", "Tyres and tyre pressure", "Chain clean, lube and adjustment", "Battery and starting", "Lights, indicators and horn", "Clutch and throttle", "Suspension"],
+    "wa": "Hi Mechanix Pro, I want a pre-trip check for my bike."
+  },
+  {
+    "slug": "ev-check",
+    "service": "repair",
+    "title": "Electric scooter problem check at your door",
+    "headline": "Electric scooter acting up? We check it at your door.",
+    "lead": "Range dropped, charging trouble or a display problem? A mechanic finds the cause and quotes the fix first. Work starts only after you approve.",
+    "checks_title": "What to tell us",
+    "checks": ["Range has dropped", "Charging is slow or stops", "Display or app problem", "Brakes, tyres or suspension noise", "Lights, horn or wiring", "Any warning on the display", "Starting or power cut-outs", "Anything else that feels wrong"],
+    "wa": "Hi Mechanix Pro, my electric scooter needs a problem check."
+  }
+]

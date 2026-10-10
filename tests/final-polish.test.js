@@ -41,7 +41,7 @@ test('reviews appear only when complete (name, text, date, link) and mechanics n
   assert.match(out, /Asha/); assert.doesNotMatch(out, /No link/); assert.match(out, /Ravi/); assert.match(out, /6 years of experience/); assert.doesNotMatch(out, /No years/);
 });
 test('a language page is only built when every line is reviewed', () => {
-  const run = (rows) => py('LANG_META =', 'MAIN = [', {}, `print(i18n_ready(json.loads(${JSON.stringify(JSON.stringify({ strings: rows }))})))`);
+  const run = (rows) => py('LANG_META =', '# ---- Ad landing pages', {}, `print(i18n_ready(json.loads(${JSON.stringify(JSON.stringify({ strings: rows }))})))`);
   assert.equal(run([{ en: 'a', t: 'x', reviewed: true }, { en: 'b', t: 'y', reviewed: false }]), 'False');
   assert.equal(run([]), 'False');
   assert.equal(run([{ en: 'a', t: 'x', reviewed: true }]), 'True');
@@ -49,8 +49,8 @@ test('a language page is only built when every line is reviewed', () => {
 });
 test('translation swaps longest lines first and fails loudly when a line is missing', () => {
   const data = { strings: [{ en: 'Build your service', t: 'B', reviewed: true }, { en: 'Build your service in a minute', t: 'LONG', reviewed: true }] };
-  assert.equal(py('LANG_META =', 'MAIN = [', {}, `print(i18n_apply('<p>Build your service in a minute</p><b>Build your service</b>', json.loads(${JSON.stringify(JSON.stringify(data))})))`), '<p>LONG</p><b>B</b>');
-  const bad = spawnSync('python3', ['-I', '-c', `import html, json, os\nROOT='/tmp'\n${SRC.slice(SRC.indexOf('LANG_META ='), SRC.indexOf('MAIN = ['))}\ni18n_apply('<p>x</p>', json.loads(${JSON.stringify(JSON.stringify({ strings: [{ en: 'nope', t: 'y', reviewed: true }] }))}))`], { encoding: 'utf8' });
+  assert.equal(py('LANG_META =', '# ---- Ad landing pages', {}, `print(i18n_apply('<p>Build your service in a minute</p><b>Build your service</b>', json.loads(${JSON.stringify(JSON.stringify(data))})))`), '<p>LONG</p><b>B</b>');
+  const bad = spawnSync('python3', ['-I', '-c', `import html, json, os\nROOT='/tmp'\n${SRC.slice(SRC.indexOf('LANG_META ='), SRC.indexOf('# ---- Ad landing pages'))}\ni18n_apply('<p>x</p>', json.loads(${JSON.stringify(JSON.stringify({ strings: [{ en: 'nope', t: 'y', reviewed: true }] }))}))`], { encoding: 'utf8' });
   assert.notEqual(bad.status, 0);
 });
 test('every draft translation line exists on the English home page and starts unreviewed', () => {
