@@ -342,7 +342,7 @@ async function openLead(id, silent) {
     <label class="label" for="ln">Notes</label><textarea id="ln" rows="3" maxlength="1000">${esc(l.notes || '')}</textarea>
     <label class="check"><input type="checkbox" id="lai"${l.ai_enabled ? ' checked' : ''}><span>AI assistant replies and automatic reminders for this booking</span></label>
     <button class="btn btn-primary" style="margin-top:14px" type="button" data-act="save">Save changes</button></div>
-  <div class="card" style="margin-top:12px"><h3>Payment</h3>${l.payment_link ? `<p class="small">Link sent: <a href="${esc(l.payment_link)}" target="_blank" rel="noopener">${esc(l.payment_link)}</a> (${rupee(l.amount_due)})</p>` : ''}
+  <div class="card" style="margin-top:12px"><h3>Payment</h3>${l.payment_link ? `<p class="small">Payment link: <a href="${esc(l.payment_link)}" target="_blank" rel="noopener">${esc(l.payment_link)}</a> (${rupee(l.amount_due)})</p><p><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="https://wa.me/91${esc(l.phone)}?text=${encodeURIComponent('Hi ' + String(l.name).split(' ')[0] + ', here is your secure link to pay ' + rupee(l.amount_due) + ' for booking ' + l.ref + ': ' + l.payment_link)}">Send link on WhatsApp</a></p>` : ''}
     <label class="label" for="pa">Amount <span class="muted" style="font-weight:400">(${S.leads.some((x) => x.phone === l.phone && x.id !== l.id && x.status === 'completed') ? 'returning customer' : 'new customer'} slot fee by default)</span></label><input id="pa" inputmode="numeric" value="${esc(l.amount_due || slotFeeFor(l))}">
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${isOwner() ? '<button class="btn btn-ghost btn-sm" type="button" data-act="deleteLead">Delete booking</button>' : ''}<button class="btn btn-ghost btn-sm" type="button" data-act="issueFromLead">Log an issue</button><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button><button class="btn btn-primary btn-sm" type="button" data-act="confirmBooking">Confirm booking and email customer</button><button class="btn btn-dark btn-sm" type="button" data-act="payLink">Create & send payment link</button><button class="btn btn-ghost btn-sm" type="button" data-act="markPaid">Mark paid manually</button></div>
     <p class="tiny muted">Paid bookings stop all automatic reminders.</p></div>
@@ -600,8 +600,10 @@ const ACT = {
     const l = S.leads.find((x) => x.id === S.open), amount = parseInt($('#pa').value, 10);
     if (!(amount > 0)) return toast('Enter an amount');
     const { data, error } = await sb.functions.invoke('payment-link', { body: { lead_id: l.id, amount } });
-    if (error || data?.error) return toast(data?.error || 'Could not create link. Check Razorpay keys.');
-    toast(data.whatsapp_sent ? 'Payment link sent on WhatsApp' : 'Link created. Copy it from the booking.'); await loadLeads(); openLead(l.id, true);
+    // supabase-js hides the body of a non-2xx answer inside error.context, so read the real reason from there.
+    const why = data?.error || (error?.context?.json ? (await error.context.json().catch(() => null))?.error : '') || '';
+    if (error || data?.error) return toast('Could not create link: ' + (why || (error && error.message) || 'try again'));
+    toast(data.whatsapp_sent ? 'Payment link sent on WhatsApp' : 'Link created. WhatsApp automation is not connected yet, so tap Send link on WhatsApp.'); await loadLeads(); openLead(l.id, true);
   },
   async markPaid() {
     const l = S.leads.find((x) => x.id === S.open), amount = parseInt($('#pa').value, 10);
