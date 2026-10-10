@@ -680,3 +680,44 @@ a.soon-card:hover .soon-ico{transform:rotate(-8deg) scale(1.08)}
 .gmap{position:relative;border-radius:var(--r-lg);overflow:hidden;background:var(--soft);aspect-ratio:16/10;margin:12px 0}
 .gmap:not(:has(iframe)){display:none}
 .gmap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
+/* Pro, the helper character */
+.pro{position:fixed;left:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-width:min(340px,calc(100vw - 24px))}
+@media(min-width:900px){.pro{bottom:20px;left:20px}}
+body.page-book .pro{bottom:calc(132px + env(safe-area-inset-bottom,0px))}
+@media(min-width:900px){body.page-book .pro{bottom:20px}}
+.pro-launch{position:relative;width:76px;height:86px;padding:6px 4px 0;border:0;border-radius:24px;background:var(--card);box-shadow:var(--shadow-lg);cursor:pointer;display:grid;place-items:end center;overflow:hidden}
+.pro-launch:focus-visible{outline:3px solid var(--ember);outline-offset:3px}
+.pro-svg{width:66px;height:auto;display:block}
+.pro-dot{position:absolute;top:8px;right:8px;width:12px;height:12px;border-radius:50%;background:var(--ember);box-shadow:0 0 0 3px var(--card)}
+.pro-card{display:none;background:var(--card);border-radius:var(--r-md);box-shadow:var(--shadow-lg);padding:16px 16px 10px;border:1px solid var(--line)}
+.pro.open .pro-card{display:block}
+.pro-say{margin:0 0 10px;font-size:16px;line-height:1.4;color:var(--ink)}
+.pro-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.pro-chips:empty{display:none}
+.pro-chip{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:999px;background:var(--ember-soft);color:var(--ember-2);font-weight:600;font-size:15px;text-decoration:none}
+.pro-chip:hover{background:var(--ember);color:#1F1206}
+.pro-foot{display:flex;gap:4px;justify-content:flex-end}
+.pro-x{background:none;border:0;color:var(--muted);font:inherit;font-size:14px;min-height:44px;padding:0 10px;cursor:pointer;text-decoration:underline}
+.pro-bob{transform-origin:50px 120px;animation:proBob 3.2s ease-in-out infinite}
+.pro-eyes{transform-origin:50px 58px;animation:proBlink 4.4s infinite}
+.pro-arm{transform-origin:80px 94px}
+.pro-head{transform-origin:50px 80px}
+.pro-grin{display:none}
+.s-wave .pro-arm{transform:rotate(-150deg);animation:proWave .55s ease-in-out 5 alternate}
+.s-cheer .pro-arm{transform:rotate(-165deg)}.s-cheer .pro-smile{display:none}.s-cheer .pro-grin{display:block}.s-cheer .pro-bob{animation:proJump .5s ease-in-out 3}
+.s-nod .pro-head{animation:proNod .45s ease-in-out 2}
+.s-think .pro-brow-r{transform:translateY(-3px)}.s-think .pro-eyes{transform:translate(-1.5px,-2px)}
+@keyframes proBob{50%{transform:scaleY(1.015) translateY(-1px)}}
+@keyframes proBlink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes proWave{from{transform:rotate(-150deg)}to{transform:rotate(-118deg)}}
+@keyframes proJump{50%{transform:translateY(-6px)}}
+@keyframes proNod{50%{transform:translateY(4px)}}
+@media(prefers-reduced-motion:reduce){#pro *{animation:none!important;transition:none!important}}
+@media print{.pro{display:none}}
+.pro.teaser{flex-direction:row-reverse;align-items:flex-end;gap:10px;max-width:min(330px,calc(100vw - 24px))}
+.pro.teaser .pro-chips,.pro.teaser .pro-foot{display:none}
+.pro.teaser .pro-card{padding:12px 14px;cursor:pointer;margin-bottom:8px}
+.pro.teaser .pro-say{margin:0;font-size:15px}
+/* ghost buttons on the dark home hero were hard to read */
+.hero .btn-ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.45)}

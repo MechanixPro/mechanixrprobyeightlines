@@ -140,6 +140,13 @@
     function step(t) { if (t0 === null) t0 = t; var k = Math.min(1, (t - t0) / 380); b.innerHTML = small + rupee(Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)))); if (k < 1) requestAnimationFrame(step); else b.classList.remove('tick'); }
     requestAnimationFrame(step);
   }
+  /* Tell Pro (the helper character) what the visitor has built so far. It only reads this and never sends it anywhere. */
+  function announce() {
+    try {
+      var sv = svc(st.service), pi = L.pinInfo(st.pin, window.MXP_PINS || {}, window.MXP_PINS_OFF || {});
+      document.dispatchEvent(new CustomEvent('mxp:state', { detail: { step: st.step, nick: String(st.nick || '').trim(), model: st.model, service: st.service, picked: !!st.picked, serviceName: sv ? sv.name : '', price: total(), pin: st.pin, pinServed: !!(pi && pi.served), pinName: pi && pi.name || '' } }));
+    } catch (e) {}
+  }
   function render() {
     var el = $('#builder'); if (!el) return;
     var s = st.step, h = '';
@@ -219,7 +226,7 @@
     h += s < 3 ? '<button class="btn btn-primary" type="button" data-act="next">Continue</button>' : '<button class="btn btn-wa" type="button" data-act="send"' + (sending ? ' disabled' : '') + '>' + (sending ? 'Opening…' : 'Send on WhatsApp') + '</button>';
     h += '</div>';
     el.innerHTML = h;
-    var nowTotal = total(); tickTotal(lastTotal, nowTotal); lastTotal = nowTotal; lastStep = s;
+    var nowTotal = total(); tickTotal(lastTotal, nowTotal); lastTotal = nowTotal; lastStep = s; announce();
     if (s === 3) drawPinMap();
     if (s === 3 && C.turnstileSiteKey) mountTurnstile();
     renderSummary();
@@ -484,7 +491,7 @@
     }
     if (f === 'area') st.areaAuto = false;
     if (f === 'model') { applyModel(); var mi = $('#modelInfo'), cs = $('#ccSeg'); if (mi) mi.textContent = modelNote(); if (cs) cs.innerHTML = ccSeg(); }
-    save();
+    save(); if (f === 'nick' || f === 'pin' || f === 'model') announce();
   });
   function scrollToBuilder() { var b = $('#build'); if (b && b.getBoundingClientRect().top < 0) b.scrollIntoView({ behavior: 'smooth' }); }
 
