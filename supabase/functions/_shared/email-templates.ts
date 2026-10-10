@@ -47,21 +47,51 @@ ${d.buildUrl ? `<p style="margin:14px 0 0"><a href="${escapeHtml(d.buildUrl)}" s
 const first = (name: string) => escapeHtml(String(name || 'there').trim().split(/\s+/)[0] || 'there');
 const firstText = (name: string) => String(name || 'there').trim().split(/\s+/)[0] || 'there';
 
-export type BookingData = Site & { checkupFee?: number | null; nick?: string | null; buildUrl?: string | null; name: string; ref: string; bike: string; service: string; area: string; whenText: string; estimate: number };
+export type BookingData = Site & { checkupFee?: number | null; newCustomer?: boolean; nick?: string | null; buildUrl?: string | null; name: string; ref: string; bike: string; service: string; area: string; whenText: string; estimate: number };
 
+const step = (n: number, t: string) => `<tr><td style="padding:5px 12px 5px 0;font:700 15px ${FONT};color:${EMBER};vertical-align:top">${n}</td><td style="padding:5px 0;font:15px/1.5 ${FONT};color:${INK}">${t}</td></tr>`;
+const tick = (t: string) => `<tr><td style="padding:4px 10px 4px 0;font:700 15px ${FONT};color:${EMBER};vertical-align:top">&#10003;</td><td style="padding:4px 0;font:15px/1.5 ${FONT};color:${INK}">${t}</td></tr>`;
+const heading = (t: string) => `<p style="margin:22px 0 8px;font:700 16px ${FONT};color:${INK}">${escapeHtml(t)}</p>`;
+
+// The one email a customer gets when they book. It explains the journey, the slot fee and how their money is protected, and states only true things.
 export function bookingReceived(d: BookingData): Mail {
   const subject = `We got your request ${d.ref}`;
+  const fee = d.checkupFee ? rupee(d.checkupFee) : null;
+  const feeLine = fee
+    ? (d.newCustomer
+      ? `Because this is your first booking with us, the slot fee is only <b>${fee}</b>. It is asked for only after you approve the quote.`
+      : `The <b>${fee}</b> checkup and quote fee is asked for only after you approve the quote.`)
+    : 'The slot fee is asked for only after you approve the quote.';
+  const feeText = fee
+    ? (d.newCustomer ? `Because this is your first booking with us, the slot fee is only ${fee}. It is asked for only after you approve the quote.` : `The ${fee} checkup and quote fee is asked for only after you approve the quote.`)
+    : 'The slot fee is asked for only after you approve the quote.';
   const body = `${h1(`Thanks, ${firstText(d.name)}. We got your request.`)}
 ${p('Our expert will check what your bike needs and send you a quote on WhatsApp. Nothing starts, and nothing is charged, until you approve it.')}
 ${buildCard(d)}
 ${rows([['Reference', d.ref], ['Bike', d.bike], ['Service', d.service], ['Area', d.area], ['Preferred time', d.whenText], ['Starting estimate', rupee(d.estimate) + ', GST included']])}
-<p style="margin:0 0 10px;font:700 16px ${FONT};color:${INK}">What happens next</p>
+${heading('What happens next')}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 6px">
+${step(1, 'Our expert calls or messages you to confirm what is needed, and whether it can be done at your door.')}
+${step(2, 'You get an itemised quote on WhatsApp. It is quote first: parts are fitted and work starts only after you approve.')}
+${step(3, 'You approve, and we lock your slot with a small fee. A Mechanix Pro-certified mechanic then comes to you.')}
+${step(4, 'After the service you get a GST invoice, and our 30-day service warranty starts.')}
+</table>
+${heading('The slot fee, explained')}
+${p(`${feeLine} It is adjusted in your final bill if you go ahead with the service.`)}
+${heading('How your money is protected')}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 6px">
+${tick('Cancel more than 2 hours before your slot and the fee is refunded in full.')}
+${tick('You pay securely on Razorpay (UPI, cards, wallets, net banking). We never see your card details.')}
+${tick('We never ask for your card number, PIN or OTP on chat, call or email.')}
+${tick('Any extra work is shown to you first and starts only after your approval.')}
+</table>
+${heading('What you can count on')}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px">
-<tr><td style="padding:4px 12px 4px 0;font:700 15px ${FONT};color:${EMBER};vertical-align:top">1</td><td style="padding:4px 0;font:15px/1.5 ${FONT};color:${INK}">Our expert calls or messages you to confirm what is needed, and whether it can be done at your door.</td></tr>
-<tr><td style="padding:4px 12px 4px 0;font:700 15px ${FONT};color:${EMBER};vertical-align:top">2</td><td style="padding:4px 0;font:15px/1.5 ${FONT};color:${INK}">You get an itemised quote on WhatsApp. Parts are fitted only after you approve.</td></tr>
-<tr><td style="padding:4px 12px 4px 0;font:700 15px ${FONT};color:${EMBER};vertical-align:top">3</td><td style="padding:4px 0;font:15px/1.5 ${FONT};color:${INK}">Approve the quote${d.checkupFee ? ` and pay the ${rupee(d.checkupFee)} checkup and quote fee to confirm your booking. It is adjusted in your final bill if you go ahead with the service` : ''}. A Mechanix Pro-certified mechanic then comes to you, with OEM-certified parts.</td></tr></table>
+${tick('Mechanix Pro-certified mechanics')}${tick('OEM-certified parts, fitted after you approve')}${tick('30-day warranty on our service work')}${tick('OTP-safe handover: your bike leaves for a workshop only after you share a one-time code')}${tick('A GST invoice for every job')}
+</table>
+${p(`Questions? Message us on WhatsApp or call, any day from 8 AM to 9 PM. Full terms: <a href="${escapeHtml(d.siteUrl)}/refund-policy/" style="color:${NAVY}">refund policy</a>.`)}
 ${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}${button('Call us', 'tel:' + d.phoneTel, NAVY, '#ffffff')}`;
-  const text = `Thanks, ${firstText(d.name)}. We got your request.\n\nOur expert will check what your bike needs and send you a quote on WhatsApp. Nothing starts, and nothing is charged, until you approve it.\n\nYour package for ${d.bike}${d.buildUrl ? `\nEdit your build: ${d.buildUrl}` : ''}\n\nReference: ${d.ref}\nBike: ${d.bike}\nService: ${d.service}\nArea: ${d.area}\nPreferred time: ${d.whenText}\nStarting estimate: ${rupee(d.estimate)}, GST included\n\nWhat happens next\n1. Our expert calls or messages you to confirm what is needed.\n2. You get an itemised quote on WhatsApp. Parts are fitted only after you approve.\n3. Approve the quote${d.checkupFee ? ` and pay the ${rupee(d.checkupFee)} checkup and quote fee to confirm your booking (adjusted in your final bill if you go ahead)` : ''}. A Mechanix Pro-certified mechanic then comes to you, with OEM-certified parts.\n\nWhatsApp: ${d.whatsappUrl}\nCall: ${d.phoneDisplay}\n\nMechanix Pro, Bengaluru · ${d.email}`;
+  const text = `Thanks, ${firstText(d.name)}. We got your request.\n\nOur expert will check what your bike needs and send you a quote on WhatsApp. Nothing starts, and nothing is charged, until you approve it.\n\nYour package for ${d.bike}${d.buildUrl ? `\nEdit your build: ${d.buildUrl}` : ''}\n\nReference: ${d.ref}\nBike: ${d.bike}\nService: ${d.service}\nArea: ${d.area}\nPreferred time: ${d.whenText}\nStarting estimate: ${rupee(d.estimate)}, GST included\n\nWhat happens next\n1. Our expert calls or messages you to confirm what is needed.\n2. You get an itemised quote on WhatsApp. Quote first: work starts only after you approve.\n3. You approve, and we lock your slot with a small fee. A Mechanix Pro-certified mechanic then comes to you.\n4. After the service you get a GST invoice, and our 30-day service warranty starts.\n\nThe slot fee, explained\n${feeText} It is adjusted in your final bill if you go ahead with the service.\n\nHow your money is protected\n- Cancel more than 2 hours before your slot and the fee is refunded in full.\n- You pay securely on Razorpay. We never see your card details.\n- We never ask for your card number, PIN or OTP on chat, call or email.\n- Extra work is shown to you first and starts only after your approval.\n\nWhat you can count on: Mechanix Pro-certified mechanics, OEM-certified parts, 30-day service warranty, OTP-safe handover, a GST invoice for every job.\n\nWhatsApp: ${d.whatsappUrl}\nCall: ${d.phoneDisplay}`;
   return { subject, html: layout({ preheader: 'Your quote comes on WhatsApp. Nothing starts until you approve it.', title: subject, body, site: d }), text };
 }
 
