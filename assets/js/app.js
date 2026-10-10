@@ -306,7 +306,7 @@
   function buildLink() { return location.origin + '/book/?b=' + L.encodeBuild(st); }
   function sendDraft() {
     if (!/^\d{12}$/.test(waNumber())) return toast('WhatsApp number not set yet.');
-    sentFlag = true; track('generate_lead', { service: st.service, method: 'draft' });
+    sentFlag = true; track('lead_draft', { service: st.service });
     location.href = waLink(L.buildDraftMessage(st, items, cfg(), buildLink()));
   }
   function fallbackCopy(text) {
@@ -355,7 +355,7 @@
     submitLead().then(function (r) {
       st.requestType = 'quote'; sending = false;
       if (!r) { errMsg = 'Call-back is not available right now. Please use Send to WhatsApp now.'; return render(); }
-      cbDone = { ref: r.ref || '' }; sentFlag = true; track('generate_lead', { service: st.service, method: 'callback' }); render();
+      cbDone = { ref: r.ref || '' }; sentFlag = true; track('lead_callback', { service: st.service }); render();
     }).catch(function () { st.requestType = 'quote'; sending = false; errMsg = 'Could not save right now. Please use Send to WhatsApp now instead.'; render(); });
   }
   /* Leave prompt: shown once per visit, only when the visitor has built something and not sent it. Desktop: pointer leaves through the top. Phone: idle for a while. */
@@ -393,7 +393,8 @@
   ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(function (ev) { document.addEventListener(ev, armIdle, { passive: true }); });
   function finish(ref) {
     sentFlag = true;
-    track('generate_lead', { service: st.service, area: st.area, value: total() });
+    var q = L.leadQuality(st, window.MXP_PINS || {}, window.MXP_PINS_OFF || {});
+    track(q.qualified ? 'generate_lead' : 'lead_unqualified', { service: st.service, area: st.area, reason: q.reason, value: total() });
     var url = waLink(buildMessage(ref));
     sending = false; render();
     showDone(ref, url);
@@ -556,7 +557,7 @@
   function sos() {
     if (!/^\d{12}$/.test(waNumber())) return toast('WhatsApp number not set yet.');
     var base = 'SOS: my bike needs help right now.';
-    function go(extra) { track('generate_lead', { service: 'sos' }); location.href = waLink(base + (extra ? '\nMy location: ' + extra : '\nMy area: ')); }
+    function go(extra) { track('lead_sos', { service: 'sos' }); location.href = waLink(base + (extra ? '\nMy location: ' + extra : '\nMy area: ')); }
     if (!navigator.geolocation) return go('');
     toast('Getting your location…');
     navigator.geolocation.getCurrentPosition(function (p) { go('https://maps.google.com/?q=' + p.coords.latitude.toFixed(5) + ',' + p.coords.longitude.toFixed(5)); }, function () { go(''); }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
