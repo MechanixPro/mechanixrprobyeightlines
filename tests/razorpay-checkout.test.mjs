@@ -58,7 +58,7 @@ test('the two functions are public, check everything on the server and never put
 test('no Razorpay secret is written anywhere in the project files', () => {
   for (const f of ['assets/js/pay.js', 'assets/js/config.js', 'docs/RAZORPAY.md', 'supabase/functions/create-order/index.ts', 'supabase/functions/verify-payment/index.ts']) {
     if (!existsSync(new URL('../' + f, import.meta.url))) continue;
-    assert.doesNotMatch(read(f), /rzp_(test|live)_[A-Za-z0-9]{8,}/, f); assert.doesNotMatch(read(f), /FRDXeRYun/, f);
+    assert.doesNotMatch(read(f), /rzp_(test|live)_[A-Za-z0-9]{8,}/, f); assert.doesNotMatch(read(f), /key_secret\s*[:=]\s*['"][A-Za-z0-9]{16,}['"]/i, f);
   }
 });
 test('the pay page asks for the reference and number, loads Razorpay checkout, is kept out of search, and the policy allows it', () => {
