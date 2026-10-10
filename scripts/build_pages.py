@@ -51,7 +51,7 @@ HEAD = '''<!doctype html>
 {nav}<main id="main" class="{main}">
 '''
 FOOT = '''</main>
-{footer}{extra}<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pingeo.js" defer></script><script src="/assets/js/pinmap.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script><script src="/assets/js/reveal.js" defer></script><script src="/assets/js/pro-script.js" defer></script><script src="/assets/js/pro.js" defer></script></body>
+{footer}{extra}<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pingeo.js" defer></script><script src="/assets/js/pinmap.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script><script src="/assets/js/reveal.js" defer></script><script src="/assets/js/media.js" defer></script><script src="/assets/js/pro-script.js" defer></script><script src="/assets/js/pro.js" defer></script></body>
 </html>
 '''
 LEGAL_JS = '<script src="/assets/js/page.js" defer></script>'
