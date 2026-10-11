@@ -747,3 +747,18 @@ body.page-book .pro{bottom:calc(132px + env(safe-area-inset-bottom,0px))}
 .reassure{margin:8px 0 0;opacity:.9}
 .price-cards .wa-link{display:inline-block;margin-left:10px;font-weight:600;color:#128C4A;text-decoration:underline}
 @media(prefers-reduced-motion:reduce){.ride-chip{transition:none}.ride-chip:hover{transform:none}}
+/* Chat starter */
+.chat{margin:18px 0 6px;max-width:520px}
+.chat-log{display:flex;flex-direction:column;gap:8px}
+.bubble{max-width:88%;padding:12px 16px;border-radius:20px;font-size:17px;line-height:1.4}
+.bubble.in{align-self:flex-start;background:rgba(255,255,255,.14);color:#fff;border-bottom-left-radius:6px}
+.bubble.out{align-self:flex-end;background:#F2801F;color:#1F1206;font-weight:600;border-bottom-right-radius:6px}
+.bubble.pop{animation:bubble-in .28s ease both}
+@keyframes bubble-in{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+.chat-opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chat-opts .ride-chip,.chat-opts .chat-go,.chat-reset{min-height:48px}
+.chat.live .chat-opts .ride-chip{cursor:pointer;font:inherit;font-weight:600;color:inherit}
+.chat-go{flex:1 1 100%;justify-content:center;text-align:center}
+.chat-reset{background:none;border:0;color:inherit;text-decoration:underline;font:inherit;opacity:.85;cursor:pointer;padding:0 8px}
+.chat-alt{margin-top:14px}
+@media(prefers-reduced-motion:reduce){.bubble.pop{animation:none}}

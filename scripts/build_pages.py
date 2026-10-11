@@ -55,6 +55,7 @@ FOOT = '''</main>
 </html>
 '''
 LEGAL_JS = '<script src="/assets/js/page.js" defer></script>'
+CHAT_JS = '<script src="/assets/js/chatstart.js" defer></script>'
 APP_JS = '<script src="/assets/js/pincodes.js" defer></script>\n<script src="/assets/js/pingeo.js" defer></script>\n<script src="/assets/js/pins-live.js" defer></script>\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/model-photos.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/gmaps.js" defer></script>\n<script src="/assets/js/app.js" defer></script>'
 FLOAT = '''<a class="wa-fab" href="#" data-wa="general" aria-label="Chat on WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp us</a>
 <div class="mbar" id="mbar"><a class="btn btn-ghost" href="#" data-call aria-label="Call us"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call</a><a class="btn btn-wa" href="#" data-wa="general">WhatsApp</a><a class="btn btn-primary" href="/book/">Get a quote</a></div>
@@ -547,6 +548,16 @@ def i18n_build(english_page, slug_url):
 # ---- Ad landing pages (kept out of search and the sitemap) and the roadside help page ----
 _TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"/></svg>'
 PROMISES = '<section class="strip" aria-label="Our promises"><div class="wrap"><ul><li>Quote first, work after your OK</li><li>OEM-certified parts, fitted after your approval</li><li>{{days}}-day service warranty</li><li>OTP-safe bike handover</li></ul></div></section>'
+def chat_block(campaign=''):
+    """The chat starter shown at the top of the home and ad pages. The links work without JavaScript; assets/js/chatstart.js turns them into a chat."""
+    def msg(say): return html.escape(f"Hi Mechanix Pro, I need a service for my {say} in Bengaluru.\nBike model: \nArea: " + (f"\n(campaign: {campaign})" if campaign else ''), quote=True).replace('\n', '&#10;')
+    chips = ''.join(f'<a class="ride-chip" href="#" data-wa="general" data-wa-text="{msg(say)}">{label}</a>' for say, label in (('scooter', 'Scooter'), ('motorcycle', 'Motorcycle'), ('Royal Enfield', 'Royal Enfield'), ('electric scooter or bike', 'Electric')))
+    camp = f' data-campaign="{html.escape(campaign)}"' if campaign else ''
+    return (f'<div class="chat" id="chat" data-price-service="{{{{text:basic}}}}" data-price-repair="{{{{text:repair}}}}"{camp}>'
+            '<div class="chat-log" aria-live="polite"><div class="bubble in">Hi! I\'m the Mechanix Pro team. What do you ride?</div></div>'
+            f'<div class="chat-opts">{chips}</div>'
+            '<p class="tiny reassure">Tap your bike and WhatsApp opens with a message ready. Nothing is charged until you approve your quote. Replies from 8 AM to 9 PM.</p></div>')
+
 def offer_page(o):
     sid, slug = o['service'], o['slug']
     book = f'/book/?service={sid}&campaign={slug}'
@@ -556,15 +567,15 @@ def offer_page(o):
   <h1>{html.escape(o['headline'])}</h1>
   <p class="lead">{html.escape(o['lead'])}</p>
   <p class="offer-price"><b>{{{{text:{sid}}}}}</b> <span>starting price, GST included. Your exact quote comes on WhatsApp.</span></p>
-  <div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{wa}">Get a quote on WhatsApp</a><a class="btn btn-ghost" href="{book}">Build your service</a><a class="btn btn-ghost" href="#" data-call>Call us</a></div>
-<p class="tiny muted" style="margin:10px 0 0">Replies from 8 AM to 9 PM. Quote first, work only after you say yes.</p>
+  {chat_block(slug)}
+  <div class="row chat-alt"><a class="btn btn-ghost" href="{book}">Build your service</a><a class="btn btn-ghost" href="#" data-call>Call us</a></div>
 </div></div></section>
 {PROMISES}
 <section><div class="wrap pricing"><div class="sec-head"><h2>{html.escape(o['checks_title'])}.</h2><p>Parts and oil above standard grade are quoted first and fitted only after you approve.</p></div><ul class="tick">{checks}</ul></div></section>
 <section class="band"><div class="wrap"><div class="sec-head"><h2>How it works.</h2></div>
 <ol class="steps3"><li><b>Build</b><span>Pick your bike and what it needs. See a starting price right away.</span></li><li><b>Get your quote</b><span>Our expert checks the details and sends your quote on WhatsApp.</span></li><li><b>We come to you</b><span>Approve the quote, pick a slot, and a Mechanix Pro-certified mechanic services your bike at your door. The {{{{fee:advance}}}} checkup and quote fee is adjusted in your bill if you go ahead.</span></li></ol></div></section>
 <section><div class="wrap"><div class="final"><h2>Ready when your bike is.</h2><p>Build your service in under a minute, or just message us.</p><div class="row"><a class="btn btn-primary" href="{book}">Build your service</a><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{wa}">Get a quote on WhatsApp</a></div></div></div></section>'''
-    page = HEAD.format(title=html.escape(o['title'] + ' | Mechanix Pro'), desc=html.escape(o['lead']), url=f'{SITE}/offers/{slug}/', site=SITE, schema='', scripts=LEGAL_JS, body='page-offer', nav=NAV, main='')
+    page = HEAD.format(title=html.escape(o['title'] + ' | Mechanix Pro'), desc=html.escape(o['lead']), url=f'{SITE}/offers/{slug}/', site=SITE, schema='', scripts=LEGAL_JS + CHAT_JS, body='page-offer', nav=NAV, main='')
     page = page.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
     write(f'offers/{slug}/index.html', page + body + foot(FLOAT))
 for _o in _load_json('offers.json'): offer_page(_o)
@@ -586,7 +597,7 @@ write('roadside/index.html', _road + f'''<section class="hero"><div class="wrap"
 urls.append(('/roadside/', '0.8'))
 
 MAIN = [
-  ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from {{text:basic}}, Mechanix Pro-certified mechanics, OEM-certified parts, {{days}}-day service warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>', '1.0'),
+  ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from {{text:basic}}, Mechanix Pro-certified mechanics, OEM-certified parts, {{days}}-day service warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n' + CHAT_JS, '1.0'),
   ('book', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.9'),
   ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, General from {{text:general}}, Full from {{text:full}}. GST included. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
   ('help', 'help', 'How Doorstep Bike Service Works and FAQ | Mechanix Pro', 'How Mechanix Pro works: build your service, get a WhatsApp quote, approve, and we service your bike at your door in Bengaluru. Answers to common questions.', 'help.jsonld', 'page-help', APP_JS, '0.8'),
@@ -594,7 +605,7 @@ MAIN = [
 for slug, src, title, desc, ld, body, scripts, prio in MAIN:
     url = f'{SITE}/{slug}/' if slug else f'{SITE}/'
     schema = ('<script type="application/ld+json">' + open(os.path.join(ROOT, 'src', ld), encoding='utf-8').read() + '</script>') if ld else ''
-    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
+    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
     out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(FLOAT)
     if src == 'home':
         langs = i18n_build(out, url)
