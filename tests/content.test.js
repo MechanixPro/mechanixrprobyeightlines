@@ -48,11 +48,6 @@ test('every page says brand names are used only to show which bikes are serviced
   }
 });
 
-test('the home page links every brand in the catalogue to the booking page', () => {
-  global.window = {}; require('../assets/js/bikes.js');
-  const home = read('index.html');
-  for (const b of Object.keys(global.window.MXP_BIKES).filter((x) => x !== 'Other')) assert.ok(home.includes('/book/?brand=' + encodeURIComponent(b)), 'missing brand ' + b);
-});
 test('the Terms page has a Credits section naming the author, licence and source of every model photo', () => {
   const terms = read('terms/index.html');
   assert.match(terms, /id="credits"/);
@@ -94,10 +89,8 @@ test('every part photo file is listed in the credits data', () => {
   assert.deepEqual(files, Object.keys(JSON.parse(fs.readFileSync(path.join(root, 'src/part-photos.json'), 'utf8'))).sort());
 });
 
-test('the stories section shows both owner-confirmed numbers: services done and gated communities', () => {
+test('the home page shows both owner-confirmed numbers: services done and gated communities', () => {
   const h = read('index.html');
-  const s = h.slice(h.indexOf('id="stories"'), h.indexOf('id="areas"'));
-  assert.match(s, /data-odo="10000"/); assert.match(s, /data-odo="1300"/);
-  assert.match(s, /gated communities/i); assert.match(s, /aria-label="1,300 plus gated communities/);
+  assert.match(h, /10,000\+ services done/); assert.match(h, /1,300\+ gated communities trust us/);
   assert.match(read('societies/index.html'), /1,300\+ gated communities/);
 });

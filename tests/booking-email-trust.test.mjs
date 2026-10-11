@@ -30,5 +30,6 @@ test('the website has a trust section for money protection and service promises,
   assert.match(h, /id="trust"/); assert.match(h, /Your money is protected/i);
   const t = h.slice(h.indexOf('id="trust"'), h.indexOf('id="trust"') + 6000);
   for (const re of [/Quote first/i, /refunded in full/i, /Razorpay/i, /30-day/i, /OTP/i]) assert.match(t, re, String(re));
-  assert.doesNotMatch(t, /\b\d[\d,]*\+/); assert.doesNotMatch(t, /rated|stars?\b|reviews?\b/i);
+  const noClaims = t.replace(/10,000\+ services done|1,300\+ gated communities trust us/g, ''); // only the two owner-confirmed numbers are allowed
+  assert.doesNotMatch(noClaims, /\b\d[\d,]*\+/); assert.doesNotMatch(t, /rated|stars?\b|reviews?\b/i);
 });

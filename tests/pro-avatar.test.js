@@ -47,10 +47,10 @@ test('the character is original SVG with the real logo mark as the badge, and an
   const j = read('assets/js/pro.js'), c = read('assets/css/style.css');
   assert.match(j, /<svg/); assert.match(j, /logo-mark\.webp/); assert.match(c, /@media\(prefers-reduced-motion:reduce\)\{[^}]*#pro/);
 });
-test('the booking form tells Pro what is happening, and Pro is on the right pages only', () => {
+test('the Pro helper is not loaded on any page (kept simple on purpose); the booking form still announces its state', () => {
   const a = read('assets/js/app.js'); assert.match(a, /mxp:state/);
-  assert.match(read('scripts/build_pages.py'), /assets\/js\/pro\.js/);
-  assert.match(read('index.html'), /assets\/js\/pro\.js/); assert.match(read('book/index.html'), /assets\/js\/pro\.js/);
+  assert.doesNotMatch(read('scripts/build_pages.py'), /assets\/js\/pro\.js/);
+  assert.doesNotMatch(read('index.html'), /assets\/js\/pro\.js/); assert.doesNotMatch(read('book/index.html'), /assets\/js\/pro\.js/);
 });
 test('Pro is small: scripts together stay under 20 KB', () => {
   assert.ok(read('assets/js/pro.js').length + read('assets/js/pro-script.js').length < 20000);

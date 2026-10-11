@@ -50,13 +50,11 @@ test('the admin has a Waitlist tab with demand bars, a list, an export and an ow
   const a = read('../admin/admin.js');
   assert.match(a, /from\('waitlist'\)/); for (const act of ['wlCsv', 'wlDelete']) assert.ok(a.includes(act), act);
 });
-test('the home page shows the eight coming-soon services as cards that open their own pages', () => {
-  const h = read('../index.html');
-  const s = h.slice(h.indexOf('id="coming-soon"'), h.indexOf('id="coming-soon"') + 14000);
-  for (const t of ['Car service', 'E-challan services', 'AI PDI reports', 'AI damage analysis', 'Bike rental', 'OEM parts', 'Insurance claim service', 'Franchise model']) assert.ok(s.includes(t), t);
-  assert.equal((s.match(/<a class="soon-card/g) || []).length, 8);
-  for (const slug of ['car-service', 'e-challan-services', 'ai-pdi-reports', 'ai-damage-analysis', 'bike-rental', 'oem-parts', 'insurance-claim-service', 'franchise']) assert.ok(s.includes(`href="/coming-soon/${slug}/"`), slug);
-  assert.match(s, /href="\/coming-soon\/"/); assert.match(h, /waitlist\.js/); assert.match(read('../terms/index.html'), /coming-soon/);
+test('the home page no longer shows the coming-soon cards; the coming-soon page still has all eight', () => {
+  assert.doesNotMatch(read('../index.html'), /id="coming-soon"/);
+  const h = read('../coming-soon/index.html');
+  for (const t of ['Car service', 'E-challan services', 'AI PDI reports', 'AI damage analysis', 'Bike rental', 'OEM parts', 'Insurance claim service', 'Franchise model']) assert.ok(h.includes(t), t);
+  assert.match(read('../terms/index.html'), /coming-soon/);
 });
 test('waitlist.js sends the signup to the function and thanks the person', () => {
   const js = read('../assets/js/waitlist.js');

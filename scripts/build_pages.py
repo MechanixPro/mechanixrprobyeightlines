@@ -51,7 +51,7 @@ HEAD = '''<!doctype html>
 {nav}<main id="main" class="{main}">
 '''
 FOOT = '''</main>
-{footer}{extra}<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pingeo.js" defer></script><script src="/assets/js/pinmap.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script><script src="/assets/js/reveal.js" defer></script><script src="/assets/js/media.js" defer></script><script src="/assets/js/apollo.js" defer></script><script src="/assets/js/pro-script.js" defer></script><script src="/assets/js/pro.js" defer></script></body>
+{footer}{extra}<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pingeo.js" defer></script><script src="/assets/js/pinmap.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script><script src="/assets/js/reveal.js" defer></script><script src="/assets/js/media.js" defer></script><script src="/assets/js/apollo.js" defer></script></body>
 </html>
 '''
 LEGAL_JS = '<script src="/assets/js/page.js" defer></script>'
@@ -586,7 +586,7 @@ write('roadside/index.html', _road + f'''<section class="hero"><div class="wrap"
 urls.append(('/roadside/', '0.8'))
 
 MAIN = [
-  ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from {{text:basic}}, Mechanix Pro-certified mechanics, OEM-certified parts, {{days}}-day service warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n<script src="/assets/js/showcase.js" defer></script>', '1.0'),
+  ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from {{text:basic}}, Mechanix Pro-certified mechanics, OEM-certified parts, {{days}}-day service warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>', '1.0'),
   ('book', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.9'),
   ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, General from {{text:general}}, Full from {{text:full}}. GST included. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
   ('help', 'help', 'How Doorstep Bike Service Works and FAQ | Mechanix Pro', 'How Mechanix Pro works: build your service, get a WhatsApp quote, approve, and we service your bike at your door in Bengaluru. Answers to common questions.', 'help.jsonld', 'page-help', APP_JS, '0.8'),
