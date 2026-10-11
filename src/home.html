@@ -8,6 +8,8 @@
         <a class="btn btn-ghost" href="/book/">Build your service</a>
         <a class="btn btn-ghost" href="#" data-call><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call us</a>
       </div>
+      <div class="ride"><span class="ride-q">What do you ride?</span><div class="ride-chips"><a class="ride-chip" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a service for my scooter in Bengaluru.&#10;Bike model: &#10;Area: ">Scooter</a><a class="ride-chip" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a service for my motorcycle in Bengaluru.&#10;Bike model: &#10;Area: ">Motorcycle</a><a class="ride-chip" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a service for my Royal Enfield in Bengaluru.&#10;Bike model: &#10;Area: ">Royal Enfield</a><a class="ride-chip" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a service for my electric scooter or bike in Bengaluru.&#10;Bike model: &#10;Area: ">Electric</a></div></div>
+      <p class="tiny reassure">Tap your bike and WhatsApp opens with a message ready. Nothing is charged until you approve your quote. Replies from 8 AM to 9 PM.</p>
       <div class="sos">
         <div><b>Breakdown or puncture right now?</b><span>Share your location and we send the nearest mechanic.</span></div>
         <button class="btn btn-primary btn-sm" type="button" id="sosBtn">Get help</button>
@@ -70,10 +72,10 @@
   <div class="wrap">
     <div class="sec-head"><h2>Prices, up front.</h2><p>Starting prices for bikes and scooters up to 180cc, GST included. Your exact quote comes on WhatsApp, and parts are fitted only after you approve.</p></div>
     <ul class="price-cards">
-      <li><h3>Basic service</h3><span class="pr">{{price:basic}}</span><p>20+ point checkup, brake, tyre and battery check, chain lube, wash.</p><a href="/book/?service=basic">Build it</a></li>
-      <li class="pop"><h3>General service</h3><span class="pr">{{price:general}}</span><p>30+ point checkup, engine oil change, brake and clutch adjustment, spark plug and air filter, wash.</p><a href="/book/?service=general">Build it</a></li>
-      <li><h3>Full service</h3><span class="pr">{{price:full}}</span><p>40+ point checkup, engine performance check, brake and clutch servicing, minor parts, full clean.</p><a href="/book/?service=full">Build it</a></li>
-      <li><h3>Repair or problem check</h3><span class="pr">{{price:repair}}</span><p>Something wrong? We find the cause and quote the fix before any work starts.</p><a href="/book/?service=repair">Build it</a></li>
+      <li><h3>Basic service</h3><span class="pr">{{price:basic}}</span><p>20+ point checkup, brake, tyre and battery check, chain lube, wash.</p><a href="/book/?service=basic">Build it</a> <a class="wa-link" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I would like a quote for a Basic service for my bike in Bengaluru.&#10;Bike model: &#10;Area: ">Ask on WhatsApp</a></li>
+      <li class="pop"><h3>General service</h3><span class="pr">{{price:general}}</span><p>30+ point checkup, engine oil change, brake and clutch adjustment, spark plug and air filter, wash.</p><a href="/book/?service=general">Build it</a> <a class="wa-link" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I would like a quote for a General service for my bike in Bengaluru.&#10;Bike model: &#10;Area: ">Ask on WhatsApp</a></li>
+      <li><h3>Full service</h3><span class="pr">{{price:full}}</span><p>40+ point checkup, engine performance check, brake and clutch servicing, minor parts, full clean.</p><a href="/book/?service=full">Build it</a> <a class="wa-link" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I would like a quote for a Full service for my bike in Bengaluru.&#10;Bike model: &#10;Area: ">Ask on WhatsApp</a></li>
+      <li><h3>Repair or problem check</h3><span class="pr">{{price:repair}}</span><p>Something wrong? We find the cause and quote the fix before any work starts.</p><a href="/book/?service=repair">Build it</a> <a class="wa-link" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I would like a quote for a Repair or problem check for my bike in Bengaluru.&#10;Bike model: &#10;Area: ">Ask on WhatsApp</a></li>
     </ul>
     <p class="tiny muted" style="margin:14px 0 0">Above 180cc, add {{fee:bigbike}} to the three service packages. <a href="/services/">See everything that is included</a>.</p>
     <div class="fee-explain card">
@@ -130,8 +132,8 @@
   <div class="wrap">
     <div class="final">
       <h2>Ready when your bike is.</h2>
-      <p>Build your service in under a minute, or just message us. Your quote comes on WhatsApp.</p>
-      <div class="row"><a class="btn btn-primary" href="/book/">Build your service</a><a class="btn btn-wa" href="#" data-wa="general">Get a quote on WhatsApp</a></div>
+      <p>Message us on WhatsApp, or build your service first. Your quote comes on WhatsApp and nothing starts until you say yes.</p>
+      <div class="row"><a class="btn btn-wa" href="#" data-wa="general">Get a quote on WhatsApp</a><a class="btn btn-ghost" href="/book/">Build your service</a></div>
     </div>
   </div>
 </section>
