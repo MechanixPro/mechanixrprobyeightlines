@@ -740,3 +740,10 @@ body.page-book .pro{bottom:calc(132px + env(safe-area-inset-bottom,0px))}
 .claims{margin:0 0 18px;font-size:clamp(15px,2.2vw,18px);color:var(--ink-2)}.claims b{color:var(--ink)}
 /* Phones: a shorter hero, so the WhatsApp button and the prices come up sooner */
 @media(max-width:819px){.hero .preview,.hero .hero-photo{display:none}}
+.ride{margin:18px 0 6px}.ride-q{display:block;font-weight:700;margin:0 0 8px}
+.ride-chips{display:flex;flex-wrap:wrap;gap:8px}
+.ride-chip{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:999px;border:1.5px solid rgba(255,255,255,.55);color:inherit;text-decoration:none;font-weight:600;background:rgba(255,255,255,.08);transition:background .15s,transform .15s}
+.ride-chip:hover,.ride-chip:focus-visible{background:rgba(37,211,102,.22);border-color:#25D366;transform:translateY(-1px)}
+.reassure{margin:8px 0 0;opacity:.9}
+.price-cards .wa-link{display:inline-block;margin-left:10px;font-weight:600;color:#128C4A;text-decoration:underline}
+@media(prefers-reduced-motion:reduce){.ride-chip{transition:none}.ride-chip:hover{transform:none}}

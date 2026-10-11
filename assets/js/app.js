@@ -465,7 +465,7 @@
     var pk = e.target.closest('[data-pick]');
     if (pk && svc(pk.getAttribute('data-pick'))) { st.service = pk.getAttribute('data-pick'); st.picked = true; save(); if (!$('#builder')) { e.preventDefault(); location.href = '/book/'; return; } render(); }
     var w = e.target.closest('[data-wa]');
-    if (w) { e.preventDefault(); if (!/^\d{12}$/.test(waNumber())) return toast('WhatsApp number not set yet.'); location.href = waLink('Hi Mechanix Pro, I need help with my bike.'); }
+    if (w) { e.preventDefault(); if (!/^\d{12}$/.test(waNumber())) return toast('WhatsApp number not set yet.'); location.href = waLink(w.getAttribute('data-wa-text') || 'Hi Mechanix Pro, I need help with my bike.'); }
   });
   document.addEventListener('change', function (e) {
     var t = e.target; if (!t.closest('#builder')) return;
