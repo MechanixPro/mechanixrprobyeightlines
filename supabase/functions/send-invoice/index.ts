@@ -20,10 +20,10 @@ Deno.serve(async (req) => {
   const b = await req.json().catch(() => ({}));
   const { data: lead } = await db.from('leads').select('*').eq('id', String(b.lead_id ?? '')).maybeSingle();
   if (!lead) return json(req, { error: 'Booking not found' }, 404);
-  const { data: cust } = lead.customer_id ? await db.from('customers').select('email').eq('id', lead.customer_id).maybeSingle() : { data: null };
+  const { data: cust } = lead.customer_id ? await db.from('customers').select('email,company_name,gstin,address').eq('id', lead.customer_id).maybeSingle() : { data: null };
   if (!cust?.email) return json(req, { error: 'This customer did not give an email address' }, 400);
   const { data: services } = await db.from('services').select('id,kind,name,price');
-  const invoice = buildInvoice(lead, services ?? []);
+  const invoice = buildInvoice(lead, services ?? [], { customer: cust });
   if (!invoice.lines.length) return json(req, { error: 'This booking has no priced items to invoice' }, 400);
 
   const mail = invoiceEmail({
