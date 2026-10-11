@@ -34,6 +34,7 @@
       if (window.gtag) {
         window.gtag('event', name, params);
         if (name === 'generate_lead' && C.googleAdsSendTo) window.gtag('event', 'conversion', { send_to: C.googleAdsSendTo, value: 1, currency: 'INR' }); // a lead counts as 1: the price shown is only an estimate, not money earned
+        if (name === 'whatsapp_click' && C.googleAdsWaSendTo && !window.waCounted) { window.waCounted = true; window.gtag('event', 'conversion', { send_to: C.googleAdsWaSendTo }); } // a WhatsApp chat is the main way customers reach us; counted once per visit
       }
       if (window.fbq) {
         if (name === 'generate_lead') window.fbq('track', 'Lead', { value: params.value || 0, currency: 'INR' });

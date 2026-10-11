@@ -556,7 +556,8 @@ def offer_page(o):
   <h1>{html.escape(o['headline'])}</h1>
   <p class="lead">{html.escape(o['lead'])}</p>
   <p class="offer-price"><b>{{{{text:{sid}}}}}</b> <span>starting price, GST included. Your exact quote comes on WhatsApp.</span></p>
-  <div class="row"><a class="btn btn-primary" href="{book}">Build your service</a><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{wa}">Get a quote on WhatsApp</a><a class="btn btn-ghost" href="#" data-call>Call us</a></div>
+  <div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{wa}">Get a quote on WhatsApp</a><a class="btn btn-ghost" href="{book}">Build your service</a><a class="btn btn-ghost" href="#" data-call>Call us</a></div>
+<p class="tiny muted" style="margin:10px 0 0">Replies from 8 AM to 9 PM. Quote first, work only after you say yes.</p>
 </div></div></section>
 {PROMISES}
 <section><div class="wrap pricing"><div class="sec-head"><h2>{html.escape(o['checks_title'])}.</h2><p>Parts and oil above standard grade are quoted first and fitted only after you approve.</p></div><ul class="tick">{checks}</ul></div></section>
