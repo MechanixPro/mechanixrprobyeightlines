@@ -14,6 +14,7 @@ window.MXP = {
   gaId: '',                        // Google Analytics 4, e.g. G-ABC123
   googleAdsId: 'AW-18504366564',   // Google Ads tag ID (turns the Google tag on)
   googleAdsSendTo: 'AW-18504366564/vTeDCNveupcdEOTzyPdE',             // Google Ads conversion, e.g. AW-1234567890/AbCdEfGh
+  googleAdsWaSendTo: '',           // Google Ads conversion for a WhatsApp tap, e.g. AW-1234567890/AbCdEfGh. Counted once per visit. Leave empty until the conversion action exists
   googleMapsKey: 'AIzaSyCgu-ZcTzcl7b4ptDdpwWNlK8wUJPds6RU',               // Google Maps key (public browser key, restricted to mechanixpro.in). Turns on address search and the Find us map
   googleAddressSearch: false,      // true shows address search in the booking form. Turn on only after Places API (New) works for the key
   helperStyle: 'ab',               // The helper character: 'pro' (mechanic), 'sphere', or 'ab' (half the visitors see each, so you can compare)
