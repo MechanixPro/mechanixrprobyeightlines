@@ -1,6 +1,8 @@
 // admin/invoice.js — builds the figures for a customer invoice (no DOM, no Supabase), so they can be tested in Node.
 // Prices on the site include 18% GST, so the bill shows the taxable value and CGST + SGST carved out of the total.
 const SERVICE_PACKAGES = ['basic', 'general', 'full'];
+const RATES = [0, 5, 12, 18]; // GST rates the admin can choose per invoice; anything else falls back to 18%
+const clean80 = (v, n = 80) => String(v || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n) || null;
 const paise = (n) => Math.round(Number(n || 0) * 100);
 const rupees = (p) => p / 100;
 
@@ -10,7 +12,7 @@ function cleanOverride(o) {
   const lines = o.lines.filter((l) => l && typeof l === 'object' && String(l.name ?? '').trim()).slice(0, 20)
     .map((l) => ({ name: String(l.name).replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 80), amount: Math.min(1000000, Math.max(0, Math.round(Number(l.amount || 0) * 100) / 100)) }))
     .filter((l) => l.name);
-  return lines.length ? { basis: o.basis === 'incl' ? 'incl' : 'excl', lines } : null;
+  return lines.length ? { basis: o.basis === 'incl' ? 'incl' : 'excl', rate: RATES.includes(Number(o.rate)) ? Number(o.rate) : 18, lines } : null;
 }
 
 export function buildInvoice(lead, services, opts = {}) {
@@ -30,16 +32,17 @@ export function buildInvoice(lead, services, opts = {}) {
   const discount = couponDiscount + extraDiscount;
   const basis = ov ? ov.basis : 'incl';
   // "excl": the lines are before GST, so the tax is added on what is left after discounts. "incl": the tax is carved out of the total.
-  const taxable = basis === 'excl' ? subtotal - discount : Math.round((subtotal - discount) / 1.18);
-  const gst = basis === 'excl' ? Math.round(taxable * 0.18) : subtotal - discount - taxable, cgst = Math.round(gst / 2), sgst = gst - cgst;
+  const rate = ov ? ov.rate : 18;
+  const taxable = basis === 'excl' ? subtotal - discount : Math.round((subtotal - discount) / (1 + rate / 100));
+  const gst = basis === 'excl' ? Math.round(taxable * rate / 100) : subtotal - discount - taxable, cgst = Math.round(gst / 2), sgst = gst - cgst;
   const total = taxable + gst;
   const paidRaw = paise(lead.paid_amount), paid = Math.min(total, paidRaw);
   const when = new Date(opts.date || Date.now());
   const dateLabel = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(when);
   return {
-    number: 'INV-' + lead.ref, ref: lead.ref, dateLabel, customer: { name: lead.name, phone: lead.phone },
+    number: 'INV-' + lead.ref, ref: lead.ref, dateLabel, customer: { name: lead.name, phone: lead.phone, company: clean80(opts.customer && opts.customer.company_name), gstin: clean80(opts.customer && opts.customer.gstin), address: clean80(opts.customer && opts.customer.address, 160) },
     lines, subtotal: rupees(subtotal), discount: rupees(discount), couponDiscount: rupees(couponDiscount), extraDiscount: rupees(extraDiscount), extraNote: String(lead.extra_discount_note || '').slice(0, 80), total: rupees(total),
-    basis, taxable: rupees(taxable), cgst: rupees(cgst), sgst: rupees(sgst), gstRate: 18,
+    basis, taxable: rupees(taxable), cgst: rupees(cgst), sgst: rupees(sgst), gstRate: rate,
     paid: rupees(paid), balance: rupees(total - paid), refund: rupees(Math.max(0, paidRaw - total)),
   };
 }

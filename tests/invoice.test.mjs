@@ -109,7 +109,7 @@ test('the admin and the email function agree on an edited invoice', () => {
 test('the invoice screen and email say whether amounts are before or including GST and let the admin edit them', () => {
   const a = readFileSync(new URL('../admin/admin.js', import.meta.url), 'utf8'), m = readFileSync(new URL('../supabase/functions/_shared/email-templates.ts', import.meta.url), 'utf8');
   assert.match(a, /'excl\.' : 'incl\.'/); assert.match(a, /data-act="invEdit"/); assert.match(a, /invoice_override/); assert.match(a, /data-act="invSaveEdit"/); assert.match(a, /data-act="invResetEdit"/);
-  assert.match(m, /'excl\.' : 'incl\.'/); assert.match(m, /GST is added at 18%/);
+  assert.match(m, /'excl\.' : 'incl\.'/); assert.match(m, /GST is added at \$\{v\.gstRate\}%/);
   assert.match(readFileSync(new URL('../supabase/migrations/20261029000000_invoice_override.sql', import.meta.url), 'utf8'), /invoice_override jsonb/);
 });
 test('the plain-text invoice email says the same thing about GST as the HTML one', async () => {

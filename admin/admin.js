@@ -1,7 +1,7 @@
 // Mechanix Pro admin panel — Supabase Auth + Row Level Security. All data access is checked in the database.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import { leadDetailRows, sourceReport } from './lead-view.js';
-import { customerRows, searchCustomers, mechanicStats } from './people.js';
+import { customerRows, searchCustomers, mechanicStats, cleanCustomerEdit, cleanBikeEdit } from './people.js';
 import { couponRows } from './coupon-view.js';
 import { rangeFor, buildReport, reportCsv, payoutReport } from './report.js';
 import { splitJob } from './split.js';
@@ -169,6 +169,20 @@ function openCustomer(id) {
   <p>${r.blocked ? '<span class="pill lost">Blocked</span>' : ''}</p>
   <div class="card"><dl class="kv"><dt>Phone</dt><dd><a href="tel:+91${esc(r.phone)}">+91 ${esc(r.phone)}</a></dd><dt>Bikes</dt><dd>${esc(r.bikes.join(', ') || 'None saved')}</dd><dt>Bookings</dt><dd>${r.bookings}</dd><dt>Paid so far</dt><dd>${rupee(r.paidTotal)}</dd></dl>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><a class="btn btn-wa btn-sm" href="https://wa.me/91${esc(r.phone)}" target="_blank" rel="noopener">Open WhatsApp chat</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(r.phone)}">Call</a></div></div>
+  <div class="card" style="margin-top:12px"><h3>Edit details</h3><p class="tiny muted" style="margin:0 0 6px">Changes also update this customer's bookings and invoices.</p>
+    <label class="label" for="cd-name">Name</label><input id="cd-name" maxlength="80" value="${esc(r.name)}">
+    <label class="label" for="cd-phone">Mobile number</label><input id="cd-phone" inputmode="numeric" maxlength="14" value="${esc(r.phone)}">
+    <label class="label" for="cd-email">Email</label><input id="cd-email" type="email" inputmode="email" maxlength="254" value="${esc(r.email || '')}">
+    <label class="label" for="cd-area">Area</label><input id="cd-area" maxlength="60" value="${esc(r.area || '')}" placeholder="For example: HSR Layout">
+    <label class="label" for="cd-address">Address</label><textarea id="cd-address" rows="2" maxlength="160">${esc(r.address || '')}</textarea>
+    <label class="label" for="cd-company">Company name <span class="muted" style="font-weight:400">(for a GST invoice)</span></label><input id="cd-company" maxlength="80" value="${esc(r.company || '')}">
+    <label class="label" for="cd-gstin">GSTIN <span class="muted" style="font-weight:400">(15 characters)</span></label><input id="cd-gstin" maxlength="15" autocapitalize="characters" value="${esc(r.gstin || '')}">
+    <button class="btn btn-primary" style="margin-top:14px" type="button" data-act="saveCustomerDetails">Save details</button></div>
+  ${S.bikes.filter((b) => b.customer_id === id).length ? `<div class="card" style="margin-top:12px"><h3>Bikes</h3>${S.bikes.filter((b) => b.customer_id === id).map((b) => `<div class="bike-edit" data-bike-row="${b.id}" style="border-top:1px solid var(--line);padding-top:10px;margin-top:10px">
+    <label class="label" for="bk-brand-${b.id}">Brand</label><input id="bk-brand-${b.id}" maxlength="30" value="${esc(b.brand || '')}">
+    <label class="label" for="bk-model-${b.id}">Model</label><input id="bk-model-${b.id}" maxlength="40" value="${esc(b.model || '')}">
+    <label class="label" for="bk-reg-${b.id}">Registration number</label><input id="bk-reg-${b.id}" maxlength="14" autocapitalize="characters" value="${esc(b.reg_no || '')}">
+    <button class="btn btn-ghost btn-sm" style="margin-top:10px" type="button" data-act="saveBike" data-id="${b.id}">Save bike</button></div>`).join('')}</div>` : ''}
   <div class="card" style="margin-top:12px"><h3>Notes and blocking</h3>
     <label class="label" for="cn">Notes</label><textarea id="cn" rows="3" maxlength="1000">${esc(r.notes || '')}</textarea>
     <label class="check"><input type="checkbox" id="cb"${r.blocked ? ' checked' : ''}><span>Block this customer. New website bookings from this number are not saved. They can still message you on WhatsApp.</span></label>
@@ -356,6 +370,26 @@ function closeSheet() { $('#sheet').hidden = true; S.open = null; S.openCust = n
 
 const ACT = {
   close: closeSheet,
+  async saveCustomerDetails() {
+    const r = S.customers.find((x) => x.id === S.openCust); if (!r) return;
+    const c = cleanCustomerEdit({ name: $('#cd-name').value, phone: $('#cd-phone').value, email: $('#cd-email').value, area: $('#cd-area').value, address: $('#cd-address').value, company_name: $('#cd-company').value, gstin: $('#cd-gstin').value });
+    if (!c.ok) return toast(c.error);
+    if (S.customers.some((x) => x.id !== r.id && x.phone === c.value.phone)) return toast('Another customer already has that mobile number');
+    const { error } = await sb.from('customers').update(c.value).eq('id', r.id);
+    if (error) return toast('Could not save: ' + error.message);
+    // The customer's bookings keep their own copy of the name and number, so keep them in step.
+    await sb.from('leads').update({ name: c.value.name, phone: c.value.phone }).eq('customer_id', r.id);
+    await audit('customer_details_edited', { phone_last4: c.value.phone.slice(-4), fields: Object.keys(c.value).length });
+    toast('Customer details saved'); await Promise.all([loadPeople(), loadLeads()]); if (S.tab === 'customers') renderCustomers(); openCustomer(r.id);
+  },
+  async saveBike(btn) {
+    const id = btn.getAttribute('data-id'), row = btn.closest('[data-bike-row]'); if (!row) return;
+    const b = cleanBikeEdit({ brand: row.querySelector('[id^=bk-brand]').value, model: row.querySelector('[id^=bk-model]').value, reg_no: row.querySelector('[id^=bk-reg]').value });
+    if (!b.ok) return toast(b.error);
+    const { error } = await sb.from('bikes').update(b.value).eq('id', id);
+    if (error) return toast('Could not save the bike: ' + error.message);
+    await audit('bike_edited', { bike: id.slice(0, 8) }); toast('Bike saved'); await loadPeople(); const cid = S.openCust; if (S.tab === 'customers') renderCustomers(); openCustomer(cid);
+  },
   async saveCustomer() {
     const r = S.customers.find((x) => x.id === S.openCust); if (!r) return;
     const upd = { notes: $('#cn').value.trim() || null, blocked: $('#cb').checked, blocked_reason: $('#cb').checked ? ($('#cr').value.trim() || null) : null };
@@ -557,10 +591,10 @@ const ACT = {
     if (!lines.length) return toast('Add at least one item');
     if (lines.some((x) => !x.name)) return toast('Give every amount an item name');
     if (lines.some((x) => !(x.amount >= 0) || x.amount > 1000000)) return toast('Check the amounts');
-    const override = { basis: $('#ie-basis').value === 'incl' ? 'incl' : 'excl', lines: lines.map((x) => ({ name: x.name.slice(0, 80), amount: Math.round(x.amount * 100) / 100 })) };
+    const override = { basis: $('#ie-basis').value === 'incl' ? 'incl' : 'excl', rate: [0, 5, 12, 18].includes(+$('#ie-rate').value) ? +$('#ie-rate').value : 18, lines: lines.map((x) => ({ name: x.name.slice(0, 80), amount: Math.round(x.amount * 100) / 100 })) };
     const { error } = await sb.from('leads').update({ invoice_override: override }).eq('id', l.id);
     if (error) return toast('Could not save the invoice: ' + error.message);
-    await audit('invoice_edited', { ref: l.ref, basis: override.basis, lines: override.lines.length }); toast('Invoice updated');
+    await audit('invoice_edited', { ref: l.ref, basis: override.basis, rate: override.rate, lines: override.lines.length }); toast('Invoice updated');
     await loadLeads(); openInvoice(S.leads.find((x) => x.id === l.id), { quick: true });
   },
   async invResetEdit() {
@@ -788,7 +822,7 @@ function countUp(el, to, ms) {
 }
 const invEditRow = (name, amount) => `<div class="inv-adjust-row ie-row"><input data-ie="name" maxlength="80" placeholder="Item, for example: Clutch plate set" value="${esc(name)}" aria-label="Item name"><input data-ie="amount" inputmode="decimal" maxlength="9" placeholder="Amount" value="${esc(amount)}" aria-label="Amount"><button class="btn btn-ghost btn-sm" type="button" data-act="invDelRow" aria-label="Remove this item">Remove</button></div>`;
 async function openInvoice(lead, opts = {}) {
-  const co = await loadCompany(), v = buildInvoice(lead, S.services), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || opts.quick;
+  const co = await loadCompany(), v = buildInvoice(lead, S.services, { customer: S.customers.find((c) => c.id === lead.customer_id) }), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || opts.quick;
   $('#inv')?.remove();
   const addr = [...(co.addressLines || []), [co.city, co.state, co.pincode].filter(Boolean).join(' ')].filter(Boolean).map(esc).join('<br>');
   const el = document.createElement('div'); el.id = 'inv'; el.className = 'inv-wrap'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Invoice ' + v.number);
@@ -796,19 +830,20 @@ async function openInvoice(lead, opts = {}) {
     <ol><li style="--d:.1s">Collecting booking ${esc(v.ref)}</li><li style="--d:.6s">Adding services and add-ons</li><li style="--d:1.1s">Splitting GST</li></ol><i></i></div>
   <div class="inv-paper" hidden>
     <div class="inv-head"><div><img src="/assets/img/logo.svg" alt="" width="40" height="42"><b class="inv-co">${esc(co.legalName)}</b><span class="inv-sub">Trading as ${esc(co.brand)}<br>${addr}${co.gstin ? '<br>GSTIN ' + esc(co.gstin) : ''}</span></div>
-      <div class="inv-meta"><h2>TAX INVOICE</h2><span>${esc(v.number)}</span><span>${esc(v.dateLabel)}</span></div></div>
-    <p class="inv-to"><span>Billed to</span><b>${esc(v.customer.name)}</b> · ${esc(v.customer.phone)}</p>
+      <div class="inv-meta"><h2>${v.gstRate ? 'TAX INVOICE' : 'INVOICE'}</h2><span>${esc(v.number)}</span><span>${esc(v.dateLabel)}</span></div></div>
+    <p class="inv-to"><span>Billed to</span><b>${esc(v.customer.company || v.customer.name)}</b>${v.customer.company ? ' (' + esc(v.customer.name) + ')' : ''} · ${esc(v.customer.phone)}${v.customer.address ? '<br>' + esc(v.customer.address) : ''}${v.customer.gstin ? '<br>GSTIN ' + esc(v.customer.gstin) : ''}</p>
     <table class="inv-table"><thead><tr><th>Item</th><th class="num">Amount (${v.basis === 'excl' ? 'excl.' : 'incl.'} GST)</th></tr></thead><tbody>
       ${v.lines.length ? v.lines.map((l, i) => `<tr class="inv-line" style="--i:${i}"><td>${esc(l.name)}</td><td class="num">${inr(l.amount)}</td></tr>`).join('') : '<tr><td colspan="2" class="muted">No priced items on this booking.</td></tr>'}
       ${v.couponDiscount ? `<tr class="inv-line" style="--i:${v.lines.length}"><td>Coupon discount</td><td class="num">− ${inr(v.couponDiscount)}</td></tr>` : ''}${v.extraDiscount ? `<tr class="inv-line" style="--i:${v.lines.length + 1}"><td>Special discount${v.extraNote ? ' (' + esc(v.extraNote) + ')' : ''}</td><td class="num">− ${inr(v.extraDiscount)}</td></tr>` : ''}</tbody></table>
-    <dl class="inv-tot"><dt>Taxable value</dt><dd data-to="${v.taxable}">${inr(v.taxable)}</dd><dt>CGST @ 9%</dt><dd data-to="${v.cgst}">${inr(v.cgst)}</dd><dt>SGST @ 9%</dt><dd data-to="${v.sgst}">${inr(v.sgst)}</dd>
+    <dl class="inv-tot"><dt>Taxable value</dt><dd data-to="${v.taxable}">${inr(v.taxable)}</dd>${v.gstRate ? `<dt>CGST @ ${v.gstRate / 2}%</dt><dd data-to="${v.cgst}">${inr(v.cgst)}</dd><dt>SGST @ ${v.gstRate / 2}%</dt><dd data-to="${v.sgst}">${inr(v.sgst)}</dd>` : ''}
       <dt class="grand">Total</dt><dd class="grand" data-to="${v.total}">${inr(v.total)}</dd>${v.paid ? `<dt>Paid so far</dt><dd data-to="${v.paid}">${inr(v.paid)}</dd><dt class="grand">Balance due</dt><dd class="grand" data-to="${v.balance}">${inr(v.balance)}</dd>` : ''}${v.refund ? `<dt class="grand">Refund due to customer</dt><dd class="grand" data-to="${v.refund}">${inr(v.refund)}</dd>` : ''}</dl>
     <div class="inv-stamp ${v.balance === 0 && v.total > 0 ? 'paid' : 'due'}" aria-hidden="true">${v.balance === 0 && v.total > 0 ? 'PAID' : 'DUE'}</div>
-    <p class="inv-foot">${v.basis === 'excl' ? 'Amounts are before GST. GST is added at 18% and shown in the totals.' : 'Prices include 18% GST.'} Parts are OEM certified, work is done by Mechanix Pro certified mechanics, and every service carries a 30-day warranty. Computer-generated invoice.</p>
+    <p class="inv-foot">${!v.gstRate ? 'No GST is charged on this invoice.' : v.basis === 'excl' ? `Amounts are before GST. GST is added at ${v.gstRate}% and shown in the totals.` : `Prices include ${v.gstRate}% GST.`} Parts are OEM certified, work is done by Mechanix Pro certified mechanics, and every service carries a 30-day warranty. Computer-generated invoice.</p>
     <div class="inv-adjust"><label for="inv-disc"><b>Last-minute discount</b> <span class="tiny muted">at the customer's request, on top of any coupon</span></label>
       <div class="inv-adjust-row"><select id="inv-disc-kind" aria-label="Discount type"><option value="amt">₹ amount</option><option value="pct">% of the bill</option></select><input id="inv-disc" inputmode="numeric" maxlength="6" placeholder="0" value="${v.extraDiscount || ''}" aria-label="Discount"><input id="inv-disc-note" maxlength="80" placeholder="Reason, for example: regular customer" value="${esc(v.extraNote)}" aria-label="Reason"><button class="btn btn-dark btn-sm" type="button" data-act="invDiscount">Apply</button></div></div>
     <div class="inv-edit card" id="invEditBox" hidden><b>Edit invoice</b> <span class="tiny muted">Change the items and amounts for this booking. The invoice and the email use what you save.</span>
-      <label class="label" for="ie-basis">The amounts below are</label><select id="ie-basis"><option value="excl"${v.basis === 'excl' ? ' selected' : ''}>Before GST (18% GST is added on top)</option><option value="incl"${v.basis === 'incl' ? ' selected' : ''}>Including GST (GST is worked out from the amount)</option></select>
+      <label class="label" for="ie-rate">GST rate on this invoice</label><select id="ie-rate"><option value="18"${v.gstRate === 18 ? ' selected' : ''}>18% GST (CGST 9% + SGST 9%)</option><option value="12"${v.gstRate === 12 ? ' selected' : ''}>12% GST (CGST 6% + SGST 6%)</option><option value="5"${v.gstRate === 5 ? ' selected' : ''}>5% GST (CGST 2.5% + SGST 2.5%)</option><option value="0"${v.gstRate === 0 ? ' selected' : ''}>0%: no GST on this invoice</option></select>
+      <label class="label" for="ie-basis">The amounts below are</label><select id="ie-basis"><option value="excl"${v.basis === 'excl' ? ' selected' : ''}>Before GST (GST is added on top)</option><option value="incl"${v.basis === 'incl' ? ' selected' : ''}>Including GST (GST is worked out from the amount)</option></select>
       <div id="ie-rows">${v.lines.map((l) => invEditRow(l.name, l.amount)).join('')}</div>
       <div class="inv-adjust-row"><button class="btn btn-ghost btn-sm" type="button" data-act="invAddRow">Add an item</button><button class="btn btn-primary btn-sm" type="button" data-act="invSaveEdit">Save invoice</button>${lead.invoice_override ? '<button class="btn btn-ghost btn-sm" type="button" data-act="invResetEdit">Back to package prices</button>' : ''}</div></div>
     <div class="inv-actions"><button class="btn btn-primary btn-sm" type="button" data-act="invPrint">Print or save as PDF</button><button class="btn btn-ghost btn-sm" type="button" data-act="invEdit">Edit invoice</button><button class="btn btn-dark btn-sm" type="button" data-act="invEmail">Email to customer</button><button class="btn btn-ghost btn-sm" type="button" data-act="invClose">Close</button></div>
