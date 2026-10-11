@@ -12,12 +12,9 @@ test('normalizeSlides keeps only https images with a caption, in order, capped a
   assert.equal(S.normalizeSlides(Array.from({ length: 30 }, (_, i) => ({ url: 'https://x.co/' + i + '.webp' }))).length, 12);
 });
 test('nextIndex wraps around', () => { assert.equal(S.nextIndex(0, 3), 1); assert.equal(S.nextIndex(2, 3), 0); assert.equal(S.nextIndex(0, 1), 0); });
-test('home page has the slideshow with real alt text and the script is loaded', () => {
+test('the home page no longer has the slideshow and does not load its script', () => {
   const h = read('src/home.html');
-  assert.match(h, /data-show/);
-  assert.ok((h.match(/class="slide/g) || []).length >= 3);
-  assert.doesNotMatch(h.match(/<div class="show"[\s\S]*?<\/section>/)[0], /alt=""/);
-  assert.match(read('scripts/build_pages.py'), /showcase\.js/);
+  assert.doesNotMatch(h, /data-show/); assert.doesNotMatch(read('scripts/build_pages.py'), /showcase\.js/);
 });
 test('slideshow stops moving for people who prefer reduced motion', () => {
   assert.match(read('assets/js/showcase.js'), /prefers-reduced-motion/);
