@@ -55,7 +55,7 @@ export function jobAccount({ invoice, entries = [], mechanic = null, now = Date.
   const remitDue = r2(Math.max(0, remitObligation - (allocated.remit || 0))), payoutDue = r2(Math.max(0, payoutObligation - (allocated.payout || 0)));
   const overdue = outstanding > EPS && now - new Date(invoice.issued_at).getTime() > overdueDays * 864e5;
   return {
-    lead_id: invoice.lead_id, ref: invoice.ref, number: invoice.number, issuedAt: invoice.issued_at, customer: invoice.customer_name, hasGst: !!invoice.has_gst, gstRate: invoice.gst_rate,
+    lead_id: invoice.lead_id, ref: invoice.ref, number: invoice.number, issuedAt: invoice.issued_at, customer: invoice.customer_name, phone: invoice.customer_phone || null, hasGst: !!invoice.has_gst, gstRate: invoice.gst_rate,
     mechanicId: invoice.mechanic_id || (mechanic && mechanic.id) || null, mechanicName: invoice.mechanic_name || (mechanic && mechanic.name) || null,
     service, gst, total, mechanicPct: pct, companyPct: 100 - pct, earningsTotal, companyShareTotal,
     byChannel, collected, outstanding, credit, writtenOff: r2(writtenOff), gatewayFees: r2(gatewayFees),

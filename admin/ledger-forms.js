@@ -24,7 +24,15 @@ export function buildEntry(kind, f, ctx = {}) {
     if (!CHANNELS.includes(by)) return fail('Choose who received the money.');
     if (by === 'mechanic' && !lead?.mechanic_id) return fail('This job has no mechanic. Assign one first.');
     const base = { ...common, lead_id: lead.id, mechanic_id: lead.mechanic_id ?? null, collected_by: by, amount };
-    if (kind === 'payment') return { ok: true, entry: { ...base, entry_type: 'customer_payment' } };
+    if (kind === 'payment') {
+      const entry = { ...base, entry_type: 'customer_payment' };
+      if (by === 'company_portal') {
+        const fee = String(f.gatewayFee ?? '').trim() === '' ? 0 : r2(Number(f.gatewayFee));
+        if (!(fee >= 0) || fee > amount) return fail('Check the gateway fee. It cannot be negative or more than the payment.');
+        entry.gateway_fee = fee; entry.gateway_txn_id = clean(f.txn, 80) || null; entry.settlement_status = f.settlement === 'settled' ? 'settled' : 'pending';
+      }
+      return { ok: true, entry };
+    }
     const reason = clean(f.reason, 200); if (!reason) return fail('Say why the money is being refunded.');
     if (amount > (ctx.collectedBy?.[by] ?? 0) + 0.005) return fail('That is more than was collected this way.');
     return { ok: true, entry: { ...base, entry_type: 'refund', reason } };

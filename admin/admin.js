@@ -15,7 +15,7 @@ import { boardGroups, nextStep } from './board.js';
 import { mechanicCut, snapshotRow, sameFigures, filterRegister, registerTotals, byMechanic, gstSummary, registerCsv } from './invoice-register.js';
 import { jobAccount, mechanicAccount, summaryCards } from './ledger.js';
 import { buildEntry } from './ledger-forms.js';
-import { filterAccounts, salesCsv, entryLabel } from './sales-view.js';
+import { filterAccounts, salesCsv, ledgerCsv, entryLabel } from './sales-view.js';
 import { adsConversions } from './ads-export.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
@@ -33,7 +33,7 @@ if (!C.supabaseUrl || !C.supabaseAnonKey) {
   throw new Error('Supabase not configured');
 }
 const sb = createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
-const S = { me: null, tab: 'dash', lastTab: {}, invoices: [], ledger: [], sf: { period: 'month', mechanic: '', status: '', q: '' }, finJob: null, finKind: 'payment', mlOpen: null, ifl: { gst: '', rate: '', mechanic: '', period: 'month', q: '' }, leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', waitlist: [], wi: '', wq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
+const S = { me: null, tab: 'dash', lastTab: {}, invoices: [], ledger: [], sf: { period: 'month', mechanic: '', status: '', q: '', channel: '', gst: '', from: '', to: '' }, finJob: null, finKind: 'payment', mlOpen: null, ifl: { gst: '', rate: '', mechanic: '', period: 'month', q: '' }, leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', waitlist: [], wi: '', wq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
 
 function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
@@ -131,7 +131,7 @@ document.addEventListener('change', (e) => { if (e.target.id === 'il') { const l
 document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-board-mech]')) { ACT.boardMech(e.target); return; } const m = { 'if-period': 'period', 'if-gst': 'gst', 'if-rate': 'rate', 'if-mech': 'mechanic' }[e.target.id]; if (m) { S.ifl[m] = e.target.value; render(); } });
 document.addEventListener('input', (e) => { if (e.target.id === 'if-q') { S.ifl.q = e.target.value; const pos = e.target.selectionStart; render(); const q = $('#if-q'); if (q) { q.focus(); q.setSelectionRange(pos, pos); } } });
 document.addEventListener('click', (e) => { const r = e.target.closest('.inv-tr'); if (r) openLead(r.dataset.lead); const f = e.target.closest('.fin-tr'); if (f) ACT.finOpen(f); });
-document.addEventListener('change', (e) => { const id = e.target.id; if (id === 'fin-kind') { S.finKind = e.target.value; render(); return; } const m = { 'sf-period': 'period', 'sf-mech': 'mechanic', 'sf-status': 'status' }[id]; if (m) { S.sf[m] = e.target.value; render(); } });
+document.addEventListener('change', (e) => { const id = e.target.id; if (id === 'fin-by') { const p = $('#fin-portal'); if (p) p.hidden = e.target.value !== 'company_portal'; return; } if (id === 'fin-kind') { S.finKind = e.target.value; render(); return; } const m = { 'sf-period': 'period', 'sf-mech': 'mechanic', 'sf-status': 'status', 'sf-channel': 'channel', 'sf-gst': 'gst', 'sf-from': 'from', 'sf-to': 'to' }[id]; if (m) { S.sf[m] = e.target.value; render(); } });
 document.addEventListener('input', (e) => { if (e.target.id === 'sf-q') { S.sf.q = e.target.value; clearTimeout(S.sfT); S.sfT = setTimeout(() => { render(); const q = $('#sf-q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if ($('#inv')) $('#inv').remove(); else if (!$('#sheet').hidden) closeSheet(); } });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
@@ -486,7 +486,7 @@ const ACT = {
   async finSave() {
     const a = salesModel().accounts.find((x) => x.lead_id === S.finJob), l = S.leads.find((x) => x.id === S.finJob); if (!a || !l) return;
     const v = (id) => ($('#' + id)?.value ?? '');
-    const kind = S.finKind, r = buildEntry(kind, { amount: v('fin-amount'), by: v('fin-by'), method: v('fin-method'), reference: v('fin-ref'), on: v('fin-on'), reason: v('fin-reason'), note: v('fin-note'), mechanic: l.mechanic_id || '' }, { today: todayIST(), lead: l, collectedBy: a.byChannel, outstanding: a.outstanding });
+    const kind = S.finKind, r = buildEntry(kind, { amount: v('fin-amount'), by: v('fin-by'), method: v('fin-method'), reference: v('fin-ref'), on: v('fin-on'), reason: v('fin-reason'), note: v('fin-note'), mechanic: l.mechanic_id || '', gatewayFee: v('fin-fee'), txn: v('fin-txn'), settlement: v('fin-settle') }, { today: todayIST(), lead: l, collectedBy: a.byChannel, outstanding: a.outstanding });
     if (!r.ok) return toast(r.error);
     if (!confirm(`${FIN_KINDS[kind]}: ${rupee2(r.entry.amount)} for ${l.ref}? This cannot be edited later, only cancelled with a reason.`)) return;
     const { error } = await sb.from('ledger_entries').insert({ ...r.entry, created_by: S.me.user_id });
@@ -515,6 +515,17 @@ const ACT = {
     const { error } = await sb.from('ledger_entries').insert({ ...r.entry, created_by: S.me.user_id });
     if (error) return toast('Could not save: ' + error.message);
     await audit('ledger_' + kind, { mechanic: m?.name, amount: r.entry.amount }); toast('Saved'); await loadLedger(); render();
+  },
+  async settle(btn) {
+    const { error } = await sb.rpc('set_settlement', { entry_id: btn.getAttribute('data-id'), settled: btn.getAttribute('data-to') === 'yes' });
+    if (error) return toast('Could not update: ' + error.message);
+    await audit('ledger_settlement', { entry: btn.getAttribute('data-id'), settled: btn.getAttribute('data-to') === 'yes' }); await loadLedger(); render();
+  },
+  ledgerCsv() {
+    if (!S.ledger.length) return toast('Nothing to download');
+    const refs = Object.fromEntries(S.leads.map((l) => [l.id, l.ref])), mechanics = Object.fromEntries(S.mechanics.map((m) => [m.id, m.name]));
+    const blob = new Blob(['\ufeff' + ledgerCsv([...S.ledger].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)), { refs, mechanics, who: whoRecorded })], { type: 'text/csv;charset=utf-8' }), a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'mechanix-transactions-' + todayIST() + '.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   },
   salesCsv() {
     const rows = salesRows(); if (!rows.length) return toast('Nothing to download');
@@ -1150,14 +1161,16 @@ function salesModel() {
   }
   return { accounts, mechAccts, cards: summaryCards(accounts, S.ledger) };
 }
-function salesRows() { const f = S.sf; return filterAccounts(salesModel().accounts, { mechanic: f.mechanic, status: f.status, q: f.q, ...iPeriod(f.period) }).sort((a, b) => new Date(b.issuedAt) - new Date(a.issuedAt)); }
+const sfRange = () => (S.sf.from || S.sf.to ? { from: S.sf.from || undefined, to: S.sf.to || undefined } : iPeriod(S.sf.period));
+function salesRows() { const f = S.sf; return filterAccounts(salesModel().accounts, { mechanic: f.mechanic, status: f.status, q: f.q, channel: f.channel, gst: f.gst, ...sfRange() }).sort((a, b) => new Date(b.issuedAt) - new Date(a.issuedAt)); }
 const statusPill = (t) => `<span class="pill ${['Fully Paid', 'Settled'].includes(t) ? 'paid' : ['Customer Due', 'Overdue', 'Mechanic Remittance Due'].includes(t) ? 'lost' : ''}">${esc(t)}</span>`;
+const whoRecorded = (e) => (e.source === 'gateway' ? 'System (Razorpay)' : e.source === 'opening' ? 'Opening balance' : e.created_by ? (e.created_by === S.me.user_id ? 'You' : 'Team member') : 'System');
 function entryRows(entries, withReverse = true) {
   const gone = new Set(S.ledger.filter((e) => e.entry_type === 'reversal').map((e) => e.reverses_id));
   if (!entries.length) return '<p class="muted small">No money recorded yet.</p>';
-  return `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Date</th><th>What</th><th>Amount</th><th>Details</th><th></th></tr></thead><tbody>${entries.map((e) => {
+  return `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Date</th><th>What</th><th>Amount</th><th>Details</th><th>Recorded by</th><th></th></tr></thead><tbody>${entries.map((e) => {
     const cancelled = gone.has(e.id), by = e.entry_type === 'customer_payment' && e.gateway_fee > 0 ? ` · gateway fee ${rupee2(e.gateway_fee)}` : '';
-    return `<tr${cancelled || e.entry_type === 'reversal' ? ' style="opacity:.6"' : ''}><td>${esc(e.occurred_on)}</td><td>${esc(entryLabel(e))}${cancelled ? ' <span class="tiny muted">(cancelled)</span>' : ''}</td><td><b>${e.entry_type === 'refund' ? '−' : ''}${rupee2(e.amount)}</b></td><td class="tiny muted">${esc([e.method, e.reference, e.reason, e.note].filter(Boolean).join(' · '))}${by}</td><td>${withReverse && !cancelled && e.entry_type !== 'reversal' && e.source !== 'gateway' ? `<button class="btn btn-ghost btn-sm" type="button" data-act="finReverse" data-id="${e.id}">Cancel</button>` : ''}</td></tr>`;
+    return `<tr${cancelled || e.entry_type === 'reversal' ? ' style="opacity:.6"' : ''}><td>${esc(e.occurred_on)}</td><td>${esc(entryLabel(e))}${cancelled ? ' <span class="tiny muted">(cancelled)</span>' : ''}</td><td><b>${e.entry_type === 'refund' ? '−' : ''}${rupee2(e.amount)}</b></td><td class="tiny muted">${esc([e.method, e.reference, e.reason, e.note].filter(Boolean).join(' · '))}${by}${e.settlement_status ? ` · <b>${e.settlement_status === 'settled' ? 'Settled' + (e.settled_on ? ' ' + esc(e.settled_on) : '') : 'Settlement pending'}</b> <button class="btn btn-ghost btn-sm" type="button" data-act="settle" data-id="${e.id}" data-to="${e.settlement_status === 'settled' ? 'no' : 'yes'}">${e.settlement_status === 'settled' ? 'Mark pending' : 'Mark settled'}</button>` : ''}</td><td class="tiny">${esc(whoRecorded(e))}<br><span class="muted">${esc(when(e.created_at))}</span></td><td>${withReverse && !cancelled && e.entry_type !== 'reversal' && e.source !== 'gateway' ? `<button class="btn btn-ghost btn-sm" type="button" data-act="finReverse" data-id="${e.id}">Cancel</button>` : ''}</td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
 function finPanel(a) {
@@ -1170,6 +1183,7 @@ function finPanel(a) {
     ${input('fin-amount', 'Amount (₹)', 'inputmode="decimal" maxlength="10" placeholder="0"')}
     ${needsBy ? `<label class="label" for="fin-by">${k === 'refund' ? 'Refunded from' : 'Who received the money'}</label><select id="fin-by">${chan('company_manual', 'The company (cash, bank or UPI)')}${chan('company_portal', 'The company, online (Razorpay)')}${a.mechanicId ? chan('mechanic', 'The mechanic ' + esc(a.mechanicName || '')) : ''}</select>` : ''}
     ${k === 'remittance' || k === 'payout' ? `<p class="tiny muted" style="margin:8px 0 0">This is recorded for ${esc(a.mechanicName || 'the mechanic')} and settles their oldest jobs first.</p>` : ''}
+    ${k === 'payment' ? `<div id="fin-portal" hidden>${input('fin-fee', 'Gateway fee (₹)', 'inputmode="decimal" maxlength="8" placeholder="0"')}${input('fin-txn', 'Gateway transaction ID', 'maxlength="80"')}<label class="label" for="fin-settle">Settlement</label><select id="fin-settle"><option value="pending">Pending</option><option value="settled">Settled to the bank</option></select></div>` : ''}
     ${input('fin-method', 'How (cash, UPI, bank transfer)', 'maxlength="40"')}${input('fin-ref', 'Reference or transaction ID (optional)', 'maxlength="80"')}${input('fin-on', 'Date', `type="date" max="${todayIST()}" value="${todayIST()}"`)}
     ${needsReason ? input('fin-reason', 'Reason (required)', 'maxlength="200"') : ''}${input('fin-note', 'Note (optional)', 'maxlength="300"')}
     <button class="btn btn-primary" style="margin-top:12px" type="button" data-act="finSave">Save entry</button></div>`;
@@ -1181,19 +1195,22 @@ function finPanel(a) {
     <div class="row-btns" style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button" data-act="openBooking" data-id="${a.lead_id}">Open booking</button></div></div>${forms}`;
 }
 function sales() {
-  const f = S.sf, m = salesModel(), rows = filterAccounts(m.accounts, { mechanic: f.mechanic, status: f.status, q: f.q, ...iPeriod(f.period) }).sort((a, b) => new Date(b.issuedAt) - new Date(a.issuedAt));
+  const f = S.sf, m = salesModel(), rows = filterAccounts(m.accounts, { mechanic: f.mechanic, status: f.status, q: f.q, channel: f.channel, gst: f.gst, ...sfRange() }).sort((a, b) => new Date(b.issuedAt) - new Date(a.issuedAt));
   const c = summaryCards(rows, S.ledger), opt = (v, cur, label) => `<option value="${v}"${String(cur) === String(v) ? ' selected' : ''}>${label}</option>`;
   const fin = S.finJob && m.accounts.find((a) => a.lead_id === S.finJob);
   const kpi = (v, l) => `<div class="kpi"><b>${rupee2(v)}</b><span>${l}</span></div>`;
   const STAT = ['Unpaid', 'Partially Paid', 'Fully Paid', 'Customer Due', 'Overdue', 'Mechanic Remittance Due', 'Mechanic Payout Due', 'Settled'];
-  const table = rows.length ? `<div class="inv-table-wide"><table class="rtable"><thead><tr><th>Invoice</th><th>Customer</th><th>Mechanic</th><th>Total</th><th>Company</th><th>Online</th><th>Mechanic</th><th>Customer owes</th><th>Mechanic owes us</th><th>We owe mechanic</th><th>Status</th></tr></thead><tbody>${rows.map((a) => `<tr class="fin-tr" data-lead="${a.lead_id}" tabindex="0"><td><b>${esc(a.number)}</b><br><span class="tiny muted">${esc(when(a.issuedAt))}</span></td><td>${esc(a.customer)}</td><td>${esc(a.mechanicName || '—')}</td><td><b>${rupee2(a.total)}</b></td><td>${rupee2(a.byChannel.company_manual)}</td><td>${rupee2(a.byChannel.company_portal)}</td><td>${rupee2(a.byChannel.mechanic)}</td><td>${rupee2(a.outstanding)}</td><td>${rupee2(a.remitDue)}</td><td>${rupee2(a.payoutDue)}</td><td>${a.statusLabels.map(statusPill).join(' ')}</td></tr>`).join('')}</tbody></table></div><div class="inv-cards">${rows.map((a) => `<button class="row fin-tr" data-lead="${a.lead_id}" style="border-radius:12px"><span class="ref">${esc(a.number)}</span><span>${esc(a.customer)}<br><span class="meta">${esc(a.mechanicName || 'No mechanic')} · ${a.statusLabels.join(', ')}</span></span><span><b>${rupee2(a.total)}</b><br><span class="meta">Owes ${rupee2(a.outstanding)}</span></span></button>`).join('')}</div>` : '<p class="muted">No jobs match. Jobs appear here once they are completed or have a payment.</p>';
+  const table = rows.length ? `<div class="inv-table-wide"><table class="rtable"><thead><tr><th>Invoice</th><th>Customer</th><th>Mechanic</th><th>Share</th><th>Total</th><th>Company</th><th>Online</th><th>Mechanic</th><th>Customer owes</th><th>Mechanic owes us</th><th>We owe mechanic</th><th>Status</th></tr></thead><tbody>${rows.map((a) => `<tr class="fin-tr" data-lead="${a.lead_id}" tabindex="0"><td><b>${esc(a.number)}</b><br><span class="tiny muted">${esc(when(a.issuedAt))}</span></td><td>${esc(a.customer)}<br><span class="tiny muted">${esc(a.phone || '')}</span></td><td>${esc(a.mechanicName || '—')}</td><td class="tiny">${a.mechanicName ? 'Mechanic ' + a.mechanicPct + '%<br>Company ' + a.companyPct + '%' : '—'}</td><td><b>${rupee2(a.total)}</b></td><td>${rupee2(a.byChannel.company_manual)}</td><td>${rupee2(a.byChannel.company_portal)}</td><td>${rupee2(a.byChannel.mechanic)}</td><td>${rupee2(a.outstanding)}</td><td>${rupee2(a.remitDue)}</td><td>${rupee2(a.payoutDue)}</td><td>${a.statusLabels.map(statusPill).join(' ')}</td></tr>`).join('')}</tbody></table></div><div class="inv-cards">${rows.map((a) => `<button class="row fin-tr" data-lead="${a.lead_id}" style="border-radius:12px"><span class="ref">${esc(a.number)}</span><span>${esc(a.customer)}<br><span class="meta">${esc(a.mechanicName || 'No mechanic')} · ${a.statusLabels.join(', ')}</span></span><span><b>${rupee2(a.total)}</b><br><span class="meta">Owes ${rupee2(a.outstanding)}</span></span></button>`).join('')}</div>` : '<p class="muted">No jobs match. Jobs appear here once they are completed or have a payment.</p>';
   return `<h1 style="font-size:34px">Sales and collections</h1><p class="muted">Every invoice, who collected the money, and what the customer, the mechanic and the company each still owe.</p>
   <div class="kpis">${kpi(c.invoiceSales, 'Invoice sales')}${kpi(c.collectedManual, 'Collected by the company')}${kpi(c.collectedPortal, 'Collected online')}${kpi(c.collectedMechanic, 'Collected by mechanics')}${kpi(c.customerOutstanding, 'Customers still owe')}${kpi(c.gst, 'GST in these invoices')}${kpi(c.mechanicsOweCompany, 'Mechanics owe the company')}${kpi(c.payoutsPending, 'Company owes mechanics')}${kpi(c.payoutsPaid, 'Mechanic payouts paid')}${c.gatewayFees ? kpi(c.gatewayFees, 'Gateway fees paid') : ''}</div>
   ${fin ? finPanel(fin) : ''}
   <div class="toolbar" style="flex-wrap:wrap;gap:8px;margin-top:14px"><select id="sf-period" aria-label="Period">${IPERIODS.map(([k, n]) => opt(k, f.period, n)).join('')}</select>
     <select id="sf-mech" aria-label="Mechanic">${opt('', f.mechanic, 'All mechanics')}${S.mechanics.map((x) => opt(x.id, f.mechanic, esc(x.name))).join('')}${opt('none', f.mechanic, 'No mechanic')}</select>
     <select id="sf-status" aria-label="Status">${opt('', f.status, 'Any status')}${STAT.map((x) => opt(x, f.status, x)).join('')}</select>
-    <input id="sf-q" type="search" placeholder="Search invoice, name, booking" value="${esc(f.q)}" aria-label="Search" style="min-width:200px"><button class="btn btn-ghost btn-sm" type="button" data-act="salesCsv">Download CSV</button></div>
+    <select id="sf-channel" aria-label="Collected by">${opt('', f.channel, 'Collected by anyone')}${opt('company_manual', f.channel, 'Company, manual')}${opt('company_portal', f.channel, 'Company, online')}${opt('mechanic', f.channel, 'Mechanic')}</select>
+    <select id="sf-gst" aria-label="Invoice type">${opt('', f.gst, 'With and without GST')}${opt('with', f.gst, 'With GST')}${opt('without', f.gst, 'No GST')}</select>
+    <label class="tiny muted">From <input id="sf-from" type="date" value="${esc(f.from)}" aria-label="From date"></label><label class="tiny muted">To <input id="sf-to" type="date" value="${esc(f.to)}" aria-label="To date"></label>
+    <input id="sf-q" type="search" placeholder="Search invoice, name, booking" value="${esc(f.q)}" aria-label="Search" style="min-width:200px"><button class="btn btn-ghost btn-sm" type="button" data-act="salesCsv">Download jobs CSV</button><button class="btn btn-ghost btn-sm" type="button" data-act="ledgerCsv">Download all transactions CSV</button></div>
   <div class="card" style="margin-top:14px"><h3>All jobs (${rows.length})</h3>${table}</div>`;
 }
 function mechledger() {
@@ -1202,7 +1219,7 @@ function mechledger() {
     const id = a.mechanic.id, open = S.mlOpen === id, entries = S.ledger.filter((e) => e.mechanic_id === id && ['remittance', 'payout', 'reversal'].includes(e.entry_type)).sort((x, y) => new Date(y.created_at) - new Date(x.created_at));
     const f = (kind, label) => `<div class="card" style="margin-top:10px"><b>${label}</b><label class="label" for="ml-amount-${id}-${kind}">Amount (₹)</label><input id="ml-amount-${id}-${kind}" inputmode="decimal" maxlength="10"><label class="label" for="ml-method-${id}-${kind}">How</label><input id="ml-method-${id}-${kind}" maxlength="40" placeholder="UPI, cash, bank transfer"><label class="label" for="ml-ref-${id}-${kind}">Reference (optional)</label><input id="ml-ref-${id}-${kind}" maxlength="80"><label class="label" for="ml-on-${id}-${kind}">Date</label><input id="ml-on-${id}-${kind}" type="date" max="${todayIST()}" value="${todayIST()}"><button class="btn btn-primary btn-sm" style="margin-top:10px" type="button" data-act="mlSave" data-id="${id}" data-kind="${kind}">Save</button></div>`;
     const jobs = a.jobAccounts.sort((x, y) => new Date(y.issuedAt) - new Date(x.issuedAt));
-    return `<div class="card" style="margin-top:12px"><button class="row" type="button" data-act="mlOpen" data-id="${id}" style="border-radius:12px;width:100%"><span><b>${esc(a.mechanic.name)}</b><br><span class="meta">${a.jobs} job${a.jobs === 1 ? '' : 's'} · ${a.mechanic.payout_rate || 0}% of the service amount</span></span><span>${statusPill(a.status)}</span><span><b>${a.net === 0 ? '' : rupee2(Math.abs(a.net))}</b><br><span class="meta">${esc(a.netLabel)}</span></span></button>
+    return `<div class="card" style="margin-top:12px"><button class="row" type="button" data-act="mlOpen" data-id="${id}" style="border-radius:12px;width:100%"><span><b>${esc(a.mechanic.name)}</b><br><span class="meta">${a.mechanic.phone ? '+91 ' + esc(a.mechanic.phone) + ' · ' : ''}${a.mechanic.area ? esc(a.mechanic.area) + ' · ' : ''}${a.jobs} job${a.jobs === 1 ? '' : 's'} · ${a.mechanic.payout_rate || 0}% of the service amount</span></span><span>${statusPill(a.status)}</span><span><b>${a.net === 0 ? '' : rupee2(Math.abs(a.net))}</b><br><span class="meta">${esc(a.netLabel)}</span></span></button>
     <div class="kpis" style="margin-top:10px"><div class="kpi"><b>${rupee2(a.serviceSales)}</b><span>Service sales</span></div><div class="kpi"><b>${rupee2(a.directCollected)}</b><span>Collected directly</span></div><div class="kpi"><b>${rupee2(a.earnings)}</b><span>Earnings</span></div><div class="kpi"><b>${rupee2(a.remitRemaining)}</b><span>Owes the company</span></div><div class="kpi"><b>${rupee2(a.payoutRemaining)}</b><span>Company owes</span></div><div class="kpi"><b>${rupee2(a.remitted)}</b><span>Paid to the company</span></div><div class="kpi"><b>${rupee2(a.paidOut)}</b><span>Paid out to the mechanic</span></div></div>
     ${open ? `<h3 style="margin:14px 0 6px">Jobs</h3><div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Invoice</th><th>Total</th><th>Collected by mechanic</th><th>Earnings</th><th>Owes the company</th><th>Company owes</th></tr></thead><tbody>${jobs.map((j) => `<tr class="fin-tr" data-lead="${j.lead_id}" tabindex="0"><td>${esc(j.number)}</td><td>${rupee2(j.total)}</td><td>${rupee2(j.byChannel.mechanic)}</td><td>${rupee2(j.payoutObligation + j.inHand)}</td><td>${rupee2(j.remitDue)}</td><td>${rupee2(j.payoutDue)}</td></tr>`).join('')}</tbody></table></div>
     <h3 style="margin:14px 0 6px">Settlements</h3>${entryRows(entries)}<div class="fin-grid">${f('remittance', esc(a.mechanic.name) + ' paid the company')}${f('payout', 'The company paid ' + esc(a.mechanic.name))}</div>` : '<p class="tiny muted" style="margin:8px 0 0">Tap to see the jobs and record a settlement.</p>'}</div>`;

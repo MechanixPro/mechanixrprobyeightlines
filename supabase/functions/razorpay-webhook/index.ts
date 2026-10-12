@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
   if (!lead || lead.status === 'paid') return new Response('ok');
 
   const amount = Math.round((pay?.amount ?? pl?.amount_paid ?? 0) / 100);
-  const { error: ledgerErr } = await db.from('ledger_entries').insert({ lead_id: lead.id, entry_type: 'customer_payment', amount, collected_by: 'company_portal', method: 'Razorpay payment link', reference: pay?.id ?? null, gateway_txn_id: pay?.id ?? null, gateway_fee: Math.round(Number(pay?.fee ?? 0)) / 100, source: 'gateway' });
+  const { error: ledgerErr } = await db.from('ledger_entries').insert({ lead_id: lead.id, entry_type: 'customer_payment', amount, collected_by: 'company_portal', method: 'Razorpay payment link', reference: pay?.id ?? null, gateway_txn_id: pay?.id ?? null, gateway_fee: Math.round(Number(pay?.fee ?? 0)) / 100, source: 'gateway', settlement_status: 'pending' });
   if (ledgerErr && ledgerErr.code !== '23505') console.error('ledger insert failed', ledgerErr);
   await db.from('leads').update({ status: 'paid', next_followup_at: null }).eq('id', lead.id);
   await db.from('audit_log').insert({ actor: null, action: 'payment_received', details: { lead: lead.ref, amount, payment_id: pay?.id } });

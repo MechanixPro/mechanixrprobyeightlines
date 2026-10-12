@@ -118,3 +118,9 @@ test('the nine dashboard figures add up from the ledger and the invoices', () =>
   assert.equal(cards.customerOutstanding, 290); assert.equal(cards.gst, 360); assert.equal(cards.payoutsPaid, 50); assert.equal(cards.gatewayFees, 7);
   assert.equal(cards.mechanicsOweCompany, 680); assert.equal(cards.payoutsPending, 251.69); // 400 x 890 / 1180 = 301.69, less 50 already paid out
 });
+
+test('the job account carries the phone and the company percentage for the table', async () => {
+  const { jobAccount } = await import('../admin/ledger.js');
+  const a = jobAccount({ invoice: { lead_id: 'p', ref: 'MP-9', number: 'INV-9', issued_at: '2026-10-05T05:00:00Z', customer_name: 'Asha', customer_phone: '9876543210', has_gst: true, gst_rate: 18, total: 1180, taxable: 1000, mechanic_id: 'M1', mechanic_rate: 40 }, entries: [] });
+  assert.equal(a.phone, '9876543210'); assert.equal(a.mechanicPct, 40); assert.equal(a.companyPct, 60);
+});

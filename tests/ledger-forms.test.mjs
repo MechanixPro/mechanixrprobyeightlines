@@ -41,3 +41,12 @@ test('a reversal needs a reason and the entry it cancels, and cannot cancel a re
   const r = buildEntry('reversal', { reason: 'Typed twice' }, { today, target: { id: 'E1', entry_type: 'customer_payment', lead_id: 'L1', mechanic_id: 'M1', amount: 500 } });
   assert.deepEqual([r.ok, r.entry.entry_type, r.entry.reverses_id, r.entry.lead_id, r.entry.amount, r.entry.reason], [true, 'reversal', 'E1', 'L1', 500, 'Typed twice']);
 });
+
+test('an online payment can carry the gateway fee, transaction id and settlement status', () => {
+  const r = buildEntry('payment', { amount: '500', by: 'company_portal', gatewayFee: '11.8', txn: ' pay_X1 ', settlement: 'settled', on: today }, ctx);
+  assert.deepEqual([r.ok, r.entry.gateway_fee, r.entry.gateway_txn_id, r.entry.settlement_status], [true, 11.8, 'pay_X1', 'settled']);
+  assert.equal(buildEntry('payment', { amount: '500', by: 'company_portal', gatewayFee: '-1', on: today }, ctx).ok, false);
+  assert.equal(buildEntry('payment', { amount: '500', by: 'company_portal', gatewayFee: '600', on: today }, ctx).ok, false);
+  const m = buildEntry('payment', { amount: '500', by: 'company_manual', gatewayFee: '5', txn: 'x', on: today }, ctx);
+  assert.deepEqual([m.entry.gateway_fee ?? 0, m.entry.gateway_txn_id ?? null], [0, null]);
+});

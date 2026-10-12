@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
 
   const amount = Math.round(Number(pay.amount) / 100);
   // The ledger row is the record of the money; a trigger keeps leads.paid_amount equal to it. The unique gateway id makes a repeat harmless.
-  const { error: ledgerErr } = await db.from('ledger_entries').insert({ lead_id: lead.id, entry_type: 'customer_payment', amount, collected_by: 'company_portal', method: 'Razorpay', reference: v.payment_id, gateway_txn_id: v.payment_id, gateway_fee: Math.round(Number(pay.fee ?? 0)) / 100, source: 'gateway' });
+  const { error: ledgerErr } = await db.from('ledger_entries').insert({ lead_id: lead.id, entry_type: 'customer_payment', amount, collected_by: 'company_portal', method: 'Razorpay', reference: v.payment_id, gateway_txn_id: v.payment_id, gateway_fee: Math.round(Number(pay.fee ?? 0)) / 100, source: 'gateway', settlement_status: 'pending' });
   if (ledgerErr && ledgerErr.code !== '23505') console.error('ledger insert failed', ledgerErr);
   await db.from('leads').update({ status: lead.status === 'completed' ? 'completed' : 'paid', next_followup_at: null }).eq('id', lead.id);
   await db.from('audit_log').insert({ actor: null, action: 'payment_received', details: { lead: lead.ref, amount, payment_id: v.payment_id, order_id: v.order_id, via: 'checkout' } });
