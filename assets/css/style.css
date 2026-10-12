@@ -771,3 +771,4 @@ body.page-book .pro{bottom:calc(132px + env(safe-area-inset-bottom,0px))}
 .need-tile svg{width:30px;height:30px;stroke:var(--ember-2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .need-tile b{font-size:19px}.need-tile span{color:var(--ink-2);line-height:1.45}
 @media(prefers-reduced-motion:reduce){.need-tile{transition:none}.need-tile:hover{transform:none}}
+.hero-alt{margin-top:14px}.hero-proof{margin:12px 0 0;font-size:15px;opacity:.92}.hero-proof b{font-weight:700}
