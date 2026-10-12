@@ -57,7 +57,7 @@ export function payoutReport(leads, mechanics, basis = 'collected') {
   const acc = new Map();
   for (const l of leads) {
     if (l.status !== 'completed' || !byId.has(l.mechanic_id)) continue;
-    const m = byId.get(l.mechanic_id), one = splitJob(l.paid_amount || 0, m.payout_rate || 0, basis);
+    const m = byId.get(l.mechanic_id), one = splitJob(l.paid_amount || 0, m.payout_rate || 0, basis, [0, 5, 12, 18].includes(Number(l.invoice_override && l.invoice_override.rate)) ? Number(l.invoice_override.rate) : 18); // the invoice's own GST rate
     const r = acc.get(m.id) || { m, jobs: 0, collected: 0, base: 0 };
     r.jobs++; r.collected += l.paid_amount || 0; r.base += one.base; acc.set(m.id, r);
   }
