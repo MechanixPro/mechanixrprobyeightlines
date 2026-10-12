@@ -6,15 +6,15 @@ const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 
 test('five sections hold every page exactly once, with the daily work first', () => {
   assert.deepEqual(GROUPS.map((g) => g.id), ['today', 'bookings', 'money', 'team', 'more']);
-  assert.deepEqual([...ALL_TABS].sort(), ['activity', 'board', 'coupons', 'customers', 'dash', 'homeimgs', 'invoices', 'issues', 'leads', 'mechanics', 'offers', 'pins', 'prices', 'reports', 'settings', 'waitlist']);
+  assert.deepEqual([...ALL_TABS].sort(), ['activity', 'board', 'coupons', 'customers', 'dash', 'homeimgs', 'invoices', 'issues', 'leads', 'mechanics', 'mechledger', 'offers', 'pins', 'prices', 'reports', 'sales', 'settings', 'waitlist']);
   assert.equal(new Set(ALL_TABS).size, ALL_TABS.length);
 });
 test('the pages sit where the client expects them', () => {
   assert.deepEqual(tabsOf('bookings').map((t) => t[0]), ['board', 'leads', 'customers', 'issues']);
-  assert.deepEqual(tabsOf('money').map((t) => t[0]), ['invoices', 'reports', 'coupons', 'prices']);
+  assert.deepEqual(tabsOf('money').map((t) => t[0]), ['sales', 'mechledger', 'invoices', 'reports', 'coupons', 'prices']);
   assert.deepEqual(tabsOf('team').map((t) => t[0]), ['mechanics', 'pins']);
   assert.equal(groupOf('invoices'), 'money'); assert.equal(groupOf('dash'), 'today'); assert.equal(groupOf('settings'), 'more'); assert.equal(groupOf('nonsense'), 'today');
-  assert.equal(firstTab('money'), 'invoices'); assert.equal(firstTab('nope'), 'dash');
+  assert.equal(firstTab('money'), 'sales'); assert.equal(firstTab('nope'), 'dash');
 });
 test('badges show what needs the client: new bookings and open issues, and payments being waited on', () => {
   const leads = [{ status: 'new' }, { status: 'new' }, { status: 'payment_sent' }, { status: 'paid' }];

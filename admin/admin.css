@@ -126,3 +126,10 @@
 .bhead{display:flex;justify-content:space-between;align-items:center;gap:8px}.bref{border:0;background:none;font:700 15px var(--font);color:var(--ink);cursor:pointer;min-height:44px;padding:0;text-decoration:underline}
 .bname{margin:4px 0}.bsel{width:100%;min-height:44px;font-size:16px;border-radius:12px;border:1px solid var(--line);padding:0 10px;margin:2px 0 10px;background:var(--card);color:var(--ink)}
 .bbtns{display:flex;gap:8px;flex-wrap:wrap}.bbtns .btn{min-height:44px}.bempty{padding:8px 0}
+
+/* sales and collections */
+.fin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.fin-panel{border:2px solid var(--ember,#F2801F)}
+.fin-tr{cursor:pointer}.fin-tr.row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;min-height:56px}
+.fin-tr:focus-visible{outline:2px solid var(--ember,#F2801F)}
+@media (max-width:700px){.fin-panel input,.fin-panel select,.fin-grid input,.fin-grid select{font-size:16px}.fin-panel .btn,.fin-grid .btn{min-height:44px}.inv-table-wide{display:none}}

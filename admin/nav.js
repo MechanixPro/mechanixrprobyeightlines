@@ -3,7 +3,7 @@
 export const GROUPS = [
   { id: 'today', label: 'Today', tabs: [['dash', 'Dashboard']] },
   { id: 'bookings', label: 'Bookings', tabs: [['board', 'Today board'], ['leads', 'Bookings'], ['customers', 'Customers'], ['issues', 'Issues']] },
-  { id: 'money', label: 'Money', tabs: [['invoices', 'Invoices'], ['reports', 'Reports'], ['coupons', 'Coupons'], ['prices', 'Prices']] },
+  { id: 'money', label: 'Money', tabs: [['sales', 'Sales and collections'], ['mechledger', 'Mechanic ledgers'], ['invoices', 'Invoices'], ['reports', 'Reports'], ['coupons', 'Coupons'], ['prices', 'Prices']] },
   { id: 'team', label: 'Team and areas', tabs: [['mechanics', 'Mechanics'], ['pins', 'PIN codes']] },
   { id: 'more', label: 'More', tabs: [['offers', 'Offers'], ['waitlist', 'Waitlist'], ['homeimgs', 'Home images'], ['settings', 'Settings'], ['activity', 'Activity']] },
 ];

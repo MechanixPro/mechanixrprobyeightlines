@@ -19,7 +19,9 @@ Deno.serve(async (req) => {
   if (!lead || lead.status === 'paid') return new Response('ok');
 
   const amount = Math.round((pay?.amount ?? pl?.amount_paid ?? 0) / 100);
-  await db.from('leads').update({ status: 'paid', paid_amount: (lead.paid_amount ?? 0) + amount, paid_at: new Date().toISOString(), next_followup_at: null }).eq('id', lead.id);
+  const { error: ledgerErr } = await db.from('ledger_entries').insert({ lead_id: lead.id, entry_type: 'customer_payment', amount, collected_by: 'company_portal', method: 'Razorpay payment link', reference: pay?.id ?? null, gateway_txn_id: pay?.id ?? null, gateway_fee: Math.round(Number(pay?.fee ?? 0)) / 100, source: 'gateway' });
+  if (ledgerErr && ledgerErr.code !== '23505') console.error('ledger insert failed', ledgerErr);
+  await db.from('leads').update({ status: 'paid', next_followup_at: null }).eq('id', lead.id);
   await db.from('audit_log').insert({ actor: null, action: 'payment_received', details: { lead: lead.ref, amount, payment_id: pay?.id } });
   await sendSmart(db, lead, `Payment of ${rupee(amount)} received for booking ${lead.ref}. Your slot is confirmed — we will share your mechanic's details before the visit. Thank you!`, { name: TPL.paid(), params: [String(amount), lead.ref] }, 'system');
   return new Response('ok');
