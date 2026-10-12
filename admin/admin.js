@@ -413,6 +413,9 @@ function paymentEditBox(l) {
 }
 // How this booking was paid: who collected each rupee (company manual, online, mechanic), what is still owed, and every payment.
 function moneyCard(l) {
+  try { return moneyCardBody(l); } catch (e) { console.error('moneyCard', e); return `<div class="card" style="margin-top:12px"><h3>Payments and who collected them</h3><p class="small muted" style="margin:0">Could not load the payment summary (${esc(e && e.message)}). Open Money to see this booking.</p><div class="row-btns" style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button" data-act="openMoney" data-id="${l.id}">Open money sheet</button></div></div>`; }
+}
+function moneyCardBody(l) {
   const a = salesModel().accounts.find((x) => x.lead_id === l.id), entries = S.ledger.filter((e) => e.lead_id === l.id).sort((x, y) => new Date(y.created_at) - new Date(x.created_at));
   const head = '<h3>Payments and who collected them</h3>';
   const btn = `<div class="row-btns" style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button" data-act="openMoney" data-id="${l.id}">Open money sheet to record or refund</button></div>`;
@@ -1161,7 +1164,8 @@ function salesModel() {
   for (const l of S.leads) {
     const entries = S.ledger.filter((e) => e.lead_id === l.id);
     if (!(l.status === 'completed' || l.paid_amount > 0 || entries.length || S.invoices.some((r) => r.lead_id === l.id))) continue;
-    const invoice = invoiceFor(l); if (!invoice) continue;
+    let invoice = null; try { invoice = invoiceFor(l); } catch (e) { console.error('invoiceFor', l.ref, e); }
+    if (!invoice) continue;
     const k = invoice.mechanic_id || 'none'; if (!by.has(k)) by.set(k, []); by.get(k).push({ invoice, entries });
   }
   const accounts = [], mechAccts = [];
