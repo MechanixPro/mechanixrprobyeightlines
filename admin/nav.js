@@ -2,7 +2,7 @@
 // Five sections instead of fifteen tabs: the daily work comes first and the rarely used pages sit under More.
 export const GROUPS = [
   { id: 'today', label: 'Today', tabs: [['dash', 'Dashboard']] },
-  { id: 'bookings', label: 'Bookings', tabs: [['leads', 'Bookings'], ['customers', 'Customers'], ['issues', 'Issues']] },
+  { id: 'bookings', label: 'Bookings', tabs: [['board', 'Today board'], ['leads', 'Bookings'], ['customers', 'Customers'], ['issues', 'Issues']] },
   { id: 'money', label: 'Money', tabs: [['invoices', 'Invoices'], ['reports', 'Reports'], ['coupons', 'Coupons'], ['prices', 'Prices']] },
   { id: 'team', label: 'Team and areas', tabs: [['mechanics', 'Mechanics'], ['pins', 'PIN codes']] },
   { id: 'more', label: 'More', tabs: [['offers', 'Offers'], ['waitlist', 'Waitlist'], ['homeimgs', 'Home images'], ['settings', 'Settings'], ['activity', 'Activity']] },

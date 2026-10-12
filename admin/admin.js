@@ -11,6 +11,7 @@ import { buildInvoice } from './invoice.js';
 import { buildNewBooking } from './new-booking.js';
 import { buildServiceEdit, buildPaymentEdit } from './booking-edit.js';
 import { groupOf, firstTab, navBadges } from './nav.js';
+import { boardGroups, nextStep } from './board.js';
 import { mechanicCut, snapshotRow, sameFigures, filterRegister, registerTotals, byMechanic, gstSummary, registerCsv } from './invoice-register.js';
 import { adsConversions } from './ads-export.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
@@ -119,7 +120,7 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('input', (e) => { if (e.target.id === 'mr-range' || e.target.id === 'mr') { const v = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)); if (e.target.id === 'mr-range') $('#mr').value = v; else $('#mr-range').value = v; updateSplitPreview(); }  if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'wq') { S.wq = e.target.value; render(); const again = $('#wq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } if (e.target.id === 'pq') { S.pq = e.target.value; const l = $('#pinlist'); if (l) { const keep = e.target; render(); const again = $('#pq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
 document.addEventListener('change', (e) => { if (e.target.id === 'il') { const l = S.leads.find((x) => x.id === e.target.value), w = warrantyInfo(l, WARRANTY_DAYS); $('#iw').textContent = l ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''; } if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'ifs') { S.ifilter = e.target.value; render(); } if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
-document.addEventListener('change', (e) => { const m = { 'if-period': 'period', 'if-gst': 'gst', 'if-rate': 'rate', 'if-mech': 'mechanic' }[e.target.id]; if (m) { S.ifl[m] = e.target.value; render(); } });
+document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-board-mech]')) { ACT.boardMech(e.target); return; } const m = { 'if-period': 'period', 'if-gst': 'gst', 'if-rate': 'rate', 'if-mech': 'mechanic' }[e.target.id]; if (m) { S.ifl[m] = e.target.value; render(); } });
 document.addEventListener('input', (e) => { if (e.target.id === 'if-q') { S.ifl.q = e.target.value; const pos = e.target.selectionStart; render(); const q = $('#if-q'); if (q) { q.focus(); q.setSelectionRange(pos, pos); } } });
 document.addEventListener('click', (e) => { const r = e.target.closest('.inv-tr'); if (r) openLead(r.dataset.lead); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if ($('#inv')) $('#inv').remove(); else if (!$('#sheet').hidden) closeSheet(); } });
@@ -135,7 +136,7 @@ function syncNav() {
   const bd = navBadges({ leads: S.leads, issues: S.issues });
   document.querySelectorAll('[data-badge]').forEach((el) => { const n = bd[el.dataset.badge] || 0; el.textContent = n > 99 ? '99+' : String(n); el.hidden = !n; });
 }
-function render() { syncNav(); const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, issues, pins, waitlist, offers, reports, invoices, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function render() { syncNav(); const v = $('#view'); v.innerHTML = ({ dash, board, leads, customers, mechanics, coupons, issues, pins, waitlist, offers, reports, invoices, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -453,6 +454,19 @@ const ACT = {
     if (error) return toast('Could not save: ' + error.message);
     await audit('booking_payment_edited', { ref: l.ref, due: r.lead.amount_due, paid: r.lead.paid_amount });
     toast('Payment saved'); await loadLeads(); renderList(); openLead(l.id, true);
+  },
+  async boardNext(btn) {
+    const l = S.leads.find((x) => x.id === btn.getAttribute('data-id')), n = l && nextStep(l.status); if (!n) return;
+    const upd = { status: n.to }; if (n.to === 'completed') upd.completed_at = new Date().toISOString();
+    const { error } = await sb.from('leads').update(upd).eq('id', l.id);
+    if (error) return toast('Could not update: ' + error.message);
+    await audit('board_step', { ref: l.ref, from: l.status, to: n.to }); toast(l.ref + ': ' + n.label.toLowerCase()); await loadLeads(); render();
+  },
+  async boardMech(sel) {
+    const l = S.leads.find((x) => x.id === sel.getAttribute('data-board-mech')); if (!l) return;
+    const { error } = await sb.from('leads').update({ mechanic_id: sel.value || null }).eq('id', l.id);
+    if (error) return toast('Could not assign: ' + error.message);
+    await audit('board_mechanic', { ref: l.ref, mechanic: sel.value || null }); toast(sel.value ? 'Mechanic assigned' : 'Mechanic removed'); await loadLeads(); render();
   },
   invRegisterCsv() {
     const rows = registerRows(); if (!rows.length) return toast('Nothing to download');
@@ -982,6 +996,24 @@ async function openInvoice(lead, opts = {}) {
   document.body.appendChild(el);
   const reveal = () => { const g = el.querySelector('.inv-gen'); if (g) g.remove(); const paper = el.querySelector('.inv-paper'); paper.hidden = false; paper.classList.add('in'); el.querySelectorAll('.inv-tot [data-to]').forEach((d) => countUp(d, +d.dataset.to, 900)); el.querySelector('[data-act="invPrint"]').focus(); };
   if (reduce) reveal(); else setTimeout(reveal, 1900);
+}
+
+/* ---------- today board ---------- */
+function boardCard(l) {
+  const m = S.mechanics.find((x) => x.id === l.mechanic_id), n = nextStep(l.status);
+  const when = [l.preferred_slot ? ({ asap: 'As soon as possible', morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening' }[l.preferred_slot] || '') : '', l.preferred_time || ''].filter(Boolean).join(' · ');
+  return `<article class="bcard"><div class="bhead"><button class="bref" type="button" data-lead="${l.id}">${esc(l.ref)}</button><span class="pill ${l.status}">${LABEL[l.status]}</span></div>
+    <p class="bname"><b>${esc(l.name)}</b> <span class="muted">${esc(svcName(l.service_id))}${l.est_total ? ' · ' + rupee(l.est_total) : ''}</span></p>
+    <p class="meta" style="margin:2px 0 8px">${esc([when, l.area, l.pincode].filter(Boolean).join(' · ') || 'No time or place yet')}</p>
+    <label class="tiny muted" for="bm-${l.id}">Mechanic</label>
+    <select id="bm-${l.id}" class="bsel" data-board-mech="${l.id}"><option value="">Not assigned</option>${S.mechanics.filter((x) => x.active || x.id === l.mechanic_id).map((x) => `<option value="${x.id}"${x.id === l.mechanic_id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
+    <div class="bbtns"><a class="btn btn-wa btn-sm" href="https://wa.me/91${esc(l.phone)}" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a>${n ? `<button class="btn btn-primary btn-sm" type="button" data-act="boardNext" data-id="${l.id}">${n.label}</button>` : ''}<button class="btn btn-ghost btn-sm" type="button" data-lead="${l.id}">Open</button></div></article>`;
+}
+function board() {
+  const g = boardGroups(S.leads), total = Object.values(g).reduce((t, a) => t + a.length, 0);
+  const grp = (title, hint, rows) => `<section class="bgroup"><h2>${title} <span class="count">${rows.length}</span></h2><p class="tiny muted" style="margin:0 0 8px">${hint}</p>${rows.length ? rows.map(boardCard).join('') : '<p class="muted bempty">Nothing here.</p>'}</section>`;
+  return `<h1 style="font-size:34px">Today board</h1><p class="muted">${total ? 'Everything that needs you today, in the order to do it.' : 'Nothing needs you right now.'}</p>
+  <div class="bgrid">${grp('Needs a reply', 'New for more than 30 minutes. Reply first.', g.needsReply)}${grp('Quote and payment', 'Waiting for a quote, an answer or a payment.', g.quotePay)}${grp('Today\'s visits', 'Booked for today, in time order.', g.visits)}${grp('Done today', 'Finished jobs.', g.done)}</div>`;
 }
 
 /* ---------- invoice register ---------- */
