@@ -35,3 +35,6 @@ test('the navigation is readable on a phone: sections scroll sideways and every 
   const c = read('admin/admin.css');
   assert.match(c, /\.groups/); assert.match(c, /\.subtabs/); assert.match(c, /min-height:44px/); assert.match(c, /overflow-x:auto/);
 });
+test('a hidden section row and an empty badge really disappear (the display rules must not override the hidden attribute)', () => {
+  assert.match(read('admin/admin.css'), /\.subtabs \.sub\[hidden\][^{]*\{display:none\}/); assert.match(read('admin/admin.css'), /\.badge\[hidden\]/);
+});
