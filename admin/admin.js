@@ -209,7 +209,7 @@ function openCustomer(id) {
     <label class="label" for="cd-address">Address</label><textarea id="cd-address" rows="2" maxlength="160">${esc(r.address || '')}</textarea>
     <label class="label" for="cd-company">Company name <span class="muted" style="font-weight:400">(for a GST invoice)</span></label><input id="cd-company" maxlength="80" value="${esc(r.company || '')}">
     <label class="label" for="cd-gstin">GSTIN <span class="muted" style="font-weight:400">(15 characters)</span></label><input id="cd-gstin" maxlength="15" autocapitalize="characters" value="${esc(r.gstin || '')}">
-    <button class="btn btn-primary" style="margin-top:14px" type="button" data-act="saveCustomerDetails">Save details</button></div>
+    <button class="btn btn-primary" style="margin-top:14px" type="button" data-act="saveCustomerDetails">Save details</button> <button class="btn btn-dark" style="margin-top:14px" type="button" data-act="newBookingForCustomer">New booking for this customer</button></div>
   ${S.bikes.filter((b) => b.customer_id === id).length ? `<div class="card" style="margin-top:12px"><h3>Bikes</h3>${S.bikes.filter((b) => b.customer_id === id).map((b) => `<div class="bike-edit" data-bike-row="${b.id}" style="border-top:1px solid var(--line);padding-top:10px;margin-top:10px">
     <label class="label" for="bk-brand-${b.id}">Brand</label><input id="bk-brand-${b.id}" maxlength="30" value="${esc(b.brand || '')}">
     <label class="label" for="bk-model-${b.id}">Model</label><input id="bk-model-${b.id}" maxlength="40" value="${esc(b.model || '')}">
@@ -272,7 +272,12 @@ function openNewBooking() {
     <label class="label" for="nb-status">Status</label>${sel('nb-status', [['contacted', 'Contacted'], ['quoted', 'Quoted'], ['payment_sent', 'Payment sent'], ['paid', 'Paid'], ['scheduled', 'Scheduled'], ['new', 'New']], 'contacted')}
     <label class="check"><input type="checkbox" id="nb-rem"><span>Remind them when the next service is due</span></label>
     <button class="btn btn-primary" style="margin-top:8px" type="button" data-act="saveNewBooking">Save booking</button></div></div>`;
-  $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0; $('#nb-name').focus();
+  if (c) {
+    const set = (id, v) => { const el = $('#' + id); if (el && v) el.value = v; };
+    set('nb-name', c.name); set('nb-phone', c.phone); set('nb-email', c.email); set('nb-area', c.area); set('nb-addr', c.address);
+    const b = S.bikes.filter((x) => x.customer_id === c.id)[0]; if (b) { set('nb-brand', b.brand); set('nb-model', b.model); set('nb-nick', b.nickname); set('nb-reg', b.reg_no); }
+  }
+  $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0; $((c ? '#nb-service' : '#nb-name')).focus();
 }
 function openMechanic(id) {
   const m = id === 'new' ? { id: 'new', name: '', phone: '', area: '', active: true, payout_rate: 0, city: 'Bengaluru', specialties: '', experience_years: 0, certified: true, notes: '' } : S.mechanics.find((x) => x.id === id); if (!m) return;
@@ -844,6 +849,7 @@ const ACT = {
     await audit('marked_paid_manually', { ref: l.ref, amount }); toast('Payment recorded'); await Promise.all([loadLedger(), loadLeads()]); openLead(l.id, true);
   },
   newLead() { openNewBooking(); },
+  newBookingForCustomer() { const c = S.customers.find((x) => x.id === S.openCust); if (c) openNewBooking(c); },
   async saveNewBooking() {
     const v = (id) => ($('#' + id)?.value ?? '');
     const f = { name: v('nb-name'), phone: v('nb-phone'), email: v('nb-email'), source: v('nb-source'), status: v('nb-status'), brand: v('nb-brand'), model: v('nb-model'), nickname: v('nb-nick'), regNo: v('nb-reg'), bigBike: $('#nb-big').checked,
