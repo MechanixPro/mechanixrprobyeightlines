@@ -76,3 +76,10 @@ A hand-off for anyone (or any future Claude session) who continues this work. It
 - Google Ads' wizard fills in poor defaults (AI-written headlines, 100-mile location circles, Target ROAS, a full URL in the Final URL suffix). Always review every setting.
 - Photos on the site are Wikimedia or stock images credited under their licences. Do not reuse them in ads.
 - The Avatar Lab repo (smontlouis) is AGPL-3.0: do not copy its code into this site.
+
+## 8. Money ledger, sales and collections (live since 2026-10-12)
+- Every rupee event is a row in `ledger_entries` (immutable; a mistake is cancelled by a `reversal` row with a reason). A trigger keeps `leads.paid_amount` equal to the ledger. Existing paid amounts were carried over as opening-balance rows.
+- Rules (client-approved): the mechanic's % applies to the amount before GST; GST is never part of earnings or company share. Collected by the company -> company owes the mechanic that share. Collected by the mechanic -> he keeps his earnings in hand and remits the rest (incl. GST). Customer balance, mechanic remittance due and mechanic payout due are three separate balances.
+- Code: `admin/ledger.js` (engine), `admin/ledger-forms.js` (form -> entry), `admin/sales-view.js` (filters, CSV, labels). Pages: Money > Sales and collections, Mechanic ledgers. Razorpay checkout and webhook write portal entries with the gateway fee (unique on payment id).
+- "Mark paid" and "Edit payment" go through the ledger; lowering the received amount there is refused (use Refund or Cancel).
+- Admin nav: five sections; Today board; invoice register with saved copies; chat-first website start.
