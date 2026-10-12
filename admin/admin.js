@@ -10,6 +10,7 @@ import { interestCounts, waitlistRows, interestLabel } from './waitlist-view.js'
 import { buildInvoice } from './invoice.js';
 import { buildNewBooking } from './new-booking.js';
 import { buildServiceEdit, buildPaymentEdit } from './booking-edit.js';
+import { mechanicCut, snapshotRow, sameFigures, filterRegister, registerTotals, byMechanic, gstSummary, registerCsv } from './invoice-register.js';
 import { adsConversions } from './ads-export.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
@@ -27,7 +28,7 @@ if (!C.supabaseUrl || !C.supabaseAnonKey) {
   throw new Error('Supabase not configured');
 }
 const sb = createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
-const S = { me: null, tab: 'dash', leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', waitlist: [], wi: '', wq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
+const S = { me: null, tab: 'dash', invoices: [], ifl: { gst: '', rate: '', mechanic: '', period: 'month', q: '' }, leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', waitlist: [], wi: '', wq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
 
 function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
@@ -71,7 +72,7 @@ async function boot() {
   if (!me) { $('#loginErr').textContent = 'This account is not an admin. Ask the owner to add you.'; await sb.auth.signOut(); return; }
   S.me = me;
   $('#login').hidden = true; $('#view').hidden = false; $('#tabs').hidden = false; $('#signOut').hidden = false;
-  await Promise.all([loadLeads(), loadServices(), loadSettings(), loadPeople(), loadHome(), loadIssues(), loadPins(), loadWaitlist()]);
+  await Promise.all([loadLeads(), loadServices(), loadSettings(), loadPeople(), loadHome(), loadIssues(), loadPins(), loadWaitlist(), loadInvoices()]);
   render();
   S.channel = sb.channel('mxp-admin')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async (p) => { if (p.eventType === 'INSERT') toast('New booking ' + (p.new?.ref ?? '')); await loadLeads(); if (!['prices', 'settings', 'offers', 'homeimgs'].includes(S.tab)) render(); if (S.open) openLead(S.open, true); })
@@ -83,6 +84,10 @@ async function boot() {
 async function loadLeads() {
   const { data, error } = await sb.from('leads').select('*').order('created_at', { ascending: false }).limit(500);
   if (error) toast('Could not load bookings'); else S.leads = data;
+}
+async function loadInvoices() {
+  const { data, error } = await sb.from('invoices').select('*').order('issued_at', { ascending: false }).limit(3000);
+  if (error) toast('Could not load invoices: ' + error.message); else S.invoices = data ?? [];
 }
 async function loadPeople() {
   const [c, b, m, cp] = await Promise.all([sb.from('customers').select('*').order('created_at', { ascending: false }).limit(1000), sb.from('bikes').select('*').limit(2000), sb.from('mechanics').select('*').order('name'), sb.from('coupons').select('*').order('code')]);
@@ -112,10 +117,13 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('input', (e) => { if (e.target.id === 'mr-range' || e.target.id === 'mr') { const v = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)); if (e.target.id === 'mr-range') $('#mr').value = v; else $('#mr-range').value = v; updateSplitPreview(); }  if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'wq') { S.wq = e.target.value; render(); const again = $('#wq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } if (e.target.id === 'pq') { S.pq = e.target.value; const l = $('#pinlist'); if (l) { const keep = e.target; render(); const again = $('#pq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
 document.addEventListener('change', (e) => { if (e.target.id === 'il') { const l = S.leads.find((x) => x.id === e.target.value), w = warrantyInfo(l, WARRANTY_DAYS); $('#iw').textContent = l ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''; } if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'ifs') { S.ifilter = e.target.value; render(); } if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
+document.addEventListener('change', (e) => { const m = { 'if-period': 'period', 'if-gst': 'gst', 'if-rate': 'rate', 'if-mech': 'mechanic' }[e.target.id]; if (m) { S.ifl[m] = e.target.value; render(); } });
+document.addEventListener('input', (e) => { if (e.target.id === 'if-q') { S.ifl.q = e.target.value; const pos = e.target.selectionStart; render(); const q = $('#if-q'); if (q) { q.focus(); q.setSelectionRange(pos, pos); } } });
+document.addEventListener('click', (e) => { const r = e.target.closest('.inv-tr'); if (r) openLead(r.dataset.lead); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if ($('#inv')) $('#inv').remove(); else if (!$('#sheet').hidden) closeSheet(); } });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
-function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, issues, pins, waitlist, offers, reports, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function render() { const v = $('#view'); v.innerHTML = ({ dash, leads, customers, mechanics, coupons, issues, pins, waitlist, offers, reports, invoices, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -336,11 +344,12 @@ function renderList() {
 
 function payoutCard(l) {
   const m = S.mechanics.find((x) => x.id === l.mechanic_id); if (!m) return '';
-  if (!(l.paid_amount > 0)) return `<div class="card" style="margin-top:12px"><h3>Payout for this job</h3><p class="small muted" style="margin:0">${esc(m.name)} gets ${m.payout_rate || 0}% and the company keeps ${100 - (m.payout_rate || 0)}% once the customer has paid.</p></div>`;
-  const sp = splitJob(l.paid_amount, m.payout_rate || 0, basis());
+  const inv = buildInvoice(l, S.services), c = mechanicCut(inv, m.payout_rate || 0, basis());
+  const label = inv.gstRate ? `GST invoice (${inv.gstRate}%)` : 'No GST on this invoice';
+  if (!(l.paid_amount > 0)) return `<div class="card" style="margin-top:12px"><h3>Payout for this job</h3><p class="small muted" style="margin:0">${esc(m.name)} gets ${m.payout_rate || 0}% (${label}). On the current invoice that is <b>${rupee(c.cut)}</b>; the company keeps ${rupee(c.company)}. It becomes payable as the customer pays.</p></div>`;
   return `<div class="card" style="margin-top:12px"><h3>Payout for this job</h3>
-    <div class="split-bar" role="img" aria-label="Mechanic ${sp.mechanicRate} percent, company ${sp.companyRate} percent"><span class="sb-mech" style="width:${sp.mechanicRate}%">${sp.mechanicRate >= 14 ? sp.mechanicRate + '%' : ''}</span><span class="sb-co" style="width:${sp.companyRate}%">${sp.companyRate >= 14 ? sp.companyRate + '%' : ''}</span></div>
-    <dl class="kv" style="margin-top:10px"><dt>Collected</dt><dd>${rupee(l.paid_amount)}</dd>${sp.gst ? `<dt>GST</dt><dd>${rupee(sp.gst)}</dd>` : ''}<dt>${esc(m.name)} gets</dt><dd><b>${rupee(sp.mechanic)}</b></dd><dt>Company keeps</dt><dd><b>${rupee(sp.company)}</b></dd></dl></div>`;
+    <div class="split-bar" role="img" aria-label="Mechanic ${c.rate} percent, company ${100 - c.rate} percent"><span class="sb-mech" style="width:${c.rate}%">${c.rate >= 14 ? c.rate + '%' : ''}</span><span class="sb-co" style="width:${100 - c.rate}%">${100 - c.rate >= 14 ? (100 - c.rate) + '%' : ''}</span></div>
+    <dl class="kv" style="margin-top:10px"><dt>${label}</dt><dd>${c.basis === 'before_gst' ? 'Cut on the amount before GST' : 'Cut on the whole amount'}</dd><dt>Invoice total</dt><dd>${rupee(inv.total)}</dd><dt>Collected</dt><dd>${rupee(l.paid_amount)}</dd>${c.gst ? `<dt>GST</dt><dd>${rupee(c.gst)}</dd>` : ''}<dt>${esc(m.name)} gets (full job)</dt><dd><b>${rupee(c.cut)}</b></dd><dt>Payable now</dt><dd><b>${rupee(c.payableNow)}</b></dd><dt>Company keeps</dt><dd><b>${rupee(c.company)}</b></dd></dl></div>`;
 }
 
 const todayIST = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
@@ -432,6 +441,27 @@ const ACT = {
     if (error) return toast('Could not save: ' + error.message);
     await audit('booking_payment_edited', { ref: l.ref, due: r.lead.amount_due, paid: r.lead.paid_amount });
     toast('Payment saved'); await loadLeads(); renderList(); openLead(l.id, true);
+  },
+  invRegisterCsv() {
+    const rows = registerRows(); if (!rows.length) return toast('Nothing to download');
+    const blob = new Blob(['\ufeff' + registerCsv(rows)], { type: 'text/csv;charset=utf-8' }), a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'mechanix-invoices-' + todayIST() + '.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  },
+  async backfillInvoices(btn) {
+    const sent = await sb.from('email_log').select('lead_id').eq('template', 'invoice').eq('status', 'sent').limit(3000);
+    const ids = new Set((sent.data ?? []).map((x) => x.lead_id)); S.leads.filter((l) => l.invoice_override).forEach((l) => ids.add(l.id));
+    const have = new Set(S.invoices.map((r) => r.lead_id)), todo = S.leads.filter((l) => ids.has(l.id) && !have.has(l.id));
+    if (!todo.length) return toast('No past invoices to add');
+    if (!confirm(`Add ${todo.length} past invoice${todo.length === 1 ? '' : 's'}? They are built from each booking's current details and marked as rebuilt.`)) return;
+    const rowsNew = [];
+    for (const l of todo) {
+      const customer = S.customers.find((c) => c.id === l.customer_id) || null, mech = S.mechanics.find((m) => m.id === l.mechanic_id) || null, inv = buildInvoice(l, S.services, { customer });
+      if (inv.lines.length) rowsNew.push(snapshotRow({ invoice: inv, lead: l, customer, mechanic: mech, via: 'rebuilt', basis: basis(), revision: 1, now: l.completed_at || l.paid_at || l.created_at }));
+    }
+    if (!rowsNew.length) return toast('No past invoices to add');
+    const { error } = await sb.from('invoices').insert(rowsNew);
+    if (error) return toast('Could not add: ' + error.message);
+    await audit('invoices_backfilled', { count: rowsNew.length }); toast(`Added ${rowsNew.length} past invoice${rowsNew.length === 1 ? '' : 's'}`); await loadInvoices(); render();
   },
   async saveCustomerDetails() {
     const r = S.customers.find((x) => x.id === S.openCust); if (!r) return;
@@ -644,7 +674,7 @@ const ACT = {
     if (!data.more) S.offerKey = null;
   },
   invoice() { const l = S.leads.find((x) => x.id === S.open); if (l) openInvoice(l); },
-  invPrint() { window.print(); },
+  async invPrint() { const l = S.leads.find((x) => x.id === S.open); if (l) await saveInvoiceCopy(l, 'print'); window.print(); },
   invEdit() { const b = $('#invEditBox'); if (!b) return; b.hidden = !b.hidden; if (!b.hidden) b.scrollIntoView({ block: 'nearest' }); },
   invAddRow() { $('#ie-rows').insertAdjacentHTML('beforeend', invEditRow('', '')); $('#ie-rows').lastElementChild.querySelector('input').focus(); },
   invDelRow(btn) { btn.closest('.ie-row').remove(); },
@@ -684,7 +714,8 @@ const ACT = {
     btn.disabled = true; const old = btn.textContent; btn.textContent = 'Sending…';
     const { data, error } = await sb.functions.invoke('send-invoice', { body: { lead_id: l.id } });
     btn.disabled = false; btn.textContent = old;
-    toast(error || !data || data.error ? 'Could not send: ' + ((data && data.error) || (error && error.message) || 'try again') : 'Invoice emailed to the customer');
+    if (!(error || !data || data.error)) await saveInvoiceCopy(l, 'email');
+    toast(error || !data || data.error ? 'Could not send: ' + ((data && data.error) || (error && error.message) || 'try again') : 'Invoice emailed to the customer and saved in Invoices');
   },
   invClose() { $('#inv')?.remove(); },
   async confirmBooking() {
@@ -884,6 +915,22 @@ function countUp(el, to, ms) {
   let t0 = null; const tick = (t) => { if (t0 === null) t0 = t; const k = Math.min(1, (t - t0) / ms); el.textContent = inr(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); }; requestAnimationFrame(tick);
 }
 const invEditRow = (name, amount) => `<div class="inv-adjust-row ie-row"><input data-ie="name" maxlength="80" placeholder="Item, for example: Clutch plate set" value="${esc(name)}" aria-label="Item name"><input data-ie="amount" inputmode="decimal" maxlength="9" placeholder="Amount" value="${esc(amount)}" aria-label="Amount"><button class="btn btn-ghost btn-sm" type="button" data-act="invDelRow" aria-label="Remove this item">Remove</button></div>`;
+
+// Save a copy of the invoice when it is printed or emailed. The same figures are never saved twice; a change is saved as a new revision.
+async function saveInvoiceCopy(lead, via) {
+  try {
+    const customer = S.customers.find((c) => c.id === lead.customer_id) || null, mech = S.mechanics.find((m) => m.id === lead.mechanic_id) || null;
+    const inv = buildInvoice(lead, S.services, { customer });
+    if (!inv.lines.length) return null;
+    const mine = S.invoices.filter((r) => r.lead_id === lead.id).sort((a, b) => b.revision - a.revision);
+    const row = snapshotRow({ invoice: inv, lead, customer, mechanic: mech, via, basis: basis(), revision: (mine[0]?.revision || 0) + 1, now: new Date().toISOString() });
+    if (mine[0] && sameFigures(mine[0], row)) return mine[0];
+    const { error } = await sb.from('invoices').insert(row);
+    if (error) { toast('Could not save the invoice copy: ' + error.message); return null; }
+    await loadInvoices(); if (S.tab === 'invoices') render();
+    return row;
+  } catch (e) { toast('Could not save the invoice copy'); return null; }
+}
 async function openInvoice(lead, opts = {}) {
   const co = await loadCompany(), v = buildInvoice(lead, S.services, { customer: S.customers.find((c) => c.id === lead.customer_id) }), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || opts.quick;
   $('#inv')?.remove();
@@ -902,6 +949,15 @@ async function openInvoice(lead, opts = {}) {
       <dt class="grand">Total</dt><dd class="grand" data-to="${v.total}">${inr(v.total)}</dd>${v.paid ? `<dt>Paid so far</dt><dd data-to="${v.paid}">${inr(v.paid)}</dd><dt class="grand">Balance due</dt><dd class="grand" data-to="${v.balance}">${inr(v.balance)}</dd>` : ''}${v.refund ? `<dt class="grand">Refund due to customer</dt><dd class="grand" data-to="${v.refund}">${inr(v.refund)}</dd>` : ''}</dl>
     <div class="inv-stamp ${v.balance === 0 && v.total > 0 ? 'paid' : 'due'}" aria-hidden="true">${v.balance === 0 && v.total > 0 ? 'PAID' : 'DUE'}</div>
     <p class="inv-foot">${!v.gstRate ? 'No GST is charged on this invoice.' : v.basis === 'excl' ? `Amounts are before GST. GST is added at ${v.gstRate}% and shown in the totals.` : `Prices include ${v.gstRate}% GST.`} Parts are OEM certified, work is done by Mechanix Pro certified mechanics, and every service carries a 30-day warranty. Computer-generated invoice.</p>
+    ${(() => {
+      const m = S.mechanics.find((x) => x.id === lead.mechanic_id);
+      if (!m) return '<div class="inv-cut card"><b>Mechanic cut</b> <span class="tiny muted">(private, not printed)</span><p class="small muted" style="margin:6px 0 0">No mechanic is assigned to this booking, so there is no cut. Assign one in the booking above.</p></div>';
+      const c = mechanicCut(v, m.payout_rate || 0, basis());
+      return `<div class="inv-cut card"><b>Mechanic cut</b> <span class="tiny muted">(private, not printed)</span>
+      <dl class="kv" style="margin-top:8px"><dt>${v.gstRate ? 'GST invoice, ' + v.gstRate + '%' : 'No GST on this invoice'}</dt><dd>${c.basis === 'before_gst' ? 'Cut is on the amount ' + (v.gstRate ? 'before GST' : '(there is no GST)') : 'Cut is on the whole amount'}</dd>
+      <dt>Amount the cut is worked out on</dt><dd>${inr(c.base)}</dd><dt>${esc(m.name)} gets (${c.rate}%)</dt><dd><b>${inr(c.cut)}</b></dd><dt>Company keeps</dt><dd><b>${inr(c.company)}</b></dd>${v.gstRate ? `<dt>GST (goes to the government)</dt><dd>${inr(c.gst)}</dd>` : ''}
+      <dt>Payable to ${esc(m.name)} now</dt><dd>${inr(c.payableNow)}</dd><dt>Still to pay later</dt><dd>${inr(c.owed)}</dd></dl></div>`;
+    })()}
     <div class="inv-adjust"><label for="inv-disc"><b>Last-minute discount</b> <span class="tiny muted">at the customer's request, on top of any coupon</span></label>
       <div class="inv-adjust-row"><select id="inv-disc-kind" aria-label="Discount type"><option value="amt">₹ amount</option><option value="pct">% of the bill</option></select><input id="inv-disc" inputmode="numeric" maxlength="6" placeholder="0" value="${v.extraDiscount || ''}" aria-label="Discount"><input id="inv-disc-note" maxlength="80" placeholder="Reason, for example: regular customer" value="${esc(v.extraNote)}" aria-label="Reason"><button class="btn btn-dark btn-sm" type="button" data-act="invDiscount">Apply</button></div></div>
     <div class="inv-edit card" id="invEditBox" hidden><b>Edit invoice</b> <span class="tiny muted">Change the items and amounts for this booking. The invoice and the email use what you save.</span>
@@ -914,6 +970,39 @@ async function openInvoice(lead, opts = {}) {
   document.body.appendChild(el);
   const reveal = () => { const g = el.querySelector('.inv-gen'); if (g) g.remove(); const paper = el.querySelector('.inv-paper'); paper.hidden = false; paper.classList.add('in'); el.querySelectorAll('.inv-tot [data-to]').forEach((d) => countUp(d, +d.dataset.to, 900)); el.querySelector('[data-act="invPrint"]').focus(); };
   if (reduce) reveal(); else setTimeout(reveal, 1900);
+}
+
+/* ---------- invoice register ---------- */
+const IPERIODS = [['month', 'This month'], ['last', 'Last month'], ['all', 'All time']];
+function iPeriod(k) {
+  const ist = new Date(Date.now() + 330 * 60000), y = ist.getUTCFullYear(), m = ist.getUTCMonth(), d = (yy, mm, dd) => new Date(Date.UTC(yy, mm, dd)).toISOString().slice(0, 10);
+  if (k === 'month') return { from: d(y, m, 1), to: d(y, m + 1, 0) };
+  if (k === 'last') return { from: d(y, m - 1, 1), to: d(y, m, 0) };
+  return {};
+}
+function registerRows() {
+  const f = S.ifl; return filterRegister(S.invoices, { gst: f.gst, rate: f.rate, mechanic: f.mechanic, q: f.q, ...iPeriod(f.period) });
+}
+function invoices() {
+  const f = S.ifl, rows = registerRows(), t = registerTotals(rows), mech = byMechanic(rows), gs = gstSummary(rows);
+  const opt = (v, cur, label) => `<option value="${v}"${String(cur) === String(v) ? ' selected' : ''}>${label}</option>`;
+  const pill = (r) => r.has_gst ? `<span class="pill paid">GST ${r.gst_rate}%</span>` : '<span class="pill lost">No GST</span>';
+  const cards = rows.map((r) => `<button class="row inv-row" data-lead="${r.lead_id}" style="border-radius:12px"><span class="ref">${esc(r.number)}</span><span>${esc(r.customer_company || r.customer_name)}<br><span class="meta">${esc(when(r.issued_at))} · ${esc(r.mechanic_name || 'No mechanic')}${r.customer_gstin ? ' · GSTIN ' + esc(r.customer_gstin) : ''}</span></span><span>${pill(r)}<br><b>${rupee(r.total)}</b><br><span class="meta">Cut ${rupee(r.mechanic_cut)}</span></span></button>`).join('');
+  const table = rows.length ? `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Invoice</th><th>Date</th><th>Customer</th><th>Mechanic</th><th>GST</th><th>Taxable</th><th>GST amt</th><th>Total</th><th>Paid</th><th>Mech %</th><th>Mechanic cut</th><th>Company</th><th>Payable now</th></tr></thead><tbody>${rows.map((r) => `<tr class="inv-tr" data-lead="${r.lead_id}" tabindex="0"><td><b>${esc(r.number)}</b></td><td>${esc(when(r.issued_at))}</td><td>${esc(r.customer_company || r.customer_name)}${r.customer_gstin ? '<br><span class="tiny muted">' + esc(r.customer_gstin) + '</span>' : ''}</td><td>${esc(r.mechanic_name || 'None')}</td><td>${pill(r)}</td><td>${rupee(r.taxable)}</td><td>${rupee(r.cgst + r.sgst)}</td><td><b>${rupee(r.total)}</b></td><td>${rupee(r.paid)}</td><td>${r.mechanic_name ? r.mechanic_rate + '%' : ''}</td><td><b>${rupee(r.mechanic_cut)}</b></td><td>${rupee(r.company_share)}</td><td>${rupee(r.payable_now)}</td></tr>`).join('')}<tr class="tot"><td><b>Total (${t.count})</b></td><td></td><td></td><td></td><td></td><td><b>${rupee(t.taxable)}</b></td><td><b>${rupee(t.gst)}</b></td><td><b>${rupee(t.total)}</b></td><td><b>${rupee(t.paid)}</b></td><td></td><td><b>${rupee(t.cut)}</b></td><td><b>${rupee(t.company)}</b></td><td><b>${rupee(t.payable)}</b></td></tr></tbody></table></div>` : '<p class="muted">No saved invoices match. An invoice is saved each time you print it or email it from a booking.</p>';
+  const mechTable = mech.length ? `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Mechanic</th><th>Invoices</th><th>With GST</th><th>Cut on GST invoices</th><th>Without GST</th><th>Cut on no-GST invoices</th><th>Total cut</th><th>Payable now</th><th>Still to pay</th></tr></thead><tbody>${mech.map((m) => `<tr><td><b>${esc(m.name)}</b></td><td>${m.count}</td><td>${m.withGst.count} · ${rupee(m.withGst.total)}</td><td>${rupee(m.withGst.cut)}</td><td>${m.withoutGst.count} · ${rupee(m.withoutGst.total)}</td><td>${rupee(m.withoutGst.cut)}</td><td><b>${rupee(m.cut)}</b></td><td>${rupee(m.payable)}</td><td>${rupee(m.owed)}</td></tr>`).join('')}</tbody></table></div>` : '';
+  const gstTable = gs.length ? `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>GST rate</th><th>Invoices</th><th>Taxable value</th><th>CGST</th><th>SGST</th><th>Total GST</th><th>Invoice total</th></tr></thead><tbody>${gs.map((g) => `<tr><td>${g.rate ? g.rate + '%' : 'No GST'}</td><td>${g.count}</td><td>${rupee(g.taxable)}</td><td>${rupee(g.cgst)}</td><td>${rupee(g.sgst)}</td><td>${rupee(g.gst)}</td><td>${rupee(g.total)}</td></tr>`).join('')}</tbody></table></div>` : '';
+  const basisNote = basis() === 'before_gst' ? 'The mechanic\'s cut is worked out on the amount <b>before GST</b>. On an invoice with no GST that is the whole amount, so the same percentage gives a different rupee amount.' : 'The mechanic\'s cut is worked out on the <b>whole amount including GST</b>. You can change this in Settings.';
+  return `<h1 style="font-size:34px">Invoices</h1><p class="muted">Every invoice you print or email is saved here, with its GST and the mechanic's cut as they were on that day.</p>
+  <div class="toolbar" style="flex-wrap:wrap;gap:8px"><select id="if-period" aria-label="Period">${IPERIODS.map(([k, n]) => opt(k, f.period, n)).join('')}</select>
+    <select id="if-gst" aria-label="GST">${opt('', f.gst, 'With and without GST')}${opt('with', f.gst, 'With GST only')}${opt('without', f.gst, 'No GST only')}</select>
+    <select id="if-rate" aria-label="GST rate">${opt('', f.rate, 'Any rate')}${[18, 12, 5, 0].map((r) => opt(r, f.rate, r ? r + '%' : '0% (no GST)')).join('')}</select>
+    <select id="if-mech" aria-label="Mechanic">${opt('', f.mechanic, 'All mechanics')}${S.mechanics.map((m) => opt(m.id, f.mechanic, esc(m.name))).join('')}${opt('none', f.mechanic, 'No mechanic')}</select>
+    <input id="if-q" type="search" placeholder="Search number, name, GSTIN" value="${esc(f.q)}" aria-label="Search invoices" style="min-width:200px">
+    <button class="btn btn-ghost btn-sm" type="button" data-act="invRegisterCsv">Download CSV</button>${isOwner() ? '<button class="btn btn-ghost btn-sm" type="button" data-act="backfillInvoices">Add past invoices</button>' : ''}</div>
+  <div class="kpis"><div class="kpi"><b>${t.count}</b><span>Invoices</span></div><div class="kpi"><b>${rupee(t.total)}</b><span>Invoice total</span></div><div class="kpi"><b>${rupee(t.gst)}</b><span>GST in these invoices</span></div><div class="kpi"><b>${rupee(t.cut)}</b><span>Mechanic cut</span></div><div class="kpi"><b>${rupee(t.company)}</b><span>Company share</span></div><div class="kpi"><b>${rupee(t.cut - t.payable)}</b><span>Mechanic cut still to pay</span></div></div>
+  <div class="card" style="margin-top:14px"><h3>Mechanic cut, with and without GST</h3><p class="tiny muted" style="margin:0 0 8px">${basisNote}</p>${mechTable || '<p class="muted">No invoices yet.</p>'}</div>
+  ${gstTable ? `<div class="card" style="margin-top:14px"><h3>GST summary for your accountant</h3>${gstTable}</div>` : ''}
+  <div class="card" style="margin-top:14px"><h3>All invoices</h3><div class="inv-table-wide">${table}</div><div class="inv-cards">${cards}</div></div>`;
 }
 function activity() { return '<h1 style="font-size:34px">Activity</h1><p class="muted">Every admin action, newest first.</p><div class="list" id="act"><p class="muted" style="padding:16px">Loading…</p></div>'; }
 async function loadActivity() {
