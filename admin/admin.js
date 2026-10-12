@@ -401,6 +401,7 @@ function paymentEditBox(l) {
   return `<div id="epBox" style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px"><b>Edit payment</b> <span class="tiny muted">Fix the amount due or add money received. Every payment is kept in the money ledger; open Money to see who holds it, refund or cancel one.</span>
     <label class="label" for="ep-due">Amount due (₹)</label><input id="ep-due" inputmode="numeric" maxlength="7" value="${esc(l.amount_due ?? '')}">
     <label class="label" for="ep-paid">Total received so far (₹), raise it to add a payment</label><input id="ep-paid" inputmode="decimal" maxlength="9" value="${esc(l.paid_amount ?? 0)}">
+    <label class="label" for="ep-by">Added money was received by</label><select id="ep-by"><option value="company_manual">The company</option>${l.mechanic_id ? '<option value="mechanic">The mechanic</option>' : ''}</select>
     <label class="label" for="ep-on">Received on</label><input id="ep-on" type="date" value="${esc(on)}">
     <p class="tiny muted" style="margin:6px 0 0">To show the booking as Paid, also set Status to Paid above.</p>
     <button class="btn btn-primary btn-sm" style="margin-top:10px" type="button" data-act="savePayment">Save payment</button></div>`;
@@ -423,6 +424,7 @@ async function openLead(id, silent) {
   ${serviceEditCard(l)}
   <div class="card" style="margin-top:12px"><h3>Payment</h3>${l.payment_link ? `<p class="small">Payment link: <a href="${esc(l.payment_link)}" target="_blank" rel="noopener">${esc(l.payment_link)}</a> (${rupee(l.amount_due)})</p><p><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="https://wa.me/91${esc(l.phone)}?text=${encodeURIComponent('Hi ' + String(l.name).split(' ')[0] + ', here is your secure link to pay ' + rupee(l.amount_due) + ' for booking ' + l.ref + ': ' + l.payment_link)}">Send link on WhatsApp</a></p>` : ''}
     <label class="label" for="pa">Amount <span class="muted" style="font-weight:400">(${S.leads.some((x) => x.phone === l.phone && x.id !== l.id && x.status === 'completed') ? 'returning customer' : 'new customer'} slot fee by default)</span></label><input id="pa" inputmode="numeric" value="${esc(l.amount_due || slotFeeFor(l))}">
+    <label class="label" for="pby">Who received this money (for Mark paid)</label><select id="pby"><option value="company_manual">The company (cash, bank or UPI)</option>${l.mechanic_id ? `<option value="mechanic">The mechanic ${esc((S.mechanics.find((m) => m.id === l.mechanic_id) || {}).name || '')}</option>` : ''}</select>${l.mechanic_id ? '' : '<p class="tiny muted" style="margin:4px 0 0">Assign a mechanic above to record money the mechanic collected.</p>'}
     <label class="label" for="pe">Customer email <span class="muted" style="font-weight:400">(the payment link is emailed here)</span></label><input id="pe" type="email" inputmode="email" autocomplete="off" maxlength="254" placeholder="name@example.com" value="${esc(S.customers.find((c) => c.id === l.customer_id)?.email || '')}">
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-primary btn-sm" type="button" data-act="emailLink">Email payment link</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${isOwner() ? '<button class="btn btn-ghost btn-sm" type="button" data-act="deleteLead">Delete booking</button>' : ''}<button class="btn btn-ghost btn-sm" type="button" data-act="issueFromLead">Log an issue</button><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button><button class="btn btn-primary btn-sm" type="button" data-act="confirmBooking">Confirm booking and email customer</button><button class="btn btn-dark btn-sm" type="button" data-act="payLink">Create & send payment link</button><button class="btn btn-ghost btn-sm" type="button" data-act="markPaid">Mark paid manually</button></div>
@@ -465,7 +467,7 @@ const ACT = {
     const { error } = await sb.from('leads').update({ amount_due: r.lead.amount_due }).eq('id', l.id);
     if (error) return toast('Could not save: ' + error.message);
     if (diff > 0) {
-      const e = buildEntry('payment', { amount: diff, by: 'company_manual', method: 'Added in booking edit', on: $('#ep-on').value || todayIST() }, { today: todayIST(), lead: l });
+      const e = buildEntry('payment', { amount: diff, by: $('#ep-by')?.value || 'company_manual', method: 'Added in booking edit', on: $('#ep-on').value || todayIST() }, { today: todayIST(), lead: l });
       if (!e.ok) return toast(e.error);
       const { error: ee } = await sb.from('ledger_entries').insert({ ...e.entry, created_by: S.me.user_id });
       if (ee) return toast('Could not record the payment: ' + ee.message);
@@ -833,9 +835,9 @@ const ACT = {
   async markPaid() {
     const l = S.leads.find((x) => x.id === S.open), amount = parseInt($('#pa').value, 10);
     if (!(amount > 0)) return toast('Enter the amount received');
-    const r = buildEntry('payment', { amount, by: 'company_manual', method: 'Cash or transfer', on: todayIST() }, { today: todayIST(), lead: l });
+    const r = buildEntry('payment', { amount, by: $('#pby')?.value || 'company_manual', method: 'Cash or transfer', on: todayIST() }, { today: todayIST(), lead: l });
     if (!r.ok) return toast(r.error);
-    if (!confirm(`Record ${rupee(amount)} received by the company for ${l.ref}?`)) return;
+    if (!confirm(`Record ${rupee(amount)} received by ${r.entry.collected_by === 'mechanic' ? 'the mechanic' : 'the company'} for ${l.ref}?`)) return;
     const { error } = await sb.from('ledger_entries').insert({ ...r.entry, created_by: S.me.user_id });
     if (error) return toast(error.message);
     if (!['paid', 'scheduled', 'completed'].includes(l.status)) await sb.from('leads').update({ status: 'paid' }).eq('id', l.id);
