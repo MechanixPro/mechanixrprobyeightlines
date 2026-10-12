@@ -50,7 +50,8 @@ A hand-off for anyone (or any future Claude session) who continues this work. It
 
 - **Google Ads account** 842-907-1550. Tag `AW-18504366564` is live through `assets/js/tags.js`. The Lead conversion label is in `config.js` (`googleAdsSendTo`).
 - **A "Lead" counts only for a complete booking in our service area** (`leadQuality` in `logic.js`). Casual taps are `lead_draft`, `lead_callback`, `lead_sos`. Out-of-area or incomplete requests are `lead_unqualified` with a reason.
-- **Campaign:** "Bike service Bengaluru (PMax)", Performance Max, ₹663.33 a day, ending 17 October 2026, goal Lead only, asset optimisation off, Bengaluru with Presence targeting, 8 search themes. It was left **Paused** for the owner to enable.
+- **2026-10-12 change:** PMax spent ₹1,494 in 3 days with 0 Search impressions (YouTube ₹827, Display ₹649), so it was **paused**. A **Search-only** campaign "Bike service Bengaluru (search)" was published and is **Enabled**: ₹400/day, Maximise clicks with ₹30 max CPC, Bengaluru (presence), Search network only, 12 phrase keywords, AI Max off, ad per `docs/GOOGLE-ADS-CAMPAIGN.md`. Its goal list still includes the junk Purchases action (remove it). Two stale drafts remain in the campaign list; delete them. Review Search terms after 2 to 3 days.
+- **Earlier campaign:** "Bike service Bengaluru (PMax)", Performance Max, ₹663.33 a day, ending 17 October 2026, goal Lead only, asset optimisation off, Bengaluru with Presence targeting, 8 search themes. It was left **Paused** for the owner to enable.
 - **Offline conversions:** completed jobs from Google clicks export from admin Reports (`docs/GOOGLE-ADS-OFFLINE.md`).
 - **Not set yet:** Google Analytics ID (`gaId`) and Meta Pixel (`metaPixelId`). Meta CAPI is not built.
 - Guides: `docs/ADS-PLAYBOOK.md`, `docs/GOOGLE-ADS-CAMPAIGN.md` (Search), `docs/GOOGLE-ADS-PMAX.md`.
