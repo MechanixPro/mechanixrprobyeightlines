@@ -411,6 +411,17 @@ function paymentEditBox(l) {
     <p class="tiny muted" style="margin:6px 0 0">To show the booking as Paid, also set Status to Paid above.</p>
     <button class="btn btn-primary btn-sm" style="margin-top:10px" type="button" data-act="savePayment">Save payment</button></div>`;
 }
+// How this booking was paid: who collected each rupee (company manual, online, mechanic), what is still owed, and every payment.
+function moneyCard(l) {
+  const a = salesModel().accounts.find((x) => x.lead_id === l.id), entries = S.ledger.filter((e) => e.lead_id === l.id).sort((x, y) => new Date(y.created_at) - new Date(x.created_at));
+  const head = '<h3>Payments and who collected them</h3>';
+  const btn = `<div class="row-btns" style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button" data-act="openMoney" data-id="${l.id}">Open money sheet to record or refund</button></div>`;
+  if (!a) return `<div class="card" style="margin-top:12px">${head}<p class="small muted" style="margin:0">${entries.length ? 'Payments are listed below. The invoice figures appear once the service is chosen.' : 'No payment recorded yet. Record one below with Mark paid, or in the money sheet.'}</p>${entries.length ? entryRows(entries, false) : ''}${btn}</div>`;
+  const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
+  return `<div class="card" style="margin-top:12px">${head}<p style="margin:0 0 6px">${a.statusLabels.map(statusPill).join(' ')}</p>
+    <dl class="kv">${row('Invoice total', '<b>' + rupee2(a.total) + '</b>')}${row('Collected by the company, manual', rupee2(a.byChannel.company_manual))}${row('Collected online (Razorpay)', rupee2(a.byChannel.company_portal))}${row('Collected by the mechanic', rupee2(a.byChannel.mechanic))}${row('Customer still owes', '<b>' + rupee2(a.outstanding) + '</b>')}${a.mechanicId ? row('Mechanic must pay the company', rupee2(a.remitDue)) + row('Company must pay the mechanic', rupee2(a.payoutDue)) : ''}</dl>
+    ${entryRows(entries, false)}${btn}</div>`;
+}
 async function openLead(id, silent) {
   S.open = id; const l = S.leads.find((x) => x.id === id); if (!l) return;
   const { data: msgs } = await sb.from('messages').select('*').eq('lead_id', id).order('created_at').limit(200);
@@ -419,7 +430,7 @@ async function openLead(id, silent) {
   <p><span class="pill ${l.status}">${LABEL[l.status]}</span> ${l.opted_out ? '<span class="pill lost">Opted out</span>' : ''} ${l.paid_amount ? `<span class="pill paid">Paid ${rupee(l.paid_amount)}</span>` : ''}</p>
   <div class="card"><dl class="kv"><dt>Customer</dt><dd>${esc(l.name)}<br><a href="tel:+91${esc(l.phone)}">+91 ${esc(l.phone)}</a></dd><dt>Service</dt><dd>${esc(svcName(l.service_id))}${(l.addons || []).length ? ' + ' + l.addons.map((a) => esc(svcName(a))).join(', ') : ''}</dd><dt>Estimate</dt><dd>${l.est_total ? rupee(l.est_total) : '—'}</dd><dt>Area</dt><dd>${esc(l.area || '—')}</dd><dt>When</dt><dd>${esc(l.preferred_date || '—')} · ${esc(l.preferred_time || SLOT[l.preferred_slot] || '—')}</dd>${leadDetailRows(l).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${k === 'Map pin' ? `<a href="${esc(v)}" target="_blank" rel="noopener">Open in Google Maps</a>` : esc(v)}</dd>`).join('')}<dt>Source</dt><dd>${esc(l.source)}${l.utm?.utm_campaign ? ' · ' + esc(l.utm.utm_campaign) : ''}</dd><dt>Created</dt><dd>${when(l.created_at)}</dd><dt>Reminders</dt><dd>${l.next_followup_at ? 'Next ' + when(l.next_followup_at) + ' (step ' + (l.followup_step + 1) + ' of 4)' : 'None scheduled'}</dd></dl>
   <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">Open WhatsApp chat</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a></div></div>
-  ${payoutCard(l)}<div class="card" style="margin-top:12px"><h3>Update</h3>
+  ${moneyCard(l)}${payoutCard(l)}<div class="card" style="margin-top:12px"><h3>Update</h3>
     <label class="label" for="ls">Status</label><select id="ls">${STATUSES.map((s) => `<option value="${s}"${s === l.status ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
     <label class="label" for="lm">Mechanic</label><select id="lm"><option value="">Not assigned</option>${S.mechanics.filter((m) => m.active || m.id === l.mechanic_id).map((m) => `<option value="${m.id}"${m.id === l.mechanic_id ? ' selected' : ''}>${esc(m.name)}${m.active ? '' : ' (inactive)'}</option>`).join('')}</select>
     <label class="label" for="la">Garage or outside partner (if not on your mechanic list)</label><input id="la" value="${esc(l.assigned_to || '')}" maxlength="60">
@@ -481,6 +492,7 @@ const ACT = {
     toast('Payment saved'); await Promise.all([loadLeads(), loadLedger()]); renderList(); openLead(l.id, true);
   },
   openBooking(btn) { S.tab = 'leads'; render(); openLead(btn.getAttribute('data-id')); },
+  openMoney(btn) { S.tab = 'sales'; S.finJob = btn.getAttribute('data-id'); S.finKind = 'payment'; ACT.close(); render(); window.scrollTo({ top: 0 }); },
   finOpen(btn) { S.finJob = btn.getAttribute('data-lead'); S.finKind = 'payment'; render(); window.scrollTo({ top: 0 }); },
   finClose() { S.finJob = null; render(); },
   async finSave() {
