@@ -17,25 +17,24 @@
 <body class="admin">
 <header class="nav"><div class="wrap" style="max-width:1280px">
   <a class="brand" href="/admin/"><img src="/assets/img/logo.svg" alt="" width="24" height="27">Admin</a>
-  <nav class="tabs" id="tabs" aria-label="Admin sections" hidden>
-    <button type="button" data-tab="dash" aria-current="page">Dashboard</button>
-    <button type="button" data-tab="leads">Bookings</button>
-    <button type="button" data-tab="customers">Customers</button>
-    <button type="button" data-tab="mechanics">Mechanics</button>
-    <button type="button" data-tab="coupons">Coupons</button>
-    <button type="button" data-tab="pins">PIN codes</button>
-    <button type="button" data-tab="waitlist">Waitlist</button>
-    <button type="button" data-tab="issues">Issues</button>
-    <button type="button" data-tab="offers">Offers</button>
-    <button type="button" data-tab="reports">Reports</button>
-    <button type="button" data-tab="invoices">Invoices</button>
-    <button type="button" data-tab="prices">Prices</button>
-    <button type="button" data-tab="homeimgs">Home images</button>
-    <button type="button" data-tab="settings">Settings</button>
-    <button type="button" data-tab="activity">Activity</button>
+  <nav class="groups" id="tabs" aria-label="Admin sections" hidden>
+    <button type="button" data-group="today" aria-current="page">Today</button>
+    <button type="button" data-group="bookings">Bookings<span class="badge" data-badge="bookings" hidden></span></button>
+    <button type="button" data-group="money">Money<span class="badge" data-badge="money" hidden></span></button>
+    <button type="button" data-group="team">Team and areas</button>
+    <button type="button" data-group="more">More</button>
   </nav>
   <button class="btn btn-ghost btn-sm" type="button" id="signOut" hidden>Sign out</button>
 </div></header>
+<nav class="subtabs" id="subtabs" aria-label="Pages in this section" hidden>
+  <div class="wrap" style="max-width:1280px">
+    <div class="sub" data-sub="today"><button type="button" data-tab="dash" aria-current="page">Dashboard</button></div>
+    <div class="sub" data-sub="bookings" hidden><button type="button" data-tab="leads">Bookings</button><button type="button" data-tab="customers">Customers</button><button type="button" data-tab="issues">Issues</button></div>
+    <div class="sub" data-sub="money" hidden><button type="button" data-tab="invoices">Invoices</button><button type="button" data-tab="reports">Reports</button><button type="button" data-tab="coupons">Coupons</button><button type="button" data-tab="prices">Prices</button></div>
+    <div class="sub" data-sub="team" hidden><button type="button" data-tab="mechanics">Mechanics</button><button type="button" data-tab="pins">PIN codes</button></div>
+    <div class="sub" data-sub="more" hidden><button type="button" data-tab="offers">Offers</button><button type="button" data-tab="waitlist">Waitlist</button><button type="button" data-tab="homeimgs">Home images</button><button type="button" data-tab="settings">Settings</button><button type="button" data-tab="activity">Activity</button></div>
+  </div>
+</nav>
 <main class="wrap" style="max-width:1280px;padding-top:24px;padding-bottom:80px" id="app">
   <div class="card login" id="login">
     <img src="/assets/img/logo.svg" alt="" width="48" height="53" style="margin:0 auto 12px">

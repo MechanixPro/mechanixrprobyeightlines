@@ -104,3 +104,14 @@
 @media(max-width:760px){.inv-table-wide{display:none}.inv-cards{display:grid;gap:8px}.inv-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;min-height:56px}}
 @media print{.inv-cut{display:none!important}}
 .inv-cut{margin-top:14px;border:1.5px dashed var(--ember)}
+
+/* Navigation: five sections, and a row of pages for the section you are in */
+.groups{display:flex;gap:6px;overflow-x:auto;margin-left:12px;scrollbar-width:none}.groups::-webkit-scrollbar{display:none}
+.groups button{border:0;background:transparent;color:var(--ink-2);font:600 15px var(--font);padding:0 16px;min-height:44px;border-radius:980px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
+.groups button[aria-current="page"]{background:var(--ink);color:var(--card)}
+.badge{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--ember);color:#1F1206;font:700 12px var(--font)}
+.subtabs{background:var(--card);border-bottom:1px solid var(--line)}
+.subtabs .sub{display:flex;gap:4px;overflow-x:auto;padding:6px 0;scrollbar-width:none}.subtabs .sub::-webkit-scrollbar{display:none}
+.subtabs button{border:0;background:transparent;color:var(--ink-2);font:500 15px var(--font);padding:0 14px;min-height:44px;border-radius:980px;cursor:pointer;white-space:nowrap}
+.subtabs button[aria-current="page"]{background:rgba(242,128,31,.16);color:var(--ink);font-weight:700}
+@media(max-width:760px){.groups{margin-left:0}.groups button{padding:0 12px}}
