@@ -9,6 +9,7 @@ import { pinRows, validPin, cleanPin, cleanPinName } from './pins-view.js';
 import { interestCounts, waitlistRows, interestLabel } from './waitlist-view.js';
 import { buildInvoice } from './invoice.js';
 import { buildNewBooking } from './new-booking.js';
+import { buildServiceEdit, buildPaymentEdit } from './booking-edit.js';
 import { adsConversions } from './ads-export.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
@@ -341,6 +342,37 @@ function payoutCard(l) {
     <div class="split-bar" role="img" aria-label="Mechanic ${sp.mechanicRate} percent, company ${sp.companyRate} percent"><span class="sb-mech" style="width:${sp.mechanicRate}%">${sp.mechanicRate >= 14 ? sp.mechanicRate + '%' : ''}</span><span class="sb-co" style="width:${sp.companyRate}%">${sp.companyRate >= 14 ? sp.companyRate + '%' : ''}</span></div>
     <dl class="kv" style="margin-top:10px"><dt>Collected</dt><dd>${rupee(l.paid_amount)}</dd>${sp.gst ? `<dt>GST</dt><dd>${rupee(sp.gst)}</dd>` : ''}<dt>${esc(m.name)} gets</dt><dd><b>${rupee(sp.mechanic)}</b></dd><dt>Company keeps</dt><dd><b>${rupee(sp.company)}</b></dd></dl></div>`;
 }
+
+const todayIST = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
+function serviceEditCard(l) {
+  const bike = S.bikes.find((b) => b.id === l.bike_id);
+  const pkgs = S.services.filter((x) => x.kind === 'service'), adds = S.services.filter((x) => x.kind === 'addon');
+  const slot = (v, t) => `<option value="${v}"${l.preferred_slot === v ? ' selected' : ''}>${t}</option>`;
+  return `<div class="card" style="margin-top:12px" id="esCard"><h3>Edit service</h3>
+    <p class="tiny muted" style="margin:0 0 6px">Change the package, add-ons, visit time or place. The estimate is worked out again from the live prices.</p>
+    <label class="label" for="es-service">Service</label><select id="es-service"><option value="">Not chosen yet</option>${pkgs.map((x) => `<option value="${x.id}"${x.id === l.service_id ? ' selected' : ''}>${esc(x.name)} (${rupee(x.price)})</option>`).join('')}</select>
+    <fieldset style="border:0;padding:0;margin:10px 0 0"><legend class="label">Add-ons</legend>${adds.map((x) => `<label class="check"><input type="checkbox" data-es-addon="${x.id}"${(l.addons || []).includes(x.id) ? ' checked' : ''}><span>${esc(x.name)} (${x.price ? rupee(x.price) : 'free'})</span></label>`).join('')}</fieldset>
+    <label class="check"><input type="checkbox" id="es-big"${bike?.big_bike ? ' checked' : ''}${bike ? '' : ' disabled'}><span>Above 180cc (adds the big-bike surcharge to Basic, General and Full)${bike ? '' : ' (no bike saved on this booking)'}</span></label>
+    <label class="label" for="es-date">Visit day</label><input id="es-date" type="date" value="${esc(l.preferred_date || '')}">
+    <label class="label" for="es-slot">Time slot</label><select id="es-slot"><option value="">No slot</option>${slot('morning', 'Morning (9 to 12)')}${slot('afternoon', 'Afternoon (12 to 4)')}${slot('evening', 'Evening (4 to 8)')}${slot('asap', 'As soon as possible')}</select>
+    <label class="label" for="es-time">Exact time <span class="muted" style="font-weight:400">(optional)</span></label><input id="es-time" maxlength="30" value="${esc(l.preferred_time || '')}" placeholder="For example: 5:30 PM">
+    <label class="label" for="es-area">Area</label><input id="es-area" maxlength="40" value="${esc(l.area || '')}">
+    <label class="label" for="es-pin">PIN code</label><input id="es-pin" inputmode="numeric" maxlength="6" value="${esc(l.pincode || '')}">
+    <label class="label" for="es-address">Address</label><textarea id="es-address" rows="2" maxlength="200">${esc(l.address || '')}</textarea>
+    <label class="label" for="es-note">What is wrong or what the customer asked for</label><textarea id="es-note" rows="2" maxlength="500">${esc(l.note || '')}</textarea>
+    <p class="small" style="margin:12px 0 0"><b>New estimate: <span id="es-est">${l.est_total != null ? rupee(l.est_total) : 'not set'}</span></b></p>
+    ${l.invoice_override ? '<p class="tiny muted" style="margin:6px 0 0">The invoice was edited by hand, so it will not change. Open Invoice to update it.</p>' : ''}
+    <button class="btn btn-primary" style="margin-top:12px" type="button" data-act="saveService">Save service</button></div>`;
+}
+function paymentEditBox(l) {
+  const on = l.paid_at ? new Date(new Date(l.paid_at).getTime() + 330 * 60000).toISOString().slice(0, 10) : '';
+  return `<div id="epBox" style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px"><b>Edit payment</b> <span class="tiny muted">Fix an amount or record money received in cash or by transfer.</span>
+    <label class="label" for="ep-due">Amount due (₹)</label><input id="ep-due" inputmode="numeric" maxlength="7" value="${esc(l.amount_due ?? '')}">
+    <label class="label" for="ep-paid">Amount received so far (₹)</label><input id="ep-paid" inputmode="decimal" maxlength="9" value="${esc(l.paid_amount ?? 0)}">
+    <label class="label" for="ep-on">Received on</label><input id="ep-on" type="date" value="${esc(on)}">
+    <p class="tiny muted" style="margin:6px 0 0">To show the booking as Paid, also set Status to Paid above.</p>
+    <button class="btn btn-primary btn-sm" style="margin-top:10px" type="button" data-act="savePayment">Save payment</button></div>`;
+}
 async function openLead(id, silent) {
   S.open = id; const l = S.leads.find((x) => x.id === id); if (!l) return;
   const { data: msgs } = await sb.from('messages').select('*').eq('lead_id', id).order('created_at').limit(200);
@@ -356,11 +388,13 @@ async function openLead(id, silent) {
     <label class="label" for="ln">Notes</label><textarea id="ln" rows="3" maxlength="1000">${esc(l.notes || '')}</textarea>
     <label class="check"><input type="checkbox" id="lai"${l.ai_enabled ? ' checked' : ''}><span>AI assistant replies and automatic reminders for this booking</span></label>
     <button class="btn btn-primary" style="margin-top:14px" type="button" data-act="save">Save changes</button></div>
+  ${serviceEditCard(l)}
   <div class="card" style="margin-top:12px"><h3>Payment</h3>${l.payment_link ? `<p class="small">Payment link: <a href="${esc(l.payment_link)}" target="_blank" rel="noopener">${esc(l.payment_link)}</a> (${rupee(l.amount_due)})</p><p><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="https://wa.me/91${esc(l.phone)}?text=${encodeURIComponent('Hi ' + String(l.name).split(' ')[0] + ', here is your secure link to pay ' + rupee(l.amount_due) + ' for booking ' + l.ref + ': ' + l.payment_link)}">Send link on WhatsApp</a></p>` : ''}
     <label class="label" for="pa">Amount <span class="muted" style="font-weight:400">(${S.leads.some((x) => x.phone === l.phone && x.id !== l.id && x.status === 'completed') ? 'returning customer' : 'new customer'} slot fee by default)</span></label><input id="pa" inputmode="numeric" value="${esc(l.amount_due || slotFeeFor(l))}">
     <label class="label" for="pe">Customer email <span class="muted" style="font-weight:400">(the payment link is emailed here)</span></label><input id="pe" type="email" inputmode="email" autocomplete="off" maxlength="254" placeholder="name@example.com" value="${esc(S.customers.find((c) => c.id === l.customer_id)?.email || '')}">
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-primary btn-sm" type="button" data-act="emailLink">Email payment link</button></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${isOwner() ? '<button class="btn btn-ghost btn-sm" type="button" data-act="deleteLead">Delete booking</button>' : ''}<button class="btn btn-ghost btn-sm" type="button" data-act="issueFromLead">Log an issue</button><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button><button class="btn btn-primary btn-sm" type="button" data-act="confirmBooking">Confirm booking and email customer</button><button class="btn btn-dark btn-sm" type="button" data-act="payLink">Create & send payment link</button><button class="btn btn-ghost btn-sm" type="button" data-act="markPaid">Mark paid manually</button></div>
+    ${paymentEditBox(l)}
     <p class="tiny muted">Paid bookings stop all automatic reminders.</p></div>
   <div class="card" style="margin-top:12px"><h3>WhatsApp conversation</h3><div class="chat">${(msgs ?? []).map((m) => `<div class="bubble ${m.direction}">${esc(m.body)}<small>${m.direction === 'in' ? 'Customer' : m.sender === 'ai' ? 'AI assistant' : m.sender === 'staff' ? 'Team' : 'Automatic'} · ${when(m.created_at)}</small></div>`).join('') || '<p class="muted small">No messages yet. The conversation appears here once WhatsApp automation is connected.</p>'}</div></div>`;
   $('#sheet').hidden = false; if (!silent) $('#sheetPanel').scrollTop = 0;
@@ -368,8 +402,37 @@ async function openLead(id, silent) {
 }
 function closeSheet() { $('#sheet').hidden = true; S.open = null; S.openCust = null; S.openMech = null; S.openCoupon = null; }
 
+document.addEventListener('input', (e) => { if (e.target.closest && e.target.closest('#esCard')) updateEstimate(); });
+document.addEventListener('change', (e) => { if (e.target.closest && e.target.closest('#esCard')) updateEstimate(); });
+function updateEstimate() {
+  const el = $('#es-est'); if (!el) return;
+  const r = buildServiceEdit({ service: $('#es-service').value, addons: [...document.querySelectorAll('[data-es-addon]')].filter((c) => c.checked).map((c) => c.getAttribute('data-es-addon')), bigBike: $('#es-big').checked }, { services: S.services });
+  el.textContent = r.ok && r.lead.est_total != null ? rupee(r.lead.est_total) : 'not set';
+}
 const ACT = {
   close: closeSheet,
+  async saveService() {
+    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    const f = { service: $('#es-service').value, addons: [...document.querySelectorAll('[data-es-addon]')].filter((c) => c.checked).map((c) => c.getAttribute('data-es-addon')), bigBike: $('#es-big').checked,
+      date: $('#es-date').value, slot: $('#es-slot').value, time: $('#es-time').value, area: $('#es-area').value, pincode: $('#es-pin').value, address: $('#es-address').value, note: $('#es-note').value };
+    const r = buildServiceEdit(f, { services: S.services, today: todayIST(), currentDate: l.preferred_date });
+    if (!r.ok) return toast(r.error);
+    const { error } = await sb.from('leads').update(r.lead).eq('id', l.id);
+    if (error) return toast('Could not save: ' + error.message);
+    if (r.bike && l.bike_id) await sb.from('bikes').update(r.bike).eq('id', l.bike_id);
+    await audit('booking_service_edited', { ref: l.ref, service: r.lead.service_id, est: r.lead.est_total });
+    toast('Service saved. New estimate ' + (r.lead.est_total != null ? rupee(r.lead.est_total) : 'not set')); await Promise.all([loadLeads(), loadPeople()]); renderList(); openLead(l.id, true);
+  },
+  async savePayment() {
+    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    const r = buildPaymentEdit({ due: $('#ep-due').value, paid: $('#ep-paid').value, paidOn: $('#ep-on').value }, { today: todayIST(), now: new Date().toISOString() });
+    if (!r.ok) return toast(r.error);
+    if (!confirm(`Save amount due ${rupee(r.lead.amount_due)} and amount received ${rupee(r.lead.paid_amount)} for ${l.ref}?`)) return;
+    const { error } = await sb.from('leads').update(r.lead).eq('id', l.id);
+    if (error) return toast('Could not save: ' + error.message);
+    await audit('booking_payment_edited', { ref: l.ref, due: r.lead.amount_due, paid: r.lead.paid_amount });
+    toast('Payment saved'); await loadLeads(); renderList(); openLead(l.id, true);
+  },
   async saveCustomerDetails() {
     const r = S.customers.find((x) => x.id === S.openCust); if (!r) return;
     const c = cleanCustomerEdit({ name: $('#cd-name').value, phone: $('#cd-phone').value, email: $('#cd-email').value, area: $('#cd-area').value, address: $('#cd-address').value, company_name: $('#cd-company').value, gstin: $('#cd-gstin').value });
