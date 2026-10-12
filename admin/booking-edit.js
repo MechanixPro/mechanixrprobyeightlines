@@ -29,7 +29,7 @@ export function buildServiceEdit(f, { services = [], today, currentDate = null }
   };
 }
 
-// The money side of a booking: what is due, what was received, and when.
+// The money side of a booking: what is due, what was received (whole rupees, the column is an integer), and when.
 export function buildPaymentEdit(f, { today, now }) {
   const num = (v) => (String(v ?? '').trim() === '' ? 0 : Number(String(v).replace(/[, ₹]/g, '')));
   const due = num(f.due), paid = num(f.paid);
@@ -37,5 +37,5 @@ export function buildPaymentEdit(f, { today, now }) {
   if (!(Number.isFinite(paid) && paid >= 0 && paid <= MAX)) return { ok: false, error: 'Check the amount received (₹0 to ₹1,00,000)' };
   const on = /^\d{4}-\d{2}-\d{2}$/.test(f.paidOn || '') ? f.paidOn : null;
   if (on && today && on > today) return { ok: false, error: 'The day the money was received cannot be in the future' };
-  return { ok: true, lead: { amount_due: Math.round(due), paid_amount: Math.round(paid), // whole rupees: the column is an integer paid_at: paid > 0 ? (on ? on + 'T05:00:00.000Z' : now) : null } };
+  return { ok: true, lead: { amount_due: Math.round(due), paid_amount: Math.round(paid), paid_at: paid > 0 ? (on ? on + 'T05:00:00.000Z' : now) : null } };
 }
