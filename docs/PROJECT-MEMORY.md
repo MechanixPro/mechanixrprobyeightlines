@@ -83,3 +83,5 @@ A hand-off for anyone (or any future Claude session) who continues this work. It
 - Code: `admin/ledger.js` (engine), `admin/ledger-forms.js` (form -> entry), `admin/sales-view.js` (filters, CSV, labels). Pages: Money > Sales and collections, Mechanic ledgers. Razorpay checkout and webhook write portal entries with the gateway fee (unique on payment id).
 - "Mark paid" and "Edit payment" go through the ledger; lowering the received amount there is refused (use Refund or Cancel).
 - Admin nav: five sections; Today board; invoice register with saved copies; chat-first website start.
+- Sales and collections extras (2026-10-12): filters by channel, GST type and custom dates; jobs CSV and all-transactions CSV; online payments carry gateway fee, transaction id and settlement status (`set_settlement` RPC is the only change allowed to a ledger row); each entry shows who recorded it and when.
+- Open: real Razorpay payment + refund test; delete test lead MP-C509DA; WhatsApp Cloud API token; Google Ads re-check and Search-only campaign; Kannada/Hindi review.
