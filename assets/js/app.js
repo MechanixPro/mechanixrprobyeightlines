@@ -271,7 +271,7 @@
   }
   function utm() {
     try {
-      var p = new URLSearchParams(location.search), o = JSON.parse(sessionStorage.getItem('mxp_utm') || '{}');
+      var p = new URLSearchParams(location.search), o = window.MXP_ADREF ? window.MXP_ADREF.ctx() : JSON.parse(sessionStorage.getItem('mxp_utm') || '{}');
       ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'].forEach(function (k) { if (p.get(k)) o[k] = p.get(k).slice(0, 100); });
       sessionStorage.setItem('mxp_utm', JSON.stringify(o)); return o;
     } catch (e) { return {}; }

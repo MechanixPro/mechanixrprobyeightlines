@@ -51,3 +51,5 @@ content_path = "./supabase/templates/otp.html"
 # Login codes are sent by our own function (functions/auth-email) through Resend, set up once as a Supabase Auth "Send Email" hook.
 # The hook is deliberately not declared here: its secret must not live in this file, and declaring it would make every CLI command ask for it.
 # See docs/AUTH-EMAIL.md.
+[functions.log-click]
+verify_jwt = false

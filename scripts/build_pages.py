@@ -44,6 +44,7 @@ HEAD = '''<!doctype html>
 <script src="/assets/js/loader.js"></script>
 <script src="/assets/js/config.js" defer></script>
 <script src="/assets/js/tags.js" defer></script>
+<script src="/assets/js/adref.js" defer></script>
 {scripts}
 </head>
 <body class="{body}">

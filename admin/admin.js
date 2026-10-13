@@ -249,6 +249,7 @@ function openNewBooking(c) {
     <label class="label" for="nb-name">Name *</label><input id="nb-name" maxlength="60" autocomplete="off">
     <label class="label" for="nb-phone">Mobile number *</label><input id="nb-phone" inputmode="numeric" maxlength="14" placeholder="10 digits" autocomplete="off">
     <label class="label" for="nb-email">Email (for the confirmation and invoice)</label><input id="nb-email" type="email" maxlength="120" autocomplete="off">
+    <label class="label" for="nb-ref">Ad ref code <span class="muted" style="font-weight:400">(at the end of their WhatsApp message, links the booking to the Google ad)</span></label><input id="nb-ref" maxlength="5" autocapitalize="characters" placeholder="For example K7P2M" autocomplete="off">
     <label class="label" for="nb-source">How did they reach us?</label>${sel('nb-source', [['phone', 'Phone call'], ['whatsapp', 'WhatsApp'], ['walk_in', 'Walk-in or referral']], 'phone')}
     <label class="check"><input type="checkbox" id="nb-wa"><span>The customer agreed to WhatsApp updates</span></label></div></div>
   <div class="card" style="margin-top:12px"><h3>Bike</h3><div class="inline-form">
@@ -459,6 +460,13 @@ function paymentEditBox(l) {
     <p class="tiny muted" style="margin:6px 0 0">To show the booking as Paid, also set Status to Paid above.</p>
     <button class="btn btn-primary btn-sm" style="margin-top:10px" type="button" data-act="savePayment">Save payment</button></div>`;
 }
+// Where the booking came from, and a way to link it to a Google ad click with the Ref code from the customer's WhatsApp message.
+function adCard(l) {
+  const u = l.utm || {}, linked = !!(u.gclid || u.utm_campaign || (u.utm_source && u.utm_source !== 'direct'));
+  const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
+  return `<div class="card" style="margin-top:12px"><h3>Where it came from</h3><dl class="kv">${row('Source', esc(l.source || '—'))}${linked ? row('Campaign', esc(u.utm_campaign || u.utm_source || 'Ad click')) + (u.utm_term ? row('Search', esc(u.utm_term)) : '') + row('Google click ID', u.gclid ? '<span class="pill p-ok">Saved</span>' : '<span class="pill p-mute">None</span>') : row('Ad', 'Not linked to an ad click')}</dl>
+    ${u.gclid ? '' : `<div class="inline-form" style="margin-top:8px"><label class="label" for="ad-ref">Ref code from the customer's WhatsApp message</label><input id="ad-ref" maxlength="5" autocapitalize="characters" placeholder="K7P2M" autocomplete="off"><button class="btn btn-ghost btn-sm" type="button" data-act="linkAdRef" style="margin-top:8px">Link to the ad click</button></div>`}</div>`;
+}
 // How this booking was paid: who collected each rupee (company manual, online, mechanic), what is still owed, and every payment.
 function moneyCard(l) {
   try { return moneyCardBody(l); } catch (e) { console.error('moneyCard', e); return `<div class="card" style="margin-top:12px"><h3>Payments and who collected them</h3><p class="small muted" style="margin:0">Could not load the payment summary (${esc(e && e.message)}). Open Money to see this booking.</p><div class="row-btns" style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button" data-act="openMoney" data-id="${l.id}">Open money sheet</button></div></div>`; }
@@ -481,7 +489,7 @@ async function openLead(id, silent) {
   <p><span class="pill ${l.status}">${LABEL[l.status]}</span> ${l.opted_out ? '<span class="pill lost">Opted out</span>' : ''} ${l.paid_amount ? `<span class="pill paid">Paid ${rupee(l.paid_amount)}</span>` : ''}</p>
   <div class="card"><dl class="kv"><dt>Customer</dt><dd>${esc(l.name)}<br><a href="tel:+91${esc(l.phone)}">+91 ${esc(l.phone)}</a></dd><dt>Service</dt><dd>${esc(svcName(l.service_id))}${(l.addons || []).length ? ' + ' + l.addons.map((a) => esc(svcName(a))).join(', ') : ''}</dd><dt>Estimate</dt><dd>${l.est_total ? rupee(l.est_total) : '—'}</dd><dt>Area</dt><dd>${esc(l.area || '—')}</dd><dt>When</dt><dd>${esc(l.preferred_date || '—')} · ${esc(l.preferred_time || SLOT[l.preferred_slot] || '—')}</dd>${leadDetailRows(l).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${k === 'Map pin' ? `<a href="${esc(v)}" target="_blank" rel="noopener">Open in Google Maps</a>` : esc(v)}</dd>`).join('')}<dt>Source</dt><dd>${esc(l.source)}${l.utm?.utm_campaign ? ' · ' + esc(l.utm.utm_campaign) : ''}</dd><dt>Created</dt><dd>${when(l.created_at)}</dd><dt>Reminders</dt><dd>${l.next_followup_at ? 'Next ' + when(l.next_followup_at) + ' (step ' + (l.followup_step + 1) + ' of 4)' : 'None scheduled'}</dd></dl>
   <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">Open WhatsApp chat</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a></div></div>
-  ${moneyCard(l)}${payoutCard(l)}<div class="card" style="margin-top:12px"><h3>Update</h3>
+  ${adCard(l)}${moneyCard(l)}${payoutCard(l)}<div class="card" style="margin-top:12px"><h3>Update</h3>
     <label class="label" for="ls">Status</label><select id="ls">${STATUSES.map((s) => `<option value="${s}"${s === l.status ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
     <label class="label" for="lm">Mechanic</label><select id="lm"><option value="">Not assigned</option>${S.mechanics.filter((m) => m.active || m.id === l.mechanic_id).map((m) => `<option value="${m.id}"${m.id === l.mechanic_id ? ' selected' : ''}>${esc(m.name)}${m.active ? '' : ' (inactive)'}</option>`).join('')}</select>
     <label class="label" for="la">Garage or outside partner (if not on your mechanic list)</label><input id="la" value="${esc(l.assigned_to || '')}" maxlength="60">
@@ -610,6 +618,17 @@ const ACT = {
   },
   mrPreset(btn) { const v = btn.getAttribute('data-pct'), n = $('#mr'), r = $('#mr-range'); if (n) n.value = v; if (r) r.value = v; updateSplitPreview(); },
   openMoneyTab() { S.tab = 'mechledger'; ACT.close(); render(); window.scrollTo({ top: 0 }); },
+  async linkAdRef() {
+    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    const code = ($('#ad-ref').value || '').trim().toUpperCase();
+    if (!/^[A-HJ-NP-Z2-9]{5}$/.test(code)) return toast('The ref code is 5 letters or digits, like K7P2M');
+    const { data: ck, error: ce } = await sb.from('ad_clicks').select('utm').eq('code', code).maybeSingle();
+    if (ce) return toast('Could not look it up: ' + ce.message);
+    if (!ck) return toast('That ref code was not found');
+    const { error } = await sb.from('leads').update({ utm: ck.utm }).eq('id', l.id);
+    if (error) return toast('Could not save: ' + error.message);
+    await audit('lead_linked_to_ad', { ref: l.ref, code }); toast('Linked to the Google ad click'); await loadLeads(); openLead(l.id, true);
+  },
   async boardNext(btn) {
     const l = S.leads.find((x) => x.id === btn.getAttribute('data-id')), n = l && nextStep(l.status); if (!n) return;
     const upd = { status: n.to }; if (n.to === 'completed') upd.completed_at = new Date().toISOString();
@@ -951,7 +970,9 @@ const ACT = {
     if (ce) return toast(ce.message);
     let bikeId = null;
     if (r.bike) { const { data: b } = await sb.from('bikes').insert({ customer_id: c.id, ...r.bike }).select('id').single(); bikeId = b?.id ?? null; }
-    const { data, error } = await sb.from('leads').insert({ ...r.lead, customer_id: c.id, bike_id: bikeId }).select('id').single();
+    let adUtm = null; const refc = v('nb-ref').trim().toUpperCase();
+    if (refc) { const { data: ck } = await sb.from('ad_clicks').select('utm').eq('code', refc).maybeSingle(); if (!ck) return toast('That ref code was not found. Check it, or leave it empty.'); adUtm = ck.utm; }
+    const { data, error } = await sb.from('leads').insert({ ...r.lead, ...(adUtm ? { utm: adUtm } : {}), customer_id: c.id, bike_id: bikeId }).select('id').single();
     if (error) return toast(error.message);
     await audit('lead_created', { phone_last4: r.customer.phone.slice(-4), source: r.lead.source });
     toast('Booking added'); await loadLeads(); S.tab === 'leads' ? renderList() : render(); openLead(data.id);
