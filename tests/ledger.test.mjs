@@ -124,3 +124,15 @@ test('the job account carries the phone and the company percentage for the table
   const a = jobAccount({ invoice: { lead_id: 'p', ref: 'MP-9', number: 'INV-9', issued_at: '2026-10-05T05:00:00Z', customer_name: 'Asha', customer_phone: '9876543210', has_gst: true, gst_rate: 18, total: 1180, taxable: 1000, mechanic_id: 'M1', mechanic_rate: 40 }, entries: [] });
   assert.equal(a.phone, '9876543210'); assert.equal(a.mechanicPct, 40); assert.equal(a.companyPct, 60);
 });
+
+test('a manual commission adjustment moves money between earnings and company share, and flows into what each side owes', async () => {
+  const { jobAccount } = await import('../admin/ledger.js');
+  const base = { lead_id: 'q', ref: 'MP-Q', number: 'INV-Q', issued_at: '2026-10-05T05:00:00Z', customer_name: 'Asha', has_gst: true, gst_rate: 18, total: 1180, taxable: 1000, mechanic_id: 'M1', mechanic_rate: 30 };
+  const pay = [{ id: 'e1', entry_type: 'customer_payment', collected_by: 'company_manual', amount: 1180, lead_id: 'q' }];
+  const a = jobAccount({ invoice: { ...base, commission_adjust: 50 }, entries: pay });
+  assert.deepEqual([a.earningsTotal, a.companyShareTotal, a.payoutObligation], [350, 650, 350]);
+  const b = jobAccount({ invoice: { ...base, commission_adjust: -100 }, entries: pay });
+  assert.deepEqual([b.earningsTotal, b.companyShareTotal, b.payoutObligation], [200, 800, 200]);
+  const c = jobAccount({ invoice: { ...base, commission_adjust: 5000 }, entries: pay });
+  assert.equal(c.earningsTotal, 1000);
+});

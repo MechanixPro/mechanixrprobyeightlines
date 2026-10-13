@@ -48,7 +48,7 @@ export function jobAccount({ invoice, entries = [], mechanic = null, now = Date.
   const outstanding = r2(Math.max(0, total - collected - writtenOff)), credit = r2(Math.max(0, collected + writtenOff - total));
   const hasMech = !!(invoice.mechanic_id || mechanic);
   const pct = hasMech ? Math.min(100, Math.max(0, Math.round(Number(invoice.mechanic_id ? invoice.mechanic_rate : (mechanic && mechanic.payout_rate)) || 0))) : 0;
-  const earningsTotal = r2((service * pct) / 100), companyShareTotal = r2(service - earningsTotal);
+  const adjust = Number(invoice.commission_adjust) || 0, earningsTotal = r2(Math.min(service, Math.max(0, (service * pct) / 100 + adjust))), companyShareTotal = r2(service - earningsTotal);
   const denom = Math.max(total, collected);
   const fc = denom > 0 ? (byChannel.company_manual + byChannel.company_portal) / denom : 0, fm = denom > 0 ? byChannel.mechanic / denom : 0;
   const payoutObligation = r2(earningsTotal * fc), inHand = r2(earningsTotal * fm), remitObligation = r2(Math.max(0, byChannel.mechanic - inHand));
@@ -57,7 +57,7 @@ export function jobAccount({ invoice, entries = [], mechanic = null, now = Date.
   return {
     lead_id: invoice.lead_id, ref: invoice.ref, number: invoice.number, issuedAt: invoice.issued_at, customer: invoice.customer_name, phone: invoice.customer_phone || null, hasGst: !!invoice.has_gst, gstRate: invoice.gst_rate,
     mechanicId: invoice.mechanic_id || (mechanic && mechanic.id) || null, mechanicName: invoice.mechanic_name || (mechanic && mechanic.name) || null,
-    service, gst, total, mechanicPct: pct, companyPct: 100 - pct, earningsTotal, companyShareTotal,
+    service, gst, total, mechanicPct: pct, commissionAdjust: r2(adjust), jobPlace: invoice.job_place || 'doorstep', adjustNote: invoice.commission_note || '', companyPct: 100 - pct, earningsTotal, companyShareTotal,
     byChannel, collected, outstanding, credit, writtenOff: r2(writtenOff), gatewayFees: r2(gatewayFees),
     payoutObligation, inHand, remitObligation, remitAllocated: r2(allocated.remit || 0), payoutAllocated: r2(allocated.payout || 0), remitDue, payoutDue,
     entries: act, statusLabels: jobStatus({ outstanding, remitDue, payoutDue, collected, total, overdue }),

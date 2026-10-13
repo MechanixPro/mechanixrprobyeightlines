@@ -16,6 +16,7 @@ import { mechanicCut, snapshotRow, sameFigures, filterRegister, registerTotals, 
 import { jobAccount, mechanicAccount, summaryCards } from './ledger.js';
 import { buildEntry } from './ledger-forms.js';
 import { filterAccounts, salesCsv, ledgerCsv, entryLabel } from './sales-view.js';
+import { effectiveRate, jobSplit, cleanCommission, payoutShareText, statementShareText, PLACES } from './commission.js';
 import { adsConversions } from './ads-export.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
@@ -37,7 +38,7 @@ const S = { me: null, tab: 'dash', lastTab: {}, invoices: [], ledger: [], sf: { 
 
 function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
-const basis = () => (S.settings.payout_basis === 'before_gst' ? 'before_gst' : 'collected');
+const basis = () => 'before_gst'; // payouts are always worked out on the amount before GST
 const fee = (id, d) => S.services.find((x) => x.id === id)?.price ?? d;
 // New customers pay the small slot fee; a phone with an earlier completed job pays the checkup and quote fee.
 const slotFeeFor = (l) => (S.leads.some((x) => x.phone === l.phone && x.id !== l.id && x.status === 'completed') ? fee('advance', 349) : fee('newfee', 99));
@@ -226,9 +227,9 @@ function openCustomer(id) {
 
 /* ---------- mechanics ---------- */
 function mechanics() {
-  const rows = mechanicStats(S.mechanics, S.leads, { basis: basis() });
-  return `<div class="toolbar"><p class="small muted" style="margin:0;flex:1">Assign a mechanic from a booking. Payout is the share of money collected on completed jobs, at the rate you set for each mechanic.</p>${isOwner() ? '<button class="btn btn-primary btn-sm" type="button" data-act="newMechanic">Add mechanic</button>' : ''}</div>
-  <div class="list">${rows.length ? rows.map((m) => `<button class="row mrow" data-mech="${m.id}"><span>${esc(m.name)} ${m.active ? '' : '<span class="pill off">Inactive</span>'}<br><span class="meta">${esc(m.city)} · ${m.years} yr · Mechanic ${m.rate}% · Company ${m.companyRate}%${m.certified ? ' · Certified' : ''}<br><span class="splitbar" role="img" aria-label="Mechanic ${m.rate} percent, company ${m.companyRate} percent"><i style="width:${m.rate}%"></i></span>${m.specialties ? '<br>' + esc(m.specialties) : ''}</span></span><span class="meta">${m.open} open</span><span class="meta">${m.completed} done · ${rupee(m.revenue)}</span><b>${rupee(m.payout)}</b></button>`).join('') : '<p class="muted" style="padding:16px">No mechanics yet. Add your first one to start assigning jobs.</p>'}</div>`;
+  const rows = mechanicStats(S.mechanics, S.leads, { basis: basis() }), led = new Map(salesModel().mechAccts.map((a) => [a.mechanic.id, a]));
+  return `<div class="toolbar"><p class="small muted" style="margin:0;flex:1">Assign a mechanic from a booking. Open a mechanic to see every job's split, correct a commission and share the statement on WhatsApp.</p>${isOwner() ? '<button class="btn btn-primary btn-sm" type="button" data-act="newMechanic">Add mechanic</button>' : ''}</div>
+  <div class="list">${rows.length ? rows.map((m) => `<button class="row mrow" data-mech="${m.id}"><span>${esc(m.name)} ${m.active ? '' : '<span class="pill off">Inactive</span>'}<br><span class="meta">${esc(m.city)} · ${m.years} yr · Mechanic ${m.rate}% · Company ${m.companyRate}%${m.certified ? ' · Certified' : ''}<br><span class="splitbar" role="img" aria-label="Mechanic ${m.rate} percent, company ${m.companyRate} percent"><i style="width:${m.rate}%"></i></span>${m.specialties ? '<br>' + esc(m.specialties) : ''}</span></span><span class="meta">${m.open} open · ${m.completed} done<br>Earned ${rupee2((led.get(m.id) || {}).earnings || 0)}</span><span class="meta">${(led.get(m.id) || {}).remitRemaining > 0.005 ? 'Owes us ' + rupee2(led.get(m.id).remitRemaining) : ''}${(led.get(m.id) || {}).remitRemaining > 0.005 && (led.get(m.id) || {}).payoutRemaining > 0.005 ? '<br>' : ''}${(led.get(m.id) || {}).payoutRemaining > 0.005 ? 'We owe ' + rupee2(led.get(m.id).payoutRemaining) : ''}</span><b>${(led.get(m.id) || {}).net ? rupee2(Math.abs(led.get(m.id).net)) : ''}</b></button>`).join('') : '<p class="muted" style="padding:16px">No mechanics yet. Add your first one to start assigning jobs.</p>'}</div>`;
 }
 /* The revenue split picture: a two-colour bar and a sample job, so the percentage is never just a number. */
 function updateSplitPreview() {
@@ -292,7 +293,8 @@ function openMechanic(id) {
     <div class="split-card"><h3 style="margin:0 0 4px">Revenue split</h3><p class="tiny muted" style="margin:0 0 10px">The company decides the percentage for each mechanic. It applies to the money collected on this mechanic's completed jobs${basis() === 'before_gst' ? ', before GST' : ' (GST included)'}.</p>
       <label class="label" for="mr-range">Mechanic's share</label>
       <div class="split-inputs"><input type="range" id="mr-range" min="0" max="100" step="5" value="${esc(m.payout_rate || 0)}"${ro} aria-label="Mechanic's share in percent"><span class="split-num"><input id="mr" inputmode="numeric" maxlength="3" value="${esc(m.payout_rate || 0)}"${ro} aria-label="Mechanic's share, number"><b>%</b></span></div>
-      <div id="split-bar" class="split-bar" role="img"></div><p id="split-sample" class="split-sample" role="status"></p></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><span class="tiny muted" style="align-self:center">Quick pick:</span>${[30, 40, 50].map((p) => `<button class="btn btn-ghost btn-sm" type="button" data-act="mrPreset" data-pct="${p}"${ro}>${p}%</button>`).join('')}</div>
+      <div id="split-bar" class="split-bar" role="img"></div><p id="split-sample" class="split-sample" role="status"></p><p class="tiny muted" style="margin:6px 0 0">In-garage jobs use ${esc(S.settings.garage_pct ?? 30)}% instead (change in Settings). A job can also have its own percentage and a plus or minus adjustment, from the booking.</p></div>
     <label class="label" for="mcity">City</label><input id="mcity" maxlength="40" value="${esc(m.city || 'Bengaluru')}"${ro}>
     <label class="label" for="msp">Specialties (for example: scooters, Royal Enfield, EV)</label><input id="msp" maxlength="120" value="${esc(m.specialties || '')}"${ro}>
     <label class="label" for="mexp">Years of experience</label><input id="mexp" inputmode="numeric" maxlength="2" value="${esc(m.experience_years || 0)}"${ro}>
@@ -300,9 +302,26 @@ function openMechanic(id) {
     <label class="check"><input type="checkbox" id="mcert"${m.certified !== false ? ' checked' : ''}${ro}><span>Mechanix Pro certified (shown to the customer in the confirmation)</span></label>
     <label class="check"><input type="checkbox" id="mc"${m.active ? ' checked' : ''}${ro}><span>Active (can be assigned new jobs)</span></label>
     ${isOwner() ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-primary" type="button" data-act="saveMechanic">Save</button>' + (id !== 'new' ? '<button class="btn btn-ghost" type="button" data-act="deleteMechanic">Delete mechanic</button>' : '') + '</div>' : '<p class="tiny muted">Only the owner can change mechanics.</p>'}</div></div>
-  ${st ? `<div class="card" style="margin-top:12px"><h3>Jobs</h3><dl class="kv"><dt>Open</dt><dd>${st.open}</dd><dt>Completed</dt><dd>${st.completed}</dd><dt>Collected</dt><dd>${rupee(st.revenue)}</dd><dt>Payout due</dt><dd>${rupee(st.payout)}</dd></dl></div>` : ''}`;
+  ${id === 'new' ? '' : mechDetail(id, st)}`;
   updateSplitPreview();
   $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
+}
+
+/* One mechanic: every job's split in a table, totals, and the statement to share. */
+function mechDetail(id, st) {
+  const acct = salesModel().mechAccts.find((a) => a.mechanic.id === id), m = S.mechanics.find((x) => x.id === id);
+  const open = st ? `${st.open} open · ${st.completed} completed` : '';
+  if (!acct) return `<div class="card" style="margin-top:12px"><h3>Jobs and split</h3><p class="small muted" style="margin:0">${open}. The split appears here once a job has an invoice or a payment.</p></div>`;
+  const jobs = [...acct.jobAccounts].sort((x, y) => new Date(y.issuedAt) - new Date(x.issuedAt));
+  const sum = (f) => jobs.reduce((t, j) => t + f(j), 0);
+  const rows = jobs.map((j) => `<tr class="inv-tr" data-lead="${j.lead_id}" tabindex="0"><td>${esc(new Date(j.issuedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }))}<br><span class="tiny muted mono">${esc(j.ref)}</span></td><td>${j.jobPlace === 'garage' ? 'In garage' : 'Doorstep'}</td><td class="num">${rupee2(j.service)}${j.gst ? '<br><span class="tiny muted">+ GST ' + rupee2(j.gst) + '</span>' : ''}</td><td class="num">${j.mechanicPct}%${j.commissionAdjust ? '<br><span class="tiny muted">' + (j.commissionAdjust > 0 ? '+' : '−') + rupee2(Math.abs(j.commissionAdjust)) + '</span>' : ''}</td><td class="num"><b>${rupee2(j.earningsTotal)}</b></td><td class="num">${rupee2(j.companyShareTotal)}</td><td>${[j.byChannel.company_manual ? 'Company' : '', j.byChannel.company_portal ? 'Online' : '', j.byChannel.mechanic ? 'Mechanic' : ''].filter(Boolean).join(', ') || '<span class="muted">Unpaid</span>'}</td><td class="num">${j.payoutDue > 0.005 ? 'We owe ' + rupee2(j.payoutDue) : ''}${j.remitDue > 0.005 ? (j.payoutDue > 0.005 ? '<br>' : '') + 'Owes us ' + rupee2(j.remitDue) : ''}${j.payoutDue <= 0.005 && j.remitDue <= 0.005 ? '<span class="muted">Clear</span>' : ''}</td></tr>`).join('');
+  const text = statementShareText({ mechanicName: m ? m.name : acct.mechanic.name, rows: jobs.map((j) => ({ ref: j.ref, date: new Date(j.issuedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }), place: j.jobPlace, earnings: j.earningsTotal })), totals: { earnings: acct.earnings, remitDue: acct.remitRemaining, payoutDue: acct.payoutRemaining, net: acct.net, netLabel: acct.netLabel } });
+  const kpi = (v, l) => `<div class="kpi"><b>${rupee2(v)}</b><span>${l}</span></div>`;
+  return `<div class="card" style="margin-top:12px"><h3>Jobs and split</h3><p class="tiny muted" style="margin:0 0 10px">${open}. Tap a job to open it and correct the commission.</p>
+    <div class="kpis">${kpi(acct.serviceSales, 'Service sales')}${kpi(acct.earnings, 'Mechanic earnings')}${kpi(sum((j) => j.companyShareTotal), 'Company share')}${kpi(acct.paidOut, 'Paid to the mechanic')}${kpi(acct.payoutRemaining, 'We still owe')}${kpi(acct.remitRemaining, 'Mechanic still owes us')}</div>
+    <p style="margin:10px 0"><span class="pill ${acct.status === 'Settled' ? 'p-ok' : 'p-warn'}">${esc(acct.status)}</span> <b class="tnum">${acct.net ? rupee2(Math.abs(acct.net)) : ''}</b> <span class="muted">${esc(acct.netLabel)}</span></p>
+    <div class="scroll"><table style="min-width:680px"><thead><tr><th>Job</th><th>Type</th><th class="num">Service</th><th class="num">Share</th><th class="num">Mechanic earns</th><th class="num">We keep</th><th>Paid to</th><th class="num">Balance</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="2"><b>${jobs.length} job${jobs.length === 1 ? '' : 's'}</b></td><td class="num"><b>${rupee2(sum((j) => j.service))}</b></td><td></td><td class="num"><b>${rupee2(acct.earnings)}</b></td><td class="num"><b>${rupee2(sum((j) => j.companyShareTotal))}</b></td><td></td><td></td></tr></tbody></table></div>
+    <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${m && m.phone ? `<a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="${esc(waLink(m.phone, text))}">Share statement on WhatsApp</a>` : ''}<button class="btn btn-ghost btn-sm" type="button" data-act="copyText" data-text="${esc(text)}">Copy statement</button><button class="btn btn-ghost btn-sm" type="button" data-act="openMoneyTab">Open mechanic ledgers</button></div></div>`;
 }
 
 /* ---------- coupons ---------- */
@@ -370,14 +389,43 @@ function renderList() {
   el.innerHTML = rows.length ? rows.map((l) => `<button class="row${S.selMode && S.sel.has(l.id) ? ' picked' : ''}" data-lead="${l.id}"${S.selMode ? ` aria-pressed="${S.sel.has(l.id)}"` : ''}><span class="ref">${S.selMode ? `<span class="chk" aria-hidden="true">${S.sel.has(l.id) ? '\u2611' : '\u2610'}</span> ` : ''}${esc(l.ref)}<br><span class="meta">${l.source === 'whatsapp' ? 'WhatsApp' : 'Website'}</span></span><span>${esc(l.name)} · <span class="meta">${esc(l.phone)}</span><br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')} · ${l.preferred_date ? esc(l.preferred_date) + ' ' + esc(SLOT[l.preferred_slot] ?? '') : ''}</span></span><span style="text-align:right"><span class="pill ${l.status}">${LABEL[l.status]}</span><br><span class="meta">${l.est_total ? rupee(l.est_total) : ''} · ${when(l.created_at)}</span></span></button>`).join('') : '<p class="muted" style="padding:16px">No bookings here yet.</p>';
 }
 
+/* ---------- commission: one simple rule per job ---------- */
+const defaults = () => ({ doorstep_pct: S.settings.doorstep_pct, garage_pct: S.settings.garage_pct });
+function jobRate(l) { return effectiveRate({ lead: l, mechanic: S.mechanics.find((x) => x.id === l.mechanic_id) || null, settings: defaults() }); }
+function mechFor(l) { const m = S.mechanics.find((x) => x.id === l.mechanic_id) || null; return m ? { ...m, payout_rate: jobRate(l).pct } : null; }
+const SRC = { job: 'set on this job', mechanic: "this mechanic's usual rate", default: 'the standard rate', 'garage default': 'the in-garage rate' };
+const isoDay = (d) => (d ? new Date(new Date(d).getTime() + 330 * 60000).toISOString().slice(0, 10) : '');
+function jobFacts(l) {
+  const a = salesModel().accounts.find((x) => x.lead_id === l.id);
+  const inv = buildInvoice(l, S.services), rate = jobRate(l), sp = jobSplit({ service: inv.taxable, gst: inv.total - inv.taxable, pct: rate.pct, adjust: l.commission_adjust });
+  const dd = new Date(l.completed_at || l.paid_at || l.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const bc = a ? a.byChannel : { company_manual: 0, company_portal: 0, mechanic: 0 };
+  return { inv, rate, sp, a, job: { ref: l.ref, date: dd, place: rate.place, service: sp.base, gst: sp.gst, total: inv.total, pct: sp.pct, adjust: sp.adjust, adjustNote: l.commission_note || '', earnings: sp.earnings, company: sp.company, collected: a ? a.collected : 0, byChannel: bc, remitDue: a ? a.remitDue : 0, payoutDue: a ? a.payoutDue : 0 } };
+}
+const waLink = (phone, text) => 'https://wa.me/91' + String(phone || '').replace(/\D/g, '').slice(-10) + '?text=' + encodeURIComponent(text);
 function payoutCard(l) {
   const m = S.mechanics.find((x) => x.id === l.mechanic_id); if (!m) return '';
-  const inv = buildInvoice(l, S.services), c = mechanicCut(inv, m.payout_rate || 0, basis());
-  const label = inv.gstRate ? `GST invoice (${inv.gstRate}%)` : 'No GST on this invoice';
-  if (!(l.paid_amount > 0)) return `<div class="card" style="margin-top:12px"><h3>Payout for this job</h3><p class="small muted" style="margin:0">${esc(m.name)} gets ${m.payout_rate || 0}% (${label}). On the current invoice that is <b>${rupee(c.cut)}</b>; the company keeps ${rupee(c.company)}. It becomes payable as the customer pays.</p></div>`;
-  return `<div class="card" style="margin-top:12px"><h3>Payout for this job</h3>
-    <div class="split-bar" role="img" aria-label="Mechanic ${c.rate} percent, company ${100 - c.rate} percent"><span class="sb-mech" style="width:${c.rate}%">${c.rate >= 14 ? c.rate + '%' : ''}</span><span class="sb-co" style="width:${100 - c.rate}%">${100 - c.rate >= 14 ? (100 - c.rate) + '%' : ''}</span></div>
-    <dl class="kv" style="margin-top:10px"><dt>${label}</dt><dd>${c.basis === 'before_gst' ? 'Cut on the amount before GST' : 'Cut on the whole amount'}</dd><dt>Invoice total</dt><dd>${rupee(inv.total)}</dd><dt>Collected</dt><dd>${rupee(l.paid_amount)}</dd>${c.gst ? `<dt>GST</dt><dd>${rupee(c.gst)}</dd>` : ''}<dt>${esc(m.name)} gets (full job)</dt><dd><b>${rupee(c.cut)}</b></dd><dt>Payable now</dt><dd><b>${rupee(c.payableNow)}</b></dd><dt>Company keeps</dt><dd><b>${rupee(c.company)}</b></dd></dl></div>`;
+  try { return payoutCardBody(l, m); } catch (e) { console.error('payoutCard', e); return '<div class="card" style="margin-top:12px"><h3>Payout for this job</h3><p class="small muted" style="margin:0">Could not work out the payout for this job. Open Money, then Mechanic ledgers.</p></div>'; }
+}
+function payoutCardBody(l, m) {
+  const { inv, rate, sp, a, job } = jobFacts(l), place = PLACES[rate.place];
+  const text = payoutShareText({ mechanicName: m.name, job }), owner = isOwner();
+  const earnPct = sp.base ? Math.round((sp.earnings / sp.base) * 100) : 0;
+  const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
+  const money = a ? row('Customer paid', rupee2(a.collected)) + (a.byChannel.mechanic ? row('Collected by the mechanic', rupee2(a.byChannel.mechanic)) : '') + row(`${esc(m.name)} gets paid`, rupee2(a.payoutDue) + ' <span class="tiny muted">still to pay</span>') + (a.remitDue > 0.005 ? row('Mechanic must send us', '<b>' + rupee2(a.remitDue) + '</b>') : '') : row('Customer paid', rupee2(l.paid_amount || 0));
+  const edit = owner ? `<details class="cm-edit" style="margin-top:12px"><summary class="btn btn-ghost btn-sm" style="display:inline-block">Edit commission</summary>
+    <div class="inline-form" style="margin-top:10px">
+      <label class="label" for="cm-place">Where was the job done?</label><select id="cm-place"><option value="doorstep"${rate.place === 'doorstep' ? ' selected' : ''}>Doorstep</option><option value="garage"${rate.place === 'garage' ? ' selected' : ''}>In garage</option></select>
+      <label class="label" for="cm-pct">Mechanic's share of the service amount (%)</label>
+      <div class="split-inputs"><span class="split-num"><input id="cm-pct" inputmode="numeric" maxlength="3" value="${l.commission_pct == null ? '' : esc(l.commission_pct)}" placeholder="${rate.pct}"><b>%</b></span><span style="display:flex;gap:6px;flex-wrap:wrap">${[30, 40, 50].map((p) => `<button class="btn btn-ghost btn-sm" type="button" data-act="cmPreset" data-pct="${p}">${p}%</button>`).join('')}<button class="btn btn-ghost btn-sm" type="button" data-act="cmPreset" data-pct="">Usual rate</button></span></div>
+      <p class="tiny muted" style="margin:4px 0 0">Empty means ${rate.source === 'job' ? 'the usual rate' : SRC[rate.source]} (${rate.pct}%).</p>
+      <label class="label" for="cm-adj">Commission adjustment in rupees (plus or minus)</label><input id="cm-adj" inputmode="decimal" maxlength="9" value="${l.commission_adjust ? esc(l.commission_adjust) : ''}" placeholder="0, for example 50 or -100">
+      <label class="label" for="cm-reason">Reason for the adjustment</label><input id="cm-reason" maxlength="200" value="${esc(l.commission_note || '')}" placeholder="For example: extra trip, parts returned">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-primary btn-sm" type="button" data-act="saveCommission">Save commission</button></div></div></details>` : '';
+  return `<div class="card" style="margin-top:12px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><h3 style="margin:0">Payout for this job</h3><span class="pill ${rate.place === 'garage' ? 'p-info' : 'p-ok'}">${place}</span></div>
+    <div class="split-bar" role="img" aria-label="Mechanic ${earnPct} percent, company ${100 - earnPct} percent" style="margin-top:10px"><span class="sb-mech" style="width:${earnPct}%">${earnPct >= 14 ? earnPct + '%' : ''}</span><span class="sb-co" style="width:${100 - earnPct}%">${100 - earnPct >= 14 ? (100 - earnPct) + '%' : ''}</span></div>
+    <dl class="kv" style="margin-top:10px">${row('Service amount (before GST)', rupee2(sp.base))}${sp.gst ? row('GST, kept aside', rupee2(sp.gst)) : row('GST', 'None on this invoice')}${row('Invoice total', rupee2(inv.total))}${row(esc(m.name) + "'s share", sp.pct + '% <span class="tiny muted">(' + SRC[rate.source] + ')</span> = ' + rupee2(sp.byPct))}${sp.adjust ? row('Adjustment', (sp.adjust > 0 ? '+' : '−') + rupee2(Math.abs(sp.adjust)) + (l.commission_note ? ' <span class="tiny muted">' + esc(l.commission_note) + '</span>' : '')) : ''}${row(esc(m.name) + ' earns', '<b>' + rupee2(sp.earnings) + '</b>')}${row('Mechanix Pro keeps', '<b>' + rupee2(sp.company) + '</b>')}${money}</dl>
+    <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${m.phone ? `<a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="${esc(waLink(m.phone, text))}">Share on WhatsApp</a>` : '<span class="tiny muted">Add the mechanic\'s mobile number to share on WhatsApp.</span>'}<button class="btn btn-ghost btn-sm" type="button" data-act="copyText" data-text="${esc(text)}">Copy message</button></div>${edit}</div>`;
 }
 
 const todayIST = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
@@ -547,6 +595,21 @@ const ACT = {
     const blob = new Blob(['\ufeff' + salesCsv(rows)], { type: 'text/csv;charset=utf-8' }), a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = 'mechanix-sales-collections-' + todayIST() + '.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   },
+  cmPreset(btn) { const i = $('#cm-pct'); if (i) i.value = btn.getAttribute('data-pct'); },
+  async saveCommission() {
+    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    const r = cleanCommission({ place: $('#cm-place').value, pct: $('#cm-pct').value, adjust: $('#cm-adj').value, reason: $('#cm-reason').value });
+    if (!r.ok) return toast(r.error);
+    const { error } = await sb.from('leads').update(r.value).eq('id', l.id);
+    if (error) return toast('Could not save: ' + error.message);
+    await audit('commission_edited', { ref: l.ref, ...r.value }); toast('Commission saved'); await Promise.all([loadLeads(), loadLedger()]); openLead(l.id, true);
+  },
+  async copyText(btn) {
+    const t = btn.getAttribute('data-text') || '';
+    try { await navigator.clipboard.writeText(t); toast('Message copied'); } catch (e) { toast('Could not copy. Use Share on WhatsApp instead.'); }
+  },
+  mrPreset(btn) { const v = btn.getAttribute('data-pct'), n = $('#mr'), r = $('#mr-range'); if (n) n.value = v; if (r) r.value = v; updateSplitPreview(); },
+  openMoneyTab() { S.tab = 'mechledger'; ACT.close(); render(); window.scrollTo({ top: 0 }); },
   async boardNext(btn) {
     const l = S.leads.find((x) => x.id === btn.getAttribute('data-id')), n = l && nextStep(l.status); if (!n) return;
     const upd = { status: n.to }; if (n.to === 'completed') upd.completed_at = new Date().toISOString();
@@ -574,7 +637,7 @@ const ACT = {
     const rowsNew = [];
     for (const l of todo) {
       const customer = S.customers.find((c) => c.id === l.customer_id) || null, mech = S.mechanics.find((m) => m.id === l.mechanic_id) || null, inv = buildInvoice(l, S.services, { customer });
-      if (inv.lines.length) rowsNew.push(snapshotRow({ invoice: inv, lead: l, customer, mechanic: mech, via: 'rebuilt', basis: basis(), revision: 1, now: l.completed_at || l.paid_at || l.created_at }));
+      if (inv.lines.length) rowsNew.push(snapshotRow({ invoice: inv, lead: l, customer, mechanic: mechFor(l), via: 'rebuilt', basis: basis(), revision: 1, now: l.completed_at || l.paid_at || l.created_at }));
     }
     if (!rowsNew.length) return toast('No past invoices to add');
     const { error } = await sb.from('invoices').insert(rowsNew);
@@ -915,7 +978,7 @@ const ACT = {
     await audit('price_updated', { id, ...upd }); toast('Price live on the website'); loadServices();
   },
   async saveSettings() {
-    const pairs = { payout_basis: $('#st-basis').value, ai_enabled: $('#st-ai').checked, quiet_hours: { start: parseInt($('#st-q1').value, 10), end: parseInt($('#st-q2').value, 10) }, business_info: { ...(S.settings.business_info || {}), hours: $('#st-hours').value.trim(), areas: $('#st-areas').value.trim(), warranty: $('#st-war').value.trim() } };
+    const pairs = { doorstep_pct: Math.min(100, Math.max(0, parseInt($('#st-door').value, 10) || 30)), garage_pct: Math.min(100, Math.max(0, parseInt($('#st-garage').value, 10) || 30)), ai_enabled: $('#st-ai').checked, quiet_hours: { start: parseInt($('#st-q1').value, 10), end: parseInt($('#st-q2').value, 10) }, business_info: { ...(S.settings.business_info || {}), hours: $('#st-hours').value.trim(), areas: $('#st-areas').value.trim(), warranty: $('#st-war').value.trim() } };
         for (const [key, value] of Object.entries(pairs)) { const { error } = await sb.from('settings').update({ value }).eq('key', key); if (error) return toast(isOwner() ? error.message : 'Only the owner can change settings'); }
     await audit('settings_updated', { keys: Object.keys(pairs) }); await loadSettings(); toast('Settings saved');
   },
@@ -933,9 +996,10 @@ function settings() {
   <label class="check"><input type="checkbox" id="st-ai"${st.ai_enabled !== false ? ' checked' : ''}${dis}><span><b>AI replies and reminders on</b><br><span class="tiny muted">Turn off to answer every chat yourself.</span></span></label>
   <p class="tiny muted" style="margin:10px 0 0">The checkup and quote fee, the new customer slot fee and the above-180cc surcharge are edited in the <b>Prices</b> tab, so every page shows the same number.</p>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="label" for="st-q1">No messages after (hour)</label><input id="st-q1" type="number" min="0" max="23" value="${q.start}"${dis}></div><div><label class="label" for="st-q2">Resume at (hour)</label><input id="st-q2" type="number" min="0" max="23" value="${q.end}"${dis}></div></div></div>
-  <div class="card"><h3>Mechanic payouts</h3><p class="small muted" style="margin:0 0 8px">Each mechanic's percentage is set on their own page. Choose what the percentage is worked out on.</p>
-  <label class="label" for="st-basis">Work out the split on</label><select id="st-basis"${dis}><option value="collected"${basis() === 'collected' ? ' selected' : ''}>The amount collected (GST included)</option><option value="before_gst"${basis() === 'before_gst' ? ' selected' : ''}>The amount before GST (GST is kept aside)</option></select>
-  <p class="tiny muted" style="margin:8px 0 0">Ask your accountant which to use. The GST on a job is paid to the government either way.</p></div>
+  <div class="card"><h3>Mechanic payouts</h3><p class="small muted" style="margin:0 0 8px">Each mechanic's usual percentage is set on their own page. These are the standard rates.</p>
+  <label class="label" for="st-door">Mechanic's share on doorstep jobs, when a mechanic has no rate of their own (%)</label><input id="st-door" inputmode="numeric" maxlength="3" value="${esc(st.doorstep_pct ?? 30)}"${dis}>
+  <label class="label" for="st-garage">Share on in-garage jobs (%)</label><input id="st-garage" inputmode="numeric" maxlength="3" value="${esc(st.garage_pct ?? 30)}"${dis}>
+  <p class="tiny muted" style="margin:8px 0 0">The share is always worked out on the service amount before GST. GST is kept aside. You can still change the percentage for one job, and add a plus or minus adjustment, from the booking.</p></div>
   <div class="card"><h3>What the AI tells customers</h3><label class="label" for="st-hours">Hours</label><input id="st-hours" value="${esc(bi.hours || '')}"${dis}><label class="label" for="st-areas">Areas served</label><textarea id="st-areas" rows="3"${dis}>${esc(bi.areas || '')}</textarea><label class="label" for="st-war">Warranty</label><input id="st-war" value="${esc(bi.warranty || '')}"${dis}></div></div>
   ${isOwner() ? '<button class="btn btn-primary" style="margin-top:16px" type="button" data-act="saveSettings">Save settings</button>' : '<p class="muted">Only the owner can change settings.</p>'}`;
 }
@@ -1045,7 +1109,7 @@ async function saveInvoiceCopy(lead, via) {
     const inv = buildInvoice(lead, S.services, { customer });
     if (!inv.lines.length) return null;
     const mine = S.invoices.filter((r) => r.lead_id === lead.id).sort((a, b) => b.revision - a.revision);
-    const row = snapshotRow({ invoice: inv, lead, customer, mechanic: mech, via, basis: basis(), revision: (mine[0]?.revision || 0) + 1, now: new Date().toISOString() });
+    const row = snapshotRow({ invoice: inv, lead, customer, mechanic: mechFor(lead), via, basis: basis(), revision: (mine[0]?.revision || 0) + 1, now: new Date().toISOString() });
     if (mine[0] && sameFigures(mine[0], row)) return mine[0];
     const { error } = await sb.from('invoices').insert(row);
     if (error) { toast('Could not save the invoice copy: ' + error.message); return null; }
@@ -1154,9 +1218,10 @@ function invoiceFor(l) {
   if (!row) {
     const customer = S.customers.find((c) => c.id === l.customer_id) || null, inv = buildInvoice(l, S.services, { customer });
     if (!inv.lines.length) return null;
-    row = snapshotRow({ invoice: inv, lead: l, customer, mechanic: mech, via: 'print', basis: basis(), revision: 1, now: l.completed_at || l.paid_at || l.created_at });
+    row = snapshotRow({ invoice: inv, lead: l, customer, mechanic: mechFor(l), via: 'print', basis: basis(), revision: 1, now: l.completed_at || l.paid_at || l.created_at });
   }
-  if ((row.mechanic_id || null) !== (l.mechanic_id || null)) row = { ...row, mechanic_id: l.mechanic_id || null, mechanic_name: mech ? mech.name : null, mechanic_rate: mech ? mech.payout_rate || 0 : 0 };
+  const rate = jobRate(l);
+  row = { ...row, mechanic_id: l.mechanic_id || null, mechanic_name: mech ? mech.name : null, mechanic_rate: mech ? rate.pct : 0, commission_adjust: Number(l.commission_adjust) || 0, commission_note: l.commission_note || '', job_place: rate.place };
   return row;
 }
 function salesModel() {
@@ -1237,6 +1302,7 @@ function mechledger() {
     const jobs = a.jobAccounts.sort((x, y) => new Date(y.issuedAt) - new Date(x.issuedAt));
     return `<div class="card" style="margin-top:12px"><button class="row" type="button" data-act="mlOpen" data-id="${id}" style="border-radius:12px;width:100%"><span><b>${esc(a.mechanic.name)}</b><br><span class="meta">${a.mechanic.phone ? '+91 ' + esc(a.mechanic.phone) + ' · ' : ''}${a.mechanic.area ? esc(a.mechanic.area) + ' · ' : ''}${a.jobs} job${a.jobs === 1 ? '' : 's'} · ${a.mechanic.payout_rate || 0}% of the service amount</span></span><span>${statusPill(a.status)}</span><span><b>${a.net === 0 ? '' : rupee2(Math.abs(a.net))}</b><br><span class="meta">${esc(a.netLabel)}</span></span></button>
     <div class="kpis" style="margin-top:10px"><div class="kpi"><b>${rupee2(a.serviceSales)}</b><span>Service sales</span></div><div class="kpi"><b>${rupee2(a.directCollected)}</b><span>Collected directly</span></div><div class="kpi"><b>${rupee2(a.earnings)}</b><span>Earnings</span></div><div class="kpi"><b>${rupee2(a.remitRemaining)}</b><span>Owes the company</span></div><div class="kpi"><b>${rupee2(a.payoutRemaining)}</b><span>Company owes</span></div><div class="kpi"><b>${rupee2(a.remitted)}</b><span>Paid to the company</span></div><div class="kpi"><b>${rupee2(a.paidOut)}</b><span>Paid out to the mechanic</span></div></div>
+    ${(() => { const mm = S.mechanics.find((x) => x.id === id); if (!mm || !mm.phone) return ''; const jobsS = [...a.jobAccounts].sort((x, y) => new Date(y.issuedAt) - new Date(x.issuedAt)); const t = statementShareText({ mechanicName: mm.name, rows: jobsS.map((j) => ({ ref: j.ref, date: new Date(j.issuedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }), place: j.jobPlace, earnings: j.earningsTotal })), totals: { earnings: a.earnings, remitDue: a.remitRemaining, payoutDue: a.payoutRemaining, net: a.net, netLabel: a.netLabel } }); return `<p style="margin:10px 0 0"><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="${esc(waLink(mm.phone, t))}">Share statement on WhatsApp</a></p>`; })()}
     ${open ? `<h3 style="margin:14px 0 6px">Jobs</h3><div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Invoice</th><th>Total</th><th>Collected by mechanic</th><th>Earnings</th><th>Owes the company</th><th>Company owes</th></tr></thead><tbody>${jobs.map((j) => `<tr class="fin-tr" data-lead="${j.lead_id}" tabindex="0"><td>${esc(j.number)}</td><td>${rupee2(j.total)}</td><td>${rupee2(j.byChannel.mechanic)}</td><td>${rupee2(j.payoutObligation + j.inHand)}</td><td>${rupee2(j.remitDue)}</td><td>${rupee2(j.payoutDue)}</td></tr>`).join('')}</tbody></table></div>
     <h3 style="margin:14px 0 6px">Settlements</h3>${entryRows(entries)}<div class="fin-grid">${f('remittance', esc(a.mechanic.name) + ' paid the company')}${f('payout', 'The company paid ' + esc(a.mechanic.name))}</div>` : '<p class="tiny muted" style="margin:8px 0 0">Tap to see the jobs and record a settlement.</p>'}</div>`;
   };

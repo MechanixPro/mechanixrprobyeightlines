@@ -42,7 +42,7 @@ test('the admin shows the split with a slider, a two-colour bar and a sample job
   const a = read('../admin/admin.js');
   for (const id of ['mr-range', 'mr', 'split-bar', 'split-sample']) assert.ok(a.includes(id), id);
   assert.match(a, /splitJob\(/); assert.match(a, /Company keeps|company keeps/i);
-  assert.match(a, /payoutReport\(/); assert.match(a, /st-basis/); assert.match(a, /payout_basis/);
+  assert.match(a, /payoutReport\(/); assert.match(a, /st-door/); assert.match(a, /st-garage/); assert.match(a, /doorstep_pct/); // payouts are always worked out before GST; Settings holds the standard doorstep and garage rates
   assert.match(read('../admin/admin.css'), /\.splitbar/);
 });
 test('the payout basis setting exists in the database and the owner alone can change it', () => {
