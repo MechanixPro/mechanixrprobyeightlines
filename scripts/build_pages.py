@@ -69,10 +69,32 @@ AREAS = [
   ('bellandur', 'Bellandur', '560103', 'Kadubeesanahalli, Green Glen Layout, Devarabisanahalli and the ORR tech parks', 'Office commutes on the Outer Ring Road and Sarjapur Road are tough on chains, tyres and brakes; we can service your bike while you work.'),
   ('electronic-city', 'Electronic City', '560100', 'Phase 1 and Phase 2, Neeladri Nagar, Hosa Road and Konappana Agrahara', 'Long rides on Hosur Road and the elevated expressway mean more kilometres per month, so oil and chain care matter more.'),
   ('marathahalli', 'Marathahalli', '560037', 'Munnekollal, Kundalahalli, AECS Layout and Doddanekundi', 'Heavy traffic on the ORR and Varthur Road means frequent braking and overheating risk in summer.'),
+('indiranagar', 'Indiranagar', '560038', 'HAL 2nd Stage, 100 Feet Road, CMH Road, Defence Colony and Kodihalli', 'Busy 100 Feet Road and CMH Road mean slow traffic and a lot of braking, and many homes have little parking, so servicing at your door saves a trip.'),
+  ('whitefield', 'Whitefield', '560066', 'ITPL, Hope Farm, Kadugodi, Varthur Road and Brookefield', 'Long commutes along Whitefield Main Road and Varthur Road put extra kilometres on chains, tyres and brakes.'),
+  ('jp-nagar', 'JP Nagar', '560078', 'JP Nagar 1st to 9th Phase, Puttenahalli and Sarakki', 'Daily rides towards Bannerghatta Road and the Outer Ring Road mean steady stop-start traffic, which wears brake pads and clutch plates.'),
+  ('jayanagar', 'Jayanagar', '560011, 560041', 'Jayanagar 1st to 9th Block, Tilak Nagar and Siddapura', 'Busy market streets and narrow lanes mean frequent braking and slow riding, which is hard on clutches and brakes.'),
+  ('hebbal', 'Hebbal', '560024', 'Hebbal, Kempapura, Sanjay Nagar and the Bellary Road stretch', 'Heavy flow around the Hebbal flyover and the Outer Ring Road keeps engines idling and brakes working hard.'),
+  ('yelahanka', 'Yelahanka', '560063', 'Yelahanka New Town, Attur Layout, Jakkur and Kogilu', 'Longer rides along Bellary Road add kilometres quickly, so oil changes and chain care come round sooner.'),
+  ('banashankari', 'Banashankari', '560050, 560085', 'Banashankari 2nd and 3rd Stage, Kathriguppe and Girinagar', 'Busy junctions along Kanakapura Road and the Outer Ring Road mean frequent braking and idling.'),
+  ('rajajinagar', 'Rajajinagar', '560010', 'Rajajinagar 1st to 6th Block, Mahalakshmi Layout, Basaveshwaranagar and Industrial Town', 'Dense traffic around Rajajinagar and Chord Road keeps engines idling and brakes working hard.'),
+  ('basavanagudi', 'Basavanagudi', '560004', 'Basavanagudi, Hanumanthanagar, Gavipuram and Bull Temple Road', 'Narrow lanes and constant stop-start riding around Gandhi Bazaar and Bull Temple Road wear clutches and brake pads.'),
+  ('malleshwaram', 'Malleshwaram', '560003', 'Malleshwaram, Sampige Road, 8th Cross and Margosa Road', 'Crowded market streets and one-way lanes mean low-speed riding and constant braking.'),
+  ('kengeri', 'Kengeri', '560060', 'Kengeri Satellite Town, Kumbalgodu and the Mysore Road stretch', 'Daily rides along Mysore Road add kilometres quickly, so chain and tyre care come round sooner.'),
+  ('hoodi', 'Hoodi', '560048', 'Hoodi, Brookefield, Garudachar Palya and ITPL Main Road', 'Long jams on ITPL Main Road and Whitefield Road mean heavy clutch and brake use.'),
+  ('rt-nagar', 'RT Nagar', '560032', 'RT Nagar, Ganga Nagar, Dinnur and Mathikere', 'Short, crowded rides around Hebbal and Mekhri Circle mean frequent braking and starts.'),
+  ('cv-raman-nagar', 'CV Raman Nagar', '560093', 'CV Raman Nagar, Kaggadasapura, Byrasandra and Baiyappanahalli', 'Office commutes towards Indiranagar and Old Madras Road keep the bike in stop-start traffic.'),
+  ('domlur', 'Domlur', '560071', 'Domlur, Kodihalli and the Old Airport Road side', 'Heavy flow on Old Airport Road and the Domlur flyover means frequent braking and idling.'),
+  ('yeshwanthpur', 'Yeshwanthpur', '560022', 'Yeshwanthpur, Mathikere, Goraguntepalya and the Tumkur Road side', 'Heavy vehicles and traffic around Tumkur Road and the Yeshwanthpur circle are hard on brakes and tyres.'),
+  ('jalahalli', 'Jalahalli', '560013, 560014, 560015', 'Jalahalli, Jalahalli East, Jalahalli West and the Tumkur Road side', 'Long rides on Tumkur Road and the Outer Ring Road add kilometres, and heavy-vehicle traffic wears brakes and tyres.'),
+  ('begur', 'Begur', '560068', 'Begur, Hongasandra, Bommanahalli and the Hosur Road side', 'Hosur Road commutes mean steady traffic and hard braking at busy junctions like Silk Board and Bommanahalli.'),
+  ('banaswadi', 'Banaswadi', '560043', 'Banaswadi, Kacharakanahalli and the Outer Ring Road and Hennur Road side', 'Daily rides along the Outer Ring Road and Hennur Road mean long jams, so brakes and clutches wear faster.'),
+  ('vijayanagar', 'Vijayanagar', '560040', 'Vijayanagar, Hosahalli, Attiguppe and the Magadi Road side', 'Busy Magadi Road and Chord Road mean heavy braking and slow riding.'),
+  ('nagarbhavi', 'Nagarbhavi', '560072', 'Nagarbhavi, Chandra Layout, Mudalapalya and Jnanabharathi', 'Rides along Nagarbhavi Main Road and Mysore Road towards the Outer Ring Road mean heavy traffic through the day.'),
 ]
 PRICES = [(k, v['name']) for k, v in json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src', 'site.json'), encoding='utf-8'))['services'].items()]
 
-AREA_LINKS = ''.join(f'<a href="/bike-service-{slug}/">{name}</a>' for slug, name, *_ in AREAS)
+AREA_LINKS = ''.join(f'<a href="/bike-service-{slug}/">{name}</a>' for slug, name, *_ in AREAS[:10])
+ALL_AREA_LINKS = ''.join(f'<a href="/bike-service-{slug}/">{name}</a>' for slug, name, *_ in AREAS)
 def foot(extra=''):
     return FOOT.format(footer=FOOTER.format(area_links=AREA_LINKS, company_name=COMPANY['legalName'], company_addr=', '.join(COMPANY['addressLines']) + f", {COMPANY['city']} {COMPANY['pincode']}", company_gstin=COMPANY['gstin']), extra=extra)
 
@@ -97,24 +119,74 @@ def tok(s):
         kind, key = m.group(1), m.group(2)
         if kind == 'price': return f'<span data-price="{key}">{_inr(_price(key))}</span>'
         if kind == 'text': return _inr(_price(key))
+        if kind == 'num': return str(int(_price(key)))
         fee = SITE_DATA['advance'] if key == 'advance' else SITE_DATA['newCustomerFee'] if key == 'newfee' else SITE_DATA['bigBike']
         if kind == 'fee': return f'<span data-fee="{key}">{_inr(fee)}</span>'
         if kind == 'feetext': return _inr(fee)
         if kind == 'includes_li': return ''.join(f'<li>{html.escape(x)}</li>' for x in SITE_DATA['services'][key]['includes'])
         return m.group(0)
-    s = re.sub(r'\{\{(price|text|fee|feetext|includes_li):([a-z0-9]+)\}\}', rep, s)
+    s = re.sub(r'\{\{(price|text|num|fee|feetext|includes_li):([a-z0-9]+)\}\}', rep, s)
     return s.replace('{{days}}', str(SITE_DATA['warrantyDays']))
+def _unesc(x): return html.unescape(x)
+def fit_title(t, limit=65):
+    """Search results cut titles at about 60 characters. Try shorter wordings that keep the area or model and the brand."""
+    t = _unesc(t)
+    if len(t) <= limit: return t
+    main, _, brand = t.partition(' | ')
+    tries = [main.replace(' in Bengaluru', ', Bengaluru') + ' | ' + brand if brand else None,
+             main.replace(' Service at Home in Bengaluru', ' Home Service, Bengaluru') + ' | ' + brand if brand else None,
+             main.replace(' Service at Home in Bengaluru', ' Service Bengaluru') + ' | ' + brand if brand else None,
+             main.replace(' in Bengaluru', ', Bengaluru'), main.replace(' Service at Home in Bengaluru', ' Service, Bengaluru'), main]
+    for c in tries:
+        if c and len(c) <= limit: return c
+    return t[:limit - 1].rsplit(' ', 1)[0] + '…'
+def fit_desc(d, limit=158):
+    """Keep whole sentences that fit in about 158 characters, so the snippet is not cut mid-sentence."""
+    d = _unesc(d)
+    if len(d) <= limit: return d
+    out = ''
+    for sent in re.split(r'(?<=[.!?])\s+', d):
+        nxt = (out + ' ' + sent).strip()
+        if len(nxt) > limit: break
+        out = nxt
+    return out if len(out) >= 70 else d[:limit - 1].rsplit(' ', 1)[0].rstrip(',;:') + '…'
+def seo_fit(page):
+    def one(pat, fn):
+        nonlocal page
+        page = re.sub(pat, lambda m: m.group(1) + html.escape(fn(m.group(2)), quote=True) + m.group(3), page)
+    one(r'(<title>)(.*?)(</title>)', fit_title)
+    one(r'(<meta property="og:title" content=")(.*?)(")', fit_title)
+    one(r'(<meta name="description" content=")(.*?)(")', fit_desc)
+    one(r'(<meta property="og:description" content=")(.*?)(")', fit_desc)
+    if 'class="breadcrumb"' in page and 'BreadcrumbList' not in page:
+        m = re.search(r'<p class="breadcrumb">(.*?)</p>', page, re.S); can = re.search(r'rel="canonical" href="(.*?)"', page)
+        if m and can:
+            parts = [x for x in re.split(r'\s*› \s*|\s*&rsaquo;\s*', m.group(1)) if x.strip()]
+            items = []
+            for i, x in enumerate(parts, 1):
+                a = re.search(r'<a href="(.*?)"[^>]*>(.*?)</a>', x, re.S)
+                if a: items.append({"@type": "ListItem", "position": i, "name": html.unescape(re.sub('<[^>]+>', '', a.group(2))), "item": SITE + html.unescape(a.group(1)) if a.group(1).startswith('/') else html.unescape(a.group(1))})
+                else: items.append({"@type": "ListItem", "position": i, "name": html.unescape(re.sub('<[^>]+>', '', x)).strip(), "item": can.group(1)})
+            ld = '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": items}, ensure_ascii=False) + '</script>'
+            page = page.replace('</head>', ld + '</head>', 1)
+    return page
 def write(path, content):
     full = os.path.join(ROOT, path); os.makedirs(os.path.dirname(full), exist_ok=True)
-    open(full, 'w', encoding='utf-8').write(tok(content) if path.endswith('.html') else content)
+    open(full, 'w', encoding='utf-8').write(seo_fit(tok(content)) if path.endswith('.html') else content)
 
 _pc = json.load(open(os.path.join(ROOT, 'src', 'model-photos.json'), encoding='utf-8'))
 POPULAR = ''.join(f'<a href="/bike-service/{k}/">{html.escape(_pc[k]["brand"] + " " + _pc[k]["model"])}</a>' for k in ['honda-activa-6g', 'honda-dio', 'tvs-jupiter', 'hero-splendor-plus', 'bajaj-pulsar-ns160', 'royal-enfield-classic-350', 'ola-electric-s1-pro'] if k in _pc)
+GUIDES = [
+  ('how-often-to-service-your-bike', 'How often to service your bike'),
+  ('doorstep-bike-service-vs-garage', 'Doorstep service or garage: which is better'),
+]
+GUIDES_TITLE = dict(GUIDES)
+GUIDE_LINKS = ' · '.join(f'<a href="/guides/{g}/">{html.escape(t)}</a>' for g, t in GUIDES)
 urls = [('/', '1.0')]
 for slug, name, pins, locs, why in AREAS:
     url = f'{SITE}/bike-service-{slug}/'
     title = f'Doorstep Bike Service in {name}, Bengaluru | Mechanix Pro'
-    desc = f'Bike and scooter service at your home or office in {name} ({pins}). Prices from {{text:basic}}, Mechanix Pro-certified mechanics, OEM-certified parts, {{days}}-day service warranty. Get a quote on WhatsApp.'
+    desc = f'Doorstep bike and scooter service in {name} ({pins}) from {{{{text:basic}}}}. Mechanix Pro-certified mechanics, OEM-certified parts, {{{{days}}}}-day warranty. Quote on WhatsApp first.'
     book = f'/book/?area={html.escape(name)}'
     faq = [
       (f'Do you come to my home in {name}?', f'Yes. Our mechanics cover {locs}. We service your bike at home, at your office parking or at the roadside.'),
@@ -135,13 +207,16 @@ for slug, name, pins, locs, why in AREAS:
 <p>{why} Instead of losing half a day at a garage, a Mechanix Pro mechanic services your bike where it is parked, usually in 60 to 90 minutes.</p>
 <h2>Starting prices in {name}</h2>
 <div class="card">{''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES)}</div>
-<p class="tiny muted" style="margin-top:8px">Bikes and scooters up to 180cc; above 180cc add {{fee:bigbike}} to service packages. GST included. Pincodes: {pins}.</p>
+<p class="tiny muted" style="margin-top:8px">Bikes and scooters up to 180cc; above 180cc add {{{{fee:bigbike}}}} to service packages. GST included. Pincodes: {pins}.</p>
 <h2>Popular bikes we service in {name}</h2>
 <p class="areas">{POPULAR}</p>
+<h2>Other areas we serve</h2>
+<p class="areas">{''.join(f'<a href="/bike-service-{s2}/">{n2}</a>' for s2, n2, *_ in AREAS if s2 != slug)}</p>
 <h2>How it works</h2>
-<ol><li>Build your service on the website and send it on WhatsApp.</li><li>Our expert checks what is needed, confirms if it can be done at home, and sends your quote.</li><li>You approve, we lock your slot ({{fee:advance}} checkup and quote fee, adjusted in your bill if you go ahead), and the mechanic arrives.</li></ol>
+<ol><li>Build your service on the website and send it on WhatsApp.</li><li>Our expert checks what is needed, confirms if it can be done at home, and sends your quote.</li><li>You approve, we lock your slot ({{{{fee:advance}}}} checkup and quote fee, adjusted in your bill if you go ahead), and the mechanic arrives.</li></ol>
 <h2>Questions from {name} riders</h2>
 {''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in faq)}
+<p class="tiny muted" style="margin-top:24px">Helpful reads: {GUIDE_LINKS}. See all <a href="/services/">service prices</a>.</p>
 <div class="final" style="margin-top:32px"><h2>Book a service in {name}.</h2><p>Takes under a minute.</p><a class="btn btn-primary" href="{book}">Build your service</a></div>
 '''
     write(f'bike-service-{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=LEGAL_JS, body='', nav=NAV, main='page') + body + foot())
@@ -243,12 +318,14 @@ KIND = {
         ['Range lower than before', 'Charging that stops early or is slow', 'Brakes that feel weak', 'Warning lights or unexpected power cuts'],
         'A problem check usually takes 45 to 60 minutes at your doorstep.'),
 }
+by_brand = {}
 model_pages = []
 photo_credits = json.load(open(os.path.join(ROOT, 'src', 'model-photos.json'), encoding='utf-8'))
 for brand, name, t, big in load_bikes():
     slug = model_slug(brand, name)
     if slug not in photo_credits: continue
     c = photo_credits[slug]; full = f'{brand} {name}'; kind, checks, problems, timing = KIND[t]
+    by_brand.setdefault(brand, []).append((slug, name))
     url = f'{SITE}/bike-service/{slug}/'
     first = 'repair' if t == 'e' else 'basic'
     first_name = 'Repair or problem check' if t == 'e' else 'Basic service'
@@ -256,7 +333,14 @@ for brand, name, t, big in load_bikes():
     title = f'{full} Service at Home in Bengaluru | Mechanix Pro'
     desc = f'Doorstep {full} {"problem check" if t == "e" else "service"} in Bengaluru, from {{{{text:{first}}}}}. Mechanix Pro certified mechanics, OEM-certified parts, {{{{days}}}}-day warranty. Quote on WhatsApp first.'
     book = f'/book/?brand={urllib.parse.quote(brand, safe="")}&amp;model={urllib.parse.quote(name, safe="")}'
+    faq = [
+      (f'How much does a {full} {"problem check" if t == "e" else "service"} cost in Bengaluru?', ('A problem check starts from {{text:repair}}.' if t == 'e' else 'Basic service from {{text:basic}}, General from {{text:general}} and Full from {{text:full}}.') + (' Because this bike is above 180cc, add {{feetext:bigbike}} to service packages.' if big and t != 'e' else '') + ' GST included. Your exact quote comes on WhatsApp before any work starts.'),
+      (f'Can you service my {full} at home?', f'Yes. A Mechanix Pro certified mechanic comes to your home or office in Bengaluru. {timing}'),
+      ('Is there a warranty on the work?', 'Yes, {{days}} days on the work, with OEM-certified parts.'),
+      ('Do I pay before the work starts?', 'You approve the quote first. A {{feetext:advance}} checkup and quote fee ({{feetext:newfee}} for new customers) holds your slot and is adjusted in your final bill if you go ahead.'),
+    ]
     schema = '<script type="application/ld+json">' + json.dumps({
+      "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]}, ensure_ascii=False) + '</script>\n<script type="application/ld+json">' + json.dumps({
       "@context": "https://schema.org", "@type": "AutoRepair", "name": f"Mechanix Pro: {full} service", "url": url,
       "image": f"{SITE}/assets/img/models/{slug}.webp", "telephone": "+91-8310621498", "priceRange": "{{text:repair}}–{{text:full}}",
       "areaServed": {"@type": "City", "name": "Bengaluru"},
@@ -276,11 +360,66 @@ for brand, name, t, big in load_bikes():
 <p class="tiny muted" style="margin-top:8px">Starting from {{{{text:{first}}}}} for the {first_name}. GST included.{surcharge} Your exact quote comes on WhatsApp.</p>
 <h2>How it works</h2>
 <ol><li>Build your service and send it on WhatsApp.</li><li>Our expert checks what is needed and sends your quote.</li><li>You approve, we confirm your slot, and the mechanic arrives. The {{{{fee:advance}}}} checkup and quote fee ({{{{fee:newfee}}}} for new customers) is adjusted in your bill if you go ahead.</li></ol>
+<h2>Questions about servicing a {html.escape(full)}</h2>
+{''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in faq)}
+<h2>Other {html.escape(brand)} models we service</h2>
+<p class="areas">{{{{OTHERS:{html.escape(brand)}:{slug}}}}}</p>
+<h2>Where we service in Bengaluru</h2>
+<p class="areas">{ALL_AREA_LINKS}</p>
+<p class="tiny muted" style="margin-top:24px">Helpful reads: {GUIDE_LINKS}. See all <a href="/services/">service prices</a>.</p>
 <div class="final" style="margin-top:32px"><h2>Book a service for your {html.escape(name)}.</h2><p>Takes under a minute.</p><a class="btn btn-primary" href="{book}">Build your service</a></div>
 '''
     write(f'bike-service/{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=LEGAL_JS, body='', nav=NAV, main='page') + body + foot())
     urls.append((f'/bike-service/{slug}/', '0.6'))
     model_pages.append(slug)
+for _slug in model_pages:
+    _path = os.path.join(ROOT, 'bike-service', _slug, 'index.html'); _pg = open(_path, encoding='utf-8').read()
+    def _others(m):
+        brand = html.unescape(m.group(1)); same = [(sl, nm) for sl, nm in by_brand.get(brand, []) if sl != m.group(2)][:12]
+        return ''.join(f'<a href="/bike-service/{sl}/">{html.escape(brand + " " + nm)}</a>' for sl, nm in same) or '<a href="/book/">Choose your model</a>'
+    open(_path, 'w', encoding='utf-8').write(re.sub(r'\{\{OTHERS:(.*?):([a-z0-9-]+)\}\}', _others, _pg))
+
+# ---- Guides: plain answers to the questions people search before they book. Only true, general statements; the owner's manual always wins. ----
+GUIDE_PAGES = {
+ 'how-often-to-service-your-bike': ('How Often to Service Your Bike or Scooter in Bengaluru | Mechanix Pro',
+   'How often a bike or scooter needs a service, the signs it needs one sooner, and what changes for an electric scooter. Plain advice for Bengaluru riders.',
+   'How often should you service your bike or scooter?',
+   'The honest answer is: as often as your owner\'s manual says, and sooner if your riding is hard on the bike. Here is how to think about it in Bengaluru.',
+   [('Start with the owner\'s manual', '<p>Every maker publishes a service schedule, usually by kilometres or by months, whichever comes first. Many commuter bikes and scooters ask for a service every few thousand kilometres or every few months. The exact number depends on your model, so check the manual or the service booklet and follow it.</p>'),
+    ('Why Bengaluru riding can need more care', '<p>Stop-start traffic, long idling at signals, potholes and the monsoon all add wear that the kilometre count does not show. A bike that does short, crowded trips every day can need attention earlier than one that cruises on open roads.</p>'),
+    ('Signs your bike needs a service sooner', '<ul><li>Brakes that feel soft, noisy or slow to bite</li><li>A chain that is loose, noisy or dry</li><li>Hard starting, a rough idle or weaker pickup</li><li>A clutch that slips or feels heavy</li><li>Engine oil that is dark, low or past its due date</li><li>A battery that struggles on the self-start</li></ul><p>If you notice any of these, get the bike checked rather than waiting for the next due date.</p>'),
+    ('Electric scooters and bikes', '<p>An electric scooter has no engine oil to change, but it still needs regular checks: brakes, tyres, suspension, lights, battery health and connectors, and how it charges. If the range drops or charging stops early, have it looked at.</p>'),
+    ('What a service usually covers', '<p>Our packages are listed with their prices on the <a href="/services/">service prices</a> page. You get a quote on WhatsApp first and pay only after you approve it.</p>')],
+   [('How often should I service my bike?', 'Follow the schedule in your owner\'s manual, which is usually by kilometres or months, whichever comes first. Service sooner if the brakes, chain, clutch or starting feel off.'),
+    ('Do electric scooters need servicing?', 'Yes. There is no engine oil, but brakes, tyres, suspension, lights, battery health and charging still need regular checks.'),
+    ('Can a mechanic service my bike at home in Bengaluru?', 'Yes. A Mechanix Pro certified mechanic comes to your home or office. You get a quote on WhatsApp first and approve it before any work starts.')]),
+ 'doorstep-bike-service-vs-garage': ('Doorstep Bike Service or Garage: Which Is Better? | Mechanix Pro',
+   'Doorstep bike service or a garage visit? A fair comparison of time, price clarity, warranty and what can and cannot be done at home in Bengaluru.',
+   'Doorstep bike service or a garage: which is better?',
+   'Both have a place. This is a fair look at what each is good at, so you can choose for your bike and your day.',
+   [('Time and effort', '<p>A garage visit usually means riding in, waiting or arranging a ride home, and collecting the bike later. A doorstep service happens where the bike is parked, at home or at your office, usually in 60 to 90 minutes, so you lose far less of your day.</p>'),
+    ('Knowing the price first', '<p>With Mechanix Pro you get a quote on WhatsApp before anything starts, and parts are added only after you approve. Whatever you choose, ask for the price in writing before the work begins.</p>'),
+    ('Parts and warranty', '<p>We use OEM-certified parts and give a {{days}}-day warranty on the work. Ask any garage the same two questions: which parts will be used, and what is guaranteed.</p>'),
+    ('What a garage can still do better', '<p>Some jobs need a lift, special tools or a longer stay, such as major engine work. If a job cannot be done properly at your doorstep, we tell you before starting, and you can then take it to a workshop.</p>'),
+    ('Which should you pick?', '<p>For regular services, brakes, chain care, oil changes and routine checks, doorstep service saves time. For a major repair, a workshop may be the right place. When in doubt, send us your bike\'s problem on WhatsApp and we will say honestly what can be done at home.</p>')],
+   [('Is doorstep bike service as good as a garage?', 'For routine services and common checks, yes, when the mechanic is certified and uses proper parts. For major engine work, a workshop may be the better place, and we say so before starting.'),
+    ('Do I pay before the work?', 'You approve the quote first. A {{feetext:advance}} checkup and quote fee ({{feetext:newfee}} for new customers) holds your slot and is adjusted in your final bill if you go ahead.'),
+    ('Which areas do you cover?', 'We service across Bengaluru. See the list of areas and PIN codes on our areas page.')]),
+}
+for gslug, (gtitle, gdesc, gh1, glead, gsecs, gfaq) in GUIDE_PAGES.items():
+    gurl = f'{SITE}/guides/{gslug}/'
+    gschema = '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in gfaq]}, ensure_ascii=False) + '</script>\n<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "Article", "headline": gh1, "description": gdesc, "mainEntityOfPage": gurl, "dateModified": TODAY, "author": {"@type": "Organization", "name": "Mechanix Pro"}, "publisher": {"@type": "Organization", "name": "Mechanix Pro", "logo": {"@type": "ImageObject", "url": f"{SITE}/assets/img/icon-512.png"}}}, ensure_ascii=False) + '</script>'
+    gbody = f"""<p class="breadcrumb"><a href="/">Home</a> › Guides › {html.escape(GUIDES_TITLE[gslug])}</p>
+<h1 style="font-size:clamp(32px,6vw,50px)">{html.escape(gh1)}</h1>
+<p class="muted" style="font-size:20px">{html.escape(glead)}</p>
+{''.join(f'<h2>{html.escape(h)}</h2>{b}' for h, b in gsecs)}
+<h2>Common questions</h2>
+{''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in gfaq)}
+<p class="tiny muted" style="margin-top:24px">More: {GUIDE_LINKS} · <a href="/areas/">Areas we serve</a> · <a href="/services/">Service prices</a></p>
+<div class="final" style="margin-top:32px"><h2>Want a mechanic to look at your bike?</h2><p>Get a quote on WhatsApp first. Nothing starts without your OK.</p><a class="btn btn-wa" href="#" data-wa="Bengaluru">Get a quote on WhatsApp</a> <a class="btn btn-primary" href="/book/">Build your service</a></div>
+"""
+    write(f'guides/{gslug}/index.html', HEAD.format(title=html.escape(gtitle), desc=html.escape(gdesc), url=gurl, site=SITE, schema=gschema, scripts=LEGAL_JS, body='', nav=NAV, main='page') + gbody + foot(FLOAT))
+    urls.append((f'/guides/{gslug}/', '0.6'))
 
 # ---- Fleet and societies pages: group requests that open WhatsApp with a ready message ----
 GROUP = {
@@ -347,7 +486,7 @@ _areas_body = f'''<h1 style="font-size:clamp(34px,6vw,52px)">We serve all of Ben
 <ul class="pin-list">{_rows}</ul>
 <p class="tiny muted">PIN codes and area names are from the India Post directory. Not in Bengaluru? Build your service anyway and we will tell you when we reach you.</p>
 '''
-write('areas/index.html', HEAD.format(title='Bike Service in All Bengaluru PIN Codes | Mechanix Pro', desc=f'Doorstep bike and scooter service in all of Bengaluru, every PIN code from 560001 to 560110. Check your PIN code and get a quote on WhatsApp.', url=f'{SITE}/areas/', site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='page') + _areas_body + foot())
+write('areas/index.html', HEAD.format(title='Bike Service in All Bengaluru PIN Codes | Mechanix Pro', desc=f'Doorstep bike and scooter service in all of Bengaluru, every PIN code from 560001 to 560110. Check your PIN code and get a quote on WhatsApp.', url=f'{SITE}/areas/', site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='page') + _areas_body + f'<section class="wrap" style="margin-top:32px"><h2>Area guides</h2><p class="muted">Prices, how it works and common questions for each area.</p><p class="areas">{ALL_AREA_LINKS}</p><p class="tiny muted" style="margin-top:16px">Helpful reads: {GUIDE_LINKS}</p></section>' + foot())
 urls.append(('/areas/', '0.7'))
 
 # ---- Coming soon: an overview page and one page per service, where visitors show their interest ----
@@ -605,7 +744,13 @@ MAIN = [
 ]
 for slug, src, title, desc, ld, body, scripts, prio in MAIN:
     url = f'{SITE}/{slug}/' if slug else f'{SITE}/'
-    schema = ('<script type="application/ld+json">' + open(os.path.join(ROOT, 'src', ld), encoding='utf-8').read() + '</script>') if ld else ''
+    _ld = open(os.path.join(ROOT, 'src', ld), encoding='utf-8').read() if ld else ''
+    if ld == 'home.jsonld':
+        _d = json.loads(_ld)
+        _d['areaServed'] = [{"@type": "City", "name": "Bengaluru"}] + [{"@type": "Place", "name": f"{n}, Bengaluru"} for _s, n, *_r in AREAS]
+        _d['hasOfferCatalog'] = {"@type": "OfferCatalog", "name": "Bike and scooter services", "itemListElement": [{"@type": "Offer", "priceCurrency": "INR", "price": str(int(SITE_DATA['services'][k]['price'])), "itemOffered": {"@type": "Service", "name": SITE_DATA['services'][k]['name']}} for k in ('basic', 'general', 'full', 'repair') if k in SITE_DATA['services']]}
+        _ld = json.dumps(_d, ensure_ascii=False)
+    schema = ('<script type="application/ld+json">' + _ld + '</script>') if ld else ''
     content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
     out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(FLOAT)
     if src == 'home':

@@ -32,7 +32,7 @@
     },
     "general": {
       "name": "General service",
-      "price": 1199,
+      "price": 799,
       "includes": [
         "A. Engine & Lubrication",
         "1. Engine oil level and condition — inspect",
@@ -58,7 +58,7 @@
     },
     "full": {
       "name": "Full service",
-      "price": 1899,
+      "price": 1299,
       "includes": [
         "A. Engine & Lubrication",
         "1. Engine oil level and condition — inspect",
