@@ -157,3 +157,15 @@
 .modal-box input{width:100%;font-size:16px;min-height:44px}
 .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 .modal-btns .btn{min-height:44px}
+
+/* booking drawer: quick actions, four sections, one Save bar */
+.qa{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+.dtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto}
+.dtabs button{border:0;background:none;padding:10px 14px;font-weight:600;color:var(--muted,#5a6678);min-height:44px;border-bottom:3px solid transparent;white-space:nowrap}
+.dtabs button[aria-selected="true"]{color:var(--ink,#14295A);border-bottom-color:var(--ember,#F2801F)}
+.sheet-save{position:sticky;bottom:0;display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--bg);border-top:1px solid var(--line);margin:16px -20px -30px;padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));z-index:3}
+.sheet-save .btn{min-height:44px;padding-inline:22px}
+details.card>summary{list-style:none}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary::after{content:"  ▾";color:var(--muted,#5a6678)}
+details.card[open]>summary::after{content:"  ▴"}

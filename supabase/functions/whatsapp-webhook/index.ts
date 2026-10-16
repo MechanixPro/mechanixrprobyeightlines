@@ -47,8 +47,8 @@ async function handleMessage(db: ReturnType<typeof adminDb>, msg: any, profileNa
   // Find the lead: by booking ref in the text, else latest open lead for this phone, else create one.
   const ref = text.match(/MP-[A-Z0-9]{6}/)?.[0];
   let lead: any = null;
-  if (ref) lead = (await db.from('leads').select('*').eq('ref', ref).eq('phone', phone).maybeSingle()).data;
-  if (!lead) lead = (await db.from('leads').select('*').eq('phone', phone).order('created_at', { ascending: false }).limit(1).maybeSingle()).data;
+  if (ref) lead = (await db.from('leads').select('*').eq('ref', ref).eq('phone', phone).is('deleted_at', null).maybeSingle()).data;
+  if (!lead) lead = (await db.from('leads').select('*').eq('phone', phone).is('deleted_at', null).order('created_at', { ascending: false }).limit(1).maybeSingle()).data;
   if (!lead || ['completed', 'lost'].includes(lead.status)) {
     const { data: cust } = await db.from('customers').upsert({ phone, name: profileName || null }, { onConflict: 'phone' }).select('id').single();
     lead = (await db.from('leads').insert({ customer_id: cust?.id, name: (profileName || 'WhatsApp customer').slice(0, 60), phone, source: 'whatsapp', consent_whatsapp: true }).select('*').single()).data;

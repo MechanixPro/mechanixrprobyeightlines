@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   const { data: due } = await db.from('leads').select('*')
     .lte('next_followup_at', new Date().toISOString())
     .in('status', ['new', 'contacted', 'quoted', 'payment_sent'])
-    .eq('opted_out', false).eq('ai_enabled', true).eq('consent_whatsapp', true)
+    .eq('opted_out', false).eq('ai_enabled', true).eq('consent_whatsapp', true).is('deleted_at', null)
     .lt('followup_step', 4).limit(50);
 
   let sent = 0;

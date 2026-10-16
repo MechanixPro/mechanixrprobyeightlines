@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   if ((count ?? 0) >= 20) return json(req, { error: 'Too many tries. Please wait a few minutes.' }, 429);
   await db.from('track_attempts').insert({ ip_hash: ipHash });
 
-  const { data: lead } = await db.from('leads').select('ref,status,phone,area,service_id,preferred_date,preferred_slot,preferred_time,est_total,bike_id,mechanic_id').eq('ref', v.ref).eq('phone', v.phone).maybeSingle();
+  const { data: lead } = await db.from('leads').select('ref,status,phone,area,service_id,preferred_date,preferred_slot,preferred_time,est_total,bike_id,mechanic_id').eq('ref', v.ref).eq('phone', v.phone).is('deleted_at', null).maybeSingle();
   // The same answer for "no such reference" and "wrong number", so nobody can probe which references exist.
   if (!lead) return json(req, { error: 'We could not find that booking. Check the reference and the number you booked with.' }, 404);
   const [svc, bike, mech] = await Promise.all([

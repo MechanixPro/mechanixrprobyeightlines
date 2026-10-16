@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   const site = { siteUrl, phoneDisplay: env('PHONE_DISPLAY', '+91 83106 21498'), phoneTel: env('PHONE_TEL', '+918310621498'), whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918310621498'), email: 'hello@mechanixpro.in' };
   const cutoff = new Date(now.getTime() - DUE_DAYS * 86400_000).toISOString();
   const { data: leads } = await db.from('leads').select('id,name,status,reminder_opt_in,reminder_sent_at,completed_at,customer_id,bike_id,service_id')
-    .eq('status', 'completed').eq('reminder_opt_in', true).is('reminder_sent_at', null).lte('completed_at', cutoff).limit(40);
+    .eq('status', 'completed').eq('reminder_opt_in', true).is('reminder_sent_at', null).is('deleted_at', null).lte('completed_at', cutoff).limit(40);
   let sent = 0, skipped = 0;
   for (const l of leads ?? []) {
     const { data: c } = await db.from('customers').select('id,email,email_unsubscribed_at,blocked').eq('id', l.customer_id).maybeSingle();

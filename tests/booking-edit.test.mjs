@@ -49,9 +49,10 @@ test('bad payment numbers are refused with a plain message', () => {
   assert.match(buildPaymentEdit({ due: '100', paid: '999999999' }, c).error, /received/i);
   assert.match(buildPaymentEdit({ due: '100', paid: '0', paidOn: '2027-01-01' }, c).error, /future/i);
 });
-test('the booking screen has an Edit service card and an Edit payment card that save through the checked helpers and are logged', () => {
+test('the booking screen has one Save changes button that saves status, service and amount due through the checked helper and is logged', () => {
   const a = read('admin/admin.js');
-  for (const s of ['data-act="saveService"', 'data-act="savePayment"', 'buildServiceEdit', 'buildPaymentEdit', "audit('booking_service_edited'", "audit('booking_payment_edited'", 'id="es-service"', 'id="ep-paid"']) assert.ok(a.includes(s), s);
+  for (const s of ['data-act="saveBooking"', 'buildServiceEdit', "audit('lead_updated'", 'id="es-service"', 'id="pa"']) assert.ok(a.includes(s), s);
+  assert.equal((a.match(/data-act="save(Service|Payment|Changes)?"/g) || []).length, 0, 'the old separate save buttons are gone');
 });
 test('an invoice that was edited by hand is not changed by a service edit, and the admin is told', () => {
   assert.match(read('admin/admin.js'), /edited by hand|invoice_override[\s\S]{0,200}not change/i);

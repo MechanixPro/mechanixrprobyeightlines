@@ -9,7 +9,7 @@ import { pinRows, validPin, cleanPin, cleanPinName } from './pins-view.js';
 import { interestCounts, waitlistRows, interestLabel } from './waitlist-view.js';
 import { buildInvoice } from './invoice.js';
 import { buildNewBooking } from './new-booking.js';
-import { buildServiceEdit, buildPaymentEdit } from './booking-edit.js';
+import { buildServiceEdit } from './booking-edit.js';
 import { groupOf, firstTab, navBadges } from './nav.js';
 import { boardGroups, nextStep } from './board.js';
 import { mechanicCut, snapshotRow, sameFigures, filterRegister, registerTotals, byMechanic, gstSummary, registerCsv } from './invoice-register.js';
@@ -90,7 +90,7 @@ async function boot() {
 
 /* ---------- data ---------- */
 async function loadLeads() {
-  const { data, error } = await sb.from('leads').select('*').order('created_at', { ascending: false }).limit(500);
+  const { data, error } = await sb.from('leads').select('*').is('deleted_at', null).order('created_at', { ascending: false }).limit(500);
   if (error) toast('Could not load bookings'); else S.leads = data;
 }
 async function loadInvoices() {
@@ -116,6 +116,7 @@ const svcName = (id) => S.services.find((s) => s.id === id)?.name ?? id ?? '—'
 
 /* ---------- views ---------- */
 document.addEventListener('click', (e) => {
+  const dt = e.target.closest('[data-dt]'); if (dt) { S.dt = dt.dataset.dt; document.querySelectorAll('.dpanel').forEach((p) => { p.hidden = p.id !== 'dt-' + S.dt; }); document.querySelectorAll('[data-dt]').forEach((b) => b.setAttribute('aria-selected', b.dataset.dt === S.dt)); return; }
   const gb = e.target.closest('[data-group]'); if (gb) { const g = gb.dataset.group; S.tab = S.lastTab[g] || firstTab(g); syncNav(); render(); return; }
   const t = e.target.closest('[data-tab]'); if (t) { S.tab = t.dataset.tab; syncNav(); render(); return; }
   const r = e.target.closest('[data-lead]'); if (r) { if (S.selMode) { const id = r.dataset.lead; if (S.sel.has(id)) S.sel.delete(id); else S.sel.add(id); render(); } else openLead(r.dataset.lead); return; }
@@ -185,7 +186,7 @@ function sourcesCard(week) {
 function leads() {
   return `<div class="toolbar"><input id="q" type="search" placeholder="Search name, phone or MP-ref" value="${esc(S.q)}" aria-label="Search bookings">
   <select id="fs" aria-label="Filter by status"><option value="open"${S.status === 'open' ? ' selected' : ''}>Open (needs action)</option><option value="all"${S.status === 'all' ? ' selected' : ''}>All</option>${STATUSES.map((s) => `<option value="${s}"${S.status === s ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
-  <button class="btn btn-ghost btn-sm" type="button" data-act="csv">Export CSV</button><button class="btn btn-primary btn-sm" type="button" data-act="newLead">Add booking</button>
+  <button class="btn btn-ghost btn-sm" type="button" data-act="csv">Export CSV</button><button class="btn btn-primary btn-sm" type="button" data-act="newLead">Add booking</button>${isOwner() ? '<button class="btn btn-ghost btn-sm" type="button" data-act="showDeleted">Deleted bookings</button>' : ''}
   ${isOwner() ? (S.selMode ? `<button class="btn btn-ghost btn-sm" type="button" data-act="selectAll">Select all shown</button><button class="btn btn-dark btn-sm" type="button" data-act="deleteSelected"${S.sel.size ? '' : ' disabled'}>Delete selected (${S.sel.size})</button><button class="btn btn-ghost btn-sm" type="button" data-act="selectDone">Done</button>` : '<button class="btn btn-ghost btn-sm" type="button" data-act="selectMode">Select to delete</button>') : ''}</div><div class="list" id="list"></div>`;
 }
 
@@ -438,8 +439,8 @@ function serviceEditCard(l) {
   const bike = S.bikes.find((b) => b.id === l.bike_id);
   const pkgs = S.services.filter((x) => x.kind === 'service'), adds = S.services.filter((x) => x.kind === 'addon');
   const slot = (v, t) => `<option value="${v}"${l.preferred_slot === v ? ' selected' : ''}>${t}</option>`;
-  return `<div class="card" style="margin-top:12px" id="esCard"><h3>Edit service</h3>
-    <p class="tiny muted" style="margin:0 0 6px">Change the package, add-ons, visit time or place. The estimate is worked out again from the live prices.</p>
+  return `<details class="card" style="margin-top:12px" id="esCard"><summary style="cursor:pointer;font:600 17px var(--f-display)">Service, visit time and address</summary>
+    <p class="tiny muted" style="margin:8px 0 6px">Change the package, add-ons, visit time or place. The estimate is worked out again from the live prices. Press Save changes at the bottom to keep your edits.</p>
     <label class="label" for="es-service">Service</label><select id="es-service"><option value="">Not chosen yet</option>${pkgs.map((x) => `<option value="${x.id}"${x.id === l.service_id ? ' selected' : ''}>${esc(x.name)} (${rupee(x.price)})</option>`).join('')}</select>
     <fieldset style="border:0;padding:0;margin:10px 0 0"><legend class="label">Add-ons</legend>${adds.map((x) => `<label class="check"><input type="checkbox" data-es-addon="${x.id}"${(l.addons || []).includes(x.id) ? ' checked' : ''}><span>${esc(x.name)} (${x.price ? rupee(x.price) : 'free'})</span></label>`).join('')}</fieldset>
     <label class="check"><input type="checkbox" id="es-big"${bike?.big_bike ? ' checked' : ''}${bike ? '' : ' disabled'}><span>Above 180cc (adds the big-bike surcharge to Basic, General and Full)${bike ? '' : ' (no bike saved on this booking)'}</span></label>
@@ -452,17 +453,7 @@ function serviceEditCard(l) {
     <label class="label" for="es-note">What is wrong or what the customer asked for</label><textarea id="es-note" rows="2" maxlength="500">${esc(l.note || '')}</textarea>
     <p class="small" style="margin:12px 0 0"><b>New estimate: <span id="es-est">${l.est_total != null ? rupee(l.est_total) : 'not set'}</span></b></p>
     ${l.invoice_override ? '<p class="tiny muted" style="margin:6px 0 0">The invoice was edited by hand, so it will not change. Open Invoice to update it.</p>' : ''}
-    <button class="btn btn-primary" style="margin-top:12px" type="button" data-act="saveService">Save service</button></div>`;
-}
-function paymentEditBox(l) {
-  const on = l.paid_at ? new Date(new Date(l.paid_at).getTime() + 330 * 60000).toISOString().slice(0, 10) : '';
-  return `<div id="epBox" style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px"><b>Edit payment</b> <span class="tiny muted">Fix the amount due or add money received. Every payment is kept in the money ledger; open Money to see who holds it, refund or cancel one.</span>
-    <label class="label" for="ep-due">Amount due (₹)</label><input id="ep-due" inputmode="numeric" maxlength="7" value="${esc(l.amount_due ?? '')}">
-    <label class="label" for="ep-paid">Total received so far (₹), raise it to add a payment</label><input id="ep-paid" inputmode="decimal" maxlength="9" value="${esc(l.paid_amount ?? 0)}">
-    <label class="label" for="ep-by">Added money was received by</label><select id="ep-by"><option value="company_manual">The company</option>${l.mechanic_id ? '<option value="mechanic">The mechanic</option>' : ''}</select>
-    <label class="label" for="ep-on">Received on</label><input id="ep-on" type="date" value="${esc(on)}">
-    <p class="tiny muted" style="margin:6px 0 0">To show the booking as Paid, also set Status to Paid above.</p>
-    <button class="btn btn-primary btn-sm" style="margin-top:10px" type="button" data-act="savePayment">Save payment</button></div>`;
+  </details>`;
 }
 // The customer on this booking: edit their details, or move the booking to a different customer.
 function customerCard(l) {
@@ -505,30 +496,44 @@ function moneyCardBody(l) {
     ${entryRows(entries, true)}${btn}</div>`;
 }
 async function openLead(id, silent) {
+  if (!silent && S.open !== id) S.dt = 'booking';
   S.open = id; const l = S.leads.find((x) => x.id === id); if (!l) return;
   const { data: msgs } = await sb.from('messages').select('*').eq('lead_id', id).order('created_at').limit(200);
   const wa = 'https://wa.me/91' + l.phone;
+  const DETAILS = `<div class="card"><dl class="kv"><dt>Customer</dt><dd>${esc(l.name)}<br><a href="tel:+91${esc(l.phone)}">+91 ${esc(l.phone)}</a></dd><dt>Service</dt><dd>${esc(svcName(l.service_id))}${(l.addons || []).length ? ' + ' + l.addons.map((a) => esc(svcName(a))).join(', ') : ''}</dd><dt>Estimate</dt><dd>${l.est_total ? rupee(l.est_total) : '—'}</dd><dt>Area</dt><dd>${esc(l.area || '—')}</dd><dt>When</dt><dd>${esc(l.preferred_date || '—')} · ${esc(l.preferred_time || SLOT[l.preferred_slot] || '—')}</dd>${leadDetailRows(l).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${k === 'Map pin' ? `<a href="${esc(v)}" target="_blank" rel="noopener">Open in Google Maps</a>` : esc(v)}</dd>`).join('')}<dt>Source</dt><dd>${esc(l.source)}${l.utm?.utm_campaign ? ' · ' + esc(l.utm.utm_campaign) : ''}</dd><dt>Created</dt><dd>${when(l.created_at)}</dd><dt>Reminders</dt><dd>${l.next_followup_at ? 'Next ' + when(l.next_followup_at) + ' (step ' + (l.followup_step + 1) + ' of 4)' : 'None scheduled'}</dd></dl>
+  <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">Open WhatsApp chat</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a></div></div>`, MECH = `${S.mechanics.filter((m) => m.active || m.id === l.mechanic_id).map((m) => `<option value="${m.id}"${m.id === l.mechanic_id ? ' selected' : ''}>${esc(m.name)}${m.active ? '' : ' (inactive)'}</option>`).join('')}`, CONV = `<div class="card"><h3>WhatsApp conversation</h3><div class="chat">${(msgs ?? []).map((m) => `<div class="bubble ${m.direction}">${esc(m.body)}<small>${m.direction === 'in' ? 'Customer' : m.sender === 'ai' ? 'AI assistant' : m.sender === 'staff' ? 'Team' : 'Automatic'} · ${when(m.created_at)}</small></div>`).join('') || '<p class="muted small">No messages yet. The conversation appears here once WhatsApp automation is connected.</p>'}</div></div>`;
+  S.dt = S.dt || 'booking';
+  const dtab = (id, label) => `<button type="button" role="tab" data-dt="${id}" aria-selected="${S.dt === id}">${label}</button>`;
+  const panel = (id, inner) => `<section class="dpanel" id="dt-${id}"${S.dt === id ? '' : ' hidden'}>${inner}</section>`;
+  const linkBlock = l.payment_link ? `<p class="small">Payment link: <a href="${esc(l.payment_link)}" target="_blank" rel="noopener">${esc(l.payment_link)}</a> (${rupee(l.amount_due)})</p><p><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="https://wa.me/91${esc(l.phone)}?text=${encodeURIComponent('Hi ' + String(l.name).split(' ')[0] + ', here is your secure link to pay ' + rupee(l.amount_due) + ' for booking ' + l.ref + ': ' + l.payment_link)}">Send link on WhatsApp</a></p>` : '';
+  const customerEmail = S.customers.find((c) => c.id === l.customer_id)?.email || '';
   $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${esc(l.ref)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
-  <p><span class="pill ${l.status}">${LABEL[l.status]}</span> ${l.opted_out ? '<span class="pill lost">Opted out</span>' : ''} ${l.paid_amount ? `<span class="pill paid">Paid ${rupee(l.paid_amount)}</span>` : ''}</p>
-  <div class="card"><dl class="kv"><dt>Customer</dt><dd>${esc(l.name)}<br><a href="tel:+91${esc(l.phone)}">+91 ${esc(l.phone)}</a></dd><dt>Service</dt><dd>${esc(svcName(l.service_id))}${(l.addons || []).length ? ' + ' + l.addons.map((a) => esc(svcName(a))).join(', ') : ''}</dd><dt>Estimate</dt><dd>${l.est_total ? rupee(l.est_total) : '—'}</dd><dt>Area</dt><dd>${esc(l.area || '—')}</dd><dt>When</dt><dd>${esc(l.preferred_date || '—')} · ${esc(l.preferred_time || SLOT[l.preferred_slot] || '—')}</dd>${leadDetailRows(l).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${k === 'Map pin' ? `<a href="${esc(v)}" target="_blank" rel="noopener">Open in Google Maps</a>` : esc(v)}</dd>`).join('')}<dt>Source</dt><dd>${esc(l.source)}${l.utm?.utm_campaign ? ' · ' + esc(l.utm.utm_campaign) : ''}</dd><dt>Created</dt><dd>${when(l.created_at)}</dd><dt>Reminders</dt><dd>${l.next_followup_at ? 'Next ' + when(l.next_followup_at) + ' (step ' + (l.followup_step + 1) + ' of 4)' : 'None scheduled'}</dd></dl>
-  <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">Open WhatsApp chat</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a></div></div>
-  ${customerCard(l)}${adCard(l)}${invoiceCard(l)}${moneyCard(l)}${payoutCard(l)}<div class="card" style="margin-top:12px"><h3>Update</h3>
-    <label class="label" for="ls">Status</label><select id="ls">${STATUSES.map((s) => `<option value="${s}"${s === l.status ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
-    <label class="label" for="lm">Mechanic</label><select id="lm"><option value="">Not assigned</option>${S.mechanics.filter((m) => m.active || m.id === l.mechanic_id).map((m) => `<option value="${m.id}"${m.id === l.mechanic_id ? ' selected' : ''}>${esc(m.name)}${m.active ? '' : ' (inactive)'}</option>`).join('')}</select>
-    <label class="label" for="la">Garage or outside partner (if not on your mechanic list)</label><input id="la" value="${esc(l.assigned_to || '')}" maxlength="60">
-    <label class="label" for="ln">Notes</label><textarea id="ln" rows="3" maxlength="1000">${esc(l.notes || '')}</textarea>
-    <label class="check"><input type="checkbox" id="lai"${l.ai_enabled ? ' checked' : ''}><span>AI assistant replies and automatic reminders for this booking</span></label>
-    <button class="btn btn-primary" style="margin-top:14px" type="button" data-act="save">Save changes</button></div>
-  ${serviceEditCard(l)}
-  <div class="card" style="margin-top:12px"><h3>Payment</h3>${l.payment_link ? `<p class="small">Payment link: <a href="${esc(l.payment_link)}" target="_blank" rel="noopener">${esc(l.payment_link)}</a> (${rupee(l.amount_due)})</p><p><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="https://wa.me/91${esc(l.phone)}?text=${encodeURIComponent('Hi ' + String(l.name).split(' ')[0] + ', here is your secure link to pay ' + rupee(l.amount_due) + ' for booking ' + l.ref + ': ' + l.payment_link)}">Send link on WhatsApp</a></p>` : ''}
-    <label class="label" for="pa">Amount <span class="muted" style="font-weight:400">(${S.leads.some((x) => x.phone === l.phone && x.id !== l.id && x.status === 'completed') ? 'returning customer' : 'new customer'} slot fee by default)</span></label><input id="pa" inputmode="numeric" value="${esc(l.amount_due || slotFeeFor(l))}">
-    <label class="label" for="pby">Who received this money (for Mark paid)</label><select id="pby"><option value="company_manual">The company (cash, bank or UPI)</option>${l.mechanic_id ? `<option value="mechanic">The mechanic ${esc((S.mechanics.find((m) => m.id === l.mechanic_id) || {}).name || '')}</option>` : ''}</select>${l.mechanic_id ? '' : '<p class="tiny muted" style="margin:4px 0 0">Assign a mechanic above to record money the mechanic collected.</p>'}
-    <label class="label" for="pe">Customer email <span class="muted" style="font-weight:400">(the payment link is emailed here)</span></label><input id="pe" type="email" inputmode="email" autocomplete="off" maxlength="254" placeholder="name@example.com" value="${esc(S.customers.find((c) => c.id === l.customer_id)?.email || '')}">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-primary btn-sm" type="button" data-act="emailLink">Email payment link</button></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${isOwner() ? '<button class="btn btn-ghost btn-sm" type="button" data-act="deleteLead">Delete booking</button>' : ''}<button class="btn btn-ghost btn-sm" type="button" data-act="issueFromLead">Log an issue</button><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button><button class="btn btn-primary btn-sm" type="button" data-act="confirmBooking">Confirm booking and email customer</button><button class="btn btn-dark btn-sm" type="button" data-act="payLink">Create & send payment link</button><button class="btn btn-ghost btn-sm" type="button" data-act="markPaid">Mark paid manually</button></div>
-    ${paymentEditBox(l)}
-    <p class="tiny muted">Paid bookings stop all automatic reminders.</p></div>
-  <div class="card" style="margin-top:12px"><h3>WhatsApp conversation</h3><div class="chat">${(msgs ?? []).map((m) => `<div class="bubble ${m.direction}">${esc(m.body)}<small>${m.direction === 'in' ? 'Customer' : m.sender === 'ai' ? 'AI assistant' : m.sender === 'staff' ? 'Team' : 'Automatic'} · ${when(m.created_at)}</small></div>`).join('') || '<p class="muted small">No messages yet. The conversation appears here once WhatsApp automation is connected.</p>'}</div></div>`;
+  <p style="margin:8px 0"><span class="pill ${l.status}">${LABEL[l.status]}</span> ${l.opted_out ? '<span class="pill lost">Opted out</span>' : ''} ${l.paid_amount ? `<span class="pill paid">Paid ${rupee(l.paid_amount)}</span>` : ''}</p>
+  <div class="qa"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button><button class="btn btn-ghost btn-sm" type="button" data-act="confirmBooking">Confirm and email customer</button><button class="btn btn-ghost btn-sm" type="button" data-act="issueFromLead">Log an issue</button></div>
+  <div class="dtabs" role="tablist" aria-label="Booking sections">${dtab('booking', 'Booking')}${dtab('money', 'Money')}${dtab('customer', 'Customer')}${dtab('messages', 'Messages')}</div>
+  ${panel('booking', `${DETAILS}
+    <div class="card" style="margin-top:12px"><h3>Update</h3>
+      <label class="label" for="ls">Status</label><select id="ls">${STATUSES.map((s) => `<option value="${s}"${s === l.status ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
+      <label class="label" for="lm">Mechanic</label><select id="lm"><option value="">Not assigned</option>${MECH}</select>
+      <label class="label" for="la">Garage or outside partner (if not on your mechanic list)</label><input id="la" value="${esc(l.assigned_to || '')}" maxlength="60">
+      <label class="label" for="ln">Notes</label><textarea id="ln" rows="3" maxlength="1000">${esc(l.notes || '')}</textarea>
+      <label class="check"><input type="checkbox" id="lai"${l.ai_enabled ? ' checked' : ''}><span>AI assistant replies and automatic reminders for this booking</span></label></div>
+    ${serviceEditCard(l)}
+    ${isOwner() ? '<div class="card" style="margin-top:12px"><h3>Delete this booking</h3><p class="tiny muted" style="margin:0 0 8px">A booking with no invoice or payment is erased. One that has either is moved to Deleted bookings, where you can restore it.</p><button class="btn btn-ghost btn-sm" type="button" data-act="deleteLead">Delete booking</button></div>' : ''}`)}
+  ${panel('money', `${moneyCard(l)}
+    <div class="card" style="margin-top:12px"><h3>Take a payment</h3>
+      <label class="label" for="pa">Amount (₹) <span class="muted" style="font-weight:400">(${S.leads.some((x) => x.phone === l.phone && x.id !== l.id && x.status === 'completed') ? 'returning customer' : 'new customer'} slot fee by default; saved as the amount due)</span></label><input id="pa" inputmode="numeric" value="${esc(l.amount_due || slotFeeFor(l))}" data-init="${esc(l.amount_due || slotFeeFor(l))}">
+      <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px"><b>Money received already</b>
+        <label class="label" for="pby">Who received it</label><select id="pby"><option value="company_manual">The company (cash, bank or UPI)</option>${l.mechanic_id ? `<option value="mechanic">The mechanic ${esc((S.mechanics.find((m) => m.id === l.mechanic_id) || {}).name || '')}</option>` : ''}</select>${l.mechanic_id ? '' : '<p class="tiny muted" style="margin:4px 0 0">Assign a mechanic on the Booking tab to record money the mechanic collected.</p>'}
+        <div style="margin-top:10px"><button class="btn btn-primary btn-sm" type="button" data-act="markPaid">Record payment received</button></div></div>
+      <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px"><b>Ask the customer to pay online</b>${linkBlock}
+        <label class="label" for="pe">Customer email <span class="muted" style="font-weight:400">(the payment link is emailed here)</span></label><input id="pe" type="email" inputmode="email" autocomplete="off" maxlength="254" placeholder="name@example.com" value="${esc(customerEmail)}">
+        <div style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button" data-act="emailLink">Email payment link</button></div></div>
+      <p class="tiny muted" style="margin:12px 0 0">Online payments through Razorpay are recorded automatically. Paid bookings stop all automatic reminders.</p></div>
+    ${invoiceCard(l)}${payoutCard(l)}`)}
+  ${panel('customer', `${customerCard(l)}${adCard(l)}`)}
+  ${panel('messages', `${CONV}`)}
+  <div class="sheet-save"><button class="btn btn-primary" type="button" data-act="saveBooking">Save changes</button><span class="tiny muted">Saves the status, mechanic, notes, service details and amount due together.</span></div>`;
   $('#sheet').hidden = false; if (!silent) $('#sheetPanel').scrollTop = 0;
   const chat = $('.chat'); if (chat) chat.scrollTop = chat.scrollHeight;
 }
@@ -546,6 +551,18 @@ function askReason(title, hint, okLabel) {
     m.addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('[data-md]'); if (b) { if (b.dataset.md === 'yes') yes(); else done(null); } else if (e.target === m) done(null); });
   });
 }
+// Removes bookings. A booking with no invoice or payment is erased for good; one that has either is moved to "Deleted bookings" (hidden everywhere, restorable),
+// because invoices and payments are accounting records that must not disappear.
+async function removeBookings(ids, reason) {
+  const [inv, led] = await Promise.all([sb.from('invoices').select('lead_id').in('lead_id', ids), sb.from('ledger_entries').select('lead_id').in('lead_id', ids)]);
+  if (inv.error || led.error) return { error: (inv.error || led.error).message };
+  const held = new Set([...(inv.data ?? []), ...(led.data ?? [])].map((r) => r.lead_id));
+  const hard = ids.filter((i) => !held.has(i)), soft = ids.filter((i) => held.has(i));
+  if (hard.length) { const { error } = await sb.from('leads').delete().in('id', hard); if (error) return { error: error.message }; }
+  if (soft.length) { const { error } = await sb.from('leads').update({ deleted_at: new Date().toISOString(), deleted_reason: reason || null, next_followup_at: null }).in('id', soft); if (error) return { error: error.message }; }
+  return { erased: hard.length, archived: soft.length };
+}
+const removedMsg = (r) => (r.archived && r.erased ? `${r.erased} erased, ${r.archived} moved to Deleted bookings` : r.archived ? (r.archived === 1 ? 'Moved to Deleted bookings (it has an invoice or payment). The owner can restore it.' : `${r.archived} moved to Deleted bookings (they have invoices or payments)`) : `${r.erased} deleted`);
 function closeSheet() { $('#sheet').hidden = true; S.open = null; S.openCust = null; S.openMech = null; S.openCoupon = null; }
 
 document.addEventListener('input', (e) => { if (e.target.closest && e.target.closest('#esCard')) updateEstimate(); });
@@ -557,36 +574,6 @@ function updateEstimate() {
 }
 const ACT = {
   close: closeSheet,
-  async saveService() {
-    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
-    const f = { service: $('#es-service').value, addons: [...document.querySelectorAll('[data-es-addon]')].filter((c) => c.checked).map((c) => c.getAttribute('data-es-addon')), bigBike: $('#es-big').checked,
-      date: $('#es-date').value, slot: $('#es-slot').value, time: $('#es-time').value, area: $('#es-area').value, pincode: $('#es-pin').value, address: $('#es-address').value, note: $('#es-note').value };
-    const r = buildServiceEdit(f, { services: S.services, today: todayIST(), currentDate: l.preferred_date });
-    if (!r.ok) return toast(r.error);
-    const { error } = await sb.from('leads').update(r.lead).eq('id', l.id);
-    if (error) return toast('Could not save: ' + error.message);
-    if (r.bike && l.bike_id) await sb.from('bikes').update(r.bike).eq('id', l.bike_id);
-    await audit('booking_service_edited', { ref: l.ref, service: r.lead.service_id, est: r.lead.est_total });
-    toast('Service saved. New estimate ' + (r.lead.est_total != null ? rupee(r.lead.est_total) : 'not set')); await Promise.all([loadLeads(), loadPeople()]); renderList(); openLead(l.id, true);
-  },
-  async savePayment() {
-    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
-    const r = buildPaymentEdit({ due: $('#ep-due').value, paid: $('#ep-paid').value, paidOn: $('#ep-on').value }, { today: todayIST(), now: new Date().toISOString() });
-    if (!r.ok) return toast(r.error);
-    const diff = r.lead.paid_amount - Math.round(l.paid_amount || 0);
-    if (diff < 0) return toast('To lower the amount received, open Money and use Refund or Cancel the entry. The ledger keeps every change.');
-    if (!confirm(`Save amount due ${rupee(r.lead.amount_due)}${diff ? ` and add ${rupee(diff)} received` : ''} for ${l.ref}?`)) return;
-    const { error } = await sb.from('leads').update({ amount_due: r.lead.amount_due }).eq('id', l.id);
-    if (error) return toast('Could not save: ' + error.message);
-    if (diff > 0) {
-      const e = buildEntry('payment', { amount: diff, by: $('#ep-by')?.value || 'company_manual', method: 'Added in booking edit', on: $('#ep-on').value || todayIST() }, { today: todayIST(), lead: l });
-      if (!e.ok) return toast(e.error);
-      const { error: ee } = await sb.from('ledger_entries').insert({ ...e.entry, created_by: S.me.user_id });
-      if (ee) return toast('Could not record the payment: ' + ee.message);
-    }
-    await audit('booking_payment_edited', { ref: l.ref, due: r.lead.amount_due, added: diff });
-    toast('Payment saved'); await Promise.all([loadLeads(), loadLedger()]); renderList(); openLead(l.id, true);
-  },
   openBooking(btn) { S.tab = 'leads'; render(); openLead(btn.getAttribute('data-id')); },
   openMoney(btn) { S.tab = 'sales'; S.finJob = btn.getAttribute('data-id'); S.finKind = 'payment'; ACT.close(); render(); window.scrollTo({ top: 0 }); },
   finOpen(btn) { S.finJob = btn.getAttribute('data-lead'); S.finKind = 'payment'; render(); window.scrollTo({ top: 0 }); },
@@ -696,6 +683,44 @@ const ACT = {
   },
   cbEdit() { if (S.cb.id) openCustomer(S.cb.id); },
   cbNewBooking() { const c = S.customers.find((x) => x.id === S.cb.id); if (c) { S.openCust = c.id; openNewBooking(c); } },
+  async showDeleted() {
+    const { data, error } = await sb.from('leads').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false }).limit(200);
+    if (error) return toast('Could not load: ' + error.message);
+    S.open = null; S.openCust = null; S.openMech = null;
+    $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">Deleted bookings</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+    <p class="small muted">These are hidden from every list and no reminders go out. They are kept because they have an invoice or payment. Restore one to bring it back.</p>
+    ${(data ?? []).length ? (data ?? []).map((l) => `<div class="card" style="margin-top:10px"><b class="mono">${esc(l.ref)}</b> · ${esc(l.name)} · ${esc(svcName(l.service_id))}<br><span class="tiny muted">Deleted ${esc(when(l.deleted_at))}${l.deleted_reason ? ' · ' + esc(l.deleted_reason) : ''}</span>${isOwner() ? `<div style="margin-top:8px"><button class="btn btn-ghost btn-sm" type="button" data-act="restoreLead" data-id="${l.id}">Restore</button></div>` : ''}</div>`).join('') : '<p class="muted">No deleted bookings.</p>'}`;
+    $('#sheet').hidden = false;
+  },
+  async restoreLead(btn) {
+    const { error } = await sb.from('leads').update({ deleted_at: null, deleted_reason: null }).eq('id', btn.getAttribute('data-id'));
+    if (error) return toast('Could not restore: ' + error.message);
+    await audit('booking_restored', { id: btn.getAttribute('data-id').slice(0, 8) }); toast('Restored'); await loadLeads(); render(); ACT.showDeleted();
+  },
+  async saveBooking() {
+    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    const mid = $('#lm').value || null, mech = S.mechanics.find((m) => m.id === mid);
+    const upd = { status: $('#ls').value, mechanic_id: mid, assigned_to: $('#la').value.trim() || (mech ? mech.name : null), notes: $('#ln').value.trim() || null, ai_enabled: $('#lai').checked };
+    // the service section is only applied when something in it was changed, so saving never reworks an old estimate by accident
+    const bike = S.bikes.find((b) => b.id === l.bike_id);
+    const f = { service: $('#es-service').value, addons: [...document.querySelectorAll('[data-es-addon]')].filter((c) => c.checked).map((c) => c.getAttribute('data-es-addon')), bigBike: $('#es-big').checked,
+      date: $('#es-date').value, slot: $('#es-slot').value, time: $('#es-time').value, area: $('#es-area').value, pincode: $('#es-pin').value, address: $('#es-address').value, note: $('#es-note').value };
+    const was = { service: l.service_id || '', addons: [...(l.addons || [])], bigBike: !!(bike && bike.big_bike), date: l.preferred_date || '', slot: l.preferred_slot || '', time: l.preferred_time || '', area: l.area || '', pincode: l.pincode || '', address: l.address || '', note: l.note || '' };
+    const key = (o) => JSON.stringify({ ...o, addons: [...o.addons].sort() });
+    let svc = null;
+    if (key(f) !== key(was)) {
+      svc = buildServiceEdit(f, { services: S.services, today: todayIST(), currentDate: l.preferred_date });
+      if (!svc.ok) { toast(svc.error); const d = $('#esCard'); if (d) d.open = true; return; }
+      Object.assign(upd, svc.lead);
+    }
+    const pa = $('#pa');
+    if (pa && pa.value !== pa.dataset.init) { const n = parseInt(pa.value, 10); if (!(n >= 0 && n <= 100000)) return toast('Check the amount (0 to 1,00,000)'); upd.amount_due = n; }
+    const { error } = await sb.from('leads').update(upd).eq('id', l.id);
+    if (error) return toast('Could not save: ' + error.message);
+    if (svc && svc.bike && l.bike_id) await sb.from('bikes').update(svc.bike).eq('id', l.bike_id);
+    await audit('lead_updated', { ref: l.ref, status: upd.status, mechanic_id: upd.mechanic_id, service_changed: !!svc, amount_due: upd.amount_due });
+    toast(svc && svc.lead.est_total != null ? 'Saved. New estimate ' + rupee(svc.lead.est_total) : 'Saved'); await Promise.all([loadLeads(), loadPeople()]); renderList(); openLead(l.id, true);
+  },
   async boardNext(btn) {
     const l = S.leads.find((x) => x.id === btn.getAttribute('data-id')), n = l && nextStep(l.status); if (!n) return;
     const upd = { status: n.to }; if (n.to === 'completed') upd.completed_at = new Date().toISOString();
@@ -795,14 +820,6 @@ const ACT = {
     await audit(S.openMech === 'new' ? 'mechanic_added' : 'mechanic_updated', { name: row.name });
     toast('Saved'); await loadPeople(); closeSheet(); render();
   },
-  async save() {
-    const l = S.leads.find((x) => x.id === S.open);
-    const mid = $('#lm').value || null, mech = S.mechanics.find((m) => m.id === mid);
-    const upd = { status: $('#ls').value, mechanic_id: mid, assigned_to: $('#la').value.trim() || (mech ? mech.name : null), notes: $('#ln').value.trim() || null, ai_enabled: $('#lai').checked };
-    const { error } = await sb.from('leads').update(upd).eq('id', l.id);
-    if (error) return toast('Could not save: ' + error.message);
-    await audit('lead_updated', { ref: l.ref, ...upd, notes: undefined }); toast('Saved'); await loadLeads(); renderList(); openLead(l.id, true);
-  },
   async uploadHome(input) {
     const f = input.files && input.files[0]; if (!f) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) { input.value = ''; return toast('Use a JPG, PNG or WebP picture'); }
@@ -840,10 +857,10 @@ const ACT = {
   selectAll() { filtered().forEach((l) => S.sel.add(l.id)); render(); },
   async deleteSelected() {
     const ids = [...S.sel]; if (!ids.length) return;
-    if (!confirm(`Delete ${ids.length} booking${ids.length === 1 ? '' : 's'}? This cannot be undone.`)) return;
-    const { error } = await sb.from('leads').delete().in('id', ids);
-    if (error) return toast('Could not delete: ' + error.message);
-    await audit('booking_deleted', { count: ids.length }); toast(ids.length + ' deleted');
+    if (!confirm(`Delete ${ids.length} booking${ids.length === 1 ? '' : 's'}? Ones with an invoice or payment are moved to Deleted bookings, the rest are erased.`)) return;
+    const r = await removeBookings(ids, 'Deleted by the owner');
+    if (r.error) return toast('Could not delete: ' + r.error);
+    await audit('booking_deleted', { count: ids.length, archived: r.archived }); toast(removedMsg(r));
     S.selMode = false; S.sel = new Set(); await loadLeads(); render();
   },
   wlCsv() {
@@ -884,7 +901,7 @@ const ACT = {
     const theirs = S.leads.filter((l) => l.customer_id === c.id);
     if (!confirm(`Delete ${c.name}? Their saved bikes are deleted too. This cannot be undone.`)) return;
     if (theirs.length && confirm(`Also delete their ${theirs.length} booking${theirs.length === 1 ? '' : 's'}? OK deletes the bookings too. Cancel keeps the bookings.`)) {
-      const r = await sb.from('leads').delete().eq('customer_id', c.id); if (r.error) return toast('Could not delete the bookings: ' + r.error.message);
+      const r = await removeBookings(theirs.map((l) => l.id), 'Customer deleted'); if (r.error) return toast('Could not delete the bookings: ' + r.error);
     }
     const { error } = await sb.from('customers').delete().eq('id', c.id); if (error) return toast('Could not delete: ' + error.message);
     await audit('customer_deleted', { name: c.name }); toast('Deleted ' + c.name); closeSheet(); await Promise.all([loadPeople(), loadLeads()]); render();
@@ -909,10 +926,10 @@ const ACT = {
   },
   async deleteLead() {
     const l = S.leads.find((x) => x.id === S.open); if (!l) return;
-    if (!confirm(`Delete booking ${l.ref} for ${l.name}? This cannot be undone.`)) return;
-    const { error } = await sb.from('leads').delete().eq('id', l.id);
-    if (error) return toast('Could not delete: ' + error.message);
-    await audit('booking_deleted', { ref: l.ref }); toast('Deleted ' + l.ref);
+    if (!confirm(`Delete booking ${l.ref} for ${l.name}?`)) return;
+    const r = await removeBookings([l.id], 'Deleted by the owner');
+    if (r.error) return toast('Could not delete: ' + r.error);
+    await audit('booking_deleted', { ref: l.ref, archived: r.archived }); toast(removedMsg(r));
     closeSheet(); await loadLeads(); render();
   },
   newIssue() { S.issueLead = ''; openIssue('new'); },
