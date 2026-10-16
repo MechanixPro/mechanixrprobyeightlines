@@ -474,11 +474,14 @@ function customerCard(l) {
 // Saved copies of this booking's invoice. The owner can delete them (they are hidden, not erased) and restore them.
 function invoiceCard(l) {
   const mine = S.invoicesAll.filter((r) => r.lead_id === l.id).sort((a, b) => b.revision - a.revision);
-  if (!mine.length) return '';
-  const live = mine.filter((r) => !r.voided_at), gone = mine.filter((r) => r.voided_at);
+  const live = mine.filter((r) => !r.voided_at);
+  let made = null;
+  if (!mine.length) { try { const inv = buildInvoice(l, S.services, { customer: S.customers.find((c) => c.id === l.customer_id) || null }); if (inv.lines.length) made = inv; } catch (e) { made = null; } }
+  if (!mine.length && !made) return '';
   const row = (r) => `<tr${r.voided_at ? ' style="opacity:.6"' : ''}><td><b>${esc(r.number)}</b>${r.voided_at ? ' <span class="pill p-bad">Deleted</span>' : ''}</td><td>${esc(when(r.issued_at))}</td><td class="num">${rupee2(r.total)}</td><td class="tiny muted">${r.has_gst ? 'GST ' + r.gst_rate + '%' : 'No GST'}${r.voided_at && r.void_reason ? ' · ' + esc(r.void_reason) : ''}</td></tr>`;
-  return `<div class="card" style="margin-top:12px"><h3>Invoice</h3><div class="scroll"><table style="min-width:420px"><thead><tr><th>Number</th><th>Saved</th><th class="num">Total</th><th></th></tr></thead><tbody>${mine.map(row).join('')}</tbody></table></div>
-    ${isOwner() ? `<div class="row-btns" style="margin-top:10px">${live.length ? '<button class="btn btn-ghost btn-sm" type="button" data-act="voidInvoice">Delete invoice</button>' : '<button class="btn btn-ghost btn-sm" type="button" data-act="restoreInvoice">Restore invoice</button>'}</div><p class="tiny muted" style="margin:8px 0 0">Deleting hides the invoice from the register and the sales figures. The booking and its payments stay. You can restore it.</p>` : ''}</div>`;
+  const table = mine.length ? `<div class="scroll"><table style="min-width:420px"><thead><tr><th>Number</th><th>Saved</th><th class="num">Total</th><th></th></tr></thead><tbody>${mine.map(row).join('')}</tbody></table></div>` : `<p class="small" style="margin:0"><b>${esc(made.number)}</b> · ${rupee2(made.total)} <span class="muted">· made from the booking, saved when printed or emailed</span></p>`;
+  return `<div class="card" style="margin-top:12px"><h3>Invoice</h3>${table}
+    ${isOwner() ? `<div class="row-btns" style="margin-top:10px">${live.length || made ? '<button class="btn btn-ghost btn-sm" type="button" data-act="voidInvoice">Delete invoice</button>' : '<button class="btn btn-ghost btn-sm" type="button" data-act="restoreInvoice">Restore invoice</button>'}</div><p class="tiny muted" style="margin:8px 0 0">Deleting hides the invoice from the register and the sales figures. The booking and its payments stay. You can restore it.</p>` : '<p class="tiny muted" style="margin:8px 0 0">Only the owner can delete an invoice.</p>'}</div>`;
 }
 // Where the booking came from, and a way to link it to a Google ad click with the Ref code from the customer's WhatsApp message.
 function adCard(l) {
@@ -528,6 +531,20 @@ async function openLead(id, silent) {
   <div class="card" style="margin-top:12px"><h3>WhatsApp conversation</h3><div class="chat">${(msgs ?? []).map((m) => `<div class="bubble ${m.direction}">${esc(m.body)}<small>${m.direction === 'in' ? 'Customer' : m.sender === 'ai' ? 'AI assistant' : m.sender === 'staff' ? 'Team' : 'Automatic'} · ${when(m.created_at)}</small></div>`).join('') || '<p class="muted small">No messages yet. The conversation appears here once WhatsApp automation is connected.</p>'}</div></div>`;
   $('#sheet').hidden = false; if (!silent) $('#sheetPanel').scrollTop = 0;
   const chat = $('.chat'); if (chat) chat.scrollTop = chat.scrollHeight;
+}
+// Asks for a reason in a box on the page. The browser's own prompt() is blocked or ignored in some browsers, which made Delete look like it did nothing.
+function askReason(title, hint, okLabel) {
+  return new Promise((resolve) => {
+    const m = document.createElement('div'); m.className = 'modal'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true');
+    m.innerHTML = `<div class="modal-box"><h3 style="margin:0 0 6px">${esc(title)}</h3><label class="label" for="mr-why">${esc(hint || 'Reason')}</label><input id="mr-why" maxlength="200" autocomplete="off"><p class="tiny muted" id="mr-err" style="margin:6px 0 0;color:var(--ember,#B45309)" hidden>A reason is needed.</p><div class="modal-btns"><button class="btn btn-ghost" type="button" data-md="no">Cancel</button><button class="btn btn-primary" type="button" data-md="yes">${esc(okLabel || 'Delete')}</button></div></div>`;
+    document.body.appendChild(m);
+    const inp = m.querySelector('#mr-why'), err = m.querySelector('#mr-err'); inp.focus();
+    const done = (v) => { document.removeEventListener('keydown', onKey, true); m.remove(); resolve(v); };
+    const yes = () => { const v = inp.value.trim(); if (!v) { err.hidden = false; inp.focus(); return; } done(v); };
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); done(null); } else if (e.key === 'Enter' && document.activeElement === inp) { e.preventDefault(); yes(); } };
+    document.addEventListener('keydown', onKey, true);
+    m.addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('[data-md]'); if (b) { if (b.dataset.md === 'yes') yes(); else done(null); } else if (e.target === m) done(null); });
+  });
 }
 function closeSheet() { $('#sheet').hidden = true; S.open = null; S.openCust = null; S.openMech = null; S.openCoupon = null; }
 
@@ -587,14 +604,16 @@ const ACT = {
     toast('Saved'); await Promise.all([loadLedger(), loadLeads()]); render();
   },
   async finReverse(btn) {
-    const target = S.ledger.find((e) => e.id === btn.getAttribute('data-id')); if (!target) return;
-    const reason = (window.prompt(`Why is this ${entryLabel(target).toLowerCase()} of ${rupee2(target.amount)} being deleted? It stays in the history, marked deleted.`) || '').trim();
-    if (!reason) return toast('A reason is needed to delete an entry');
+    const target = S.ledger.find((e) => e.id === btn.getAttribute('data-id')); if (!target) return toast('That entry was not found. Refresh the page.');
+    const reason = await askReason(`Delete this ${entryLabel(target).toLowerCase()} of ${rupee2(target.amount)}?`, 'Why is it being deleted? It stays in the history, marked deleted.', 'Delete payment');
+    if (!reason) return;
     const r = buildEntry('reversal', { reason, on: todayIST() }, { today: todayIST(), target });
     if (!r.ok) return toast(r.error);
     const { error } = await sb.from('ledger_entries').insert({ ...r.entry, created_by: S.me.user_id });
-    if (error) return toast('Could not cancel: ' + error.message);
-    await audit('ledger_reversal', { entry: target.id, reason }); toast('Deleted. The history keeps a record. Enter it again if it was a typing mistake.'); await Promise.all([loadLedger(), loadLeads()]); render();
+    if (error) return toast('Could not delete: ' + error.message);
+    await audit('ledger_reversal', { entry: target.id, reason });
+    await Promise.all([loadLedger(), loadLeads()]); toast('Payment deleted. The history keeps a record.');
+    render(); if (S.open) openLead(S.open, true); else if (S.openCust) openCustomer(S.openCust);
   },
   mlOpen(btn) { const id = btn.getAttribute('data-id'); S.mlOpen = S.mlOpen === id ? null : id; render(); },
   async mlSave(btn) {
@@ -662,8 +681,9 @@ const ACT = {
   },
   async voidInvoice() {
     const l = S.leads.find((x) => x.id === S.open); if (!l) return;
-    const reason = (window.prompt('Why is this invoice being deleted? It is hidden from the register and sales figures, and you can restore it.') || '').trim();
-    if (!reason) return toast('A reason is needed to delete an invoice');
+    const reason = await askReason(`Delete the invoice for ${l.ref}?`, 'Why is it being deleted? It is hidden from the register and sales figures, and you can restore it.', 'Delete invoice');
+    if (!reason) return;
+    if (!S.invoicesAll.some((r) => r.lead_id === l.id)) { const saved = await saveInvoiceCopy(l, 'rebuilt'); if (!saved) return toast('There is no invoice on this booking to delete.'); await loadInvoices(); }
     const { data, error } = await sb.rpc('void_invoices', { p_lead: l.id, p_reason: reason });
     if (error) return toast('Could not delete: ' + error.message);
     await audit('invoice_deleted', { ref: l.ref, copies: data, reason }); toast('Invoice deleted'); await loadInvoices(); openLead(l.id, true); if (['sales', 'invoices', 'custbook'].includes(S.tab)) render();
@@ -1176,9 +1196,9 @@ async function saveInvoiceCopy(lead, via) {
     const customer = S.customers.find((c) => c.id === lead.customer_id) || null, mech = S.mechanics.find((m) => m.id === lead.mechanic_id) || null;
     const inv = buildInvoice(lead, S.services, { customer });
     if (!inv.lines.length) return null;
-    const mine = S.invoices.filter((r) => r.lead_id === lead.id).sort((a, b) => b.revision - a.revision);
+    const mine = S.invoicesAll.filter((r) => r.lead_id === lead.id).sort((a, b) => b.revision - a.revision), live = S.invoices.filter((r) => r.lead_id === lead.id).sort((a, b) => b.revision - a.revision);
     const row = snapshotRow({ invoice: inv, lead, customer, mechanic: mechFor(lead), via, basis: basis(), revision: (mine[0]?.revision || 0) + 1, now: new Date().toISOString() });
-    if (mine[0] && sameFigures(mine[0], row)) return mine[0];
+    if (live[0] && sameFigures(live[0], row)) return live[0];
     const { error } = await sb.from('invoices').insert(row);
     if (error) { toast('Could not save the invoice copy: ' + error.message); return null; }
     await loadInvoices(); if (S.tab === 'invoices') render();
