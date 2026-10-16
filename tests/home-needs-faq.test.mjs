@@ -14,7 +14,8 @@ test('a "What do you need?" row of four tiles sits right after the promises stri
 });
 test('the tiles use the real prices, open ready WhatsApp messages, and send breakdowns and fleets to their own pages', () => {
   const needs = section('needs');
-  assert.match(needs, /₹599/); assert.match(needs, /₹349/); assert.match(needs, /₹699/);
+  const price = JSON.parse(read('src/site.json')).services; // the owner edits prices in the admin, so the test follows the synced figures
+  assert.match(needs, new RegExp('₹' + price.basic.price)); assert.match(needs, new RegExp('₹' + price.repair.price)); assert.match(needs, new RegExp('₹' + price.sos.price));
   assert.equal((needs.match(/data-wa-text="/g) || []).length, 2);
   assert.match(needs, /href="\/roadside\/"/); assert.match(needs, /href="\/fleet\/"/);
 });

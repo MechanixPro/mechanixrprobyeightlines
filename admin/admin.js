@@ -17,6 +17,7 @@ import { jobAccount, mechanicAccount, summaryCards } from './ledger.js';
 import { buildEntry } from './ledger-forms.js';
 import { filterAccounts, salesCsv, ledgerCsv, entryLabel } from './sales-view.js';
 import { effectiveRate, jobSplit, cleanCommission, payoutShareText, statementShareText, PLACES } from './commission.js';
+import { customerList, bookingRows, summarize } from './customer-bookings.js';
 import { adsConversions } from './ads-export.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
@@ -34,7 +35,7 @@ if (!C.supabaseUrl || !C.supabaseAnonKey) {
   throw new Error('Supabase not configured');
 }
 const sb = createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
-const S = { me: null, tab: 'dash', lastTab: {}, invoices: [], ledger: [], sf: { period: 'month', mechanic: '', status: '', q: '', channel: '', gst: '', from: '', to: '' }, finJob: null, finKind: 'payment', mlOpen: null, ifl: { gst: '', rate: '', mechanic: '', period: 'month', q: '' }, leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', waitlist: [], wi: '', wq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
+const S = { me: null, tab: 'dash', lastTab: {}, invoices: [], invoicesAll: [], cb: { q: '', id: null }, ledger: [], sf: { period: 'month', mechanic: '', status: '', q: '', channel: '', gst: '', from: '', to: '' }, finJob: null, finKind: 'payment', mlOpen: null, ifl: { gst: '', rate: '', mechanic: '', period: 'month', q: '' }, leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', waitlist: [], wi: '', wq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
 
 function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
@@ -94,7 +95,7 @@ async function loadLeads() {
 }
 async function loadInvoices() {
   const { data, error } = await sb.from('invoices').select('*').order('issued_at', { ascending: false }).limit(3000);
-  if (error) toast('Could not load invoices: ' + error.message); else S.invoices = data ?? [];
+  if (error) toast('Could not load invoices: ' + error.message); else { S.invoicesAll = data ?? []; S.invoices = S.invoicesAll.filter((r) => !r.voided_at); }
 }
 async function loadLedger() {
   const { data, error } = await sb.from('ledger_entries').select('*').order('created_at', { ascending: false }).limit(5000);
@@ -119,6 +120,7 @@ document.addEventListener('click', (e) => {
   const t = e.target.closest('[data-tab]'); if (t) { S.tab = t.dataset.tab; syncNav(); render(); return; }
   const r = e.target.closest('[data-lead]'); if (r) { if (S.selMode) { const id = r.dataset.lead; if (S.sel.has(id)) S.sel.delete(id); else S.sel.add(id); render(); } else openLead(r.dataset.lead); return; }
   const cu = e.target.closest('[data-cust]'); if (cu) { openCustomer(cu.dataset.cust); return; }
+  const cbr = e.target.closest('[data-cb]'); if (cbr) { S.cb.id = cbr.dataset.cb; render(); return; }
   const is = e.target.closest('[data-issue]'); if (is) { openIssue(is.dataset.issue); return; }
   const wb = e.target.closest('[data-wi]'); if (wb) { S.wi = S.wi === wb.dataset.wi ? '' : wb.dataset.wi; render(); return; }
   const wl = e.target.closest('[data-wl]'); if (wl) { openWaitlist(wl.dataset.wl); return; }
@@ -127,7 +129,9 @@ document.addEventListener('click', (e) => {
   const co = e.target.closest('[data-coupon]'); if (co) { openCoupon(co.dataset.coupon); return; }
   const a = e.target.closest('[data-act]'); if (a && ACT[a.dataset.act]) ACT[a.dataset.act](a);
 });
-document.addEventListener('input', (e) => { if (e.target.id === 'mr-range' || e.target.id === 'mr') { const v = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)); if (e.target.id === 'mr-range') $('#mr').value = v; else $('#mr-range').value = v; updateSplitPreview(); }  if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'wq') { S.wq = e.target.value; render(); const again = $('#wq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } if (e.target.id === 'pq') { S.pq = e.target.value; const l = $('#pinlist'); if (l) { const keep = e.target; render(); const again = $('#pq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'cb-q') { S.cb.q = e.target.value; clearTimeout(S.cbT); S.cbT = setTimeout(() => { render(); const q = $('#cb-q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250); return; }
+  if (e.target.id === 'cc-q') { const n = e.target.value.trim().toLowerCase(), res = $('#cc-res'); if (!res) return; const lead = S.leads.find((x) => x.id === S.open); res.innerHTML = n.length < 2 ? '' : S.customers.filter((c) => (!lead || c.id !== lead.customer_id) && (String(c.name).toLowerCase().includes(n) || String(c.phone).includes(n))).slice(0, 6).map((c) => `<button class="row" type="button" data-act="moveBooking" data-id="${c.id}" style="border-radius:10px;width:100%;margin-bottom:6px"><span>${esc(c.name)}</span><span class="meta">+91 ${esc(c.phone)}</span></button>`).join('') || '<p class="tiny muted">No customer found. Add them under Customers first.</p>'; return; } if (e.target.id === 'mr-range' || e.target.id === 'mr') { const v = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)); if (e.target.id === 'mr-range') $('#mr').value = v; else $('#mr-range').value = v; updateSplitPreview(); }  if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'wq') { S.wq = e.target.value; render(); const again = $('#wq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } if (e.target.id === 'pq') { S.pq = e.target.value; const l = $('#pinlist'); if (l) { const keep = e.target; render(); const again = $('#pq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
 document.addEventListener('change', (e) => { if (e.target.id === 'il') { const l = S.leads.find((x) => x.id === e.target.value), w = warrantyInfo(l, WARRANTY_DAYS); $('#iw').textContent = l ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''; } if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'ifs') { S.ifilter = e.target.value; render(); } if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
 document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-board-mech]')) { ACT.boardMech(e.target); return; } const m = { 'if-period': 'period', 'if-gst': 'gst', 'if-rate': 'rate', 'if-mech': 'mechanic' }[e.target.id]; if (m) { S.ifl[m] = e.target.value; render(); } });
 document.addEventListener('input', (e) => { if (e.target.id === 'if-q') { S.ifl.q = e.target.value; const pos = e.target.selectionStart; render(); const q = $('#if-q'); if (q) { q.focus(); q.setSelectionRange(pos, pos); } } });
@@ -147,7 +151,7 @@ function syncNav() {
   const bd = navBadges({ leads: S.leads, issues: S.issues });
   document.querySelectorAll('[data-badge]').forEach((el) => { const n = bd[el.dataset.badge] || 0; el.textContent = n > 99 ? '99+' : String(n); el.hidden = !n; });
 }
-function render() { syncNav(); const v = $('#view'); v.innerHTML = ({ dash, board, leads, customers, mechanics, coupons, issues, pins, waitlist, offers, reports, invoices, sales, mechledger, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function render() { syncNav(); const v = $('#view'); v.innerHTML = ({ dash, board, leads, customers, mechanics, coupons, issues, pins, waitlist, offers, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -460,6 +464,22 @@ function paymentEditBox(l) {
     <p class="tiny muted" style="margin:6px 0 0">To show the booking as Paid, also set Status to Paid above.</p>
     <button class="btn btn-primary btn-sm" style="margin-top:10px" type="button" data-act="savePayment">Save payment</button></div>`;
 }
+// The customer on this booking: edit their details, or move the booking to a different customer.
+function customerCard(l) {
+  const c = S.customers.find((x) => x.id === l.customer_id) || S.customers.find((x) => x.phone === l.phone) || null;
+  return `<div class="card" style="margin-top:12px"><h3>Customer</h3><p style="margin:0">${esc(c ? c.name : l.name)} · +91 ${esc(c ? c.phone : l.phone)}${c && c.email ? ' · ' + esc(c.email) : ''}</p>
+    <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${c ? `<button class="btn btn-ghost btn-sm" type="button" data-act="editCustomerFromBooking" data-id="${c.id}">Edit customer details</button>` : ''}<button class="btn btn-ghost btn-sm" type="button" data-act="showMoveBooking">Change customer</button></div>
+    <div id="moveBox" hidden style="margin-top:10px"><label class="label" for="cc-q">Move this booking to another customer</label><input id="cc-q" type="search" placeholder="Search name or phone" autocomplete="off"><div id="cc-res" style="margin-top:8px"></div></div></div>`;
+}
+// Saved copies of this booking's invoice. The owner can delete them (they are hidden, not erased) and restore them.
+function invoiceCard(l) {
+  const mine = S.invoicesAll.filter((r) => r.lead_id === l.id).sort((a, b) => b.revision - a.revision);
+  if (!mine.length) return '';
+  const live = mine.filter((r) => !r.voided_at), gone = mine.filter((r) => r.voided_at);
+  const row = (r) => `<tr${r.voided_at ? ' style="opacity:.6"' : ''}><td><b>${esc(r.number)}</b>${r.voided_at ? ' <span class="pill p-bad">Deleted</span>' : ''}</td><td>${esc(when(r.issued_at))}</td><td class="num">${rupee2(r.total)}</td><td class="tiny muted">${r.has_gst ? 'GST ' + r.gst_rate + '%' : 'No GST'}${r.voided_at && r.void_reason ? ' · ' + esc(r.void_reason) : ''}</td></tr>`;
+  return `<div class="card" style="margin-top:12px"><h3>Invoice</h3><div class="scroll"><table style="min-width:420px"><thead><tr><th>Number</th><th>Saved</th><th class="num">Total</th><th></th></tr></thead><tbody>${mine.map(row).join('')}</tbody></table></div>
+    ${isOwner() ? `<div class="row-btns" style="margin-top:10px">${live.length ? '<button class="btn btn-ghost btn-sm" type="button" data-act="voidInvoice">Delete invoice</button>' : '<button class="btn btn-ghost btn-sm" type="button" data-act="restoreInvoice">Restore invoice</button>'}</div><p class="tiny muted" style="margin:8px 0 0">Deleting hides the invoice from the register and the sales figures. The booking and its payments stay. You can restore it.</p>` : ''}</div>`;
+}
 // Where the booking came from, and a way to link it to a Google ad click with the Ref code from the customer's WhatsApp message.
 function adCard(l) {
   const u = l.utm || {}, linked = !!(u.gclid || u.utm_campaign || (u.utm_source && u.utm_source !== 'direct'));
@@ -475,11 +495,11 @@ function moneyCardBody(l) {
   const a = salesModel().accounts.find((x) => x.lead_id === l.id), entries = S.ledger.filter((e) => e.lead_id === l.id).sort((x, y) => new Date(y.created_at) - new Date(x.created_at));
   const head = '<h3>Payments and who collected them</h3>';
   const btn = `<div class="row-btns" style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button" data-act="openMoney" data-id="${l.id}">Open money sheet to record or refund</button></div>`;
-  if (!a) return `<div class="card" style="margin-top:12px">${head}<p class="small muted" style="margin:0">${entries.length ? 'Payments are listed below. The invoice figures appear once the service is chosen.' : 'No payment recorded yet. Record one below with Mark paid, or in the money sheet.'}</p>${entries.length ? entryRows(entries, false) : ''}${btn}</div>`;
+  if (!a) return `<div class="card" style="margin-top:12px">${head}<p class="small muted" style="margin:0">${entries.length ? 'Payments are listed below. The invoice figures appear once the service is chosen.' : 'No payment recorded yet. Record one below with Mark paid, or in the money sheet.'}</p>${entries.length ? entryRows(entries, true) : ''}${btn}</div>`;
   const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
   return `<div class="card" style="margin-top:12px">${head}<p style="margin:0 0 6px">${a.statusLabels.map(statusPill).join(' ')}</p>
     <dl class="kv">${row('Invoice total', '<b>' + rupee2(a.total) + '</b>')}${row('Collected by the company, manual', rupee2(a.byChannel.company_manual))}${row('Collected online (Razorpay)', rupee2(a.byChannel.company_portal))}${row('Collected by the mechanic', rupee2(a.byChannel.mechanic))}${row('Customer still owes', '<b>' + rupee2(a.outstanding) + '</b>')}${a.mechanicId ? row('Mechanic must pay the company', rupee2(a.remitDue)) + row('Company must pay the mechanic', rupee2(a.payoutDue)) : ''}</dl>
-    ${entryRows(entries, false)}${btn}</div>`;
+    ${entryRows(entries, true)}${btn}</div>`;
 }
 async function openLead(id, silent) {
   S.open = id; const l = S.leads.find((x) => x.id === id); if (!l) return;
@@ -489,7 +509,7 @@ async function openLead(id, silent) {
   <p><span class="pill ${l.status}">${LABEL[l.status]}</span> ${l.opted_out ? '<span class="pill lost">Opted out</span>' : ''} ${l.paid_amount ? `<span class="pill paid">Paid ${rupee(l.paid_amount)}</span>` : ''}</p>
   <div class="card"><dl class="kv"><dt>Customer</dt><dd>${esc(l.name)}<br><a href="tel:+91${esc(l.phone)}">+91 ${esc(l.phone)}</a></dd><dt>Service</dt><dd>${esc(svcName(l.service_id))}${(l.addons || []).length ? ' + ' + l.addons.map((a) => esc(svcName(a))).join(', ') : ''}</dd><dt>Estimate</dt><dd>${l.est_total ? rupee(l.est_total) : '—'}</dd><dt>Area</dt><dd>${esc(l.area || '—')}</dd><dt>When</dt><dd>${esc(l.preferred_date || '—')} · ${esc(l.preferred_time || SLOT[l.preferred_slot] || '—')}</dd>${leadDetailRows(l).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${k === 'Map pin' ? `<a href="${esc(v)}" target="_blank" rel="noopener">Open in Google Maps</a>` : esc(v)}</dd>`).join('')}<dt>Source</dt><dd>${esc(l.source)}${l.utm?.utm_campaign ? ' · ' + esc(l.utm.utm_campaign) : ''}</dd><dt>Created</dt><dd>${when(l.created_at)}</dd><dt>Reminders</dt><dd>${l.next_followup_at ? 'Next ' + when(l.next_followup_at) + ' (step ' + (l.followup_step + 1) + ' of 4)' : 'None scheduled'}</dd></dl>
   <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">Open WhatsApp chat</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a></div></div>
-  ${adCard(l)}${moneyCard(l)}${payoutCard(l)}<div class="card" style="margin-top:12px"><h3>Update</h3>
+  ${customerCard(l)}${adCard(l)}${invoiceCard(l)}${moneyCard(l)}${payoutCard(l)}<div class="card" style="margin-top:12px"><h3>Update</h3>
     <label class="label" for="ls">Status</label><select id="ls">${STATUSES.map((s) => `<option value="${s}"${s === l.status ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
     <label class="label" for="lm">Mechanic</label><select id="lm"><option value="">Not assigned</option>${S.mechanics.filter((m) => m.active || m.id === l.mechanic_id).map((m) => `<option value="${m.id}"${m.id === l.mechanic_id ? ' selected' : ''}>${esc(m.name)}${m.active ? '' : ' (inactive)'}</option>`).join('')}</select>
     <label class="label" for="la">Garage or outside partner (if not on your mechanic list)</label><input id="la" value="${esc(l.assigned_to || '')}" maxlength="60">
@@ -568,13 +588,13 @@ const ACT = {
   },
   async finReverse(btn) {
     const target = S.ledger.find((e) => e.id === btn.getAttribute('data-id')); if (!target) return;
-    const reason = (window.prompt(`Why is this ${entryLabel(target).toLowerCase()} of ${rupee2(target.amount)} being cancelled?`) || '').trim();
-    if (!reason) return toast('A reason is needed to cancel an entry');
+    const reason = (window.prompt(`Why is this ${entryLabel(target).toLowerCase()} of ${rupee2(target.amount)} being deleted? It stays in the history, marked deleted.`) || '').trim();
+    if (!reason) return toast('A reason is needed to delete an entry');
     const r = buildEntry('reversal', { reason, on: todayIST() }, { today: todayIST(), target });
     if (!r.ok) return toast(r.error);
     const { error } = await sb.from('ledger_entries').insert({ ...r.entry, created_by: S.me.user_id });
     if (error) return toast('Could not cancel: ' + error.message);
-    await audit('ledger_reversal', { entry: target.id, reason }); toast('Entry cancelled. Enter it again if it was a typing mistake.'); await Promise.all([loadLedger(), loadLeads()]); render();
+    await audit('ledger_reversal', { entry: target.id, reason }); toast('Deleted. The history keeps a record. Enter it again if it was a typing mistake.'); await Promise.all([loadLedger(), loadLeads()]); render();
   },
   mlOpen(btn) { const id = btn.getAttribute('data-id'); S.mlOpen = S.mlOpen === id ? null : id; render(); },
   async mlSave(btn) {
@@ -629,6 +649,33 @@ const ACT = {
     if (error) return toast('Could not save: ' + error.message);
     await audit('lead_linked_to_ad', { ref: l.ref, code }); toast('Linked to the Google ad click'); await loadLeads(); openLead(l.id, true);
   },
+  editCustomerFromBooking(btn) { ACT.close(); openCustomer(btn.getAttribute('data-id')); },
+  showMoveBooking() { const b = $('#moveBox'); if (b) { b.hidden = !b.hidden; if (!b.hidden) $('#cc-q').focus(); } },
+  async moveBooking(btn) {
+    const l = S.leads.find((x) => x.id === S.open), c = S.customers.find((x) => x.id === btn.getAttribute('data-id')); if (!l || !c) return;
+    if (!confirm(`Move ${l.ref} to ${c.name} (+91 ${c.phone})? The booking will show under that customer.`)) return;
+    const bike = S.bikes.find((b) => b.id === l.bike_id), upd = { customer_id: c.id, name: c.name, phone: c.phone };
+    if (bike && bike.customer_id !== c.id) upd.bike_id = null;
+    const { error } = await sb.from('leads').update(upd).eq('id', l.id);
+    if (error) return toast('Could not move it: ' + error.message);
+    await audit('booking_customer_changed', { ref: l.ref, to: c.id.slice(0, 8) }); toast('Booking moved to ' + c.name); await Promise.all([loadLeads(), loadPeople()]); openLead(l.id, true);
+  },
+  async voidInvoice() {
+    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    const reason = (window.prompt('Why is this invoice being deleted? It is hidden from the register and sales figures, and you can restore it.') || '').trim();
+    if (!reason) return toast('A reason is needed to delete an invoice');
+    const { data, error } = await sb.rpc('void_invoices', { p_lead: l.id, p_reason: reason });
+    if (error) return toast('Could not delete: ' + error.message);
+    await audit('invoice_deleted', { ref: l.ref, copies: data, reason }); toast('Invoice deleted'); await loadInvoices(); openLead(l.id, true); if (['sales', 'invoices', 'custbook'].includes(S.tab)) render();
+  },
+  async restoreInvoice() {
+    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    const { error } = await sb.rpc('restore_invoices', { p_lead: l.id });
+    if (error) return toast('Could not restore: ' + error.message);
+    await audit('invoice_restored', { ref: l.ref }); toast('Invoice restored'); await loadInvoices(); openLead(l.id, true); if (['sales', 'invoices', 'custbook'].includes(S.tab)) render();
+  },
+  cbEdit() { if (S.cb.id) openCustomer(S.cb.id); },
+  cbNewBooking() { const c = S.customers.find((x) => x.id === S.cb.id); if (c) { S.openCust = c.id; openNewBooking(c); } },
   async boardNext(btn) {
     const l = S.leads.find((x) => x.id === btn.getAttribute('data-id')), n = l && nextStep(l.status); if (!n) return;
     const upd = { status: n.to }; if (n.to === 'completed') upd.completed_at = new Date().toISOString();
@@ -1250,6 +1297,7 @@ function salesModel() {
   for (const l of S.leads) {
     const entries = S.ledger.filter((e) => e.lead_id === l.id);
     if (!(l.status === 'completed' || l.paid_amount > 0 || entries.length || S.invoices.some((r) => r.lead_id === l.id))) continue;
+    if (S.invoicesAll.some((r) => r.lead_id === l.id && r.voided_at) && !S.invoices.some((r) => r.lead_id === l.id) && !entries.length && !(l.paid_amount > 0)) continue;
     let invoice = null; try { invoice = invoiceFor(l); } catch (e) { console.error('invoiceFor', l.ref, e); }
     if (!invoice) continue;
     const k = invoice.mechanic_id || 'none'; if (!by.has(k)) by.set(k, []); by.get(k).push({ invoice, entries });
@@ -1272,7 +1320,7 @@ function entryRows(entries, withReverse = true) {
   if (!entries.length) return '<p class="muted small">No money recorded yet.</p>';
   return `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Date</th><th>What</th><th>Amount</th><th>Details</th><th>Recorded by</th><th></th></tr></thead><tbody>${entries.map((e) => {
     const cancelled = gone.has(e.id), by = e.entry_type === 'customer_payment' && e.gateway_fee > 0 ? ` · gateway fee ${rupee2(e.gateway_fee)}` : '';
-    return `<tr${cancelled || e.entry_type === 'reversal' ? ' style="opacity:.6"' : ''}><td>${esc(e.occurred_on)}</td><td>${esc(entryLabel(e))}${cancelled ? ' <span class="tiny muted">(cancelled)</span>' : ''}</td><td><b>${e.entry_type === 'refund' ? '−' : ''}${rupee2(e.amount)}</b></td><td class="tiny muted">${esc([e.method, e.reference, e.reason, e.note].filter(Boolean).join(' · '))}${by}${e.settlement_status ? ` · <b>${e.settlement_status === 'settled' ? 'Settled' + (e.settled_on ? ' ' + esc(e.settled_on) : '') : 'Settlement pending'}</b> <button class="btn btn-ghost btn-sm" type="button" data-act="settle" data-id="${e.id}" data-to="${e.settlement_status === 'settled' ? 'no' : 'yes'}">${e.settlement_status === 'settled' ? 'Mark pending' : 'Mark settled'}</button>` : ''}</td><td class="tiny">${esc(whoRecorded(e))}<br><span class="muted">${esc(when(e.created_at))}</span></td><td>${withReverse && !cancelled && e.entry_type !== 'reversal' && e.source !== 'gateway' ? `<button class="btn btn-ghost btn-sm" type="button" data-act="finReverse" data-id="${e.id}">Cancel</button>` : ''}</td></tr>`;
+    return `<tr${cancelled || e.entry_type === 'reversal' ? ' style="opacity:.6"' : ''}><td>${esc(e.occurred_on)}</td><td>${esc(entryLabel(e))}${cancelled ? ' <span class="tiny muted">(deleted)</span>' : ''}</td><td><b>${e.entry_type === 'refund' ? '−' : ''}${rupee2(e.amount)}</b></td><td class="tiny muted">${esc([e.method, e.reference, e.reason, e.note].filter(Boolean).join(' · '))}${by}${e.settlement_status ? ` · <b>${e.settlement_status === 'settled' ? 'Settled' + (e.settled_on ? ' ' + esc(e.settled_on) : '') : 'Settlement pending'}</b> <button class="btn btn-ghost btn-sm" type="button" data-act="settle" data-id="${e.id}" data-to="${e.settlement_status === 'settled' ? 'no' : 'yes'}">${e.settlement_status === 'settled' ? 'Mark pending' : 'Mark settled'}</button>` : ''}</td><td class="tiny">${esc(whoRecorded(e))}<br><span class="muted">${esc(when(e.created_at))}</span></td><td>${withReverse && isOwner() && !cancelled && e.entry_type !== 'reversal' ? (e.source === 'gateway' ? '<span class="tiny muted">Refund it in Razorpay</span>' : `<button class="btn btn-ghost btn-sm" type="button" data-act="finReverse" data-id="${e.id}">Delete</button>`) : ''}</td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
 function finPanel(a) {
@@ -1328,6 +1376,32 @@ function mechledger() {
     <h3 style="margin:14px 0 6px">Settlements</h3>${entryRows(entries)}<div class="fin-grid">${f('remittance', esc(a.mechanic.name) + ' paid the company')}${f('payout', 'The company paid ' + esc(a.mechanic.name))}</div>` : '<p class="tiny muted" style="margin:8px 0 0">Tap to see the jobs and record a settlement.</p>'}</div>`;
   };
   return `<h1 style="font-size:34px">Mechanic ledgers</h1><p class="muted">What each mechanic owes the company, what the company owes them, and the net of the two. The two balances are never mixed.</p>${list.map(card).join('') || '<p class="muted">No mechanic jobs yet.</p>'}`;
+}
+/* ---------- customer bookings: everything one customer has booked, billed and paid ---------- */
+function custbook() {
+  const list = customerList({ customers: S.customers, leads: S.leads, q: S.cb.q });
+  const items = list.map((c) => `<button class="row crow${S.cb.id === c.id ? ' on' : ''}" type="button" data-cb="${c.id}" style="border-radius:12px"><span>${esc(c.name)}<br><span class="meta">+91 ${esc(c.phone)}</span></span><span class="meta">${c.bookings} booking${c.bookings === 1 ? '' : 's'}</span></button>`).join('') || '<p class="muted" style="padding:12px">No customers match.</p>';
+  return `<h1 style="font-size:34px">Customer bookings</h1><p class="muted">Pick a customer to see all their bookings, invoices and payments in one place.</p>
+  <div class="cb-grid"><div class="cb-list"><input id="cb-q" type="search" placeholder="Search name, phone or email" value="${esc(S.cb.q)}" aria-label="Search customers" style="margin-bottom:10px"><div class="list" style="display:grid;gap:8px">${items}</div></div><div class="cb-detail">${custbookDetail()}</div></div>`;
+}
+function custbookDetail() {
+  const c = S.customers.find((x) => x.id === S.cb.id);
+  if (!c) return '<div class="card"><p class="muted" style="margin:0">Choose a customer on the left.</p></div>';
+  const accounts = salesModel().accounts, rows = bookingRows({ customer: c, leads: S.leads, accounts, svcName }), sm = summarize(rows), ids = new Set(rows.map((r) => r.id));
+  const bikes = S.bikes.filter((b) => b.customer_id === c.id).map((b) => [b.brand, b.model].filter(Boolean).join(' ')).filter(Boolean);
+  const kpi = (v, l) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`;
+  const invs = S.invoicesAll.filter((r) => ids.has(r.lead_id)).sort((a, b) => new Date(b.issued_at) - new Date(a.issued_at));
+  const ents = S.ledger.filter((e) => ids.has(e.lead_id)).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const refOf = Object.fromEntries(rows.map((r) => [r.id, r.ref]));
+  const gone = new Set(S.ledger.filter((e) => e.entry_type === 'reversal').map((e) => e.reverses_id));
+  const bookingTable = rows.length ? `<div class="scroll"><table style="min-width:640px"><thead><tr><th>Booking</th><th>Service</th><th>When</th><th>Status</th><th class="num">Total</th><th class="num">Paid</th><th class="num">Due</th></tr></thead><tbody>${rows.map((r) => `<tr class="inv-tr" data-lead="${r.id}" tabindex="0"><td><b class="mono">${esc(r.ref)}</b><br><span class="tiny muted">${esc(when(r.createdAt))}</span></td><td>${esc(r.service)}</td><td>${esc(r.when || '—')}</td><td><span class="pill ${r.status}">${esc(LABEL[r.status] || r.status)}</span></td><td class="num">${rupee2(r.total)}${r.kind === 'estimate' ? '<br><span class="tiny muted">estimate</span>' : ''}</td><td class="num">${rupee2(r.paid)}</td><td class="num">${r.balance > 0.005 ? '<b>' + rupee2(r.balance) + '</b>' : '—'}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted" style="margin:0">No bookings yet.</p>';
+  const invTable = invs.length ? `<div class="scroll"><table style="min-width:520px"><thead><tr><th>Invoice</th><th>Booking</th><th class="num">Total</th><th>GST</th><th>State</th></tr></thead><tbody>${invs.map((r) => `<tr class="inv-tr" data-lead="${r.lead_id}" tabindex="0"${r.voided_at ? ' style="opacity:.6"' : ''}><td><b>${esc(r.number)}</b><br><span class="tiny muted">${esc(when(r.issued_at))}</span></td><td class="mono">${esc(refOf[r.lead_id] || '')}</td><td class="num">${rupee2(r.total)}</td><td>${r.has_gst ? r.gst_rate + '%' : 'None'}</td><td>${r.voided_at ? '<span class="pill p-bad">Deleted</span>' : '<span class="pill p-ok">Active</span>'}</td></tr>`).join('')}</tbody></table></div><p class="tiny muted" style="margin:8px 0 0">Open a booking to delete or restore its invoice.</p>` : '<p class="muted" style="margin:0">No saved invoices. A copy is saved each time an invoice is printed or emailed.</p>';
+  return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:start"><div><h2 style="font-size:24px;margin:0">${esc(c.name)}</h2><p class="muted" style="margin:4px 0 0">+91 ${esc(c.phone)}${c.email ? ' · ' + esc(c.email) : ''}${c.area ? ' · ' + esc(c.area) : ''}</p>${bikes.length ? `<p class="tiny muted" style="margin:4px 0 0">${esc(bikes.join(', '))}</p>` : ''}${c.company_name ? `<p class="tiny muted" style="margin:4px 0 0">${esc(c.company_name)}${c.gstin ? ' · GSTIN ' + esc(c.gstin) : ''}</p>` : ''}</div>
+    <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" type="button" data-act="cbEdit">Edit customer</button><button class="btn btn-primary btn-sm" type="button" data-act="cbNewBooking">New booking</button></div></div>
+    <div class="kpis" style="margin-top:14px">${kpi(sm.bookings, 'Bookings')}${kpi(rupee2(sm.billed), 'Invoiced')}${kpi(rupee2(sm.paid), 'Paid')}${kpi(rupee2(sm.due), 'Still due')}</div></div>
+  <div class="card" style="margin-top:12px"><h3>Bookings</h3>${bookingTable}</div>
+  <div class="card" style="margin-top:12px"><h3>Invoices</h3>${invTable}</div>
+  <div class="card" style="margin-top:12px"><h3>Payments</h3>${ents.length ? `<div class="scroll"><table style="min-width:620px"><thead><tr><th>Date</th><th>Booking</th><th>What</th><th class="num">Amount</th><th>Recorded by</th><th></th></tr></thead><tbody>${ents.map((e) => { const del = gone.has(e.id); return `<tr${del || e.entry_type === 'reversal' ? ' style="opacity:.6"' : ''}><td>${esc(e.occurred_on)}</td><td class="mono">${esc(refOf[e.lead_id] || '')}</td><td>${esc(entryLabel(e))}${del ? ' <span class="tiny muted">(deleted)</span>' : ''}</td><td class="num"><b>${e.entry_type === 'refund' ? '−' : ''}${rupee2(e.amount)}</b></td><td class="tiny">${esc(whoRecorded(e))}</td><td>${isOwner() && !del && e.entry_type !== 'reversal' ? (e.source === 'gateway' ? '<span class="tiny muted">Refund in Razorpay</span>' : `<button class="btn btn-ghost btn-sm" type="button" data-act="finReverse" data-id="${e.id}">Delete</button>`) : ''}</td></tr>`; }).join('')}</tbody></table></div>` : '<p class="muted" style="margin:0">No payments recorded.</p>'}</div>`;
 }
 function activity() { return '<h1 style="font-size:34px">Activity</h1><p class="muted">Every admin action, newest first.</p><div class="list" id="act"><p class="muted" style="padding:16px">Loading…</p></div>'; }
 async function loadActivity() {
