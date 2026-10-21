@@ -1,6 +1,6 @@
 # Mechanix Desk for ProBuddies: Phase 1 implementation plan
 
-Spec: `docs/superpowers/specs/2026-10-22-probuddy-desk-design.md`. Method: test first, small commits, deploy after Task 9. Stack unchanged (plain JS, Supabase, Cloudflare Pages).
+Spec: `docs/superpowers/specs/2026-10-22-probuddy-desk-design.md`. Method: test first, small commits, deploy after Task 12. Stack unchanged (plain JS, Supabase, Cloudflare Pages).
 
 ## Traceability (reference to task)
 | Reference item | Task |
@@ -18,6 +18,9 @@ Spec: `docs/superpowers/specs/2026-10-22-probuddy-desk-design.md`. Method: test 
 | Garage Visits (inspection schedule, edit, allocate inspector) | 8 |
 | Garages (availability, pricing table, onboarding, import) | 8, 9 |
 | RBAC: agent sees only what is authorised | 2 (database), 1 (screens) |
+| RSA: assist over the call, fitments and solutions | 11 |
+| RSA: track every case properly | 10 |
+| Onboard mechanics and garages | 8, 9, 12 |
 
 ## Tasks
 1. **Shell and navigation.** Split `crm/crm.js` into `crm/app.js` (shell, router, permission-aware nav) and `crm/pages/*.js` (one file per page). Pure helpers stay in `crm/*-rules.js`. Test: nav shows only permitted pages. Files: `crm/app.js`, `crm/pages/`, `crm/nav.js`, `tests/crm-nav.test.mjs`.
@@ -29,7 +32,10 @@ Spec: `docs/superpowers/specs/2026-10-22-probuddy-desk-design.md`. Method: test 
 7. **SOPs.** `crm_sops`, functions, page with search; seed with the BRD rules, data-protection rule and a ProBuddy first-contact script. Supervisor edit only.
 8. **Garages and Garage Visits.** Tables `garages`, `garage_documents`, `garage_bank` (restricted), `garage_visits`, `garage_mechanics`; Schedule 2 validation (`garage-rules.js`: mobile, PIN against `src/pincodes.json`, GPS range, categories, hours); hub assignment from PIN and direction; status pipeline; scorecard; availability fields; visits calendar list with edit and inspector allocation. Tests for validation, pipeline order, bank field masking.
 9. **Import.** CSV and Excel (CSV first) in the Schedule 2 format: dry run with a per-row error report, then commit; duplicates by mobile or trade id. Tests with good, bad and duplicate rows.
-10. **Verify and ship.** Full `npm test`; rolled-back SQL test as before; mock-backend screenshot pass on phone and desktop; apply migrations; deploy `dist-crm`; update `docs/PROJECT-MEMORY.md` and the Master Service Agreement Schedule 5.
+10. **RSA Cases.** Tables `rsa_cases`, `rsa_case_events`; functions create, list, update status, add note, dispatch, close; status order enforced; accident or injury flag creates a supervisor-only ticket (Task 6); SLA timers computed from event times; timeline view; reports query. Page `crm/pages/rsa.js` and `crm/rsa-rules.js`. Tests: status order, safety flag, timers, permission gates.
+11. **Knowledge and fitments.** `crm_playbooks` (symptom, safety note, steps, ask-first, stop-and-dispatch, parts, cost range from the price list, owner, version, review date, reviewed_by), `crm_playbook_flags`, `fitments` (brand, model, part, spec, alternatives, source, last_checked). Search by symptom, bike or part. Draft seed content for the topics in the design; a playbook with a safety note cannot be shown to agents until `reviewed_by` is set. Tests: search, review gate, flagging. The technical head reviews the seed content before release.
+12. **Mechanics onboarding.** Tables `mechanic_onboarding`, `mechanic_skills`, `mechanic_documents` (restricted); pipeline, skills and tools checklist, PIN areas, shift, training record, link to garage and to the finance ledger rate; import of the existing mechanics; page `crm/pages/mechanics.js`. Tests: pipeline order, skill filters, document masking.
+13. **Verify and ship.** Full `npm test`; rolled-back SQL test as before; mock-backend screenshot pass on phone and desktop; apply migrations; deploy `dist-crm`; update `docs/PROJECT-MEMORY.md` and the Master Service Agreement Schedule 5.
 
 ## Risks
 - Retrofitting `crm_can` across existing functions must not lock out the owner; owners always pass.

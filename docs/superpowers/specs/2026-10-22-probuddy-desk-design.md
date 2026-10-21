@@ -16,7 +16,7 @@ One desk where the hired sales team (**ProBuddies**) and support staff handle ev
 | RSA | Roadside assistance |
 
 ## 3. Pages
-Navigation, in order: **Dashboard, Inbox, Leads, Tickets, Garage Visits, Garages, SOPs** (plus Team for supervisors). Each page shows only if the login has its permission.
+Navigation, in order: **Dashboard, Inbox, Leads, RSA Cases, Tickets, Garage Visits, Garages, Mechanics, Knowledge** (SOPs live inside Knowledge) (plus Team for supervisors). Each page shows only if the login has its permission.
 
 ### 3.1 Dashboard (was Today)
 - **Chats card:** total chats and unreplied chats together, with numbers. Click opens the unreplied list in Inbox.
@@ -51,6 +51,25 @@ Directory of scheduled onboarding visits and inspections. Edit time, place and d
 ### 3.7 SOPs (replaces Workdesk)
 Searchable pages for scripts, onboarding steps, escalation rules, WhatsApp templates and data-protection rules. Supervisors edit; ProBuddies read.
 
+### 3.8 RSA Cases (roadside assistance, track every case)
+A case is created from a call, a WhatsApp location share, a lead or a ticket. Fields: customer, mobile, bike (brand, model, fuel or electric), live location (pin and address), problem type, safety check (rider safe, on a busy road, injured), priority, ETA given, assigned mechanic or garage, status and outcome.
+- **Statuses, in order:** New, Triage, Phone guidance, Dispatched, On site, Fixed on site, Towed or moved to garage, Closed (with outcome and reason), Escalated.
+- **Timeline:** every call, message, status change, dispatch and note is stamped with time and person, so the whole case can be replayed.
+- **SLA timers:** first response, dispatch and arrival times shown against targets (targets are set by management; the system never promises an arrival time to the customer unless one is entered).
+- **Safety rules built in:** an injury or accident flag creates a supervisor-only Legal or accident ticket at once and shows the emergency steps first; an unsafe location shows "move to a safe place first".
+- **Outcome and billing:** fix details, parts used, amount, payment link, rating request when closed.
+- **Reports:** cases by type, response and arrival times, fixed on site versus towed, repeat breakdowns by bike model.
+
+### 3.9 Knowledge (RSA playbooks, fitments and solutions)
+The ProBuddy and Support team can guide a customer over the call from searchable playbooks. Each playbook has a symptom, a safety note, step-by-step phone guidance in plain words, what to ask first, when to stop and dispatch, parts and fitment notes, and the expected cost range from the price list.
+- **Topics:** puncture and tubeless repair, flat battery and jump-start (and why not for electric bikes), chain and sprocket, clutch and cable, brake issues (stop riding), engine overheating, fuel and spark problems, starter and electrics, electric scooters (do not open the battery; tow), towing and transport, accident steps.
+- **Fitment guide:** brand and model, part, specification, compatible alternatives, OEM notes, source and last-checked date. Starts with the models already in the site catalogue (171 model pages).
+- **Controls:** every playbook carries an owner, a version and a review date. Safety-critical pages are marked "reviewed by" a named technical head before they show to agents. Supervisors edit; agents read and can flag "this did not work" so the page is reviewed.
+- **Seed content:** drafted from standard practice and clearly marked as a draft until the Mechanix Pro technical head approves it; no repair step is shown to agents as final before that review.
+
+### 3.10 Mechanics (individual onboarding)
+Alongside garage onboarding: a pipeline for individual mechanics (Applied, Visited, KYC done, Trained, Pilot, Live, Paused) with skills (two-wheeler, scooter, Royal Enfield, electric, tyre, battery), tools checklist, service area and PIN codes, availability and shift, languages, documents in a restricted store, training record, rating and rework count, and the commission rate used by the finance ledger. A mechanic can belong to a garage or work independently. The existing admin mechanics list becomes the same records.
+
 ## 4. Revenue actions (phase 2)
 - **First payment link on WhatsApp:** from a lead, "Send payment link" creates the slot-fee order (existing `create-order` and `payment-link` logic: new customer slot fee or returning fee from the price list) and sends it through AiSensy. Logged in the lead timeline and the ledger on payment.
 - **Coupons:** create and pause coupons from the Desk (same table as the admin Coupons tab). Permission-gated, with a ceiling a supervisor sets.
@@ -72,7 +91,9 @@ Click-to-call from lead, chat and ticket through the chosen calling tool ("Agent
 | `crm_chats` (per phone: owner, status, disposition, last inbound and outbound times) | Inbox state; messages stay in `messages` |
 | `crm_tickets`, `crm_ticket_notes` | Tickets |
 | `garages`, `garage_documents`, `garage_bank` (restricted), `garage_visits` | Garages and visits |
-| `crm_sops` | SOP pages |
+| `crm_sops` (SOPs and knowledge) , `crm_playbooks`, `crm_playbook_flags`, `fitments` | SOPs, RSA playbooks, fitment guide |
+| `rsa_cases`, `rsa_case_events` | RSA cases and their timeline |
+| `mechanic_onboarding`, `mechanic_documents` (restricted), `mechanic_skills` | individual mechanic onboarding |
 | `ratings` | rating requests and answers |
 | `crm_report_schedules` | client reports |
 | `crm_calls` | call log (phase 3) |
@@ -85,7 +106,7 @@ The admin stays the owner's money console (prices, invoices, ledger, payouts). T
 ## 9. Phasing and dependencies
 | Phase | Scope | Needs |
 |---|---|---|
-| 1 | Navigation, permissions, Dashboard, Leads, Tickets, SOPs, Garage Visits, Garages with onboarding and import, targets, attribution | nothing external |
+| 1 | Navigation, permissions, Dashboard, Leads, Tickets, SOPs and Knowledge, RSA Cases, Garage Visits, Garages and Mechanics onboarding with import, targets, attribution | nothing external (RSA playbook content needs technical-head review) |
 | 2 | Inbox, payment link on WhatsApp, ratings, coupons screen, client reports | AiSensy number and approved templates (expected 23 Oct) |
 | 3 | Calling tool | tool name, API documentation, key |
 
