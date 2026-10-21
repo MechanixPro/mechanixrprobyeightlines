@@ -11,7 +11,7 @@ One desk where the hired sales team (**ProBuddies**) and support staff handle ev
 | Fleet, car owner | **Garage**, garage partner |
 | Car inspection | **Garage visit** (onboarding visit, inspection) |
 | Car pricing list | **Service price list** (admin Prices tab is the source of truth) |
-| Sales agent | **ProBuddy** |
+| Sales agent and support agent | **ProBuddy** (both sales and support staff; confirmed by the owner 22 Oct) |
 | Super Admin | Supervisor and Owner |
 | RSA | Roadside assistance |
 
@@ -80,7 +80,7 @@ Alongside garage onboarding: a pipeline for individual mechanics (Applied, Visit
 Click-to-call from lead, chat and ticket through the chosen calling tool ("Agentive": to be confirmed). Calls are logged on the lead (who, when, length, recording link). Needs the tool's API documentation and a key entered by the owner in the backend secret store.
 
 ## 6. Permissions (role-based access)
-`crm_users.permissions` is a JSON set. **Pages:** dashboard, inbox, leads, tickets, garage_visits, garages, sops, team. **Features and actions** (each its own checkbox), for example: view_all_leads, assign_leads, take_leads, delete_leads, add_leads, edit_targets, manage_users, send_payment_link, create_coupons, edit_price_list, view_reports, export, close_chats, create_tickets, resolve_tickets, view_garage_bank, schedule_visits. Role presets (ProBuddy, Support, Supervisor) fill the boxes; the Super Admin can change any box per person. The **database enforces** every action (a `crm_can(action)` check inside each function); the screen only hides what a person cannot use. The interface of a ProBuddy shows only the pages, columns and cards the profile allows. Money, payouts and prices stay hidden unless the permission is on.
+`crm_users.permissions` is a JSON set. **Pages:** dashboard, inbox, leads, tickets, garage_visits, garages, sops, team. **Features and actions** (each its own checkbox), for example: view_all_leads, assign_leads, take_leads, delete_leads, add_leads, edit_targets, manage_users, send_payment_link, create_coupons, edit_price_list, view_reports, export, close_chats, create_tickets, resolve_tickets, view_garage_bank, schedule_visits. Everyone on the sales and support team is a **ProBuddy**. The login has a designation (Sales or Support) that only picks the starting permission preset; supervisors and the owner keep their own preset. The screens, emails and reports always say "ProBuddy". The database roles `sales`, `support` and `supervisor` stay as they are so nothing built so far breaks. The preset fills the boxes; the Super Admin can change any box per person. The **database enforces** every action (a `crm_can(action)` check inside each function); the screen only hides what a person cannot use. The interface of a ProBuddy shows only the pages, columns and cards the profile allows. Money, payouts and prices stay hidden unless the permission is on.
 
 ## 7. Data model (new)
 | Object | Purpose |
