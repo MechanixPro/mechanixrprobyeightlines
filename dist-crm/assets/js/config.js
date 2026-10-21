@@ -1,0 +1,23 @@
+/* Mechanix Pro — site configuration.
+   Only PUBLIC values go here. Never put secret keys in this file:
+   it is downloaded by every visitor. Secrets live in Supabase Edge Function secrets. */
+window.MXP = {
+  whatsapp: '918310621498',        // Business WhatsApp number: 91 + 10 digits, no spaces or +
+  callNumber: '918310621498',      // Number customers call (91 + 10 digits). Leave as is to reuse the WhatsApp number
+  phoneDisplay: '+91 83106 21498', // Shown on the site
+  email: 'hello@mechanixpro.in',
+
+  supabaseUrl: 'https://mejdxsbpyscujpvbwvmg.supabase.co', // Supabase project URL (public). Booking saves leads only once supabaseAnonKey is also set
+  supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lamR4c2JweXNjdWpwdmJ3dm1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMzA2MzAsImV4cCI6MjEwNjgwNjYzMH0.utvGcWqXAQyONtPNiKDNQyCajixQJuU1tWHoRR8kbZk',             // Supabase "anon public" key (safe to expose; protected by RLS)
+  turnstileSiteKey: '',            // Cloudflare Turnstile site key (bot protection on the booking form)
+
+  gaId: '',                        // Google Analytics 4, e.g. G-ABC123
+  googleAdsId: 'AW-18504366564',   // Google Ads tag ID (turns the Google tag on)
+  googleAdsSendTo: 'AW-18504366564/vTeDCNveupcdEOTzyPdE',             // Google Ads conversion, e.g. AW-1234567890/AbCdEfGh
+  googleAdsWaSendTo: 'AW-18504366564/zoMaCJ3zyJkdEOTzyPdE',           // Google Ads conversion for a WhatsApp tap, e.g. AW-1234567890/AbCdEfGh. Counted once per visit. Leave empty until the conversion action exists
+  googleMapsKey: 'AIzaSyCgu-ZcTzcl7b4ptDdpwWNlK8wUJPds6RU',               // Google Maps key (public browser key, restricted to mechanixpro.in). Turns on address search and the Find us map
+  googleAddressSearch: false,      // true shows address search in the booking form. Turn on only after Places API (New) works for the key
+  helperStyle: 'ab',               // The helper character: 'pro' (mechanic), 'sphere', or 'ab' (half the visitors see each, so you can compare)
+  apolloAppId: '6ac9ea0d24cdaa0014db50b0', // Apollo website tracker. Loads only on the Fleets and Apartments pages
+  metaPixelId: '',                 // Meta (Instagram and Facebook) Pixel ID, digits only
+};

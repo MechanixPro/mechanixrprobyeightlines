@@ -6,7 +6,7 @@ const root = path.join(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
 const site = JSON.parse(read('src/site.json'));
 const inr = (n) => '₹' + n.toLocaleString('en-IN');
-const pages = () => { const o = ['index.html']; for (const d of fs.readdirSync(root)) if (!['node_modules', 'dist-site', 'dist-admin', 'admin'].includes(d) && fs.existsSync(path.join(root, d, 'index.html'))) o.push(d + '/index.html'); return o; };
+const pages = () => { const o = ['index.html']; for (const d of fs.readdirSync(root)) if (!['node_modules', 'dist-site', 'dist-admin', 'dist-crm', 'admin', 'crm'].includes(d) && fs.existsSync(path.join(root, d, 'index.html'))) o.push(d + '/index.html'); return o; };
 const sources = () => [...fs.readdirSync(path.join(root, 'src')).filter((f) => /\.(html|jsonld)$/.test(f)).map((f) => 'src/' + f), 'scripts/build_pages.py', 'assets/js/hero.js'];
 
 test('site.json is the one list of prices, the fees and the warranty length', () => {

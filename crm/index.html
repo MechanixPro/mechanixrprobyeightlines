@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#14295A">
+<title>Mechanix Desk</title>
+<link rel="icon" href="/assets/img/favicon-32.png">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+<link rel="stylesheet" href="/crm/crm.css">
+<script src="/assets/js/config.js"></script>
+<script type="module" src="/crm/crm.js"></script>
+</head>
+<body>
+<main id="login" class="login">
+  <section class="hero">
+    <a class="brand" href="/crm/"><img src="/assets/img/logo.svg" alt="" width="34" height="38"><span>Mechanix Desk</span></a>
+    <h1>Turn every enquiry into a booking.</h1>
+    <p class="lead">Leads from the website, WhatsApp, Google, Instagram and JustDial land in one queue. Respond fast, log what happened, and move each lead to a booking.</p>
+    <div class="hero-cards">
+      <div class="panel"><h2>Your day</h2><ol><li>Check new and follow-up-due leads first.</li><li>Contact within minutes, not hours.</li><li>Log the outcome and set the next follow-up.</li><li>Close the loop: Booked, or Lost with a reason.</li></ol></div>
+      <div class="panel"><h2>The rules</h2><ul><li>Every open lead has a dated next step.</li><li>Bookings are the score.</li><li>Never write Aadhaar, PAN, bank or card details anywhere.</li></ul></div>
+    </div>
+  </section>
+  <section class="signin">
+    <p class="eyebrow">Mechanix Pro team</p>
+    <h2>Sign in to your desk</h2>
+    <p class="muted">Use the email your supervisor added. We send you a 6-digit code.</p>
+    <form id="loginForm" class="card" novalidate>
+      <label class="label" for="em">Email</label><input id="em" type="email" autocomplete="username" required>
+      <p class="small muted" id="loginInfo"></p>
+      <div id="codeBox" hidden><label class="label" for="code">6-digit code from your email</label><input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456">
+        <button class="btn primary wide" type="submit">Sign in</button></div>
+      <button class="btn primary wide" type="button" id="sendCode">Email me a code</button>
+      <p class="err" id="loginErr" role="alert"></p>
+    </form>
+    <p class="tiny muted">By signing in you agree to protect customer data and log your work honestly.</p>
+  </section>
+</main>
+
+<div id="app" hidden>
+  <header class="top">
+    <a class="brand" href="/crm/"><img src="/assets/img/logo.svg" alt="" width="26" height="29"><span>Mechanix Desk</span></a>
+    <div class="goal" id="goal" aria-live="polite"></div>
+    <div class="who"><span id="who"></span><button class="btn ghost sm" type="button" id="signOut">Sign out</button></div>
+  </header>
+  <nav class="tabs" id="tabs" aria-label="Desk sections">
+    <button type="button" data-view="mine" aria-current="page">My day</button>
+    <button type="button" data-view="unassigned">Unassigned <span class="badge" id="unBadge" hidden></span></button>
+    <button type="button" data-view="won">Bookings</button>
+    <button type="button" data-view="lost">Lost</button>
+    <button type="button" data-view="all" id="allTab" hidden>All leads</button>
+    <button type="button" data-view="team" id="teamTab" hidden>Team</button>
+  </nav>
+  <main id="view" class="body"></main>
+</div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden><div class="sheet-panel" id="sheetPanel"></div></div>
+</body>
+</html>

@@ -5,7 +5,7 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
 const site = JSON.parse(read('src/site.json'));
-const pages = () => { const o = ['index.html']; for (const d of fs.readdirSync(root)) if (!['node_modules', 'dist-site', 'dist-admin', 'admin'].includes(d) && fs.existsSync(path.join(root, d, 'index.html'))) o.push(d + '/index.html'); return o.filter((f) => f !== '404.html'); };
+const pages = () => { const o = ['index.html']; for (const d of fs.readdirSync(root)) if (!['node_modules', 'dist-site', 'dist-admin', 'dist-crm', 'admin', 'crm'].includes(d) && fs.existsSync(path.join(root, d, 'index.html'))) o.push(d + '/index.html'); return o.filter((f) => f !== '404.html'); };
 const sources = ['src/home.html', 'src/help.html', 'src/services.html', 'src/help.jsonld', 'scripts/build_pages.py', 'assets/js/app.js', 'admin/admin.js', 'supabase/functions/_shared/ai.ts', 'supabase/functions/_shared/email-templates.ts', 'README.md'];
 
 test('the checkup and quote fee is set in the admin and is a positive number', () => {

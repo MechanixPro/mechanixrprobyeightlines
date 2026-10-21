@@ -5,7 +5,7 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
 const co = JSON.parse(read('src/company.json'));
-const pages = () => { const o = ['index.html']; for (const d of fs.readdirSync(root)) if (!['node_modules', 'dist-site', 'dist-admin', 'admin'].includes(d) && fs.existsSync(path.join(root, d, 'index.html'))) o.push(d + '/index.html'); return o; };
+const pages = () => { const o = ['index.html']; for (const d of fs.readdirSync(root)) if (!['node_modules', 'dist-site', 'dist-admin', 'dist-crm', 'admin', 'crm'].includes(d) && fs.existsSync(path.join(root, d, 'index.html'))) o.push(d + '/index.html'); return o; };
 const gstCheck = (g) => { const c = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'; let t = 0; for (let i = 0; i < 14; i++) { const v = c.indexOf(g[i]) * (i % 2 === 0 ? 1 : 2); t += Math.floor(v / 36) + (v % 36); } return c[(36 - (t % 36)) % 36]; };
 
 test('the GSTIN has the right shape and a valid check digit', () => {

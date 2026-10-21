@@ -187,7 +187,7 @@ for slug, name, pins, locs, why in AREAS:
     url = f'{SITE}/bike-service-{slug}/'
     title = f'Doorstep Bike Service in {name}, Bengaluru | Mechanix Pro'
     desc = f'Doorstep bike and scooter service in {name} ({pins}) from {{{{text:basic}}}}. Mechanix Pro-certified mechanics, OEM-certified parts, {{{{days}}}}-day warranty. Quote on WhatsApp first.'
-    book = f'/book/?area={html.escape(name)}'
+    book = f'/book/?area={urllib.parse.quote(name)}'
     faq = [
       (f'Do you come to my home in {name}?', f'Yes. Our mechanics cover {locs}. We service your bike at home, at your office parking or at the roadside.'),
       (f'How much is a bike service in {name}?', 'Basic service from {{text:basic}}, General from {{text:general}}, Full from {{text:full}} for bikes up to 180cc; above 180cc add {{feetext:bigbike}}. GST included. Your exact quote comes on WhatsApp, and parts only after your approval.'),

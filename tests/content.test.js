@@ -6,7 +6,7 @@ const root = path.join(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
 const pages = () => {
   const out = ['index.html', '404.html', 'offline.html'];
-  for (const d of fs.readdirSync(root)) { const f = path.join(d, 'index.html'); if (!['node_modules', 'dist-site', 'dist-admin', 'admin'].includes(d) && fs.existsSync(path.join(root, f))) out.push(f); }
+  for (const d of fs.readdirSync(root)) { const f = path.join(d, 'index.html'); if (!['node_modules', 'dist-site', 'dist-admin', 'dist-crm', 'admin', 'crm'].includes(d) && fs.existsSync(path.join(root, f))) out.push(f); }
   return out;
 };
 const sources = ['scripts/build_pages.py', 'assets/js/config.js', 'src/home.html', 'src/services.html', 'src/help.html', 'src/book.html', 'README.md'];
