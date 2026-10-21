@@ -103,6 +103,16 @@ All new tables use row-level security with no agent policies; access is only thr
 ## 8. Relationship to the existing admin
 The admin stays the owner's money console (prices, invoices, ledger, payouts). The Desk reads and writes prices and coupons only through the same rows, with permission. Existing mechanics remain individuals in the admin; **garages** are workshop partners and may employ one or more of them (link table `garage_mechanics`).
 
+## 8A. Booking sync with the admin (single source of truth)
+A booking made or changed in the Desk **is** the same row the admin uses (`leads`, with its customer, bike, invoices and ledger). There is no copy and no sync job, so the two can never disagree.
+- **Requirements captured on every booking** (the Desk form uses the same fields as the admin Add booking form): customer name and mobile, bike brand and model, service package, add-ons, area and PIN code, address or pinned location, preferred date and time slot, customer requirements and notes (what is wrong, special requests), estimated quote, coupon, source and campaign (Ref code), job place (doorstep or garage), assigned mechanic or garage, and the ProBuddy who owns it.
+- **Same rules in both places:** quote first, slot fee by new or returning customer, PIN must be inside the service area, duplicate mobile in the last 30 days opens the existing booking.
+- **Stage mapping:** Desk stages and admin statuses are the same values (New, Contacted, Quoted, Payment sent, Paid, Scheduled, Completed, Lost). ProBuddies move a booking up to Payment sent; Paid, Scheduled and Completed are set by the payment webhook or by the admin, as today.
+- **Who can change what:** a ProBuddy edits requirements, notes and follow-ups on their own bookings. Prices, invoices, ledger, payouts and commission stay admin-only. Every edit writes who, when, what changed and the old value to the activity history (visible in both the Desk and the admin).
+- **Live view:** both consoles read the same table, refresh on a short interval, and the admin shows "Created by" and the owning ProBuddy; the Desk shows the admin's mechanic assignment and invoice status read-only.
+- **Conflict rule:** the database stamps `updated_at`; a save made on a stale copy is refused with "this booking changed, reload" instead of overwriting.
+- **Deleted bookings** follow the existing admin archive rule (bookings with invoices or payments are archived, never erased).
+
 ## 9. Phasing and dependencies
 | Phase | Scope | Needs |
 |---|---|---|
