@@ -772,3 +772,17 @@ body.page-book .pro{bottom:calc(132px + env(safe-area-inset-bottom,0px))}
 .need-tile b{font-size:19px}.need-tile span{color:var(--ink-2);line-height:1.45}
 @media(prefers-reduced-motion:reduce){.need-tile{transition:none}.need-tile:hover{transform:none}}
 .hero-alt{margin-top:14px}.hero-proof{margin:12px 0 0;font-size:15px;opacity:.92}.hero-proof b{font-weight:700}
+
+/* home add-ons grid */
+.addon-grid{list-style:none;margin:0;padding:0;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
+.addon-grid li{background:var(--card);border-radius:var(--r-lg);padding:22px 20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);transition:transform .25s ease,box-shadow .25s ease}
+@media(hover:hover){.addon-grid li:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}}
+.addon-grid svg{width:46px;height:46px;padding:11px;border-radius:14px;background:rgba(20,41,90,.08);fill:none;stroke:var(--navy);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;margin-bottom:6px}
+.addon-grid h3{margin:4px 0 0;font-size:18px}.addon-grid .pr{font:700 28px/1.1 var(--display);letter-spacing:-.03em;color:var(--navy)}
+.addon-grid p{margin:0;color:var(--ink-2);font-size:14.5px;flex:1}
+.addon-grid .wa-link{font-weight:600;color:#0F7A41;text-decoration:underline;min-height:44px;display:inline-flex;align-items:center}
+.quote-band{margin-top:22px;border-radius:var(--r-lg);padding:26px 24px;background:linear-gradient(135deg,#14295A,#0e1d42);color:#fff;display:grid;gap:18px;box-shadow:var(--shadow-lg)}
+@media(min-width:760px){.quote-band{grid-template-columns:1.4fr 1fr;align-items:center;padding:30px 34px}}
+.quote-band h3{margin:0 0 6px;font-size:24px;letter-spacing:-.02em;color:#fff}.quote-band p{margin:0;color:rgba(255,255,255,.82);font-size:15.5px}
+.quote-actions{display:flex;gap:10px;flex-wrap:wrap}.quote-actions .btn{flex:1;justify-content:center;min-height:48px}
+.quote-band .btn-ghost{color:#fff;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.4)}.quote-band .btn-ghost:hover{background:rgba(255,255,255,.1)}
