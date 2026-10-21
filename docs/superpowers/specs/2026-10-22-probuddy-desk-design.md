@@ -1,6 +1,6 @@
 # Mechanix Desk for ProBuddies: design
 
-Status: **draft for approval** (22 Oct 2026). Source: "Sales Dashboard Platform Updates Specification" (a car-rental reference), adapted for Mechanix Pro. Builds on the Mechanix Desk CRM already live (`crm/`, migration `20261108000000_crm.sql`). Related: Master Service Agreement Schedules 2 to 4, `docs/superpowers/specs/2026-10-21-crm-design.md`.
+Status: **draft for approval** (22 Oct 2026). **Name final (22 Oct 2026): the sales and support team are called ProBuddies; titles are "ProBuddy · Sales" and "ProBuddy · Support".** Source: "Sales Dashboard Platform Updates Specification" (a car-rental reference), adapted for Mechanix Pro. Builds on the Mechanix Desk CRM already live (`crm/`, migration `20261108000000_crm.sql`). Related: Master Service Agreement Schedules 2 to 4, `docs/superpowers/specs/2026-10-21-crm-design.md`.
 
 ## 1. Goal
 One desk where the hired sales team (**ProBuddies**) and support staff handle every lead from Google Ads, Meta, the website and WhatsApp; onboard and inspect partner garages; send payment links on WhatsApp; call from the calling tool; raise tickets; collect ratings; and where management sees targets, attribution and client reports. What each person sees is controlled by permissions the Super Admin sets when creating the login.
