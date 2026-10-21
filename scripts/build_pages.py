@@ -25,7 +25,7 @@ FOOTER = '''<footer>
     <div><b>Areas</b>{area_links}<a href="/areas/">All Bengaluru PIN codes</a></div>
     <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
   </div>
-  <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Mechanix Pro is a brand of {company_name}, {company_addr}. GSTIN {company_gstin}</p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p></div>
+  <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Mechanix Pro is a brand of {company_name}, {company_addr}. GSTIN {company_gstin}</p><p class="tiny">Website developed by <a href="https://ziyam.me" target="_blank" rel="noopener" style="display:inline;text-decoration:underline">ziyam.me</a></p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p></div>
 </footer>
 '''
 HEAD = '''<!doctype html>

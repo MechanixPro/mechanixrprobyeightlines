@@ -42,3 +42,15 @@ test('the email footer and the server copy of the company record match src/compa
   const tpl = read('supabase/functions/_shared/email-templates.ts'); assert.match(tpl, /COMPANY/);
   const otp = read('supabase/templates/otp.html'); assert.ok(otp.includes('NOVA VENTURES')); assert.ok(otp.includes('560102'));
 });
+
+test('every page footer credits ziyam.me as the website developer, with a safe external link', () => {
+  for (const f of pages()) {
+    const h = read(f);
+    if (!/<footer/.test(h)) continue;
+    assert.match(h, /Website developed by <a href="https:\/\/ziyam\.me" target="_blank" rel="noopener"[^>]*>ziyam\.me<\/a>/, f);
+  }
+});
+
+test('the admin and the CRM also credit ziyam.me', () => {
+  for (const f of ['admin/index.html', 'crm/index.html']) assert.match(read(f), /Developed by <a href="https:\/\/ziyam\.me" target="_blank" rel="noopener"/, f);
+});
