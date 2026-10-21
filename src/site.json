@@ -1,12 +1,12 @@
 {
   "warrantyDays": 30,
   "advance": 349,
-  "newCustomerFee": 99,
+  "newCustomerFee": 1799,
   "bigBike": 300,
   "services": {
     "basic": {
       "name": "Basic service",
-      "price": 499,
+      "price": 599,
       "includes": [
         "# Engine & Lubrication",
         "1. Engine oil level and condition — inspect",
@@ -84,7 +84,7 @@
     },
     "repair": {
       "name": "Repair or problem check",
-      "price": 349,
+      "price": 799,
       "includes": [
         "AT YOUR DOOR STEP",
         "• Diagnose the bike problem",
@@ -99,7 +99,7 @@
     },
     "sos": {
       "name": "Roadside emergency",
-      "price": 699,
+      "price": 1299,
       "includes": [
         "Mechanic dispatched to your location now",
         "• Quick roadside assistance",

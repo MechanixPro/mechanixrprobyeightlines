@@ -14,7 +14,7 @@ test('if the new customer fee is missing or zero it falls back to the standard f
   assert.equal(slotFee({ returning: false, advance: 349, newFee: NaN }), 349);
 });
 test('the price source holds both fees', () => {
-  assert.equal(site.advance, 349); assert.equal(site.newCustomerFee, 99);
+  assert.ok(site.advance > 0); assert.ok(site.newCustomerFee > 0); // the owner sets both in the admin Prices tab
 });
 test('a migration adds the new customer fee as a fee row', () => {
   const sql = read('supabase/migrations/20261030000000_new_customer_fee.sql');
@@ -31,7 +31,8 @@ test('a returning customer means an earlier completed job on the same phone, nev
 });
 test('the website tells customers the real fees', () => {
   const h = read('index.html'), app = read('assets/js/app.js');
-  assert.match(h, /₹99/); assert.match(h, /new customers?/i);
-  assert.match(app, /newfee/); assert.match(read('refund-policy/index.html'), /₹99/);
-  assert.match(read('terms/index.html'), /₹99/);
+  const nf = '₹' + Number(site.newCustomerFee).toLocaleString('en-IN');
+  assert.ok(h.includes(nf)); assert.match(h, /new customers?/i);
+  assert.match(app, /newfee/); assert.ok(read('refund-policy/index.html').includes(nf));
+  assert.ok(read('terms/index.html').includes(nf));
 });

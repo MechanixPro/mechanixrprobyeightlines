@@ -8,8 +8,8 @@ const site = JSON.parse(read('src/site.json'));
 const pages = () => { const o = ['index.html']; for (const d of fs.readdirSync(root)) if (!['node_modules', 'dist-site', 'dist-admin', 'admin'].includes(d) && fs.existsSync(path.join(root, d, 'index.html'))) o.push(d + '/index.html'); return o.filter((f) => f !== '404.html'); };
 const sources = ['src/home.html', 'src/help.html', 'src/services.html', 'src/help.jsonld', 'scripts/build_pages.py', 'assets/js/app.js', 'admin/admin.js', 'supabase/functions/_shared/ai.ts', 'supabase/functions/_shared/email-templates.ts', 'README.md'];
 
-test('the checkup and quote fee is 349, and the repair or problem check costs the same', () => {
-  assert.equal(site.advance, 349); assert.equal(site.services.repair.price, 349);
+test('the checkup and quote fee is set in the admin and is a positive number', () => {
+  assert.ok(site.advance > 0); assert.ok(site.services.repair.price > 0); // the owner sets these in the admin Prices tab
 });
 test('the old "booking advance" wording is gone everywhere: it is the checkup and quote fee', () => {
   for (const f of [...pages(), ...sources]) assert.doesNotMatch(read(f), /booking advance|₹\s?199 advance|Advance and final payments/i, f);

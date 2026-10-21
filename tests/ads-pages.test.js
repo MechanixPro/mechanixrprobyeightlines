@@ -31,7 +31,7 @@ test('the roadside page is indexable, in the sitemap, and has call and WhatsApp 
   const h = read('roadside/index.html');
   assert.doesNotMatch(h, /noindex/); assert.equal((h.match(/<h1[ >]/g) || []).length, 1);
   assert.match(h, /<title>[^<]*Breakdown[^<]*Bengaluru/i); assert.match(h, /data-call/); assert.match(h, /data-wa-text=/);
-  assert.match(h, /₹699/); assert.match(read('sitemap.xml'), /\/roadside\//);
+  assert.ok(h.includes('₹' + Number(site.services.sos.price).toLocaleString('en-IN'))); assert.match(read('sitemap.xml'), /\/roadside\//);
   assert.doesNotMatch(h, /\d+ ?min(ute)?s? (arrival|response)|arrive in/i); // no promised arrival time
 });
 test('the site menu and footer link to the roadside page', () => {
