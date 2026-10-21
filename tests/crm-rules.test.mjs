@@ -74,6 +74,6 @@ test('datetime-local values are written in local time', () => {
   assert.match(localInputValue(new Date(2026, 9, 21, 9, 5)), /^2026-10-21T09:05$/);
 });
 test('sources get friendly names', () => {
-  assert.equal(sourceName('google'), 'Google Ads'); assert.equal(sourceName('instagram'), 'Instagram'); assert.equal(sourceName('fb'), 'Meta');
+  assert.equal(sourceName('google'), 'Google Ads'); assert.equal(sourceName('instagram'), 'Meta (Instagram)'); assert.equal(sourceName('fb'), 'Meta'); assert.notEqual(sourceName('justdial'), 'JustDial');
   assert.equal(sourceName('walk_in'), 'Walk in'); assert.equal(sourceName('newsletter'), 'Newsletter'); assert.equal(sourceName(''), 'Unknown');
 });

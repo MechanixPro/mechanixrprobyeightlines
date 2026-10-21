@@ -3,7 +3,7 @@
 Approved by the owner in chat on 2026-10-21 ("go"). Defaults chosen by the owner's silence: Mechanix Pro look, built from scratch, 15 minute first-contact limit, target of 3 bookings a day per sales agent, no commission yet.
 
 ## Goal
-A separate site (`crm.mechanixpro.in`, first at `mechanixpro-crm.pages.dev`) where a hired Sales and Support team works every lead from the website, WhatsApp, Google Ads, Instagram or Meta, and manual entries (phone, walk in, JustDial). Sales exist to convert enquiries into bookings, and the system enforces that.
+A separate site (`crm.mechanixpro.in`, first at `mechanixpro-crm.pages.dev`) where a hired Sales and Support team works every lead from the website, WhatsApp, Google Ads, Instagram or Meta, and manual entries (phone, walk in). Meta and Google Ads are the only paid sources; there is no JustDial. Sales exist to convert enquiries into bookings, and the system enforces that.
 
 ## Roles
 | Role | Sees | Does |
@@ -27,7 +27,7 @@ Agents never see money, mechanic payouts, prices, invoices or settings. The data
 - `crm_users(user_id, name, role, active, daily_target)`
 - `crm_activities(id, lead_id, actor, kind, body, outcome, created_at)`
 - `leads` gets: `crm_owner`, `crm_next_action_at`, `crm_lost_reason`, `crm_first_contact_at`, `crm_won_at`.
-- `leads.source` also allows `justdial` and `instagram`.
+- `leads.source` also allows `instagram` (Meta).
 - RPCs: `crm_me`, `crm_queue`, `crm_lead`, `crm_claim`, `crm_assign`, `crm_log`, `crm_add_lead`, `crm_team_stats`, `crm_set_target`, `crm_set_user_active`.
 - Edge function `crm-user` creates agent sign-ins (needs the service role). Supervisor or owner only.
 

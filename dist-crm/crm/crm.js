@@ -246,10 +246,10 @@ function renderTeam() {
 /* ---------- add a lead by hand ---------- */
 function addDialog() {
   const el = document.createElement('div'); el.className = 'modal-back'; el.id = 'addModal';
-  el.innerHTML = `<form class="modal" role="dialog" aria-modal="true" aria-labelledby="addH" novalidate><h2 id="addH">Add a lead</h2><p class="muted small">For calls, walk-ins, JustDial and Instagram messages. Website and WhatsApp leads arrive on their own.</p>
+  el.innerHTML = `<form class="modal" role="dialog" aria-modal="true" aria-labelledby="addH" novalidate><h2 id="addH">Add a lead</h2><p class="muted small">For phone calls, walk-ins and Meta (Instagram) messages. Website, Google Ads and WhatsApp leads arrive on their own.</p>
     <label class="label" for="aName">Customer name</label><input id="aName" autocomplete="off"><label class="label" for="aPhone">Mobile number</label><input id="aPhone" inputmode="tel" autocomplete="off" placeholder="10 digits">
     <label class="label" for="aArea">Area</label><input id="aArea" autocomplete="off"><label class="label" for="aSrc">Where did it come from?</label>
-    <select id="aSrc"><option value="phone">Phone call</option><option value="walk_in">Walk in</option><option value="justdial">JustDial</option><option value="instagram">Instagram</option><option value="whatsapp">WhatsApp</option></select>
+    <select id="aSrc"><option value="instagram">Meta (Instagram) message</option><option value="phone">Phone call</option><option value="walk_in">Walk in</option><option value="whatsapp">WhatsApp</option></select>
     <label class="label" for="aNote">Note</label><textarea id="aNote" rows="2" maxlength="1000"></textarea><p class="err" id="aErr" role="alert"></p>
     <div class="row end"><button class="btn ghost" type="button" data-act="addCancel">Cancel</button><button class="btn primary" type="submit">Add lead</button></div></form>`;
   document.body.appendChild(el); $('#aName').focus();

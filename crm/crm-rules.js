@@ -4,14 +4,13 @@ export const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
 export const BOOKED = ['paid', 'scheduled', 'completed'];
 export const STATUS_LABEL = { new: 'New', contacted: 'Contacted', quoted: 'Quote sent', payment_sent: 'Advance link sent', paid: 'Booked', scheduled: 'Booked', completed: 'Done', lost: 'Lost' };
 export const LOST_REASONS = ['Price too high', 'No answer', 'Wrong area', 'Booked elsewhere', 'Not interested', 'Other'];
-export const SOURCE_LABEL = { website: 'Website', whatsapp: 'WhatsApp', phone: 'Phone call', walk_in: 'Walk in', app: 'App', justdial: 'JustDial', instagram: 'Instagram' };
+export const SOURCE_LABEL = { website: 'Website', whatsapp: 'WhatsApp', phone: 'Phone call', walk_in: 'Walk in', app: 'App', instagram: 'Meta (Instagram)' };
 /** Friendly name for a lead source or an ad utm_source. */
 export function sourceName(key) {
   const k = String(key || '').toLowerCase();
   if (SOURCE_LABEL[k]) return SOURCE_LABEL[k];
   if (k === 'google' || k === 'adwords' || k === 'google_ads') return 'Google Ads';
-  if (['ig', 'instagram'].includes(k)) return 'Instagram';
-  if (['fb', 'facebook', 'meta'].includes(k)) return 'Meta';
+    if (['fb', 'facebook', 'meta', 'ig'].includes(k)) return 'Meta';
   return k ? k.charAt(0).toUpperCase() + k.slice(1) : 'Unknown';
 }
 export const KIND_LABEL = { call: 'Call', whatsapp: 'WhatsApp', note: 'Note', status: 'Status', assign: 'Assigned', create: 'Added' };
