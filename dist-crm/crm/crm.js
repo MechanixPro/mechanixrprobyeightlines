@@ -13,6 +13,7 @@ import * as mechanics from './pages/mechanics.js';
 import * as knowledge from './pages/knowledge.js';
 import * as team from './pages/team.js';
 import { newBooking, editBooking } from './pages/booking.js';
+import { sendPaymentLink } from './pages/payment.js';
 
 const C = window.MXP || {};
 if (!C.supabaseUrl || !C.supabaseAnonKey) {
@@ -183,6 +184,7 @@ function renderSheet() {
       <a class="btn wa" href="${waUrl(l.phone, firstMessage(l, S.me.name))}" target="_blank" rel="noopener" data-act="wa" data-id="${l.id}">WhatsApp</a>
       ${!l.crm_owner && can('take_leads') ? `<button class="btn primary" type="button" data-act="take" data-id="${l.id}">Take lead</button>` : ''}
       ${can('edit_leads') && mineOrBoss && !l.crm_won_at && l.status !== 'lost' ? '<button class="btn" type="button" data-act="editBooking">Edit booking</button>' : ''}
+      ${can('send_payment_link') && l.crm_owner && !BOOKED.includes(l.status) && l.status !== 'lost' ? '<button class="btn" type="button" data-act="payLink">Send payment link</button>' : ''}
       ${can('create_tickets') ? '<button class="btn ghost" type="button" data-act="ticket">Raise a ticket</button>' : ''}</div>
     ${!l.crm_owner && !can('assign_leads') ? '<p class="alert">Take this lead first. Then you can log what happened.</p>' : ''}
     ${canAct && l.crm_owner && (moves.length || OPEN.includes(l.status)) ? logForm(l, moves) : (BOOKED.includes(l.status) ? '<p class="alert good">This booking is confirmed.</p>' : '')}
@@ -272,6 +274,7 @@ document.addEventListener('click', async (e) => {
     if (act === 'add') return addDialog();
     if (act === 'booking') return newBooking(ctx);
     if (act === 'editBooking') return editBooking(ctx, S.detail.lead);
+    if (act === 'payLink') return sendPaymentLink(ctx, S.detail.lead, () => afterChange(false));
     if (act === 'ticket') { const l = S.detail.lead; const { newTicket } = tickets; return newTicket(ctx, { lead: l.id, title: 'Issue with ' + l.name + ' (' + l.ref + ')' }); }
     if (act === 'preset') { $('#next').value = b.dataset.iso; return; }
     if (act === 'assign') { await rpc('crm_assign', { p_id: S.open, p_user: $('#assignTo').value || null }); toast('Assignment saved.'); return await afterChange(false); }
