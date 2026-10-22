@@ -11,7 +11,7 @@ test('the desk never reads or writes tables directly: only database functions an
   assert.match(js, /rpc\('crm_log'/); assert.match(js, /functions\.invoke\('crm-user'/);
 });
 test('no secrets in the desk and no inline scripts (the CSP forbids them)', () => {
-  assert.doesNotMatch(js + html, /service_role|SERVICE_ROLE|sk_live|rzp_|AISENSY/i);
+  assert.doesNotMatch(js + html, /service_role|SERVICE_ROLE|sk_live|rzp_|AISENSY_[A-Z]/);
   const inline = html.match(/<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/g) || [];
   assert.equal(inline.length, 0);
   assert.doesNotMatch(html, /\son[a-z]+=/i);

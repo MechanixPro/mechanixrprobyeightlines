@@ -41,3 +41,8 @@ Needed for the desk Inbox. Ask AiSensy whether incoming messages and delivery st
 | `desk-reply` | a Care Buddy's free-text reply (24-hour window) | `AISENSY_PROJECT_ID`, `AISENSY_PROJECT_KEY` |
 | `aisensy-inbound` | customer messages from an AiSensy flow API step | `AISENSY_WEBHOOK_SECRET` |
 | `aisensy-webhook` | customer messages from a native Custom App webhook | `AISENSY_SHARED_SECRET` |
+
+## Templates and campaigns (set up through the Project API, 2026-10-22)
+Submitted for approval on the desk number: `mxp_desk_payment_link` and `mxp_desk_rating` (Utility), `mxp_desk_followup` (Marketing). They start as PENDING; AiSensy rejects a campaign for a template that is not approved yet.
+In the desk, Team, WhatsApp section (supervisors): **Template status** shows approval, then **Create campaigns** creates the API campaign for each approved template. Template text lives in `supabase/functions/_shared/desk-templates.ts` (sample text uses [Label] brackets, which is what AiSensy accepts).
+Project id: `AISENSY_PROJECT_ID` (secret). Native webhooks still need a Custom App created in the AiSensy dashboard; the flow endpoint `aisensy-inbound` covers incoming messages until then.

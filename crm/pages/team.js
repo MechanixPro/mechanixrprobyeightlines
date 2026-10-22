@@ -19,7 +19,17 @@ export async function render(root, ctx) {
       <td>${canTargets ? `<input class="tgt" type="number" min="0" max="100" value="${u.daily_target}" data-user="${u.user_id}" data-k="d" aria-label="Daily target for ${esc(u.name)}">` : u.daily_target}</td>
       <td>${canTargets ? `<input class="tgt" type="number" min="0" max="5000" value="${u.monthly_target}" data-user="${u.user_id}" data-k="m" aria-label="Monthly target for ${esc(u.name)}">` : u.monthly_target}</td>
       <td>${u.custom_permissions ? tag('Custom', 'soft') : 'Preset'}</td><td>${canUsers ? `<button class="btn sm" type="button" data-perm="${u.user_id}">Permissions</button> <button class="btn ghost sm" type="button" data-active="${u.user_id}" data-on="${u.active ? 0 : 1}">${u.active ? 'Switch off' : 'Switch on'}</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">No team members yet.</td></tr>'}</tbody></table></div>
+    ${ctx.me.role === 'supervisor' ? `<h3>WhatsApp (AiSensy)</h3><div class="card"><p class="small muted">The desk's own WhatsApp number. Check the connection, see whether the message templates are approved, then create the campaigns that send them.</p><div class="row wrap"><button class="btn" type="button" data-wa="status">Check connection</button><button class="btn" type="button" data-wa="templates">Template status</button><button class="btn primary" type="button" data-wa="create_campaigns">Create campaigns</button></div><pre class="wa-out" id="waOut" hidden></pre></div>` : ''}
     ${canUsers ? `<h3>Add a Care Buddy</h3><form id="userForm" class="user-form" novalidate><input name="name" placeholder="Full name" autocomplete="off" aria-label="Full name"><input name="email" type="email" placeholder="Work email" autocomplete="off" aria-label="Email"><select name="role" aria-label="Starting permissions"><option value="sales">Sales (starting permissions)</option><option value="support">Support (starting permissions)</option><option value="supervisor">Supervisor (everything)</option></select><button class="btn primary" type="submit">Add</button></form><p class="small muted">They sign in with a 6-digit code sent to that email. You can change any box afterwards.</p><p class="err" id="userErr" role="alert"></p>` : ''}`;
+  root.querySelectorAll('[data-wa]').forEach((b) => b.addEventListener('click', async () => {
+    const out = root.querySelector('#waOut'); out.hidden = false; out.textContent = 'Working…'; b.disabled = true;
+    try {
+      const fn = b.dataset.wa === 'status' ? 'aisensy-status' : 'aisensy-setup';
+      const { data, error } = await supabase().functions.invoke(fn, { body: { action: b.dataset.wa } });
+      if (error || data?.error) { let msg = data?.error; if (!msg && error?.context?.json) { try { msg = (await error.context.json()).error; } catch (x) { /* ignore */ } } throw new Error(msg || 'Could not reach the desk service.'); }
+      out.textContent = waSummary(b.dataset.wa, data);
+    } catch (x) { out.textContent = clean(x); } finally { b.disabled = false; }
+  }));
   const tt = root.querySelector('#teamTargets');
   if (tt) tt.addEventListener('submit', async (e) => { e.preventDefault(); try { await rpc('crm_set_targets', { p_team_daily: Number(tt.d.value), p_team_monthly: Number(tt.m.value) }); toast('Team targets saved.'); } catch (x) { toast(clean(x), true); } });
   root.querySelectorAll('.tgt').forEach((i) => i.addEventListener('change', async () => {
@@ -54,4 +64,17 @@ function perms(u, ctx) {
       close(); toast('Permissions saved. They apply the next time that person opens the desk.'); ctx.reload(); } });
   const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'btn ghost'; reset.textContent = 'Reset to preset'; m.form.querySelector('.row.end').prepend(reset);
   reset.addEventListener('click', async () => { try { await rpc('crm_reset_permissions', { p_user: u.user_id }); m.close(); toast('Reset to the preset.'); ctx.reload(); } catch (x) { toast(clean(x), true); } });
+}
+
+function waSummary(kind, d) {
+  const yes = (v) => (v ? 'yes' : 'NO');
+  if (kind === 'status') {
+    const s = d.secrets_set || {};
+    return [`Campaign key set: ${yes(s.campaign_key)}`, `Project password set: ${yes(s.project_password)}`, `Project id set: ${yes(s.project_id)}`, `Flow secret set: ${yes(s.flow_secret)}`, `Webhook secret set: ${yes(s.webhook_shared_secret)}`,
+      d.project ? `AiSensy project: ${d.project.status === 200 ? 'connected as ' + (d.project.name || 'project') : 'problem (' + d.project.status + ') ' + (d.project.note || '')}` : 'AiSensy project: not checked',
+      d.webhooks ? `Native webhooks: ${d.webhooks.subscriptions ? d.webhooks.subscriptions.length + ' subscribed' : 'could not read'}` : ''].filter(Boolean).join('\n');
+  }
+  if (kind === 'templates') return (d.templates || []).filter((t) => /^mxp_desk_/.test(t.name)).map((t) => `${t.name}: ${t.status}`).join('\n') || 'No desk templates found.';
+  if (kind === 'create_campaigns') return (d.results || []).map((r) => `${r.campaign}: ${r.skipped || (r.status === 200 ? 'created' : (r.response && r.response.message) || 'failed')}`).join('\n');
+  return JSON.stringify(d, null, 2);
 }
