@@ -13,7 +13,7 @@ test('the home hero asks "What do you ride?" and each answer opens WhatsApp with
 });
 test('the hero says plainly that nothing is charged until the quote is approved and when replies come', () => {
   const hero = home.slice(home.indexOf('<section class="hero">'), home.indexOf('</section>'));
-  assert.match(hero, /Nothing is charged until you approve/i); assert.match(hero, /8 AM to 9 PM/);
+  assert.match(hero, /Nothing is charged until you approve/i); assert.match(hero, /open 24\/7/i);
 });
 test('every price card has an Ask on WhatsApp link that names that service', () => {
   const cards = home.slice(home.indexOf('class="price-cards"'), home.indexOf('</ul>', home.indexOf('class="price-cards"')));

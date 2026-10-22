@@ -63,10 +63,11 @@ The plan has no webhook slots and its single flow runs only for test numbers, so
 
 ## Number profile and automatic replies (set up in AiSensy 2026-10-22)
 Desk number +91 80423 03061, plan PRO (monthly), quality High, messaging limit 250 a day.
-- **Profile (Dashboard, pencil next to the number):** logo (the shield icon, 640x640 from `assets/img/icon-512.png`), description "Doorstep bike service and roadside help across Bengaluru. A mechanic comes to you with a quote first, and you pay only after you say yes. Book on mechanixpro.in or message us here. Replies 8 AM to 9 PM, every day.", address "Doorstep service across Bengaluru, Karnataka, India", email hello@mechanixpro.in, website https://mechanixpro.in/, category Automotive.
-- **Automatic replies (Manage, Live Chat Settings):** both ON. Working hours Mon to Sun 8:00 AM to 9:00 PM (Asia/Kolkata).
+- **Profile (Dashboard, pencil next to the number):** logo (the shield icon, 640x640 from `assets/img/icon-512.png`), description "Doorstep bike service and roadside help across Bengaluru. A mechanic comes to you with a quote first, and you pay only after you say yes. Book on mechanixpro.in or message us here. Open 24/7.", address "Doorstep service across Bengaluru, Karnataka, India", email hello@mechanixpro.in, website https://mechanixpro.in/, category Automotive.
+- **Automatic replies (Manage, Live Chat Settings):** both ON. Working hours Mon to Sun 12:00 AM to 11:59 PM (Asia/Kolkata), open 24/7.
   - Welcome message, sent on a customer's first message during working hours: "Hi! Thanks for contacting Mechanix Pro, doorstep bike service in Bengaluru. To get your quote faster, please send your bike model, your area and what the bike needs. A team member will reply shortly."
-  - Off-hours message: "Hi! Thanks for contacting Mechanix Pro. Our team replies from 8 AM to 9 PM, every day. Please send your bike model, your area and what the bike needs, and we will reply as soon as we are back."
+  - Working hours: Mon–Sun 12:00 AM–11:59 PM (Asia/Kolkata), so the off-hours message effectively never fires.
+  - Off-hours message: "Hi! Thanks for contacting Mechanix Pro. We are open 24/7. Please send your bike model, your area and what the bike needs, and a team member will reply shortly."
 - **Still pending on the owner:** Meta Business Verification (FBM/KYC) and display-name approval. The display name shows as "Mechanix pro" until Meta approves it. Verification also raises the 250 a day limit.
 
 ## Getting customer messages to the desk without webhooks (built 2026-10-22)

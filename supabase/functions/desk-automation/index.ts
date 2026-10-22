@@ -49,9 +49,9 @@ Deno.serve(async (req) => {
     }
   } catch (e) { result.campaigns = { error: String((e as Error).message) }; await log('campaigns', false, { error: String((e as Error).message) }); }
 
-  /* 2. SLA alerts: business hours only, one email per run, each item once */
+  /* 2. SLA alerts: we are open 24/7, so these run around the clock; one email per run, each item once */
   try {
-    if (await getSetting(db, 'desk_sla_alerts', true) && hour >= 8 && hour < 21) {
+    if (await getSetting(db, 'desk_sla_alerts', true)) {
       const sla = Number(await getSetting(db, 'crm_sla_minutes', 15)) || 15;
       const now = Date.now();
       const { data: cand } = await db.from('leads').select('id,ref,name,last_customer_msg_at,wa_last_message_at,crm_owner').is('deleted_at', null).in('status', OPEN).eq('opted_out', false)

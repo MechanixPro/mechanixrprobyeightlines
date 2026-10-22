@@ -22,7 +22,7 @@ test('the tiles use the real prices, open ready WhatsApp messages, and send brea
 test('the home page answers the common worries in a short FAQ, in plain true words', () => {
   const faq = section('home-faq'); assert.ok(faq, 'faq section');
   assert.ok((faq.match(/<details>/g) || []).length >= 6);
-  for (const re of [/quote/i, new RegExp('₹' + Number(JSON.parse(read('src/site.json')).newCustomerFee).toLocaleString('en-IN')), /2 hours/, /30-day/, /OEM-certified/, /560001/, /8 AM to 9 PM/]) assert.match(faq, re, String(re));
+  for (const re of [/quote/i, new RegExp('₹' + Number(JSON.parse(read('src/site.json')).newCustomerFee).toLocaleString('en-IN')), /2 hours/, /30-day/, /OEM-certified/, /560001/, /open 24\/7/i]) assert.match(faq, re, String(re));
   assert.doesNotMatch(faq, /guarantee|best|cheapest|rated|stars?\b/i);
 });
 test('the new sections add no invented proof: no ratings, reviews, years in business or member plans', () => {

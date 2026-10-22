@@ -255,7 +255,7 @@ LEGAL = {
 <h2>How refunds are paid</h2><p>Refunds go to your original payment method through Razorpay within 5–7 working days of approval.</p>
 <h2>Contact</h2><p>Write to hello@mechanixpro.in or message us on WhatsApp with your booking reference.</p>'''),
  'contact': ('Contact Mechanix Pro', 'Reach Mechanix Pro for bookings, support and partnerships in Bengaluru.', '''
-<p class="muted" style="font-size:20px">Fastest: message us on WhatsApp. We reply from 8 AM to 9 PM, every day.</p>
+<p class="muted" style="font-size:20px">Fastest: message us on WhatsApp. We are open 24/7.</p>
 <p><a class="btn btn-wa" href="#" data-wa="Contact">Chat on WhatsApp</a></p>
 <div class="card" style="margin-top:20px"><div class="price-row"><span>Phone</span><b data-phone>+91 XXXXX XXXXX</b></div><div class="price-row"><span>Email</span><b>hello@mechanixpro.in</b></div><div class="price-row"><span>Areas</span><b>All of Bengaluru (560001 to 560110)</b></div></div>
 <!--FINDUS-->
@@ -714,7 +714,7 @@ def chat_block(campaign=''):
     return (f'<div class="chat" id="chat" data-price-service="{{{{text:basic}}}}" data-price-repair="{{{{text:repair}}}}"{camp}>'
             '<div class="chat-log" aria-live="polite"><div class="bubble in">Hi! I\'m the Mechanix Pro team. What do you ride?</div></div>'
             f'<div class="chat-opts">{chips}</div>'
-            '<p class="tiny reassure">Tap your bike and WhatsApp opens with a message ready. Nothing is charged until you approve your quote. Replies from 8 AM to 9 PM.</p></div>')
+            '<p class="tiny reassure">Tap your bike and WhatsApp opens with a message ready. Nothing is charged until you approve your quote. We are open 24/7.</p></div>')
 
 def offer_page(o):
     sid, slug = o['service'], o['slug']

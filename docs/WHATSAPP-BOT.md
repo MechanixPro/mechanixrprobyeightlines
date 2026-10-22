@@ -37,7 +37,7 @@ Prices come from the admin Prices tab. Check them before pasting these answers i
 - **My bike broke down right now.** Share your live location here. The roadside emergency visit starts at ₹699. A team member will reply.
 - **How do I pay?** Through a secure payment link (UPI, cards, wallets, net banking). We never ask for card numbers or OTPs on chat.
 - **Where is my booking?** Enter your reference and mobile number at https://mechanixpro.in/track/
-- **Opening hours?** We reply from 8 AM to 9 PM, every day.
+- **Opening hours?** We are open 24/7.
 - **Fleets, delivery riders, apartments?** Yes. See https://mechanixpro.in/fleet/ and https://mechanixpro.in/societies/
 - **Car service, e-challan, bike rental, OEM parts, insurance claims?** Coming soon. Join the waitlist at https://mechanixpro.in/coming-soon/
 
