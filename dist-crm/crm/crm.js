@@ -12,6 +12,7 @@ import * as garages from './pages/garages.js';
 import * as mechanics from './pages/mechanics.js';
 import * as knowledge from './pages/knowledge.js';
 import * as team from './pages/team.js';
+import * as inbox from './pages/inbox.js';
 import { newBooking, editBooking } from './pages/booking.js';
 import { sendPaymentLink } from './pages/payment.js';
 
@@ -29,6 +30,7 @@ const mask = (t) => esc(String(t ?? '').replace(/\b[A-Z]{5}[0-9]{4}[A-Z]\b/g, '�
 /* ---------- screens, in menu order. "page" is the permission that opens each one. ---------- */
 const SCREENS = [
   { id: 'dashboard', title: 'Dashboard', page: 'dashboard', mod: dashboard },
+  { id: 'inbox', title: 'Inbox', page: 'inbox', mod: inbox },
   { id: 'mine', title: 'My day', page: 'leads' },
   { id: 'unassigned', title: 'Unassigned', page: 'leads', action: 'take_leads' },
   { id: 'leads', title: 'Leads', page: 'leads', mod: leads },
@@ -41,7 +43,7 @@ const SCREENS = [
   { id: 'team', title: 'Team', page: 'team', mod: team },
 ];
 
-const S = { me: null, view: null, leads: [], q: '', open: null, detail: null, users: null, dispositions: [], counts: { unassigned: 0 }, busy: false, kind: 'note' };
+const S = { waiting: [], me: null, view: null, leads: [], q: '', open: null, detail: null, users: null, dispositions: [], counts: { unassigned: 0 }, busy: false, kind: 'note' };
 const can = (a) => !!S.me?.permissions?.actions?.[a];
 const pageOk = (p) => !!S.me?.permissions?.pages?.[p];
 const screens = () => SCREENS.filter((s) => pageOk(s.page) && (!s.action || can(s.action) || can('assign_leads')));
@@ -85,7 +87,7 @@ async function boot() {
   }
   $('#login').hidden = true; $('#app').hidden = false;
   $('#who').textContent = S.me.name + ' · Care Buddy' + (S.me.role === 'supervisor' ? ' (supervisor)' : '');
-  renderTabs();
+  renderTabs(); loadWaiting();
   rpc('crm_dispositions_list').then((d) => { S.dispositions = d; }).catch(() => {});
   const list = screens();
   if (!list.length) { $('#view').innerHTML = '<p class="alert pad">Your login has no pages yet. Ask your supervisor to turn some on.</p>'; return; }
@@ -95,11 +97,13 @@ async function boot() {
 }
 async function refresh() {
   if (S.busy || document.hidden || !S.me || !$('#sheet').hidden || $('.modal-back')) return;
+  loadWaiting();
   if (['mine', 'unassigned'].includes(S.view)) { try { S.me = await rpc('crm_me'); await loadList(); renderHeader(); renderBody(); } catch (e) { /* try again next minute */ } }
+  else if (S.view === 'inbox') { try { await go('inbox', true); } catch (e) { /* try again next minute */ } }
 }
 
 function renderTabs() {
-  $('#tabs').innerHTML = screens().map((s) => `<button type="button" data-view="${s.id}" aria-current="false">${esc(s.title)}${s.id === 'unassigned' ? ' <span class="badge" id="unBadge" hidden></span>' : ''}</button>`).join('');
+  $('#tabs').innerHTML = screens().map((s) => `<button type="button" data-view="${s.id}" aria-current="false">${esc(s.title)}${s.id === 'unassigned' ? ' <span class="badge" id="unBadge" hidden></span>' : ''}${s.id === 'inbox' ? ' <span class="badge" id="inBadge" hidden></span>' : ''}</button>`).join('');
   $$('#tabs [data-view]').forEach((b) => b.addEventListener('click', () => go(b.dataset.view)));
 }
 
@@ -111,13 +115,18 @@ async function go(view, keepScroll) {
   $$('#tabs [data-view]').forEach((b) => b.setAttribute('aria-current', b.dataset.view === view ? 'page' : 'false'));
   if (!keepScroll) $('#view').innerHTML = '<p class="muted pad">Loading…</p>';
   try {
-    S.me = await rpc('crm_me'); renderHeader();
+    S.me = await rpc('crm_me'); renderHeader(); loadWaiting();
     if (sc.mod) { const root = document.createElement('div'); await sc.mod.render(root, ctx); $('#view').replaceChildren(...root.childNodes); }
     else { await loadList(); renderBody(); }
   } catch (e) { $('#view').innerHTML = '<p class="err pad">' + esc(clean(e)) + '</p>'; }
   S.busy = false; if (y) window.scrollTo(0, y);
 }
 
+async function loadWaiting() {
+  if (!pageOk('inbox')) return;
+  try { S.waiting = await rpc('crm_replies_waiting'); } catch (e) { S.waiting = S.waiting || []; }
+  const b = $('#inBadge'); if (b) { b.textContent = S.waiting.length; b.hidden = !S.waiting.length; }
+}
 function renderHeader() {
   const m = S.me; if (!m) return;
   const pct = targetPercent(m.booked_today, m.daily_target);
@@ -140,6 +149,7 @@ function renderBody() {
   const late = S.leads.filter((l) => l.is_late || l.overdue).length;
   $('#view').innerHTML = `<div class="view-head"><div><h1>${titles[S.view]}</h1><p class="muted">${hints[S.view]}</p></div>
     <div class="view-tools"><input id="q" type="search" placeholder="Search name, phone or ref" value="${esc(S.q)}" aria-label="Search leads">${can('create_bookings') ? '<button class="btn primary" type="button" data-act="booking">+ Booking</button>' : ''}${can('add_leads') ? '<button class="btn" type="button" data-act="add">+ Lead</button>' : ''}</div></div>
+    ${S.waiting.length && pageOk('inbox') ? `<div class="alert" role="status"><b>${S.waiting.length}</b> ${S.waiting.length === 1 ? 'customer wrote' : 'customers wrote'} on WhatsApp and ${S.waiting.length === 1 ? 'is' : 'are'} waiting. <button class="btn sm" type="button" data-act="gotoInbox">Open the Inbox</button></div>` : ''}
     ${late ? `<div class="alert" role="status"><b>${late}</b> ${late === 1 ? 'lead needs' : 'leads need'} you right now.</div>` : ''}
     <div class="cards">${S.leads.length ? S.leads.map(card).join('') : `<div class="empty">${S.view === 'mine' ? 'Nothing open. Take a lead from <b>Unassigned</b>, or add one you got by phone.' : 'No unassigned leads right now.'}</div>`}</div>`;
   const q = $('#q'); if (q) q.addEventListener('input', debounce(async () => { S.q = q.value.trim(); await loadList(); renderBody(); const n = $('#q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 350));
@@ -152,7 +162,7 @@ function card(l) {
   return `<article class="lead-card tone-${t.tone}" data-id="${l.id}">
     <div class="lc-top"><div><h2>${esc(l.name)}</h2><p class="muted small">${esc([l.bike, l.service_name, l.area].filter(Boolean).join(' · ') || 'No details yet')}</p></div><span class="chip st-${l.status}">${STATUS_LABEL[l.status]}</span></div>
     <div class="lc-meta"><span class="chip soft">${esc(src)}${camp ? ' · ' + esc(camp) : ''}</span><span class="small muted">${ago(l.created_at)}</span>${l.crm_owner && !mine ? `<span class="small muted">with ${esc(l.owner_name || 'a colleague')}</span>` : ''}</div>
-    <div class="timer t-${t.tone}">${esc(t.label)}</div>
+    <div class="timer t-${t.tone}">${esc(t.label)}</div>${S.waiting.some((w) => w.id === l.id) ? '<div class="timer t-late">Customer replied on WhatsApp. Answer now</div>' : ''}
     <div class="lc-actions"><a class="btn call" href="${telUrl(l.phone)}" data-act="call" data-id="${l.id}">Call</a>
       <a class="btn wa" href="${waUrl(l.phone, firstMessage(l, S.me.name))}" target="_blank" rel="noopener" data-act="wa" data-id="${l.id}">WhatsApp</a>
       ${take ? `<button class="btn primary" type="button" data-act="take" data-id="${l.id}">Take lead</button>` : ''}<button class="btn ghost" type="button" data-act="open" data-id="${l.id}">Open</button></div></article>`;
@@ -214,7 +224,8 @@ async function refreshChat(forceSync = true) {
     const canAct = can('edit_leads') && mineOrBoss && !!l.crm_owner;
     const wrote = chatMeta?.last_active || c.last_customer_msg_at;
     const open = !!(chatMeta ? chatMeta.window_open : c.window_open);
-    const url = chatMeta?.chat_url;
+    if (S.links === undefined) { try { S.links = await rpc('crm_wa_links'); } catch (e) { S.links = null; } }
+    const url = S.links?.live_chat || chatMeta?.chat_url;
     const state = c.opted_out ? '<p class="alert">This customer asked not to get messages.</p>'
       : wrote ? `<p class="small ${open ? '' : 'muted'}">Customer last wrote ${when(wrote)}. ${open ? 'You can reply now.' : 'More than 24 hours ago, so WhatsApp allows only a template message.'} Read their words in AiSensy Live Chat.</p>`
         : '<p class="small muted">No reply from this customer on the desk number yet, so WhatsApp allows only a template message.</p>';
@@ -321,6 +332,7 @@ document.addEventListener('click', async (e) => {
     if (act === 'add') return addDialog();
     if (act === 'booking') return newBooking(ctx);
     if (act === 'editBooking') return editBooking(ctx, S.detail.lead);
+    if (act === 'gotoInbox') return go('inbox');
     if (act === 'chatRefresh') { await refreshChat(true); return toast('Checked.'); }
     if (act === 'tplFollowup') return await sendTemplate('followup');
     if (act === 'tplRating') return await sendTemplate('rating');

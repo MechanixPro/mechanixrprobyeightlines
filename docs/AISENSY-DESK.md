@@ -68,3 +68,17 @@ Desk number +91 80423 03061, plan PRO (monthly), quality High, messaging limit 2
   - Welcome message, sent on a customer's first message during working hours: "Hi! Thanks for contacting Mechanix Pro, doorstep bike service in Bengaluru. To get your quote faster, please send your bike model, your area and what the bike needs. A team member will reply shortly."
   - Off-hours message: "Hi! Thanks for contacting Mechanix Pro. Our team replies from 8 AM to 9 PM, every day. Please send your bike model, your area and what the bike needs, and we will reply as soon as we are back."
 - **Still pending on the owner:** Meta Business Verification (FBM/KYC) and display-name approval. The display name shows as "Mechanix pro" until Meta approves it. Verification also raises the 250 a day limit.
+
+## Getting customer messages to the desk without webhooks (built 2026-10-22)
+Webhooks are not in the PRO plan (they start at Premium) and the one flow runs only for test numbers, so incoming messages are tracked by asking AiSensy, which the plan allows:
+- **Schedule:** a database job (`pg_cron`, name `desk-poll-replies`) calls the function `desk-poll-replies` every 3 minutes between about 7:30 AM and 10:30 PM IST. It checks the AiSensy contact record of every open lead from the last 14 days (up to 120) and saves when the customer last wrote and when the last message by either side was. It uses the secret `DESK_CRON_SECRET`.
+- **Desk Inbox:** `crm_replies_waiting()` lists leads where the customer wrote last and nobody has answered (no call or WhatsApp logged in the desk after it, and no reply in AiSensy more than 90 seconds after it, because a reply inside 90 seconds is the automatic welcome message). The Inbox tab shows it with a badge, My day shows a banner, and cards are marked. Open a lead to reply from the lead sheet.
+- **Limits:** the words customers type are readable only in AiSensy Live Chat (link in the Inbox and lead sheet). A number that has never been a lead appears only in Live Chat until a Care Buddy adds it with + Lead.
+- **Context for Live Chat:** when a lead sheet is opened, the desk writes the bike, service, PIN code and slot onto the customer's AiSensy contact (attributes `vehicle_model`, `service_need`, `location_pincode`, `preferred_slot`), and creates the contact if the customer gave WhatsApp consent.
+- **To stop the job:** `select cron.unschedule('desk-poll-replies');`
+
+## Other AiSensy features switched on (2026-10-22)
+- Canned messages for Care Buddies in Live Chat: Ask bike details, Ask day and time, Ask location, Payment link coming, Roadside safety first, Thank you.
+- Tags (category "Desk stage"): New enquiry, Quote sent, Booked, Needs callback, Roadside.
+- Opt-out and opt-in confirmation replies switched on (keywords Stop and Allow); API campaigns skip opted-out contacts.
+- Already on: sound and push notifications for new chats. Team: 5 free agent logins are unused; add each Care Buddy under Manage, Team when they join.

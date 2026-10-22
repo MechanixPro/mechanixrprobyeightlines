@@ -92,5 +92,28 @@ test('the contact lookup sends the password in a header and treats 404 as no con
   const f = async (url, init) => { seen = { url, h: init.headers }; return new Response('', { status: 404 }); };
   const r = await fetchContact({ projectId: 'abc123def456', password: 'PWD', phone: '98765 43210' }, f);
   assert.match(seen.url, /\/project\/abc123def456\/contact\?action=FetchContact&mobile_number=919876543210$/); assert.equal(seen.h['X-AiSensy-Project-API-Pwd'], 'PWD');
-  assert.deepEqual(r, { ok: true, state: { found: false, lastActive: null, windowOpen: false, intervened: false, name: '' } });
+  assert.deepEqual(r, { ok: true, state: { id: '', found: false, lastActive: null, lastMessage: null, windowOpen: false, intervened: false, name: '' } });
+});
+
+test('the contact record also gives the time of the last message by either side', () => {
+  const now = Date.now(); const s = parseContact({ id: 'x', phone_number: '9', last_active: now - 600e3, last_message: new Date(now - 60e3).toISOString() }, now);
+  assert.equal(s.lastMessage, now - 60e3); assert.equal(s.lastActive, now - 600e3);
+});
+
+import { leadAttributes, patchContact, createContact } from '../supabase/functions/_shared/aisensy-contact.ts';
+test('only filled lead details become contact attributes', () => {
+  assert.deepEqual(leadAttributes({ bike: 'Honda Activa', service: '', pincode: '560068', slot: null }), { vehicle_model: 'Honda Activa', location_pincode: '560068' });
+  assert.deepEqual(leadAttributes({}), {});
+});
+test('patching a contact sends attributes with the password header and skips an empty patch', async () => {
+  let seen = null; const f = async (url, init) => { seen = { url, init }; return new Response('{}', { status: 200 }); };
+  const r = await patchContact({ projectId: 'abc123def456', password: 'PWD', contactId: 'c0ntact123', attributes: { vehicle_model: 'Activa' } }, f);
+  assert.equal(r.ok, true); assert.equal(seen.init.method, 'PATCH'); assert.match(seen.url, /\/contact\/c0ntact123$/); assert.equal(JSON.parse(seen.init.body).attributes.vehicle_model, 'Activa');
+  seen = null; assert.deepEqual(await patchContact({ projectId: 'abc123def456', password: 'PWD', contactId: 'c0ntact123', attributes: {} }, f), { ok: true }); assert.equal(seen, null);
+});
+test('creating a contact sends a 91 number and treats an existing contact as fine', async () => {
+  let body; const f = async (url, init) => { body = JSON.parse(init.body); return new Response('{}', { status: 409 }); };
+  assert.deepEqual(await createContact({ projectId: 'abc123def456', password: 'p', phone: '98765 43210', name: 'Asha' }, f), { ok: true });
+  assert.deepEqual(body, { name: 'Asha', mobile_number: '919876543210' });
+  assert.equal((await createContact({ projectId: 'abc123def456', password: 'p', phone: '123', name: 'x' }, f)).ok, false);
 });
