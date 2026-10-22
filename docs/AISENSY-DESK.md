@@ -46,3 +46,8 @@ Needed for the desk Inbox. Ask AiSensy whether incoming messages and delivery st
 Submitted for approval on the desk number: `mxp_desk_payment_link` and `mxp_desk_rating` (Utility), `mxp_desk_followup` (Marketing). They start as PENDING; AiSensy rejects a campaign for a template that is not approved yet.
 In the desk, Team, WhatsApp section (supervisors): **Template status** shows approval, then **Create campaigns** creates the API campaign for each approved template. Template text lives in `supabase/functions/_shared/desk-templates.ts` (sample text uses [Label] brackets, which is what AiSensy accepts).
 Project id: `AISENSY_PROJECT_ID` (secret). Native webhooks still need a Custom App created in the AiSensy dashboard; the flow endpoint `aisensy-inbound` covers incoming messages until then.
+
+## The incoming-message flow (built in AiSensy 2026-10-22)
+Plan facts: no native webhook slots (they are a paid add-on), 1 flow in the quota, API Request actions available.
+Flow **Desk** (Flows, Flow Builder): trigger = regex `.+` (any text), then an **API Request** step: POST to `https://mejdxsbpyscujpvbwvmg.supabase.co/functions/v1/aisensy-inbound`, header `x-aisensy-secret` (value = secret `AISENSY_WEBHOOK_SECRET`), body `{"phone":"$mobilenumber","name":"$name"}`. AiSensy's attribute list has no variable for the customer's message text, so the desk shows "New WhatsApp message. Open the AiSensy chat to read it." and the Care Buddy reads the words in AiSensy Live Chat (or asks the customer in the desk chat).
+The flow sends no reply. Keep it Active. If a second flow is ever needed it needs a purchased flow slot.
