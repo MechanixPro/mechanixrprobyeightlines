@@ -1,6 +1,6 @@
 # AiSensy number for the Care Buddy desk
 
-The desk has its own WhatsApp number on AiSensy. It is **different** from the number the website, ads and AI replies use (that one stays on Meta's Cloud API, so nothing there changes).
+The desk has its own WhatsApp number on AiSensy: **+91 80423 03061** (918042303061), active on AiSensy since 2026-10-22. It is **different** from the number the website, ads and AI replies use (that one stays on Meta's Cloud API, so nothing there changes).
 
 ## Outbound (desk to customer): built, waiting for the key
 - Edge function `desk-payment-link` creates the Razorpay link and sends it through AiSensy's Campaign API.
