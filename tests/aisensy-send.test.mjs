@@ -38,3 +38,38 @@ test('an incoming message needs a real mobile number and some text', () => {
 test('markup characters are stripped from an incoming message', () => {
   assert.equal(cleanAisensyInbound({ phone: '9876543210', message: 'a<b>c' }).value.text, 'abc');
 });
+
+import { inboundFromNotification } from '../supabase/functions/_shared/aisensy.ts';
+test('a native webhook message from a user becomes an inbound message', () => {
+  const m = inboundFromNotification({ topic: 'message.sender.user', data: { message: { phone_number: '919876543210', message_type: 'TEXT', message_content: { text: { body: 'Need a service tomorrow' } }, messageId: 'wamid.ABC' } } });
+  assert.deepEqual(m, { phone: '9876543210', name: '', text: 'Need a service tomorrow', id: 'as:wamid.ABC' });
+});
+test('other webhook topics and bad numbers are ignored', () => {
+  assert.equal(inboundFromNotification({ topic: 'message.status.updated', data: {} }), null);
+  assert.equal(inboundFromNotification({ topic: 'message.sender.user', data: { message: { phone_number: '12345' } } }), null);
+});
+test('a message with no text still records its type', () => {
+  assert.equal(inboundFromNotification({ topic: 'message.sender.user', data: { message: { phone_number: '9876543210', message_type: 'IMAGE', message_content: { image: {} } } } }).text, '[image]');
+});
+
+import { buildSessionText, sendSessionText } from '../supabase/functions/_shared/aisensy-project.ts';
+test('a session text goes to the project messages path with a 91 number', () => {
+  const r = buildSessionText({ projectId: 'abc123def456', phone: '98765 43210', text: ' Hello ' });
+  assert.equal(r.ok, true); assert.equal(r.path, '/project/abc123def456/messages');
+  assert.deepEqual(r.body, { to: '919876543210', type: 'text', recipient_type: 'individual', text: { body: 'Hello' } });
+});
+test('a session text needs a project id, a mobile number and some text', () => {
+  assert.equal(buildSessionText({ projectId: '', phone: '9876543210', text: 'x' }).ok, false);
+  assert.equal(buildSessionText({ projectId: 'abc123def456', phone: '1', text: 'x' }).ok, false);
+  assert.equal(buildSessionText({ projectId: 'abc123def456', phone: '9876543210', text: '  ' }).ok, false);
+});
+test('the project password goes in the header and never into an error', async () => {
+  let seen;
+  const f = async (url, init) => { seen = init.headers; return new Response('bad PWD123', { status: 401 }); };
+  const r = await sendSessionText({ projectId: 'abc123def456', password: 'PWD123', phone: '9876543210', text: 'hi' }, f);
+  assert.equal(seen['X-AiSensy-Project-API-Pwd'], 'PWD123'); assert.equal(r.ok, false); assert.doesNotMatch(r.error, /PWD123/);
+});
+test('a good send returns the message id', async () => {
+  const r = await sendSessionText({ projectId: 'abc123def456', password: 'p', phone: '9876543210', text: 'hi' }, async () => new Response(JSON.stringify({ messages: [{ id: 'wamid.X' }] }), { status: 200 }));
+  assert.deepEqual(r, { ok: true, id: 'wamid.X' });
+});

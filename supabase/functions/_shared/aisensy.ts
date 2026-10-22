@@ -36,3 +36,16 @@ export function cleanAisensyInbound(b: Record<string, unknown>):
   const id = strip(pick('message_id', 'messageId', 'wamid', 'id'), 120);
   return { ok: true, value: { phone, name: strip(pick('name', 'userName', 'profileName', 'customer_name'), 60), text, id: id ? 'as:' + id : null } };
 }
+
+/** Reads an AiSensy native webhook notification (topic message.sender.user) into the same shape as a flow message. Other topics return null. */
+export function inboundFromNotification(n: any): { phone: string; name: string; text: string; id: string | null } | null {
+  if (n?.topic !== 'message.sender.user') return null;
+  const m = n?.data?.message ?? {};
+  const phone = String(m.phone_number ?? '').replace(/\D/g, '').slice(-10);
+  if (!/^[6-9]\d{9}$/.test(phone)) return null;
+  const c = m.message_content ?? {};
+  const raw = typeof c === 'string' ? c : c.text?.body ?? c.body ?? c.text ?? c.caption ?? c.interactive?.button_reply?.title ?? c.interactive?.list_reply?.title ?? c.button?.text ?? '';
+  const text = strip(typeof raw === 'string' ? raw : '', 4000) || '[' + String(m.message_type ?? 'message').toLowerCase() + ']';
+  const id = strip(m.messageId ?? m.id ?? '', 120);
+  return { phone, name: '', text, id: id ? 'as:' + id : null };
+}

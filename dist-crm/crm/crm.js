@@ -1,7 +1,7 @@
 // Mechanix Desk for Care Buddies. The shell: sign in, navigation by permission, "My day" and the lead sheet.
 // Every other screen lives in ./pages/. Every read and write goes through database functions that check the person's permissions.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
-import { OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent } from './crm-rules.js';
+import { hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent } from './crm-rules.js';
 import { setClient, rpc, $, $$, esc, rupee, when, toast, clean, debounce, modal, field } from './ui.js';
 import * as dashboard from './pages/dashboard.js';
 import * as leads from './pages/leads.js';
@@ -190,9 +190,38 @@ function renderSheet() {
     ${canAct && l.crm_owner && (moves.length || OPEN.includes(l.status)) ? logForm(l, moves) : (BOOKED.includes(l.status) ? '<p class="alert good">This booking is confirmed.</p>' : '')}
     ${can('assign_leads') ? assignBox(l) : ''}
     <h3>History</h3><ul class="timeline">${d.activities.length ? d.activities.map((a) => `<li><b>${esc(KIND_LABEL[a.kind] || a.kind)}</b> <span class="muted small">${esc(a.actor || 'System')} · ${when(a.created_at)}</span>${a.body ? '<p>' + mask(a.body) + '</p>' : ''}</li>`).join('') : '<li class="muted">Nothing logged yet.</li>'}</ul>
-    ${d.messages.length ? `<h3>WhatsApp chat</h3><ul class="chat">${d.messages.map((m) => `<li class="${m.direction === 'in' ? 'in' : 'out'}"><p>${mask(m.body)}</p><span class="small muted">${m.sender === 'ai' ? 'Auto reply' : m.direction === 'in' ? 'Customer' : 'Us'} · ${when(m.created_at)}</span></li>`).join('')}</ul>` : ''}`;
+    <h3>WhatsApp chat</h3><div id="chat" class="chat-box"><p class="muted small">Loading chat…</p></div>`;
   if (S.kind) { const k = $(`#logForm [name=kind][value=${S.kind}]`); if (k) k.checked = true; }
   syncLogForm();
+  refreshChat();
+}
+
+/* ---------- live WhatsApp chat in the lead sheet ---------- */
+let chatTimer = null;
+async function refreshChat(keepDraft = true) {
+  const box = $('#chat'); const id = S.open; if (!box || !id) return;
+  try {
+    const c = await rpc('crm_chat', { p_lead: id });
+    if (S.open !== id || !$('#chat')) return;
+    const l = S.detail.lead, mineOrBoss = l.crm_owner === S.me.user_id || can('assign_leads');
+    const draft = keepDraft ? ($('#replyText')?.value || '') : '';
+    const canReply = can('edit_leads') && mineOrBoss && !!l.crm_owner;
+    const state = c.opted_out ? '<p class="alert">This customer asked not to get messages.</p>'
+      : !c.window_open ? `<p class="small muted">${c.last_customer_msg_at ? 'More than 24 hours since the customer wrote, so WhatsApp allows only a template message now.' : 'The customer has not written yet, so WhatsApp allows only a template message.'}</p>` : '';
+    box.innerHTML = `${c.messages.length ? `<ul class="chat">${c.messages.map((m) => `<li class="${m.direction === 'in' ? 'in' : 'out'}"><p>${mask(m.body)}</p><span class="small muted">${m.sender === 'ai' ? 'Auto reply' : m.direction === 'in' ? 'Customer' : 'Us'} · ${when(m.created_at)}</span></li>`).join('')}</ul>` : '<p class="muted small">No messages yet.</p>'}
+      ${state}${canReply && c.window_open && !c.opted_out ? `<form id="replyForm" class="reply"><label class="label" for="replyText">Reply on WhatsApp</label><textarea id="replyText" rows="2" maxlength="1000" placeholder="Type your reply. Never share Aadhaar, PAN, bank or card numbers."></textarea><p class="err" id="replyErr" role="alert"></p><button class="btn wa wide" type="submit" id="replySend">Send</button></form>` : ''}`;
+    const t = $('#replyText'); if (t && draft) t.value = draft;
+    const list = box.querySelector('.chat'); if (list) list.scrollTop = list.scrollHeight;
+  } catch (e) { box.innerHTML = `<p class="muted small">${esc(clean(e))}</p>`; }
+  clearTimeout(chatTimer); chatTimer = setTimeout(() => { if (!$('#sheet').hidden && S.open === id && document.activeElement?.id !== 'replyText') refreshChat(); else if (!$('#sheet').hidden && S.open === id) chatTimer = setTimeout(() => refreshChat(), 8000); }, 12000);
+}
+async function sendReply() {
+  const t = $('#replyText'), text = t.value.trim(); if (!text) { $('#replyErr').textContent = 'Write a message first.'; return; }
+  if (hasPii(text)) { $('#replyErr').textContent = 'Remove Aadhaar, PAN, bank or card numbers.'; return; }
+  $('#replySend').disabled = true; $('#replyErr').textContent = '';
+  const { data, error } = await sb.functions.invoke('desk-reply', { body: { lead_id: S.open, text } });
+  if (error || data?.error) { let msg = data?.error; if (!msg && error?.context?.json) { try { msg = (await error.context.json()).error; } catch (x) { /* ignore */ } } $('#replyErr').textContent = msg || 'Could not send.'; $('#replySend').disabled = false; return; }
+  t.value = ''; toast('Sent on WhatsApp.'); await refreshChat(false);
 }
 function logForm(l, moves) {
   const def = new Date(Date.now() + 86400e3); def.setHours(10, 0, 0, 0);
@@ -281,7 +310,7 @@ document.addEventListener('click', async (e) => {
   } catch (err) { toast(clean(err), true); }
 });
 document.addEventListener('change', (e) => { if (e.target.matches('#status, [name=kind], #disp')) syncLogForm(); });
-document.addEventListener('submit', (e) => { if (e.target.id === 'logForm') { e.preventDefault(); saveLog(); } });
+document.addEventListener('submit', (e) => { if (e.target.id === 'logForm') { e.preventDefault(); saveLog(); } if (e.target.id === 'replyForm') { e.preventDefault(); sendReply(); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('.modal-back') && !$('#sheet').hidden) closeSheet(); });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 setInterval(() => { if (S.me && !document.hidden && ['mine', 'unassigned'].includes(S.view) && $('#sheet').hidden && !$('.modal-back') && document.activeElement?.id !== 'q') renderBody(); }, 30e3);

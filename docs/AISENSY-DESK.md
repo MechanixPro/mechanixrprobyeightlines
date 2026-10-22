@@ -28,3 +28,16 @@ Auth header `X-AiSensy-Project-API-Pwd: <password>`; the first value sent become
 
 ## Inbound by webhook: waiting on AiSensy
 Needed for the desk Inbox. Ask AiSensy whether incoming messages and delivery status can be forwarded to a webhook URL we control, and on which plan. Bot-flow bookings already work through `aisensy-lead` (secret `AISENSY_WEBHOOK_SECRET`, header `x-aisensy-secret`).
+
+## Project API facts (read from AiSensy's docs, 2026-10-22)
+- Base `https://apis.aisensy.com/project-apis/v1/`, header `X-AiSensy-Project-API-Pwd` (the Custom App password; we store it as `AISENSY_PROJECT_KEY`).
+- Send a session (free text, within 24 hours of the customer's last message): `POST /project/{project_id}/messages` with `{to, type:"text", recipient_type:"individual", text:{body}}`. Needs the secret `AISENSY_PROJECT_ID`.
+- Native webhooks come from a **Custom App** created in the AiSensy dashboard (key, password and shared secret; up to 5 subscriptions). Topic `message.sender.user` is a customer message. Signature header `X-AiSensy-Signature` = HMAC SHA-256 of the body with the shared secret.
+
+## Functions
+| Function | Purpose | Secrets |
+|---|---|---|
+| `desk-payment-link` | first payment link, sent with a template campaign | `AISENSY_API_KEY`, `AISENSY_CAMPAIGN_PAYMENT` |
+| `desk-reply` | a Care Buddy's free-text reply (24-hour window) | `AISENSY_PROJECT_ID`, `AISENSY_PROJECT_KEY` |
+| `aisensy-inbound` | customer messages from an AiSensy flow API step | `AISENSY_WEBHOOK_SECRET` |
+| `aisensy-webhook` | customer messages from a native Custom App webhook | `AISENSY_SHARED_SECRET` |
