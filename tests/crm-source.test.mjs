@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { cleanCrmUser } from '../supabase/functions/_shared/crm-user.ts';
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
-const js = read('crm/crm.js'), html = read('crm/index.html'), sql = read('supabase/migrations/20261108000000_crm.sql'), build = read('scripts/build_crm.sh');
+const pages = readdirSync(new URL('../crm/pages/', import.meta.url)).filter((f) => f.endsWith('.js')).map((f) => read('crm/pages/' + f));
+const js = [read('crm/crm.js'), read('crm/ui.js'), ...pages].join('\n'), html = read('crm/index.html'), sql = read('supabase/migrations/20261108000000_crm.sql'), build = read('scripts/build_crm.sh');
 
 test('the desk never reads or writes tables directly: only database functions and the user function', () => {
   assert.doesNotMatch(js, /\.from\(\s*['"`]/);
-  assert.match(js, /rpc\('crm_log'|rpc\('crm_log',/); assert.match(js, /functions\.invoke\('crm-user'/);
+  assert.match(js, /rpc\('crm_log'/); assert.match(js, /functions\.invoke\('crm-user'/);
 });
 test('no secrets in the desk and no inline scripts (the CSP forbids them)', () => {
   assert.doesNotMatch(js + html, /service_role|SERVICE_ROLE|sk_live|rzp_|AISENSY/i);
@@ -44,4 +45,34 @@ test('a new team member needs a name, a valid email and a known role', () => {
   assert.equal(cleanCrmUser({ name: 'A', email: 'a@b.co', role: 'sales' }).ok, false);
   assert.equal(cleanCrmUser({ name: 'Asha Rao', email: 'nope', role: 'sales' }).ok, false);
   assert.equal(cleanCrmUser({ name: 'Asha Rao', email: 'a@b.co', role: 'owner' }).ok, false);
+});
+
+const allSql = readdirSync(new URL('../supabase/migrations/', import.meta.url)).filter((f) => f.endsWith('.sql')).map((f) => read('supabase/migrations/' + f)).join('\n');
+test('every database function the desk calls exists in a migration', () => {
+  const names = new Set([...js.matchAll(/rpc\('([a-z_]+)'/g)].map((m) => m[1]));
+  assert.ok(names.size > 40, 'found ' + names.size);
+  for (const n of names) assert.match(allSql, new RegExp('function public\\.' + n + '\\('), n);
+});
+test('the desk screens each have a permission page and the menu hides what a login cannot open', () => {
+  for (const p of ['dashboard', 'leads', 'rsa', 'tickets', 'garage_visits', 'garages', 'mechanics', 'knowledge', 'team']) assert.match(js, new RegExp("page: '" + p + "'"), p);
+  assert.match(js, /screens\(\)\.find/); assert.match(js, /pageOk\(s\.page\)/);
+});
+test('the leads table has the ten agreed columns in order', () => {
+  const cols = ['Lead', 'Mobile number', 'Source', 'Stage', 'Owner', 'Disposition', 'Sub disposition', 'Follow-up', 'Created date', 'Last activity date'];
+  const pos = cols.map((c) => read('crm/pages/leads.js').indexOf('<th>' + c + '</th>'));
+  assert.ok(pos.every((p) => p > 0), JSON.stringify(pos));
+  assert.deepEqual([...pos].sort((a, b) => a - b), pos);
+});
+test('every function in the desk migrations is security definer and closed to the public', () => {
+  for (const file of ['20261110000000_desk_permissions_leads', '20261111000000_desk_garages_mechanics_bookings', '20261112000000_desk_tickets_rsa_knowledge', '20261113000000_desk_booking_catalog', '20261114000000_desk_pickers']) {
+    const m = read('supabase/migrations/' + file + '.sql');
+    const defs = m.match(/create or replace function public\.crm_[a-z_]+\([^]*?\$\$;/g) || [];
+    assert.ok(defs.length > 0, file);
+    for (const d of defs) {
+      const name = d.match(/function public\.(crm_[a-z_]+)/)[1];
+      if (['crm_pages', 'crm_actions', 'crm_preset', 'crm_preset_for', 'crm_pipeline_next', 'crm_suggest_hub', 'crm_clean_text', 'crm_touch'].includes(name)) continue; // pure helpers that read no table
+      if (!/security definer/.test(d)) assert.fail(file + ': ' + name + ' is not security definer');
+    }
+    assert.match(m, /revoke all on function/); assert.match(m, /grant execute on function/);
+  }
 });

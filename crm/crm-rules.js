@@ -13,7 +13,7 @@ export function sourceName(key) {
     if (['fb', 'facebook', 'meta', 'ig'].includes(k)) return 'Meta';
   return k ? k.charAt(0).toUpperCase() + k.slice(1) : 'Unknown';
 }
-export const KIND_LABEL = { call: 'Call', whatsapp: 'WhatsApp', note: 'Note', status: 'Status', assign: 'Assigned', create: 'Added' };
+export const KIND_LABEL = { call: 'Call', whatsapp: 'WhatsApp', note: 'Note', status: 'Status', assign: 'Assigned', create: 'Added', edit: 'Edited', delete: 'Deleted', restore: 'Restored' };
 
 /** Statuses an agent may move a lead to from its current one: forward steps, or Lost. A lost lead is reopened only by a supervisor. */
 export function nextStatuses(current, role) {
