@@ -30,5 +30,6 @@ Deno.serve(async (req) => {
     }
   };
   await Promise.all([worker(), worker(), worker(), worker()]);
+  await db.from('settings').upsert({ key: 'desk_poll_heartbeat', value: { at: new Date().toISOString(), checked, updated, failed } }, { onConflict: 'key' }).then(() => {}, () => {});
   return json(req, { ok: true, checked, updated, failed });
 });

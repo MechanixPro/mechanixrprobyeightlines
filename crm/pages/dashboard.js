@@ -5,7 +5,7 @@ const iso = (d) => d.toISOString().slice(0, 10);
 const range = { from: null, to: null };
 
 export async function render(root, ctx) {
-  const d = await rpc('crm_dashboard', { p_from: range.from, p_to: range.to });
+  const [d, rt] = await Promise.all([rpc('crm_dashboard', { p_from: range.from, p_to: range.to }), rpc('crm_rating_summary', { p_from: range.from, p_to: range.to }).catch(() => null)]);
   const L = d.leads, T = d.targets, from = range.from || iso(new Date(d.range.from));
   const card = (n, t, tone = '') => `<div class="stat ${tone}"><b>${n}</b><span>${t}</span></div>`;
   const target = (title, x) => `<div class="stat wide"><span>${title}</span><div class="two-num"><b>${x.daily_done}</b><small>of ${x.daily_target} today</small></div>${bar(x.daily_done, x.daily_target)}
@@ -14,6 +14,7 @@ export async function render(root, ctx) {
     `<label class="small muted">From <input id="dFrom" type="date" value="${from}"></label><label class="small muted">To <input id="dTo" type="date" value="${range.to || ''}"></label>`)}
     <div class="stat-row">
       ${card(L.total, 'Leads in range')}${card(L.won, `Won (${L.won_pct}%)`, 'good')}${card(L.lost, `Lost (${L.lost_pct}%)`)}${card(d.unassigned, 'Unassigned and open', d.unassigned ? 'bad' : '')}
+      ${rt && rt.count ? card(`${rt.avg}/5`, `Average rating (${rt.count} ${rt.count === 1 ? 'rating' : 'ratings'}${rt.low ? ', ' + rt.low + ' low' : ''})`, rt.avg >= 4 ? 'good' : rt.avg < 3.5 ? 'bad' : '') : ''}
       ${ctx.page('inbox') ? card(d.chats.unreplied, `Chats waiting of ${d.chats.total}`, d.chats.unreplied ? 'bad' : '') : ''}
     </div>
     <div class="stat-row">${target('Team targets', T.team)}${target('Your targets', T.me)}</div>

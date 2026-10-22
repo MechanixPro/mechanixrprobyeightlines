@@ -3,6 +3,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { adminDb, env, json, corsHeaders } from '../_shared/util.ts';
 import { sendCampaign } from '../_shared/aisensy-send.ts';
+import { ratingToken, ratingUrl } from '../_shared/rating.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
@@ -17,6 +18,7 @@ Deno.serve(async (req) => {
   if (ce) return json(req, { error: ce.message }, ce.code === '42501' ? 403 : 400);
   if (ctx.opted_out) return json(req, { error: 'This customer asked not to get messages' }, 400);
   if (!env('AISENSY_API_KEY')) return json(req, { error: 'WhatsApp sending is not connected yet' }, 503);
+  if (kind === 'rating' && !env('RATING_SECRET')) return json(req, { error: 'Ratings are not set up yet' }, 503);
   const db = adminDb();
   const { data: lead } = await db.from('leads').select('id,ref,name,phone,status').eq('id', ctx.lead_id).maybeSingle();
   if (!lead) return json(req, { error: 'Lead not found' }, 404);
@@ -25,13 +27,15 @@ Deno.serve(async (req) => {
   const { data: me } = await userClient.rpc('crm_me');
   const first = String(lead.name).split(' ')[0];
   const agent = String(me?.name ?? 'the team').split(' ')[0];
-  const campaign = kind === 'followup' ? env('AISENSY_CAMPAIGN_FOLLOWUP', 'mxp_desk_followup') : env('AISENSY_CAMPAIGN_RATING', 'mxp_desk_rating');
-  const params = kind === 'followup' ? [first, agent] : [first, lead.ref];
+  const campaign = kind === 'followup' ? env('AISENSY_CAMPAIGN_FOLLOWUP', 'mxp_desk_followup') : env('AISENSY_CAMPAIGN_RATING', 'mxp_desk_rating_link');
+  const link = ratingUrl(env('SITE_URL', 'https://mechanixpro.in'), lead.ref, await ratingToken(env('RATING_SECRET'), lead.ref));
+  const params = kind === 'followup' ? [first, agent] : [first, lead.ref, link];
   const r = await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: campaign, phone: lead.phone, name: lead.name, params, source: 'mechanix-desk' });
   if (!r.ok) return json(req, { error: r.error }, 400);
   const text = kind === 'followup' ? 'Follow-up message sent on WhatsApp' : 'Rating request sent on WhatsApp';
   await db.from('messages').insert({ lead_id: lead.id, phone: lead.phone, direction: 'out', sender: 'staff', body: text });
   await db.from('crm_activities').insert({ lead_id: lead.id, actor: user.id, kind: 'whatsapp', body: text });
   await db.from('leads').update({ crm_first_contact_at: new Date().toISOString() }).eq('id', lead.id).is('crm_first_contact_at', null);
+  if (kind === 'rating') await db.from('leads').update({ rating_requested_at: new Date().toISOString() }).eq('id', lead.id);
   return json(req, { ok: true });
 });

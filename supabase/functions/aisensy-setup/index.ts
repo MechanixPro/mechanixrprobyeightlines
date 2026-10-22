@@ -49,6 +49,13 @@ Deno.serve(async (req) => {
     const r = await fetchContact({ projectId: env('AISENSY_PROJECT_ID'), password: env('AISENSY_PROJECT_KEY'), phone: String(b.phone ?? '') });
     return json(req, r.ok ? { found: r.state!.found, last_active: r.state!.lastActive ? new Date(r.state!.lastActive).toISOString() : null, window_open: r.state!.windowOpen, intervened: r.state!.intervened } : { error: r.error });
   }
+  if (b.action === 'delete_old') {
+    // Templates the desk used before and no longer does. Only names on this fixed list can be removed.
+    const OLD = ['mxp_desk_rating'];
+    const t = await listTemplates(); const results = [];
+    for (const x of t.arr.filter((y) => OLD.includes(String(y.name)))) { const r = await call('DELETE', `${base}/wa_template/${x.id}`); results.push({ name: x.name, status: r.status, response: r.body }); }
+    return json(req, { results });
+  }
   if (b.action === 'campaigns') {
     const r = await call('GET', `${base}/campaign`);
     return json(req, { status: r.status, body: r.body });

@@ -9,6 +9,7 @@ const GROUPS = [['Leads and bookings', ['view_all_leads', 'take_leads', 'add_lea
   ['Knowledge', ['edit_knowledge', 'review_knowledge']], ['Management', ['edit_targets', 'manage_users', 'view_attribution', 'view_team_performance', 'view_reports', 'export', 'create_coupons', 'edit_price_list']]];
 
 export async function render(root, ctx) {
+  const auto = ctx.can('manage_users') ? await rpc('crm_automation_status').catch(() => null) : null;
   const [users, dash] = await Promise.all([rpc('crm_users_list'), ctx.can('view_team_performance') || ctx.page('dashboard') ? rpc('crm_dashboard', {}).catch(() => null) : null]);
   const team = dash?.targets?.team;
   const canUsers = ctx.can('manage_users'), canTargets = ctx.can('edit_targets');
@@ -19,6 +20,7 @@ export async function render(root, ctx) {
       <td>${canTargets ? `<input class="tgt" type="number" min="0" max="100" value="${u.daily_target}" data-user="${u.user_id}" data-k="d" aria-label="Daily target for ${esc(u.name)}">` : u.daily_target}</td>
       <td>${canTargets ? `<input class="tgt" type="number" min="0" max="5000" value="${u.monthly_target}" data-user="${u.user_id}" data-k="m" aria-label="Monthly target for ${esc(u.name)}">` : u.monthly_target}</td>
       <td>${u.custom_permissions ? tag('Custom', 'soft') : 'Preset'}</td><td>${canUsers ? `<button class="btn sm" type="button" data-perm="${u.user_id}">Permissions</button> <button class="btn ghost sm" type="button" data-active="${u.user_id}" data-on="${u.active ? 0 : 1}">${u.active ? 'Switch off' : 'Switch on'}</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">No team members yet.</td></tr>'}</tbody></table></div>
+    ${auto ? automationPanel(auto) : ''}
     ${ctx.me.role === 'supervisor' ? `<h3>WhatsApp (AiSensy)</h3><div class="card"><p class="small muted">The desk's own WhatsApp number. Check the connection, see whether the message templates are approved, then create the campaigns that send them.</p><div class="row wrap"><button class="btn" type="button" data-wa="status">Check connection</button><button class="btn" type="button" data-wa="templates">Template status</button><button class="btn primary" type="button" data-wa="create_campaigns">Create campaigns</button></div><pre class="wa-out" id="waOut" hidden></pre></div>` : ''}
     ${canUsers ? `<h3>Add a Care Buddy</h3><form id="userForm" class="user-form" novalidate><input name="name" placeholder="Full name" autocomplete="off" aria-label="Full name"><input name="email" type="email" placeholder="Work email" autocomplete="off" aria-label="Email"><select name="role" aria-label="Starting permissions"><option value="sales">Sales (starting permissions)</option><option value="support">Support (starting permissions)</option><option value="supervisor">Supervisor (everything)</option></select><button class="btn primary" type="submit">Add</button></form><p class="small muted">They sign in with a 6-digit code sent to that email. You can change any box afterwards.</p><p class="err" id="userErr" role="alert"></p>` : ''}`;
   root.querySelectorAll('[data-wa]').forEach((b) => b.addEventListener('click', async () => {
@@ -30,6 +32,7 @@ export async function render(root, ctx) {
       out.textContent = waSummary(b.dataset.wa, data);
     } catch (x) { out.textContent = clean(x); } finally { b.disabled = false; }
   }));
+  root.querySelectorAll('[data-sw]').forEach((c) => c.addEventListener('change', async () => { try { await rpc('crm_automation_set', { p_switch: c.dataset.sw, p_on: c.checked }); toast(c.checked ? 'Switched on.' : 'Switched off.'); } catch (x) { c.checked = !c.checked; toast(clean(x), true); } }));
   const tt = root.querySelector('#teamTargets');
   if (tt) tt.addEventListener('submit', async (e) => { e.preventDefault(); try { await rpc('crm_set_targets', { p_team_daily: Number(tt.d.value), p_team_monthly: Number(tt.m.value) }); toast('Team targets saved.'); } catch (x) { toast(clean(x), true); } });
   root.querySelectorAll('.tgt').forEach((i) => i.addEventListener('change', async () => {
@@ -77,4 +80,24 @@ function waSummary(kind, d) {
   if (kind === 'templates') return (d.templates || []).filter((t) => /^mxp_desk_/.test(t.name)).map((t) => `${t.name}: ${t.status}`).join('\n') || 'No desk templates found.';
   if (kind === 'create_campaigns') return (d.results || []).map((r) => `${r.campaign}: ${r.skipped || (r.status === 200 ? 'created' : (r.response && r.response.message) || 'failed')}`).join('\n');
   return JSON.stringify(d, null, 2);
+}
+
+const ago = (iso) => { if (!iso) return 'never'; const m = Math.round((Date.now() - new Date(iso).getTime()) / 60e3); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.floor(m / 60) + ' h ago' : Math.floor(m / 1440) + ' d ago'; };
+function automationPanel(a) {
+  const sw = a.switches, hb = a.heartbeat || {}, auto = hb.automation, poll = hb.poll, cron = a.cron || [];
+  const live = (iso, minutes) => iso && Date.now() - new Date(iso).getTime() < minutes * 60e3;
+  const dot = (ok) => `<span class="dot ${ok ? 'ok' : 'bad'}" aria-hidden="true"></span>`;
+  const camp = a.campaigns || {};
+  const row = (k, t, hint) => `<label class="check auto-sw"><input type="checkbox" data-sw="${k}" ${sw[k] ? 'checked' : ''}><span><b>${t}</b><small>${hint}</small></span></label>`;
+  return `<h3>Automation</h3><div class="card auto">
+    <div class="auto-grid">${row('rating', 'Ask for a rating after each job', 'Two hours after a job is completed, once, 9 AM to 8 PM. Low ratings open a ticket and email the supervisors.')}
+      ${row('sla', 'Alert when a customer waits', 'An email to the supervisors after 15 minutes without an answer, or a new lead with no owner.')}
+      ${row('report', 'Daily report at 9:30 PM', 'Leads, bookings, ratings and each Care Buddy’s day, emailed to the supervisors.')}</div>
+    <ul class="auto-status">
+      <li>${dot(live(poll && poll.at, 20) || !cron.some((c) => c.name === 'desk-poll-replies'))} Customer replies checked ${poll ? ago(poll.at) : 'not yet'}${poll ? ` (${poll.checked} leads)` : ''}</li>
+      <li>${dot(live(auto && auto.at, 10))} Automation last ran ${auto ? ago(auto.at) : 'not yet'}</li>
+      <li>${dot(sw.campaigns_ready)} WhatsApp templates: ${Object.keys(camp).length ? Object.keys(camp).map((k) => k.replace('mxp_desk_', '') + (camp[k] ? ' ready' : ' waiting')).join(', ') : 'waiting for WhatsApp to approve them'}</li>
+      <li>${dot(true)} Ratings in the last 30 days: ${a.ratings_30d.count}${a.ratings_30d.avg ? ' (average ' + a.ratings_30d.avg + ' of 5)' : ''}</li>
+      <li>${dot(cron.length >= 3 && cron.every((c) => c.active))} Schedules: ${cron.map((c) => c.name.replace('desk-', '')).join(', ') || 'none'}</li></ul>
+    ${(a.jobs || []).length ? `<p class="small muted">Recent: ${a.jobs.map((j) => `${j.job} ${ago(j.ran_at)}${j.ok ? '' : ' (problem)'}`).join(' · ')}</p>` : ''}</div>`;
 }

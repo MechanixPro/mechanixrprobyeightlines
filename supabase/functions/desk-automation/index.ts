@@ -1,0 +1,109 @@
+// POST /functions/v1/desk-automation — run every 3 minutes by a database schedule (pg_cron). Secured by x-desk-cron (secret DESK_CRON_SECRET).
+// Three jobs, each switchable and each logged:
+//   1. campaigns: once AiSensy approves a desk template, create its API campaign (no one has to press a button)
+//   2. sla: email the supervisors when a customer has waited 15 minutes for a reply, or a new lead has no owner after 15 minutes
+//   3. rating: ask a customer to rate the job, once, a couple of hours after it is completed
+import { adminDb, env, json, safeEqual, getSetting, istHour } from '../_shared/util.ts';
+import { PROJECT_API } from '../_shared/aisensy-project.ts';
+import { sendCampaign } from '../_shared/aisensy-send.ts';
+import { DESK_TEMPLATES } from '../_shared/desk-templates.ts';
+import { ratingToken, ratingUrl } from '../_shared/rating.ts';
+import { sendEmail } from '../_shared/resend.ts';
+import { supervisorEmails } from '../_shared/desk-notify.ts';
+
+const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
+const MIN = 60_000;
+const DESK_URL = 'https://mechanixpro-crm.pages.dev/crm/';
+const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+
+Deno.serve(async (req) => {
+  if (req.method !== 'POST') return json(req, { error: 'Method not allowed' }, 405);
+  const secret = env('DESK_CRON_SECRET');
+  if (!secret || !safeEqual(req.headers.get('x-desk-cron') ?? '', secret)) return json(req, { error: 'Forbidden' }, 403);
+  const db = adminDb();
+  const result: Record<string, unknown> = {};
+  const log = (job: string, ok: boolean, summary: Record<string, unknown>) => db.from('crm_automation_log').insert({ job, ok, summary }).then(() => {}, () => {});
+  const hour = istHour();
+
+  /* 1. campaigns */
+  try {
+    const ready = await getSetting<Record<string, boolean>>(db, 'desk_campaigns', {});
+    const allDone = DESK_TEMPLATES.every((t) => ready[t.campaign]);
+    const last = Date.parse(String(await getSetting(db, 'desk_campaigns_checked_at', '1970-01-01')));
+    if (!allDone && env('AISENSY_PROJECT_KEY') && env('AISENSY_PROJECT_ID') && Date.now() - last > 9 * MIN) {
+      const base = `${PROJECT_API}/project/${env('AISENSY_PROJECT_ID')}`;
+      const h = { 'Content-Type': 'application/json', 'X-AiSensy-Project-API-Pwd': env('AISENSY_PROJECT_KEY') };
+      const tr = await fetch(`${base}/wa_template/?limit=100`, { headers: h }).then((r) => r.json()).catch(() => ({}));
+      const list: any[] = Array.isArray(tr?.template) ? tr.template : [];
+      const made: string[] = [], waiting: string[] = [];
+      for (const t of DESK_TEMPLATES) {
+        if (ready[t.campaign]) continue;
+        const tpl = list.find((x) => x.name === t.name);
+        if (!tpl || String(tpl.status).toUpperCase() !== 'APPROVED') { waiting.push(t.name + ':' + (tpl?.status ?? 'missing')); continue; }
+        const r = await fetch(`${base}/campaign/api`, { method: 'POST', headers: h, body: JSON.stringify({ template_name: t.name, campaign_name: t.campaign }) });
+        const body = await r.text().catch(() => '');
+        if (r.ok || /exist/i.test(body)) { ready[t.campaign] = true; made.push(t.campaign); } else waiting.push(t.name + ':campaign ' + r.status);
+      }
+      await db.from('settings').upsert([{ key: 'desk_campaigns', value: ready }, { key: 'desk_campaigns_ready', value: DESK_TEMPLATES.every((t) => ready[t.campaign]) }, { key: 'desk_campaigns_checked_at', value: new Date().toISOString() }], { onConflict: 'key' });
+      result.campaigns = { made, waiting }; await log('campaigns', true, { made, waiting });
+    }
+  } catch (e) { result.campaigns = { error: String((e as Error).message) }; await log('campaigns', false, { error: String((e as Error).message) }); }
+
+  /* 2. SLA alerts: business hours only, one email per run, each item once */
+  try {
+    if (await getSetting(db, 'desk_sla_alerts', true) && hour >= 8 && hour < 21) {
+      const sla = Number(await getSetting(db, 'crm_sla_minutes', 15)) || 15;
+      const now = Date.now();
+      const { data: cand } = await db.from('leads').select('id,ref,name,last_customer_msg_at,wa_last_message_at,crm_owner').is('deleted_at', null).in('status', OPEN).eq('opted_out', false)
+        .gt('last_customer_msg_at', new Date(now - 3 * 86400_000).toISOString()).lt('last_customer_msg_at', new Date(now - sla * MIN).toISOString()).limit(60);
+      const ids = (cand ?? []).map((l: any) => l.id);
+      const { data: acts } = ids.length ? await db.from('crm_activities').select('lead_id,created_at').in('lead_id', ids).in('kind', ['call', 'whatsapp']).gt('created_at', new Date(now - 3 * 86400_000).toISOString()) : { data: [] };
+      const waiting = (cand ?? []).filter((l: any) => (!l.wa_last_message_at || Date.parse(l.last_customer_msg_at) >= Date.parse(l.wa_last_message_at) - 90_000)
+        && !(acts ?? []).some((a: any) => a.lead_id === l.id && Date.parse(a.created_at) > Date.parse(l.last_customer_msg_at)));
+      const { data: unowned } = await db.from('leads').select('id,ref,name,created_at,source').is('deleted_at', null).eq('status', 'new').is('crm_owner', null)
+        .gt('created_at', new Date(now - 2 * 86400_000).toISOString()).lt('created_at', new Date(now - sla * MIN).toISOString()).limit(60);
+      const items: { lead_id: string; kind: string; line: string }[] = [];
+      for (const l of waiting) items.push({ lead_id: l.id, kind: 'reply_wait:' + new Date(l.last_customer_msg_at).toISOString().slice(0, 16), line: `${l.name} (${l.ref}) wrote on WhatsApp ${Math.round((now - Date.parse(l.last_customer_msg_at)) / MIN)} min ago and has no answer` });
+      for (const l of unowned ?? []) items.push({ lead_id: l.id, kind: 'unassigned', line: `${l.name} (${l.ref}, ${l.source}) has had no owner for ${Math.round((now - Date.parse(l.created_at)) / MIN)} min` });
+      const { data: sent } = items.length ? await db.from('crm_alerts_sent').select('lead_id,kind').in('lead_id', items.map((i) => i.lead_id)) : { data: [] };
+      const fresh = items.filter((i) => !(sent ?? []).some((s: any) => s.lead_id === i.lead_id && s.kind === i.kind));
+      let emailed = 0;
+      if (fresh.length) {
+        const to = await supervisorEmails(db);
+        const text = `${fresh.length} ${fresh.length === 1 ? 'customer needs' : 'customers need'} attention on the desk:\n\n- ${fresh.map((i) => i.line).join('\n- ')}\n\nOpen the desk: ${DESK_URL}#inbox`;
+        const html = `<p><b>${fresh.length} ${fresh.length === 1 ? 'customer needs' : 'customers need'} attention on the desk</b></p><ul>${fresh.map((i) => `<li>${esc(i.line)}</li>`).join('')}</ul><p><a href="${DESK_URL}#inbox">Open the desk</a></p>`;
+        for (const addr of to) { const r = await sendEmail({ to: addr, subject: `${fresh.length} on the desk need a reply`, html, text, tags: { template: 'desk_sla' } }); if (r.ok) emailed++; }
+        if (emailed > 0 || to.length === 0) await db.from('crm_alerts_sent').upsert(fresh.map((i) => ({ lead_id: i.lead_id, kind: i.kind })), { onConflict: 'lead_id,kind', ignoreDuplicates: true });
+      }
+      result.sla = { alerts: fresh.length, emailed }; if (fresh.length) await log('sla', true, { alerts: fresh.length, emailed });
+    }
+  } catch (e) { result.sla = { error: String((e as Error).message) }; await log('sla', false, { error: String((e as Error).message) }); }
+
+  /* 3. rating requests: 9 AM to 8 PM, once per job, 2 to 48 hours after completion */
+  try {
+    const ready = await getSetting<Record<string, boolean>>(db, 'desk_campaigns', {});
+    const rc = DESK_TEMPLATES.find((t) => t.name === 'mxp_desk_rating_link')!;
+    if (await getSetting(db, 'desk_auto_rating', true) && hour >= 9 && hour < 20 && ready[rc.campaign] && env('AISENSY_API_KEY') && env('RATING_SECRET')) {
+      const now = Date.now();
+      const { data: jobs } = await db.from('leads').select('id,ref,name,phone').is('deleted_at', null).eq('status', 'completed').eq('consent_whatsapp', true).eq('opted_out', false).is('rating_requested_at', null)
+        .not('completed_at', 'is', null).gt('completed_at', new Date(now - 48 * 3600_000).toISOString()).lt('completed_at', new Date(now - 2 * 3600_000).toISOString()).order('completed_at').limit(10);
+      const ids = (jobs ?? []).map((l: any) => l.id);
+      const { data: failed } = ids.length ? await db.from('crm_alerts_sent').select('lead_id').in('lead_id', ids).eq('kind', 'rating_fail') : { data: [] };
+      let sentN = 0, failN = 0;
+      for (const l of (jobs ?? []).filter((x: any) => !(failed ?? []).some((f: any) => f.lead_id === x.id))) {
+        const link = ratingUrl(env('SITE_URL', 'https://mechanixpro.in'), l.ref, await ratingToken(env('RATING_SECRET'), l.ref));
+        const r = await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: rc.campaign, phone: l.phone, name: l.name, params: [String(l.name).split(' ')[0], l.ref, link], source: 'mechanix-desk-auto' });
+        if (r.ok) {
+          sentN++;
+          await db.from('leads').update({ rating_requested_at: new Date().toISOString() }).eq('id', l.id);
+          await db.from('messages').insert({ lead_id: l.id, phone: l.phone, direction: 'out', sender: 'system', body: 'Rating request sent automatically' }).then(() => {}, () => {});
+          await db.from('crm_activities').insert({ lead_id: l.id, actor: null, kind: 'whatsapp', body: 'Rating request sent automatically on WhatsApp' }).then(() => {}, () => {});
+        } else { failN++; await db.from('crm_alerts_sent').upsert({ lead_id: l.id, kind: 'rating_fail' }, { onConflict: 'lead_id,kind', ignoreDuplicates: true }); console.error('auto rating', l.ref, r.error); }
+      }
+      result.rating = { sent: sentN, failed: failN }; if (sentN || failN) await log('rating', failN === 0, { sent: sentN, failed: failN });
+    }
+  } catch (e) { result.rating = { error: String((e as Error).message) }; await log('rating', false, { error: String((e as Error).message) }); }
+
+  await db.from('settings').upsert({ key: 'desk_automation_heartbeat', value: { at: new Date().toISOString(), result } }, { onConflict: 'key' }).then(() => {}, () => {});
+  return json(req, { ok: true, ...result });
+});

@@ -23,3 +23,7 @@ test('the payment-link function sends the four parameters the payment template e
 test('no template promises something the desk does not do and none contains a price or a number we could get wrong', () => {
   for (const t of DESK_TEMPLATES) assert.doesNotMatch(t.text, /\b(free|guarantee|100%|best price)\b/i);
 });
+
+test('a template never starts or ends with a variable, which WhatsApp rejects', () => {
+  for (const x of DESK_TEMPLATES) { assert.doesNotMatch(x.text, /^\{\{\d+\}\}/, x.name); assert.doesNotMatch(x.text, /\{\{\d+\}\}\.?\s*$/, x.name); }
+});

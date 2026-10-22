@@ -660,6 +660,24 @@ write('track/index.html', _tr + '''<h1 style="font-size:40px">Track your booking
 <p class="tiny muted">Can't find it? Message us on WhatsApp with your name and number and we will tell you where it stands.</p>''' + foot(FLOAT))
 
 
+# Rate page: a customer rates a finished job from the link we send on WhatsApp. The link carries the booking reference and a signature (checked by the submit-rating function).
+_rt = HEAD.format(title='Rate Your Service | Mechanix Pro', desc='Tell us how your Mechanix Pro service went.', url=f'{SITE}/rate/', site=SITE, schema='', scripts=LEGAL_JS + '<script src="/assets/js/rate.js" defer></script>', body='', nav=NAV, main='page')
+_rt = _rt.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
+write('rate/index.html', _rt + '''<h1 style="font-size:40px">How was your service?</h1>
+<p class="muted" style="font-size:18px" id="rtLead">Tap a number. 5 is best. It takes ten seconds and helps us look after you and the next customer.</p>
+<form class="card rate-form" id="rateForm" novalidate>
+  <fieldset class="rate-stars"><legend class="label">Your rating</legend>
+    <div class="rate-row" role="radiogroup" aria-label="Rating from 1 to 5">
+      <label><input type="radio" name="rating" value="1"><span>1</span></label><label><input type="radio" name="rating" value="2"><span>2</span></label><label><input type="radio" name="rating" value="3"><span>3</span></label><label><input type="radio" name="rating" value="4"><span>4</span></label><label><input type="radio" name="rating" value="5"><span>5</span></label>
+    </div>
+    <div class="rate-ends"><span>Poor</span><span>Excellent</span></div></fieldset>
+  <label class="label" for="rt-comment">Anything we should know? (optional)</label><textarea id="rt-comment" name="comment" rows="3" maxlength="500" placeholder="What went well, or what should we fix?"></textarea>
+  <button class="btn btn-primary" type="submit" id="rtGo" style="margin-top:14px">Send my rating</button>
+  <p class="small" id="rtMsg" role="status" aria-live="polite"></p>
+</form>
+<div id="rtDone" aria-live="polite"></div>
+<p class="tiny muted">Your rating is shared only with the Mechanix Pro team. If something went wrong, we will call you.</p>''' + foot(FLOAT))
+
 # ---- Languages: Kannada and Hindi copies of the home page, published only when every line has been reviewed by a fluent reader ----
 LANG_META = {'kn': 'kn-IN', 'hi': 'hi-IN'}
 def i18n_ready(data):

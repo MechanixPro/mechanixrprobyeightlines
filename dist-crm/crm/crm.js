@@ -171,7 +171,7 @@ function card(l) {
 /* ---------- lead sheet ---------- */
 async function openLead(id, kind) {
   S.open = id; S.busy = true;
-  try { S.detail = await rpc('crm_lead', { p_id: id }); if (can('assign_leads')) S.users = await ctx.users(); } catch (e) { toast(clean(e), true); S.busy = false; return; }
+  try { S.detail = await rpc('crm_lead', { p_id: id }); S.rating = await rpc('crm_lead_rating', { p_lead: id }).catch(() => null); if (can('assign_leads')) S.users = await ctx.users(); } catch (e) { toast(clean(e), true); S.busy = false; return; }
   S.busy = false; S.kind = kind || 'note'; renderSheet();
 }
 function renderSheet() {
@@ -188,6 +188,7 @@ function renderSheet() {
       <div><span>Bike</span><b>${esc(l.bike || '—')}</b></div><div><span>Service</span><b>${esc(l.service_name || '—')}</b></div>
       <div><span>Preferred</span><b>${esc([l.preferred_date, l.preferred_slot].filter(Boolean).join(' · ') || '—')}</b></div><div><span>Quote</span><b>${l.est_total ? rupee(l.est_total) : '—'}${l.coupon_code ? ` <small>(${esc(l.coupon_code)} −${rupee(l.coupon_discount)})</small>` : ''}</b></div>
       <div><span>With</span><b>${esc(l.owner_name || 'Nobody yet')}</b></div><div><span>Stage</span><b>${STATUS_LABEL[l.status]}</b></div>
+      ${S.rating && S.rating.rating ? `<div><span>Customer rating</span><b>${'★'.repeat(S.rating.rating)}${'☆'.repeat(5 - S.rating.rating)} ${S.rating.rating}/5${S.rating.comment ? ` <small>“${esc(S.rating.comment)}”</small>` : ''}</b></div>` : S.rating && S.rating.requested_at ? `<div><span>Customer rating</span><b>Asked ${when(S.rating.requested_at)}</b></div>` : ''}
       ${l.disposition ? `<div><span>Disposition</span><b>${esc(l.disposition)}${l.sub_disposition ? ' · ' + esc(l.sub_disposition) : ''}</b></div>` : ''}${l.address ? `<div class="wide"><span>Address</span><b>${esc(l.address)}</b></div>` : ''}</div>
     ${l.notes ? `<p class="note-box">${mask(l.notes)}</p>` : ''}
     <div class="lc-actions big"><a class="btn call" href="${telUrl(l.phone)}" data-act="call" data-id="${l.id}">Call</a>

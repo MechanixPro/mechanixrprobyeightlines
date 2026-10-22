@@ -98,3 +98,12 @@ test('Instagram: follow card and footer link always; posts only for valid post l
   assert.match(out, /instagram\.com\/p\/ABCde12345\/embed/); assert.match(out, /instagram\.com\/reel\/Zz9_-Aaaaa\/embed/);
   assert.doesNotMatch(out, /evil\.example|javascript:/); assert.match(out, /loading="lazy"/);
 });
+
+test('the rate page is private, scriptless inline, and offers ratings 1 to 5', () => {
+  const t = read('rate/index.html');
+  assert.match(t, /noindex/); assert.match(t, /id="rateForm"/); assert.match(t, /src="\/assets\/js\/rate\.js"/);
+  assert.equal((t.match(/name="rating" value="[1-5]"/g) || []).length, 5);
+  assert.doesNotMatch(t, /<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/);
+  assert.doesNotMatch(read('sitemap.xml'), /\/rate\//);
+  assert.match(read('scripts/build_site.sh'), /\brate\b/);
+});
