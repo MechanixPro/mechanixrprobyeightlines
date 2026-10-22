@@ -3,6 +3,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { adminDb, env, json, corsHeaders } from '../_shared/util.ts';
 import { sendSessionText } from '../_shared/aisensy-project.ts';
+import { fetchContact } from '../_shared/aisensy-contact.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
@@ -14,7 +15,13 @@ Deno.serve(async (req) => {
   const { data: ctx, error: ce } = await userClient.rpc('crm_chat_context', { p_lead: String(b.lead_id ?? '') });
   if (ce) return json(req, { error: ce.message }, ce.code === '42501' ? 403 : 400);
   if (ctx.opted_out) return json(req, { error: 'This customer asked not to get messages' }, 400);
-  if (!ctx.window_open) return json(req, { error: 'More than 24 hours since the customer wrote. WhatsApp only allows a template message now.' }, 400);
+  // No webhook tells us when the customer last wrote, so ask AiSensy before refusing.
+  let windowOpen = !!ctx.window_open;
+  if (!windowOpen) {
+    const c = await fetchContact({ projectId: env('AISENSY_PROJECT_ID'), password: env('AISENSY_PROJECT_KEY'), phone: ctx.phone });
+    if (c.ok && c.state?.windowOpen && c.state.lastActive) { windowOpen = true; await adminDb().from('leads').update({ last_customer_msg_at: new Date(c.state.lastActive).toISOString() }).eq('id', ctx.lead_id); }
+  }
+  if (!windowOpen) return json(req, { error: 'More than 24 hours since the customer wrote. WhatsApp only allows a template message now.' }, 400);
   const text = String(b.text ?? '').trim();
   const r = await sendSessionText({ projectId: env('AISENSY_PROJECT_ID'), password: env('AISENSY_PROJECT_KEY'), phone: ctx.phone, text });
   if (!r.ok) return json(req, { error: r.error }, 400);

@@ -4,6 +4,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { env, json, corsHeaders } from '../_shared/util.ts';
 import { PROJECT_API } from '../_shared/aisensy-project.ts';
 import { DESK_TEMPLATES } from '../_shared/desk-templates.ts';
+import { fetchContact } from '../_shared/aisensy-contact.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
@@ -43,6 +44,10 @@ Deno.serve(async (req) => {
       results.push({ name: t.name, status: r.status, response: r.body });
     }
     return json(req, { results });
+  }
+  if (b.action === 'contact') {
+    const r = await fetchContact({ projectId: env('AISENSY_PROJECT_ID'), password: env('AISENSY_PROJECT_KEY'), phone: String(b.phone ?? '') });
+    return json(req, r.ok ? { found: r.state!.found, last_active: r.state!.lastActive ? new Date(r.state!.lastActive).toISOString() : null, window_open: r.state!.windowOpen, intervened: r.state!.intervened } : { error: r.error });
   }
   if (b.action === 'campaigns') {
     const r = await call('GET', `${base}/campaign`);

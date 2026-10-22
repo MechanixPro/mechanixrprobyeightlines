@@ -73,3 +73,24 @@ test('a good send returns the message id', async () => {
   const r = await sendSessionText({ projectId: 'abc123def456', password: 'p', phone: '9876543210', text: 'hi' }, async () => new Response(JSON.stringify({ messages: [{ id: 'wamid.X' }] }), { status: 200 }));
   assert.deepEqual(r, { ok: true, id: 'wamid.X' });
 });
+
+import { parseContact, fetchContact } from '../supabase/functions/_shared/aisensy-contact.ts';
+test('a contact who wrote an hour ago has the reply window open', () => {
+  const now = Date.now(); const s = parseContact({ id: 'x', phone_number: '919876543210', last_active: now - 3600e3, is_intervened: false, name: 'Asha' }, now);
+  assert.equal(s.found, true); assert.equal(s.windowOpen, true); assert.equal(s.name, 'Asha');
+});
+test('a contact who wrote 30 hours ago has the window closed', () => {
+  const now = Date.now(); assert.equal(parseContact({ id: 'x', phone_number: '919876543210', last_active: now - 30 * 3600e3 }, now).windowOpen, false);
+});
+test('an unknown contact, junk or a future timestamp never opens the window', () => {
+  const now = Date.now();
+  assert.equal(parseContact(null, now).found, false); assert.equal(parseContact({ message: 'nope' }, now).found, false);
+  assert.equal(parseContact({ id: 'x', phone_number: '9', last_active: now + 3 * 3600e3 }, now).windowOpen, false);
+});
+test('the contact lookup sends the password in a header and treats 404 as no contact', async () => {
+  let seen;
+  const f = async (url, init) => { seen = { url, h: init.headers }; return new Response('', { status: 404 }); };
+  const r = await fetchContact({ projectId: 'abc123def456', password: 'PWD', phone: '98765 43210' }, f);
+  assert.match(seen.url, /\/project\/abc123def456\/contact\?action=FetchContact&mobile_number=919876543210$/); assert.equal(seen.h['X-AiSensy-Project-API-Pwd'], 'PWD');
+  assert.deepEqual(r, { ok: true, state: { found: false, lastActive: null, windowOpen: false, intervened: false, name: '' } });
+});

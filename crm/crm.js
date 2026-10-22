@@ -196,24 +196,37 @@ function renderSheet() {
   refreshChat();
 }
 
-/* ---------- live WhatsApp chat in the lead sheet ---------- */
-let chatTimer = null;
-async function refreshChat(keepDraft = true) {
+/* ---------- WhatsApp chat in the lead sheet ---------- */
+// There is no webhook, so the words a customer types stay in AiSensy Live Chat. The desk asks AiSensy when the customer last wrote
+// (that opens or closes the 24-hour reply window), shows what the team sent, and sends replies and templates.
+let chatTimer = null, chatMeta = null, lastSync = 0;
+async function syncChat(id) {
+  try { const { data } = await sb.functions.invoke('desk-chat-sync', { body: { lead_id: id } }); chatMeta = data && data.ok ? data : null; lastSync = Date.now(); } catch (e) { chatMeta = null; }
+}
+async function refreshChat(forceSync = true) {
   const box = $('#chat'); const id = S.open; if (!box || !id) return;
   try {
+    if (forceSync || Date.now() - lastSync > 60e3) await syncChat(id);
     const c = await rpc('crm_chat', { p_lead: id });
     if (S.open !== id || !$('#chat')) return;
     const l = S.detail.lead, mineOrBoss = l.crm_owner === S.me.user_id || can('assign_leads');
-    const draft = keepDraft ? ($('#replyText')?.value || '') : '';
-    const canReply = can('edit_leads') && mineOrBoss && !!l.crm_owner;
+    const draft = $('#replyText')?.value || '';
+    const canAct = can('edit_leads') && mineOrBoss && !!l.crm_owner;
+    const wrote = chatMeta?.last_active || c.last_customer_msg_at;
+    const open = !!(chatMeta ? chatMeta.window_open : c.window_open);
+    const url = chatMeta?.chat_url;
     const state = c.opted_out ? '<p class="alert">This customer asked not to get messages.</p>'
-      : !c.window_open ? `<p class="small muted">${c.last_customer_msg_at ? 'More than 24 hours since the customer wrote, so WhatsApp allows only a template message now.' : 'The customer has not written yet, so WhatsApp allows only a template message.'}</p>` : '';
-    box.innerHTML = `${c.messages.length ? `<ul class="chat">${c.messages.map((m) => `<li class="${m.direction === 'in' ? 'in' : 'out'}"><p>${mask(m.body)}</p><span class="small muted">${m.sender === 'ai' ? 'Auto reply' : m.direction === 'in' ? 'Customer' : 'Us'} · ${when(m.created_at)}</span></li>`).join('')}</ul>` : '<p class="muted small">No messages yet.</p>'}
-      ${state}${canReply && c.window_open && !c.opted_out ? `<form id="replyForm" class="reply"><label class="label" for="replyText">Reply on WhatsApp</label><textarea id="replyText" rows="2" maxlength="1000" placeholder="Type your reply. Never share Aadhaar, PAN, bank or card numbers."></textarea><p class="err" id="replyErr" role="alert"></p><button class="btn wa wide" type="submit" id="replySend">Send</button></form>` : ''}`;
+      : wrote ? `<p class="small ${open ? '' : 'muted'}">Customer last wrote ${when(wrote)}. ${open ? 'You can reply now.' : 'More than 24 hours ago, so WhatsApp allows only a template message.'} Read their words in AiSensy Live Chat.</p>`
+        : '<p class="small muted">No reply from this customer on the desk number yet, so WhatsApp allows only a template message.</p>';
+    box.innerHTML = `${c.messages.length ? `<ul class="chat">${c.messages.map((m) => `<li class="${m.direction === 'in' ? 'in' : 'out'}"><p>${mask(m.body)}</p><span class="small muted">${m.sender === 'ai' ? 'Auto reply' : m.direction === 'in' ? 'Customer' : 'Us'} · ${when(m.created_at)}</span></li>`).join('')}</ul>` : '<p class="muted small">Nothing sent from the desk yet.</p>'}
+      ${state}
+      <div class="row wrap"><button class="btn sm" type="button" data-act="chatRefresh">Check for a reply</button>${url ? `<a class="btn sm wa" href="${esc(url)}" target="_blank" rel="noopener">Open AiSensy chat</a>` : ''}
+        ${canAct && !c.opted_out ? '<button class="btn sm" type="button" data-act="tplFollowup">Send follow-up template</button>' : ''}${canAct && !c.opted_out && l.status === 'completed' ? '<button class="btn sm" type="button" data-act="tplRating">Ask for a rating</button>' : ''}</div>
+      ${canAct && open && !c.opted_out ? `<form id="replyForm" class="reply"><label class="label" for="replyText">Reply on WhatsApp</label><textarea id="replyText" rows="2" maxlength="1000" placeholder="Type your reply. Never share Aadhaar, PAN, bank or card numbers."></textarea><p class="err" id="replyErr" role="alert"></p><button class="btn wa wide" type="submit" id="replySend">Send</button></form>` : ''}`;
     const t = $('#replyText'); if (t && draft) t.value = draft;
     const list = box.querySelector('.chat'); if (list) list.scrollTop = list.scrollHeight;
   } catch (e) { box.innerHTML = `<p class="muted small">${esc(clean(e))}</p>`; }
-  clearTimeout(chatTimer); chatTimer = setTimeout(() => { if (!$('#sheet').hidden && S.open === id && document.activeElement?.id !== 'replyText') refreshChat(); else if (!$('#sheet').hidden && S.open === id) chatTimer = setTimeout(() => refreshChat(), 8000); }, 12000);
+  clearTimeout(chatTimer); chatTimer = setTimeout(() => { if (!$('#sheet').hidden && S.open === id && document.activeElement?.id !== 'replyText') refreshChat(false); }, 20e3);
 }
 async function sendReply() {
   const t = $('#replyText'), text = t.value.trim(); if (!text) { $('#replyErr').textContent = 'Write a message first.'; return; }
@@ -222,6 +235,11 @@ async function sendReply() {
   const { data, error } = await sb.functions.invoke('desk-reply', { body: { lead_id: S.open, text } });
   if (error || data?.error) { let msg = data?.error; if (!msg && error?.context?.json) { try { msg = (await error.context.json()).error; } catch (x) { /* ignore */ } } $('#replyErr').textContent = msg || 'Could not send.'; $('#replySend').disabled = false; return; }
   t.value = ''; toast('Sent on WhatsApp.'); await refreshChat(false);
+}
+async function sendTemplate(kind) {
+  const { data, error } = await sb.functions.invoke('desk-template', { body: { lead_id: S.open, kind } });
+  if (error || data?.error) { let msg = data?.error; if (!msg && error?.context?.json) { try { msg = (await error.context.json()).error; } catch (x) { /* ignore */ } } throw new Error(msg || 'Could not send.'); }
+  toast(kind === 'rating' ? 'Rating request sent.' : 'Follow-up sent.'); await refreshChat(false);
 }
 function logForm(l, moves) {
   const def = new Date(Date.now() + 86400e3); def.setHours(10, 0, 0, 0);
@@ -303,6 +321,9 @@ document.addEventListener('click', async (e) => {
     if (act === 'add') return addDialog();
     if (act === 'booking') return newBooking(ctx);
     if (act === 'editBooking') return editBooking(ctx, S.detail.lead);
+    if (act === 'chatRefresh') { await refreshChat(true); return toast('Checked.'); }
+    if (act === 'tplFollowup') return await sendTemplate('followup');
+    if (act === 'tplRating') return await sendTemplate('rating');
     if (act === 'payLink') return sendPaymentLink(ctx, S.detail.lead, () => afterChange(false));
     if (act === 'ticket') { const l = S.detail.lead; const { newTicket } = tickets; return newTicket(ctx, { lead: l.id, title: 'Issue with ' + l.name + ' (' + l.ref + ')' }); }
     if (act === 'preset') { $('#next').value = b.dataset.iso; return; }

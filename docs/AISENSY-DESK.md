@@ -51,3 +51,12 @@ Project id: `AISENSY_PROJECT_ID` (secret). Native webhooks still need a Custom A
 Plan facts: no native webhook slots (they are a paid add-on), 1 flow in the quota, API Request actions available.
 Flow **Desk** (Flows, Flow Builder): trigger = regex `.+` (any text), then an **API Request** step: POST to `https://mejdxsbpyscujpvbwvmg.supabase.co/functions/v1/aisensy-inbound`, header `x-aisensy-secret` (value = secret `AISENSY_WEBHOOK_SECRET`), body `{"phone":"$mobilenumber","name":"$name"}`. AiSensy's attribute list has no variable for the customer's message text, so the desk shows "New WhatsApp message. Open the AiSensy chat to read it." and the Care Buddy reads the words in AiSensy Live Chat (or asks the customer in the desk chat).
 The flow sends no reply. Keep it Active. If a second flow is ever needed it needs a purchased flow slot.
+
+## How the desk works without webhooks or flows (chosen 2026-10-22)
+The plan has no webhook slots and its single flow runs only for test numbers, so the desk uses what is included:
+- **Outbound:** payment link (`desk-payment-link`), follow-up and rating templates (`desk-template`), and free-text replies inside the 24-hour window (`desk-reply`).
+- **Knowing when a customer wrote:** `desk-chat-sync` reads the customer's AiSensy contact record (Project API) and stores `last_active` on the lead. That opens or closes the reply window. The lead sheet's chat has **Check for a reply** and refreshes about every 20 seconds.
+- **Reading what they wrote:** only in AiSensy Live Chat (the lead sheet has an **Open AiSensy chat** button). The API gives no message text.
+- **New enquiries from the desk number:** appear in AiSensy Live Chat first; a Care Buddy adds the lead with **+ Lead** or **+ Booking**.
+- The `aisensy-inbound` and `aisensy-webhook` functions stay deployed and idle. If AiSensy webhooks are ever bought, set `AISENSY_SHARED_SECRET` and create the Custom App webhook (topic `message.sender.user`) and incoming messages fill the lead chat automatically.
+- The Desk flow in AiSensy can stay: it is harmless and still useful for testing with Test Numbers.
