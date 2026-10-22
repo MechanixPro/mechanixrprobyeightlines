@@ -24,3 +24,15 @@ export function cleanAisensyLead(b: Record<string, unknown>):
     },
   };
 }
+
+/** Validates one incoming customer message forwarded by an AiSensy flow step. Field names vary between flows, so the common ones are all accepted. */
+export function cleanAisensyInbound(b: Record<string, unknown>):
+  { ok: true; value: { phone: string; name: string; text: string; id: string | null } } | { ok: false; error: string } {
+  const pick = (...keys: string[]) => { for (const k of keys) { const v = b?.[k]; if (v != null && String(v).trim() !== '') return String(v); } return ''; };
+  const phone = pick('phone', 'mobile', 'waNumber', 'wa_number', 'from', 'destination', 'userNumber').replace(/\D/g, '').slice(-10);
+  if (!/^[6-9]\d{9}$/.test(phone)) return { ok: false, error: 'phone' };
+  const text = strip(pick('message', 'text', 'body', 'userMessage', 'user_message', 'lastMessage'), 4000);
+  if (!text) return { ok: false, error: 'message' };
+  const id = strip(pick('message_id', 'messageId', 'wamid', 'id'), 120);
+  return { ok: true, value: { phone, name: strip(pick('name', 'userName', 'profileName', 'customer_name'), 60), text, id: id ? 'as:' + id : null } };
+}

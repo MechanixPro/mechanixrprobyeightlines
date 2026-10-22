@@ -25,3 +25,16 @@ test('a network failure is a clean error, not a crash', async () => {
   assert.deepEqual(r, { ok: false, error: 'Could not reach AiSensy' });
 });
 test('a good response is ok', async () => { assert.deepEqual(await sendCampaign(ok, async () => new Response('{}', { status: 200 })), { ok: true }); });
+
+import { cleanAisensyInbound } from '../supabase/functions/_shared/aisensy.ts';
+test('an incoming message accepts the common field names and keeps the last ten digits', () => {
+  const r = cleanAisensyInbound({ waNumber: '+91 98765 43210', userMessage: 'Hi, I need a service', userName: 'Asha' });
+  assert.equal(r.ok, true); assert.equal(r.value.phone, '9876543210'); assert.equal(r.value.text, 'Hi, I need a service'); assert.equal(r.value.name, 'Asha');
+});
+test('an incoming message needs a real mobile number and some text', () => {
+  assert.equal(cleanAisensyInbound({ phone: '12345', message: 'hi' }).ok, false);
+  assert.equal(cleanAisensyInbound({ phone: '9876543210', message: '   ' }).ok, false);
+});
+test('markup characters are stripped from an incoming message', () => {
+  assert.equal(cleanAisensyInbound({ phone: '9876543210', message: 'a<b>c' }).value.text, 'abc');
+});

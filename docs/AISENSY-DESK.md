@@ -19,5 +19,12 @@ The desk has its own WhatsApp number on AiSensy: **+91 80423 03061** (9180423030
 | Rating request (next) | `mxp_desk_rating` | Hi {{1}}, thanks for choosing Mechanix Pro for booking {{2}}. How was the service? Reply 1 to 5 (5 is best). |
 | Follow-up (next) | `mxp_desk_followup` | Hi {{1}}, this is {{2}} from Mechanix Pro about your bike service enquiry. When would you like us to come? |
 
-## Inbound (customer to desk): waiting on AiSensy
+## Inbound without webhook access: flow step (built)
+Function `aisensy-inbound` saves each customer message on their lead (shown in the lead sheet's WhatsApp chat). It never replies. STOP-type words opt the customer out.
+In AiSensy: create a flow that runs on every incoming message and add an **API / Webhook** step with: method POST, URL `https://mejdxsbpyscujpvbwvmg.supabase.co/functions/v1/aisensy-inbound`, header `x-aisensy-secret` (value in the secret `AISENSY_WEBHOOK_SECRET`), JSON body with the contact's number, name and last message, for example `{"phone":"{{phone}}","name":"{{name}}","message":"{{last_message}}"}` using the variable names AiSensy offers. Field names `waNumber`, `userName` and `userMessage` are also accepted.
+
+## Project API (from AiSensy's docs)
+Auth header `X-AiSensy-Project-API-Pwd: <password>`; the first value sent becomes the project password. Other headers exist for app and partner access. The endpoint list (send message, conversations, webhooks) still needs to be read.
+
+## Inbound by webhook: waiting on AiSensy
 Needed for the desk Inbox. Ask AiSensy whether incoming messages and delivery status can be forwarded to a webhook URL we control, and on which plan. Bot-flow bookings already work through `aisensy-lead` (secret `AISENSY_WEBHOOK_SECRET`, header `x-aisensy-secret`).
