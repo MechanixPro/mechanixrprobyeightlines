@@ -31,9 +31,9 @@ test('an incoming message accepts the common field names and keeps the last ten 
   const r = cleanAisensyInbound({ waNumber: '+91 98765 43210', userMessage: 'Hi, I need a service', userName: 'Asha' });
   assert.equal(r.ok, true); assert.equal(r.value.phone, '9876543210'); assert.equal(r.value.text, 'Hi, I need a service'); assert.equal(r.value.name, 'Asha');
 });
-test('an incoming message needs a real mobile number and some text', () => {
+test('an incoming message needs a real mobile number; with no text it still records that a message arrived', () => {
   assert.equal(cleanAisensyInbound({ phone: '12345', message: 'hi' }).ok, false);
-  assert.equal(cleanAisensyInbound({ phone: '9876543210', message: '   ' }).ok, false);
+  assert.match(cleanAisensyInbound({ phone: '9876543210', message: '   ' }).value.text, /New WhatsApp message/);
 });
 test('markup characters are stripped from an incoming message', () => {
   assert.equal(cleanAisensyInbound({ phone: '9876543210', message: 'a<b>c' }).value.text, 'abc');

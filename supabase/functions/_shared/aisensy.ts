@@ -31,8 +31,8 @@ export function cleanAisensyInbound(b: Record<string, unknown>):
   const pick = (...keys: string[]) => { for (const k of keys) { const v = b?.[k]; if (v != null && String(v).trim() !== '') return String(v); } return ''; };
   const phone = pick('phone', 'mobile', 'waNumber', 'wa_number', 'from', 'destination', 'userNumber').replace(/\D/g, '').slice(-10);
   if (!/^[6-9]\d{9}$/.test(phone)) return { ok: false, error: 'phone' };
-  const text = strip(pick('message', 'text', 'body', 'userMessage', 'user_message', 'lastMessage'), 4000);
-  if (!text) return { ok: false, error: 'message' };
+  // A flow that cannot pass the text still tells the desk a customer wrote, so the Care Buddy can open the chat in AiSensy.
+  const text = strip(pick('message', 'text', 'body', 'userMessage', 'user_message', 'lastMessage'), 4000) || '[New WhatsApp message. Open the AiSensy chat to read it.]';
   const id = strip(pick('message_id', 'messageId', 'wamid', 'id'), 120);
   return { ok: true, value: { phone, name: strip(pick('name', 'userName', 'profileName', 'customer_name'), 60), text, id: id ? 'as:' + id : null } };
 }
