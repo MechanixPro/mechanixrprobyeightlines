@@ -82,3 +82,13 @@ Webhooks are not in the PRO plan (they start at Premium) and the one flow runs o
 - Tags (category "Desk stage"): New enquiry, Quote sent, Booked, Needs callback, Roadside.
 - Opt-out and opt-in confirmation replies switched on (keywords Stop and Allow); API campaigns skip opted-out contacts.
 - Already on: sound and push notifications for new chats. Team: 5 free agent logins are unused; add each Care Buddy under Manage, Team when they join.
+
+## Website WhatsApp bubble and buttons (2026-10-23)
+Every WhatsApp button on mechanixpro.in, including the floating bubble and the booking messages, now opens the desk number +91 80423 03061 (`whatsapp` in `assets/js/config.js`). The call number is unchanged (+91 83106 21498). Emails link to the same number through the `WHATSAPP_URL` secret. To go back, set `whatsapp` in `config.js` to `918310621498` and set `WHATSAPP_URL` to `https://wa.me/918310621498`.
+The bubble is the site's own, not AiSensy's script: it keeps the strict content security policy and shares no visitor data with a third party.
+
+## AI agent (AiSensy Agent Studio), configured 2026-10-23
+- Agent "Mechanix Pro" is configured and published but **paused**: going live needs AiSensy's AI Chat Agent add-on (Upgrade to go live, about ₹1,350 a month). Until then it can only be tried with the free test messages (500).
+- It qualifies enquiries (bike model, service, area, PIN code, slot), never states a price (it points to mechanixpro.in/services and says the team sends the quote), never creates payment links (the team sends the Razorpay link for the initial booking amount, or the customer pays at mechanixpro.in/pay), puts safety first on accidents, and hands over to a person on complaints, refunds, accidents and roadside emergencies.
+- The stale product list (it had Basic service at ₹499) was removed so the agent cannot quote old prices.
+- The "Push qualified leads to your CRM" setting (to the `aisensy-lead` function, header `x-aisensy-secret`) did not keep its values after saving in AiSensy, so leads from the agent are not yet pushed to the desk. After going live, check that screen again.
