@@ -1152,3 +1152,14 @@ html{-webkit-tap-highlight-color:transparent}
 }
 @keyframes hcFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 @media(prefers-reduced-motion:reduce){.hc-chip{animation:none}}
+/* Hero picture as a framed photo card: the rain scene whole, nothing cut off, with the glow and the floating chips */
+.hero-card img{border-radius:26px;border:1px solid rgba(255,255,255,.2);box-shadow:0 26px 60px rgba(0,0,0,.45);filter:none;aspect-ratio:480/632;object-fit:cover}
+.hero-card::after{display:none}
+@media(min-width:820px){
+.hero-card{width:min(100%,330px);justify-self:center;margin-top:-10px;transform:rotate(2deg)}
+.hero-card .hc-a{left:-26%;top:6%}.hero-card .hc-b{right:-22%;top:46%}.hero-card .hc-c{left:-14%;bottom:7%}
+}
+@media(max-width:819px){
+.hero-card{width:39%;right:1%;top:28px}
+.hero-card img{border-radius:18px;transform:rotate(3deg)}
+}
