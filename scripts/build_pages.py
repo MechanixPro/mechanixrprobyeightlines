@@ -3,6 +3,13 @@ Run:  python3 scripts/build_pages.py   (from the repo root). Edit AREAS / legal 
 import html, json, os, re, datetime, urllib.parse
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = 'https://mechanixpro.in'
+def ld_tag(obj):
+    return '<script type="application/ld+json">' + json.dumps(obj, ensure_ascii=False) + '</script>'
+def crumbs(*items):
+    """BreadcrumbList for an inner page: items are (name, path) pairs, Home first."""
+    return ld_tag({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": i + 1, "name": n, "item": SITE + pth} for i, (n, pth) in enumerate((("Home", "/"),) + items)]})
+
+
 TODAY = datetime.date.today().isoformat()
 
 NAV = '''<div class="diwali-bar" data-diwali-bar role="region" aria-label="Diwali"><a href="/offers/diwali-ready/"><span class="db-spark" aria-hidden="true">&#10024;</span><b>Diwali special.</b> <span data-diwali-line>Get your bike checked at your door before the festive rides. Quote first, open 24/7.</span><u> See how &rarr;</u></a><button type="button" class="db-x" aria-label="Close the Diwali banner">&times;</button></div>
@@ -53,7 +60,7 @@ HEAD = '''<!doctype html>
 {nav}<main id="main" class="{main}">
 '''
 FOOT = '''</main>
-{footer}{extra}<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pingeo.js" defer></script><script src="/assets/js/pinmap.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script><script src="/assets/js/diwali.js" defer></script><script src="/assets/js/reveal.js" defer></script><script src="/assets/js/media.js" defer></script><script src="/assets/js/apollo.js" defer></script></body>
+{footer}{extra}<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pingeo.js" defer></script><script src="/assets/js/pinmap.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script><script src="/assets/js/motion.js" defer></script><script src="/assets/js/diwali.js" defer></script><script src="/assets/js/reveal.js" defer></script><script src="/assets/js/media.js" defer></script><script src="/assets/js/apollo.js" defer></script></body>
 </html>
 '''
 LEGAL_JS = '<script src="/assets/js/page.js" defer></script>'
@@ -740,7 +747,7 @@ def offer_page(o):
     write(f'offers/{slug}/index.html', page + body + foot(FLOAT))
 for _o in _load_json('offers.json'): offer_page(_o)
 
-_road = HEAD.format(title='Bike Breakdown and Puncture Help in Bengaluru | Mechanix Pro', desc='Bike broken down or punctured in Bengaluru? Share your location and Mechanix Pro sends the nearest mechanic. Call or WhatsApp now.', url=f'{SITE}/roadside/', site=SITE, schema='', scripts=LEGAL_JS, body='page-offer', nav=NAV, main='')
+_road = HEAD.format(title='Bike Breakdown and Puncture Help in Bengaluru | Mechanix Pro', desc='Bike broken down or punctured in Bengaluru? Share your location and Mechanix Pro sends the nearest mechanic. Call or WhatsApp now.', url=f'{SITE}/roadside/', site=SITE, schema=crumbs(('Roadside help', '/roadside/')) + ld_tag({"@context": "https://schema.org", "@type": "Service", "serviceType": "Bike roadside assistance", "name": "Roadside help for bikes and scooters", "url": SITE + "/roadside/", "provider": {"@type": "AutoRepair", "name": "Mechanix Pro", "url": SITE + "/"}, "areaServed": {"@type": "City", "name": "Bengaluru"}, "hoursAvailable": {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], "opens": "00:00", "closes": "23:59"}}), scripts=LEGAL_JS, body='page-offer', nav=NAV, main='')
 _road_wa = html.escape('Hi Mechanix Pro, my bike has broken down. I am sharing my live location now.')
 write('roadside/index.html', _road + f'''<section class="hero"><div class="wrap"><div class="hero-copy">
   <h1>Bike broken down in Bengaluru? We send the nearest mechanic.</h1>
@@ -758,7 +765,7 @@ write('roadside/index.html', _road + f'''<section class="hero"><div class="wrap"
 urls.append(('/roadside/', '0.8'))
 
 MAIN = [
-  ('', 'home', 'Doorstep Bike Service in Bengaluru | Mechanix Pro', 'Bike and scooter service at your home or office in Bengaluru. Prices from {{text:basic}}, Mechanix Pro-certified mechanics, OEM and aftermarket parts, {{days}}-day service warranty. Build your service and get a quote on WhatsApp. Work starts only after you approve.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n' + CHAT_JS, '1.0'),
+  ('', 'home', 'Bike Service & Roadside Help in Bengaluru | Mechanix Pro', 'Doorstep bike and scooter service in Bengaluru from {{text:basic}}, plus roadside help 24/7. Quote first on WhatsApp, pay after you say yes. {{days}}-day service warranty.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n' + CHAT_JS, '1.0'),
   ('book', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.9'),
   ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, General from {{text:general}}, Full from {{text:full}}. GST included. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
   ('help', 'help', 'How Doorstep Bike Service Works and FAQ | Mechanix Pro', 'How Mechanix Pro works: build your service, get a WhatsApp quote, approve, and we service your bike at your door in Bengaluru. Answers to common questions.', 'help.jsonld', 'page-help', APP_JS, '0.8'),
@@ -772,6 +779,13 @@ for slug, src, title, desc, ld, body, scripts, prio in MAIN:
         _d['hasOfferCatalog'] = {"@type": "OfferCatalog", "name": "Bike and scooter services", "itemListElement": [{"@type": "Offer", "priceCurrency": "INR", "price": str(int(SITE_DATA['services'][k]['price'])), "itemOffered": {"@type": "Service", "name": SITE_DATA['services'][k]['name']}} for k in ('basic', 'general', 'full', 'repair') if k in SITE_DATA['services']]}
         _ld = json.dumps(_d, ensure_ascii=False)
     schema = ('<script type="application/ld+json">' + _ld + '</script>') if ld else ''
+    if ld == 'home.jsonld':
+        # FAQPage from the visible FAQ (the same words), and WebSite, so search engines can show rich results.
+        _src = open(os.path.join(ROOT, 'src', 'home.html'), encoding='utf-8').read()
+        _plain = lambda s: re.sub(r'\{\{price:(\w+)\}\}', r'{{text:\1}}', re.sub(r'\{\{fee:(\w+)\}\}', r'{{feetext:\1}}', re.sub(r'<[^>]+>', '', s))).strip()
+        _faq = [(_plain(q), _plain(a)) for q, a in re.findall(r'<details><summary>(.*?)</summary><p>(.*?)</p></details>', _src, re.S)]
+        if _faq: schema += '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in _faq]}, ensure_ascii=False) + '</script>'
+        schema += '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "WebSite", "name": "Mechanix Pro", "url": SITE + "/", "inLanguage": "en-IN"}, ensure_ascii=False) + '</script>'
     content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
     out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(FLOAT)
     if src == 'home':
@@ -816,7 +830,7 @@ def join_page():
   <button class="btn btn-primary" type="submit" style="margin-top:14px">Send my application</button>
   <p class="wl-msg" id="ptMsg" role="status" aria-live="polite"></p>
 </form></div></section>'''
-    write('join/index.html', HEAD.format(title='Join Mechanix Pro: Garages and Mechanics in Bengaluru', desc='Run a garage or work as a mechanic in Bengaluru? Apply to join the Mechanix Pro network and get doorstep bookings.', url=f'{SITE}/join/', site=SITE, schema='', scripts=LEGAL_JS + '<script src="/assets/js/partner.js" defer></script>', body='', nav=NAV, main='') + body + foot())
+    write('join/index.html', HEAD.format(title='Join Mechanix Pro: Garages and Mechanics in Bengaluru', desc='Run a garage or work as a mechanic in Bengaluru? Apply to join the Mechanix Pro network and get doorstep bookings.', url=f'{SITE}/join/', site=SITE, schema=crumbs(('Join us', '/join/')) + ld_tag({"@context": "https://schema.org", "@type": "WebPage", "name": "Join the Mechanix Pro network", "url": SITE + "/join/", "about": "Garages and mechanics in Bengaluru can apply to join Mechanix Pro."}), scripts=LEGAL_JS + '<script src="/assets/js/partner.js" defer></script>', body='', nav=NAV, main='') + body + foot())
     urls.append(('/join/', '0.6'))
 join_page()
 
@@ -846,7 +860,7 @@ def axlio_page():
 <div class="partner-grid"><article class="partner-card"><span class="partner-tag">Store</span><h3>Bushra Automobiles, Jayanagar</h3><p>325, Ground Floor, 32nd E Cross Road, 4th T Block East, Jayanagar, Bengaluru 560041.<br>Monday to Saturday 9 am to 9 pm. Sunday 9 am to 2:30 pm. Please call first so your part is ready.</p><p><b>Call or WhatsApp:</b> <a href="tel:+919916525304">99165 25304</a><br><b>Store phone:</b> <a href="tel:+918277397478">82773 97478</a></p></article>
 <article class="partner-card"><span class="partner-tag">For garages and mechanics</span><h3>Buy parts through Axlio</h3><p>Independent garages, multi-brand workshops, mobile mechanics and fleet operators in Bengaluru can apply for Axlio\'s garage programme. Axlio calls within 2 working days. Pricing is agreed with the store after onboarding.</p><a class="btn btn-ghost" href="https://axlio.in/garages/" target="_blank" rel="noopener">Apply on axlio.in</a></article></div></div></section>
 <section><div class="wrap"><div class="final"><h2>Need a part or a car service?</h2><p>Go straight to Axlio. For your bike, we come to your door.</p><div class="row"><a class="btn btn-primary" href="https://axlio.in/" target="_blank" rel="noopener">Visit axlio.in</a><a class="btn btn-ghost" href="/book/">Book a bike service</a></div></div></div></section>'''
-    write('partners/axlio/index.html', HEAD.format(title='Axlio: Car and Bike Spare Parts in Bengaluru | Mechanix Pro Partner', desc='Axlio is our partner for car and bike spare parts, service kits and car service in Bengaluru. See what they do, how ordering works and where to find them.', url=f'{SITE}/partners/axlio/', site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='') + body + foot())
+    write('partners/axlio/index.html', HEAD.format(title='Axlio: Car and Bike Spare Parts in Bengaluru | Mechanix Pro Partner', desc='Axlio is our partner for car and bike spare parts, service kits and car service in Bengaluru. See what they do, how ordering works and where to find them.', url=f'{SITE}/partners/axlio/', site=SITE, schema=crumbs(('Our partner Axlio', '/partners/axlio/')) + ld_tag({"@context": "https://schema.org", "@type": "WebPage", "name": "Axlio: car and bike spare parts in Bengaluru", "url": SITE + "/partners/axlio/", "about": {"@type": "Organization", "name": "Axlio", "url": "https://axlio.in/"}}), scripts=LEGAL_JS, body='', nav=NAV, main='') + body + foot())
     urls.append(('/partners/axlio/', '0.6'))
 axlio_page()
 

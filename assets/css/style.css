@@ -986,3 +986,7 @@ main.page details{border:1px solid rgba(20,41,90,.1);border-radius:18px;padding:
 main.page details[open]{box-shadow:0 8px 24px rgba(15,29,69,.07)}
 main.page .final{border-radius:28px}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+/* Motion and memory (assets/js/motion.js) */
+.scroll-progress{position:fixed;left:0;top:0;right:0;height:3px;z-index:70;background:linear-gradient(90deg,#F2801F,#FFC857);transform:scaleX(0);transform-origin:0 50%;pointer-events:none}
+.resume{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 14px;padding:12px 16px;border-radius:16px;background:rgba(255,200,87,.14);border:1px solid rgba(255,200,87,.45);color:#fff;text-decoration:none;min-height:48px}
+.resume b{color:#FFC857}.resume:hover,.resume:focus-visible{background:rgba(255,200,87,.24)}
