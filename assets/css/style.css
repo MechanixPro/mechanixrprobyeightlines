@@ -1055,7 +1055,7 @@ html{-webkit-tap-highlight-color:transparent}
 }
 @media(max-width:819px){
 .hero{position:relative}
-.hero-cut{position:absolute;right:-2%;top:26px;width:40%;z-index:0}
+.hero-cut{position:absolute;right:-1%;top:22px;width:44%;z-index:0}
 .hero-copy{position:relative;z-index:1}
 .hero h1{font-size:clamp(32px,9vw,40px);max-width:60%}
 }
