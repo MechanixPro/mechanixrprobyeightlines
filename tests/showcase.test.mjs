@@ -40,7 +40,7 @@ test('key pages have a link-preview card of their own, and the files exist', () 
 test('the hero has one cut-out picture, not a grid of tiles', () => {
   const h = read('../index.html');
   const hero = h.slice(h.indexOf('<section class="hero">'), h.indexOf('</section>'));
-  assert.equal((hero.match(/<img [^>]*>/g) || []).filter((i) => /hero-cutout/.test(i)).length, 1);
+  assert.equal((hero.match(/<img [^>]*>/g) || []).filter((i) => /hero-roadside/.test(i)).length, 1);
   assert.doesNotMatch(hero, /mo-grid|hero-strip/);
-  assert.ok(readFileSync(new URL('../assets/img/hero-cutout.webp', import.meta.url)).length > 20000);
+  assert.ok(readFileSync(new URL('../assets/img/hero-roadside.webp', import.meta.url)).length > 20000);
 });
