@@ -44,11 +44,11 @@ test('key pages have a link-preview card of their own, and the files exist', () 
 test('the hero has one cut-out picture, not a grid of tiles', () => {
   const h = read('../index.html');
   const hero = h.slice(h.indexOf('<section class="hero">'), h.indexOf('</section>'));
-  assert.equal((hero.match(/<img [^>]*>/g) || []).filter((i) => /hero-repair/.test(i)).length, 1);
+  assert.equal((hero.match(/<img [^>]*>/g) || []).filter((i) => /hero-activa/.test(i)).length, 1);
   assert.doesNotMatch(hero, /mo-grid|hero-strip/);
-  assert.ok(readFileSync(new URL('../assets/img/hero-repair-p.webp', import.meta.url)).length > 20000);
+  assert.ok(readFileSync(new URL('../assets/img/hero-activa-p.webp', import.meta.url)).length > 20000);
 });
 test('the site pictures use the plate-covered versions only', () => {
   const home = read('../index.html');
-  for (const m of home.matchAll(/assets\/img\/(stories\/[a-z-]+|hero-(?:roadside|repair)[a-z-]*)\.webp/g)) assert.match(m[1], /-p$/, m[0]);
+  for (const m of home.matchAll(/assets\/img\/(stories\/[a-z-]+|hero-(?:roadside|repair|activa)[a-z-]*)\.webp/g)) assert.match(m[1], /-p$/, m[0]);
 });
