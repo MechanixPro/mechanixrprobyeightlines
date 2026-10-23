@@ -1163,44 +1163,23 @@ html{-webkit-tap-highlight-color:transparent}
 .hero-card{width:39%;right:1%;top:28px}
 .hero-card img{border-radius:18px;transform:rotate(3deg)}
 }
-/* Hero picture, rain scene as a cut-out: mechanic, rider and scooter share one soft glow, and the scooter runs off the right edge of the screen */
-.hero-rain img{border:0;border-radius:0;box-shadow:none;aspect-ratio:622/970;filter:drop-shadow(0 16px 24px rgba(0,0,0,.4))}
-.hero-rain::after{display:none}
-.hero-rain::before{width:110%;left:44%;bottom:14%;background:radial-gradient(circle,rgba(255,138,31,.38),rgba(255,138,31,0) 64%)}
+/* Hero picture, rain scene as a cut-out that runs off the right edge of the screen: the cut-off scooter simply continues past the edge */
+.hero-rain img{border:0;border-radius:0;box-shadow:none;aspect-ratio:760/974;filter:drop-shadow(0 20px 28px rgba(0,0,0,.4))}
 @media(min-width:820px){
-.hero-rain{width:min(100%,360px);justify-self:end;margin:-10px calc(-1 * max(12px, (100vw - 1120px) / 2 + 12px)) 0 0;transform:none}
-.hero-rain .hc-a{left:-40%;top:12%}.hero-rain .hc-c{left:-26%;bottom:10%}
+.hero-rain{width:min(100%,370px);justify-self:end;margin:-14px calc(-1 * max(20px, (100vw - 1120px) / 2 + 20px)) 0 0;transform:none}
+.hero-rain .hc-a{left:-34%;top:8%}.hero-rain .hc-c{left:-20%;bottom:12%}
+.hero-rain::before{width:120%;left:30%}
 }
 @media(max-width:819px){
 .hero-rain{width:46%;right:0;top:26px}
 .hero-rain img{transform:none;border-radius:0}
 }
-/* Hero, clean pass: headline, two actions, one proof line. The preview card floats over the photo. Chat, call button and the SOS box live lower on the page and in the nav. */
-.hero .sos,.hero .hero-hide{display:none}
-.hero .hero-alt{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
-.hero .hero-alt .btn{min-height:52px;padding-inline:26px;font-size:16px}
-.hero .hero-alt .btn-wa{order:1}.hero .hero-alt .btn-ghost{order:2}.hero .hero-alt .btn-sos{order:3;background:transparent;box-shadow:none;border:1px solid rgba(255,255,255,.28);color:#fff}
-.hero-proof{margin-top:22px;color:rgba(255,255,255,.82);font-size:15px}
-@media(min-width:960px){
-.hero{padding:72px 0 0;overflow:clip}
-.hero-grid{grid-template-columns:minmax(0,1fr) minmax(0,.9fr);grid-template-rows:auto;align-items:end;gap:24px;min-height:640px}
-.hero-copy{grid-column:1;grid-row:1;align-self:center;padding-bottom:72px}
-.hero .preview{grid-column:2;grid-row:1;align-self:start;justify-self:start;position:relative;z-index:3;width:240px;max-width:240px;margin:12px 0 0 -22px;padding:16px;transform:none}
-.hero .preview .pv-bar,.hero .preview .pv-opts,.hero .preview .pv-label:last-of-type{display:none}
-.hero-rain{grid-column:2;grid-row:1;align-self:end;justify-self:end;width:min(100%,410px);margin:0 calc(-1 * max(12px,(100vw - 1120px) / 2 + 12px)) 0 0}
-.hero-rain .hc-a{left:-6%;top:auto;bottom:22%}.hero-rain .hc-c{left:-26%;bottom:10%}
-.hero-rain .hc-b{display:none}
-}
-@media(max-width:959px){.hero .hero-alt .btn-sos{display:none}}
-@media(max-width:959px){.hero-rain{width:40%;top:30px}.hero .lead{position:relative;z-index:2}}
 /* Phone picture fixes: the chip no longer sits on the poster headline, bike photos keep the whole bike in frame */
 .st-chip{top:auto;bottom:12px}
 .bike-card img{aspect-ratio:3/2}
 .bike-card img[src*="ola-electric"]{object-position:74% 50%}
-@media(max-width:389px){.nav .brand .wm{width:104px!important;height:auto!important}.nav .wrap{gap:8px}.hero h1{max-width:57%}.hero-rain{width:38%}}
+@media(max-width:389px){.nav .brand .wm{width:104px!important;height:auto!important}.nav .wrap{gap:8px}}
 @media(max-width:340px){.nav .brand .wm{display:none!important}}
-@media(max-width:959px){.hero-rain{top:8px;width:min(40%,170px)}.hero .lead{margin-top:18px}}
-@media(max-width:389px){.hero-rain{top:12px;width:38%}}
 /* Stories rail, new look: the card in front is full size and lit, the others sit back; a progress bar fills the active dot while it autoplays */
 .st-card{transition:transform .5s var(--ease,ease),opacity .5s,box-shadow .5s;transform:scale(.94);opacity:.72;transform-origin:center bottom}
 .st-card.is-active{transform:scale(1);opacity:1;box-shadow:0 2px 4px rgba(15,29,69,.06),0 28px 60px rgba(15,29,69,.22)}
@@ -1212,49 +1191,3 @@ html{-webkit-tap-highlight-color:transparent}
 @keyframes stFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @media(prefers-reduced-motion:reduce){.st-card,.st-card.is-active{transform:none;transition:none}.st-card.is-active .st-media img,.st-run .st-dots i.on::after{animation:none}}
 .st-chip{display:none}
-/* Hero photo, final: the whole rain poster as a clean framed card, nothing cropped, with the compact build card overlapping its corner */
-.hero-photo img{border-radius:24px;border:1px solid rgba(255,255,255,.22);box-shadow:0 28px 60px rgba(0,0,0,.45);aspect-ratio:480/632;object-fit:cover;filter:none;width:100%;height:auto;display:block}
-.hero-photo::before,.hero-photo::after{display:none}
-@media(min-width:960px){
-.hero{padding:72px 0 72px}
-.hero-grid{min-height:0;align-items:center}
-.hero-copy{padding-bottom:0}
-.hero-photo{grid-column:2;grid-row:1;align-self:center;justify-self:end;width:min(100%,360px);margin:0;transform:none}
-.hero .preview{grid-column:2;grid-row:1;align-self:end;justify-self:start;width:250px;max-width:250px;margin:0 0 -18px -8px;z-index:3}
-}
-@media(max-width:959px){
-.hero-photo{position:absolute;right:20px;top:26px;width:38%;margin:0;z-index:0}
-.hero-photo img{border-radius:16px}
-.hero .preview{display:none}
-}
-.hero-photo{transform:none!important}
-@media(max-width:959px){.hero-photo{width:min(38%,190px)}}
-@media(min-width:960px){.hero .preview{margin:0 0 -22px -52px;width:236px;max-width:236px}}
-/* WhatsApp chat box is back in the hero, kept compact */
-.hero .chat{display:block;margin-top:22px;max-width:520px}
-.hero .chat .reassure{display:none}
-.hero .hero-alt{margin-top:20px}
-.hero .hero-alt [data-call]{display:none}
-@media(max-width:959px){.hero .chat{margin-top:18px}}
-@media(min-width:960px){
-.hero-grid{align-items:start}
-.hero-photo{align-self:start;margin-top:24px;width:min(100%,340px)}
-.hero .preview{align-self:start;margin:250px 0 0 -52px}
-}
-@media(min-width:960px){.hero .preview{margin:270px 0 0 4px}}
-/* Hero stage: the rain scene with its background removed, standing on a soft ember-lit panel; the scooter runs off the left edge of the panel */
-.hero-stage{position:relative;overflow:hidden;border-radius:26px;background:radial-gradient(120% 70% at 70% 100%,rgba(242,128,31,.55),rgba(242,128,31,0) 62%),linear-gradient(165deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.16);aspect-ratio:666/1100}
-.hero-stage img{position:absolute;left:0;bottom:0;width:100%;height:auto;aspect-ratio:666/1040;border:0;border-radius:0;box-shadow:none;object-fit:contain;filter:drop-shadow(0 14px 18px rgba(0,0,0,.4))}
-/* Transparent version: no panel, only a soft glow behind the people; the scooter fades in at its cut edge */
-.hero-stage{border:0;border-radius:0;overflow:visible;background:radial-gradient(closest-side,rgba(242,128,31,.42),rgba(242,128,31,0)) center 70%/110% 70% no-repeat;aspect-ratio:666/1060}
-.hero-stage img{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 9%);mask-image:linear-gradient(90deg,transparent 0,#000 9%)}
-@media(min-width:960px){
-.hero-grid{align-items:center}
-.hero-photo.hero-stage{align-self:center;margin-top:0;width:min(100%,400px);justify-self:end}
-.hero .preview{display:none}
-}
-@media(max-width:959px){.hero-photo.hero-stage{width:min(40%,180px);top:20px}.hero-stage img{-webkit-mask-image:none;mask-image:none}}
-.hero-stage{background:radial-gradient(ellipse closest-side,rgba(242,128,31,.4),rgba(242,128,31,0)) center 72%/100% 72% no-repeat!important}
-.hero-stage img{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 4%);mask-image:linear-gradient(90deg,transparent 0,#000 4%)}
-.hero-stage{box-shadow:none!important}.hero-stage img{background:none!important}
-@media(max-width:959px){.hero-photo.hero-stage{position:absolute;right:16px;top:20px;margin:0;z-index:0}}
