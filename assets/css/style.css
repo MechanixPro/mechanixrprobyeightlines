@@ -1201,3 +1201,14 @@ html{-webkit-tap-highlight-color:transparent}
 @media(max-width:340px){.nav .brand .wm{display:none!important}}
 @media(max-width:959px){.hero-rain{top:8px;width:min(40%,170px)}.hero .lead{margin-top:18px}}
 @media(max-width:389px){.hero-rain{top:12px;width:38%}}
+/* Stories rail, new look: the card in front is full size and lit, the others sit back; a progress bar fills the active dot while it autoplays */
+.st-card{transition:transform .5s var(--ease,ease),opacity .5s,box-shadow .5s;transform:scale(.94);opacity:.72;transform-origin:center bottom}
+.st-card.is-active{transform:scale(1);opacity:1;box-shadow:0 2px 4px rgba(15,29,69,.06),0 28px 60px rgba(15,29,69,.22)}
+.st-card.is-active .st-media img{animation:stDrift 9s ease-out both}
+@keyframes stDrift{from{transform:scale(1)}to{transform:scale(1.07)}}
+.st-dots i{position:relative;overflow:hidden}
+.st-run .st-dots i.on::after{content:"";position:absolute;inset:0;background:#B4540A;transform-origin:left;animation:stFill 5s linear both}
+.st-dots i.on{background:rgba(242,128,31,.35)}
+@keyframes stFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media(prefers-reduced-motion:reduce){.st-card,.st-card.is-active{transform:none;transition:none}.st-card.is-active .st-media img,.st-run .st-dots i.on::after{animation:none}}
+.st-chip{display:none}
