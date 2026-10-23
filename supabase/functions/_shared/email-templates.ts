@@ -134,6 +134,17 @@ ${p(`This code works for ${d.minutes} minutes and only once.`)}
   return { subject, html: layout({ preheader: `Your login code is ${d.code}. It works for ${d.minutes} minutes.`, title: subject, body, site: d, links: false }), text };
 }
 
+export function passwordReset(d: Site & { link: string; minutes: number }): Mail {
+  const subject = 'Reset your Mechanix Pro admin password';
+  const body = `${h1('Reset your password')}
+${p('We got a request to reset the password for your Mechanix Pro admin account. Tap the button to choose a new one.')}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 22px"><tr><td bgcolor="${EMBER}" style="border-radius:999px"><a href="${escapeHtml(d.link)}" style="display:inline-block;padding:14px 28px;font:700 16px ${FONT};color:#1F1206;text-decoration:none">Choose a new password</a></td></tr></table>
+${p(`This link works for ${d.minutes} minutes and only once.`)}
+<p style="margin:0;font:14px/1.5 ${FONT};color:${MUTED}">If you did not ask for this, ignore this email and your password stays as it is. Never share this link with anyone, including Mechanix Pro staff.</p>`;
+  const text = `Reset your Mechanix Pro admin password\n\nOpen this link to choose a new password (it works for ${d.minutes} minutes and only once):\n${d.link}\n\nIf you did not ask for this, ignore this email. Never share this link with anyone.\n\nMechanix Pro, Bengaluru · ${d.email}`;
+  return { subject, html: layout({ preheader: `Choose a new password. The link works for ${d.minutes} minutes.`, title: subject, body, site: d, links: false }), text };
+}
+
 export type MarketingData = Site & { subject: string; preheader: string; headline: string; body: string; ctaText: string; ctaUrl: string; unsubscribeUrl: string };
 export function marketing(d: MarketingData): Mail {
   const paras = String(d.body || '').split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);

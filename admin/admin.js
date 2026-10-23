@@ -52,23 +52,30 @@ $('#loginForm').addEventListener('submit', async (e) => {
   if (error) { $('#loginErr').textContent = 'Wrong email or password.'; return; }
   boot();
 });
-let codeEmail = '';
-$('#sendCode').addEventListener('click', async () => {
-  const email = $('#em').value.trim(); $('#loginErr').textContent = '';
-  if (!email) { $('#loginErr').textContent = 'Enter your email first.'; return; }
-  $('#sendCode').disabled = true;
-  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
-  $('#sendCode').disabled = false;
-  if (error) { $('#loginErr').textContent = /rate|seconds|too many/i.test(error.message) ? 'Please wait a minute before asking for another code.' : 'Could not send a code. Check the email address, or use your password.'; return; }
-  codeEmail = email; $('#codeBox').hidden = false; $('#sendCode').textContent = 'Send a new code'; $('#code').focus();
-  $('#loginInfo').textContent = 'We sent a 6-digit code to ' + email + '. It works for 10 minutes.';
+// No login codes and no magic links: the admin signs in with a password. "Forgot password" emails a one-time link that opens the "choose a new password" form below.
+let recovering = /type=recovery/.test(location.hash) || /type=recovery/.test(location.search);
+const showReset = () => { recovering = true; $('#loginForm').hidden = true; $('#resetForm').hidden = false; $('#np1').focus(); };
+sb.auth.onAuthStateChange((ev) => { if (ev === 'PASSWORD_RECOVERY') showReset(); });
+if (recovering) showReset();
+$('#forgot').addEventListener('click', async () => {
+  const email = $('#em').value.trim(); $('#loginErr').textContent = ''; $('#loginInfo').textContent = '';
+  if (!/^\S+@\S+\.\S+$/.test(email)) { $('#loginErr').textContent = 'Type your email above, then press Forgot password.'; return; }
+  $('#forgot').disabled = true;
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/' });
+  setTimeout(() => { $('#forgot').disabled = false; }, 4000);
+  if (error && /rate|seconds|too many/i.test(error.message)) { $('#loginErr').textContent = 'Please wait a minute before asking again.'; return; }
+  // The same message whether or not the email belongs to an admin, so nobody can use this page to find out who is one.
+  $('#loginInfo').textContent = 'If that email belongs to an admin, a link to choose a new password is on its way. It works for an hour.';
 });
-$('#verifyCode').addEventListener('click', async () => {
-  const token = $('#code').value.replace(/\D/g, ''); $('#loginErr').textContent = '';
-  if (token.length < 6) { $('#loginErr').textContent = 'Enter the 6-digit code.'; return; }
-  const { error } = await sb.auth.verifyOtp({ email: codeEmail || $('#em').value.trim(), token, type: 'email' });
-  if (error) { $('#loginErr').textContent = 'That code is wrong or has expired. Ask for a new one.'; return; }
-  boot();
+$('#resetForm').addEventListener('submit', async (e) => {
+  e.preventDefault(); $('#resetErr').textContent = '';
+  const a = $('#np1').value, b = $('#np2').value;
+  if (a.length < 10) { $('#resetErr').textContent = 'Use at least 10 characters.'; return; }
+  if (a !== b) { $('#resetErr').textContent = 'The two passwords are not the same.'; return; }
+  const { error } = await sb.auth.updateUser({ password: a });
+  if (error) { $('#resetErr').textContent = /same|different/i.test(error.message) ? 'Choose a password you have not used before.' : 'Could not save the password. Ask for a new link and try again.'; return; }
+  recovering = false; try { history.replaceState(null, '', location.pathname); } catch (x) {}
+  $('#resetForm').hidden = true; $('#loginForm').hidden = false; toast('Password saved'); boot();
 });
 $('#signOut').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
 
@@ -1461,4 +1468,4 @@ async function loadActivity() {
   el.innerHTML = (data ?? []).map((a) => `<div class="row" style="cursor:default"><span class="meta">${when(a.created_at)}</span><span>${esc(a.action.replace(/_/g, ' '))}<br><span class="meta">${esc(JSON.stringify(a.details))}</span></span><span class="meta">${a.actor ? (a.actor === S.me.user_id ? 'You' : 'Team') : 'System'}</span></div>`).join('') || '<p class="muted" style="padding:16px">No activity yet.</p>';
 }
 
-sb.auth.getSession().then(({ data }) => { if (data.session) boot(); });
+sb.auth.getSession().then(({ data }) => { if (data.session && !recovering) boot(); });

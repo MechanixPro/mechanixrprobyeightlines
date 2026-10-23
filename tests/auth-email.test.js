@@ -17,14 +17,13 @@ test('the login code email template exists, shows the code placeholder and uses 
   assert.match(t, /\{\{ \.Token \}\}/); assert.match(t, /#14295A/i); assert.match(t, /#F2801F/i); assert.doesNotMatch(t, /<script/i);
   assert.match(read('supabase/config.toml'), /content_path = "\.\/supabase\/templates\/otp\.html"/);
 });
-test('the admin login offers an email code and checks it, without creating new users', () => {
-  const js = read('admin/admin.js');
-  assert.match(js, /signInWithOtp\(\{[^}]*shouldCreateUser: false/);
-  assert.match(js, /verifyOtp\(\{[^}]*type: 'email'/);
-  const html = read('admin/index.html');
-  assert.match(html, /id="sendCode"/); assert.match(html, /id="code"[^>]*inputmode="numeric"/);
+test('the admin login is password only, with Forgot password and a choose-a-new-password form, and no code login', () => {
+  const js = read('admin/admin.js'), html = read('admin/index.html');
+  assert.match(js, /signInWithPassword\(/); assert.match(js, /resetPasswordForEmail\(/); assert.match(js, /updateUser\(\{ password/); assert.match(js, /PASSWORD_RECOVERY/);
+  assert.doesNotMatch(js, /signInWithOtp|verifyOtp/);
+  assert.match(html, /id="forgot"/); assert.match(html, /id="resetForm"/); assert.match(html, /id="pw"[^>]*type="password"|type="password"[^>]*id="pw"/);
+  assert.doesNotMatch(html, /id="sendCode"|id="code"|Email me a code|one-time-code/);
 });
-
 test('the Email sign-in provider stays on while public sign-ups stay off', () => {
   const fs = require('node:fs');
   const toml = fs.readFileSync(require('node:path').join(__dirname, '..', 'supabase/config.toml'), 'utf8');

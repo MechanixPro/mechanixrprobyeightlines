@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHmac } from 'node:crypto';
-import { verifyWebhook, loginMailFor } from '../supabase/functions/_shared/auth-hook.ts';
+import { verifyWebhook, authMailFor } from '../supabase/functions/_shared/auth-hook.ts';
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
 const KEY = Buffer.from('super-secret-test-key-1234567890').toString('base64');
@@ -27,15 +27,25 @@ test('a header with several signatures passes if any one matches', async () => {
   const body = 'b';
   assert.equal(await verifyWebhook(SECRET, { id: 'm', timestamp: String(NOW), signature: 'v1,AAAA ' + sign('m', NOW, body) }, body, NOW), true);
 });
-test('the login mail carries the code and comes from the hook payload', () => {
-  const m = loginMailFor({ user: { email: 'hello@mechanixpro.in' }, email_data: { token: '482913', email_action_type: 'magiclink' } }, { siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 83106 21498', phoneTel: '+918310621498', whatsappUrl: 'https://wa.me/918310621498', email: 'hello@mechanixpro.in' });
-  assert.equal(m.to, 'hello@mechanixpro.in'); assert.match(m.html, /482913/); assert.match(m.text, /482913/); assert.match(m.subject, /login code/i);
-  assert.equal(loginMailFor({ user: {}, email_data: {} }, {}), null);
+const SITE = { siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 83106 21498', phoneTel: '+918310621498', whatsappUrl: 'https://wa.me/918310621498', email: 'hello@mechanixpro.in' };
+const SB = 'https://mejdxsbpyscujpvbwvmg.supabase.co';
+test('a password-reset request becomes a mail with the one-time link, built from the hook payload', () => {
+  const m = authMailFor({ user: { email: 'hello@mechanixpro.in' }, email_data: { token: '482913', token_hash: 'abc123hash', redirect_to: 'https://admin.mechanixpro.in/', email_action_type: 'recovery' } }, SITE, SB);
+  assert.equal(m.to, 'hello@mechanixpro.in');
+  assert.ok(m.html.includes(SB + '/auth/v1/verify?token=abc123hash&amp;type=recovery&amp;redirect_to=https%3A%2F%2Fadmin.mechanixpro.in%2F') || m.html.includes(SB + '/auth/v1/verify?token=abc123hash&type=recovery&redirect_to=https%3A%2F%2Fadmin.mechanixpro.in%2F'));
+  assert.match(m.text, /auth\/v1\/verify\?token=abc123hash&type=recovery/); assert.match(m.subject, /reset/i);
+  assert.doesNotMatch(m.html + m.text, /482913/);
+});
+test('login codes and magic links are never sent, so there is no code login', () => {
+  for (const type of ['magiclink', 'email', 'signup', 'invite', 'email_change', 'reauthentication', undefined])
+    assert.equal(authMailFor({ user: { email: 'a@b.in' }, email_data: { token: '123456', token_hash: 'h', email_action_type: type } }, SITE, SB), null, String(type));
+  assert.equal(authMailFor({ user: {}, email_data: { email_action_type: 'recovery', token_hash: 'h' } }, SITE, SB), null);
+  assert.equal(authMailFor({ user: { email: 'a@b.in' }, email_data: { email_action_type: 'recovery' } }, SITE, SB), null);
 });
 test('auth-email checks the signature first, sends from no-reply, logs without the code, and is public for Supabase Auth', () => {
   const f = read('../supabase/functions/auth-email/index.ts');
   assert.ok(f.indexOf('verifyWebhook(') < f.indexOf('sendEmail('));
-  assert.match(f, /SEND_EMAIL_HOOK_SECRET/); assert.match(f, /template: 'login_code'/); assert.match(f, /401/);
+  assert.match(f, /SEND_EMAIL_HOOK_SECRET/); assert.match(f, /template: 'password_reset'/); assert.match(f, /401/);
   assert.doesNotMatch(f, /console\.(log|error)\([^)]*(token|code)/i); assert.doesNotMatch(f, /insert\([^)]*(token|code:)/i);
   assert.doesNotMatch(f, /FROM_BOOKING/);
   const toml = read('../supabase/config.toml');

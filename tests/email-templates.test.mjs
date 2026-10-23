@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bookingReceived, bookingConfirmed, otpCode, marketing, escapeHtml } from '../supabase/functions/_shared/email-templates.ts';
+import { bookingReceived, bookingConfirmed, otpCode, passwordReset, marketing, escapeHtml } from '../supabase/functions/_shared/email-templates.ts';
 
 const SITE = { siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 83106 21498', phoneTel: '+918310621498', whatsappUrl: 'https://wa.me/918310621498', email: 'hello@mechanixpro.in' };
 const received = () => bookingReceived({ ...SITE, name: 'Asha', ref: 'MP-1042', bike: 'Honda Activa 6G', service: 'General service', area: 'HSR Layout', whenText: 'Tomorrow, 11 Oct · Morning (9 AM – 12 PM)', estimate: 1299 });
@@ -56,4 +56,10 @@ test('the marketing email has an unsubscribe link in HTML and text, a button, an
   assert.match(m.html, /Book a service/); assert.match(m.html, /Ready for the rains\?/);
   assert.equal((m.html.match(/<p [^>]*>(First|Second) paragraph\./g) || []).length, 2);
   assert.match(m.html, /you are receiving this because/i);
+});
+
+test('the password reset mail has a button to the link, the expiry, a safety line, and no code', () => {
+  const m = passwordReset({ ...SITE, link: 'https://x.supabase.co/auth/v1/verify?token=h&type=recovery&redirect_to=https%3A%2F%2Fadmin.mechanixpro.in%2F', minutes: 60 });
+  assert.match(m.subject, /reset/i); assert.match(m.html, /Choose a new password/); assert.match(m.html, /60 minutes/); assert.match(m.html, /ignore this email/i); assert.doesNotMatch(m.html, /<script/i);
+  assert.match(m.text, /https:\/\/x\.supabase\.co\/auth\/v1\/verify/);
 });
