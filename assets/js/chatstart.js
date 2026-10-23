@@ -18,7 +18,7 @@
     var bike = BIKES.filter(function (b) { return b.id === o.bike || b.say === o.bike; })[0];
     var bikeText = bike ? bike.say : (clean(o.bike, 30) || 'bike');
     var campaign = clean(o.campaign, 40).replace(/[^a-z0-9-]/gi, '');
-    return 'Hi Mechanix Pro, I need ' + need.say + ' for my ' + bikeText + ' in Bengaluru.\nBike model: \nArea: ' + (campaign ? '\n(campaign: ' + campaign + ')' : '');
+    return 'Hi Mechanix Pro, I need ' + need.say + ' for my ' + bikeText + ' in Bengaluru.\nBike model: \nArea: ' + (campaign ? '\n(campaign: ' + campaign + ')' : '') + '\n\nSent from mechanixpro.in';
   }
   function waUrl(num, text) { num = String(num || '').replace(/\D/g, ''); return /^\d{12}$/.test(num) ? 'https://wa.me/' + num + '?text=' + encodeURIComponent(text) : null; }
   function priceLine(prices, need) {

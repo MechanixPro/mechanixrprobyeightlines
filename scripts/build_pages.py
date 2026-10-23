@@ -37,7 +37,7 @@ HEAD = '''<!doctype html>
 <meta name="description" content="{desc}">
 <link rel="canonical" href="{url}">
 <meta name="theme-color" content="#14295A">
-<meta property="og:title" content="{title}"><meta property="og:description" content="{desc}"><meta property="og:url" content="{url}"><meta property="og:image" content="{site}/assets/img/og.png"><meta property="og:type" content="website"><meta property="og:site_name" content="Mechanix Pro"><meta name="twitter:card" content="summary_large_image">
+<meta property="og:title" content="{title}"><meta property="og:description" content="{desc}"><meta property="og:url" content="{url}"><meta property="og:image" content="{site}/assets/img/og.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Mechanix Pro: doorstep bike service in Bengaluru. Quote first, pay after you say yes. Open 24/7."><meta property="og:type" content="website"><meta property="og:site_name" content="Mechanix Pro"><meta property="og:locale" content="en_IN"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="{site}/assets/img/og.png">
 <link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32"><link rel="icon" href="/assets/img/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="/assets/css/style.css">
 {schema}
@@ -712,6 +712,7 @@ def chat_block(campaign=''):
     chips = ''.join(f'<a class="ride-chip" href="#" data-wa="general" data-wa-text="{msg(say)}">{label}</a>' for say, label in (('scooter', 'Scooter'), ('motorcycle', 'Motorcycle'), ('Royal Enfield', 'Royal Enfield'), ('electric scooter or bike', 'Electric')))
     camp = f' data-campaign="{html.escape(campaign)}"' if campaign else ''
     return (f'<div class="chat" id="chat" data-price-service="{{{{text:basic}}}}" data-price-repair="{{{{text:repair}}}}"{camp}>'
+            '<div class="chat-head"><img src="/assets/img/logo-mark.webp" alt="" width="40" height="40"><div><b>Mechanix Pro</b><span>Business account on WhatsApp · Open 24/7</span></div></div>'
             '<div class="chat-log" aria-live="polite"><div class="bubble in">Hi! I\'m the Mechanix Pro team. What do you ride?</div></div>'
             f'<div class="chat-opts">{chips}</div>'
             '<p class="tiny reassure">Tap your bike and WhatsApp opens with a message ready. Nothing is charged until you approve your quote. We are open 24/7.</p></div>')

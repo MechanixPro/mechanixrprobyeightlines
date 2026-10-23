@@ -264,7 +264,7 @@
 
   /* ---------- WhatsApp hand-off ---------- */
   function waNumber() { return String(C.whatsapp || '').replace(/\D/g, ''); }
-  function waLink(text) { return 'https://wa.me/' + waNumber() + '?text=' + encodeURIComponent(text); }
+  function waLink(text) { text = String(text || ''); if (!/mechanixpro\.in/i.test(text)) text += '\n\nSent from mechanixpro.in'; return 'https://wa.me/' + waNumber() + '?text=' + encodeURIComponent(text); }
   function buildMessage(ref) {
     var when = st.dateIso && st.hour != null ? L.whenLabel(st.dateIso, st.hour) : '';
     return L.buildMessage(st, items, cfg(), when, ref);
