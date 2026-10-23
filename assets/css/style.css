@@ -1176,7 +1176,7 @@ html{-webkit-tap-highlight-color:transparent}
 .hero-rain img{transform:none;border-radius:0}
 }
 /* Hero, clean pass: headline, two actions, one proof line. The preview card floats over the photo. Chat, call button and the SOS box live lower on the page and in the nav. */
-.hero .chat,.hero .sos,.hero .hero-alt [data-call]{display:none}
+.hero .sos,.hero .hero-hide{display:none}
 .hero .hero-alt{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
 .hero .hero-alt .btn{min-height:52px;padding-inline:26px;font-size:16px}
 .hero .hero-alt .btn-wa{order:1}.hero .hero-alt .btn-ghost{order:2}.hero .hero-alt .btn-sos{order:3;background:transparent;box-shadow:none;border:1px solid rgba(255,255,255,.28);color:#fff}
@@ -1212,3 +1212,33 @@ html{-webkit-tap-highlight-color:transparent}
 @keyframes stFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @media(prefers-reduced-motion:reduce){.st-card,.st-card.is-active{transform:none;transition:none}.st-card.is-active .st-media img,.st-run .st-dots i.on::after{animation:none}}
 .st-chip{display:none}
+/* Hero photo, final: the whole rain poster as a clean framed card, nothing cropped, with the compact build card overlapping its corner */
+.hero-photo img{border-radius:24px;border:1px solid rgba(255,255,255,.22);box-shadow:0 28px 60px rgba(0,0,0,.45);aspect-ratio:480/632;object-fit:cover;filter:none;width:100%;height:auto;display:block}
+.hero-photo::before,.hero-photo::after{display:none}
+@media(min-width:960px){
+.hero{padding:72px 0 72px}
+.hero-grid{min-height:0;align-items:center}
+.hero-copy{padding-bottom:0}
+.hero-photo{grid-column:2;grid-row:1;align-self:center;justify-self:end;width:min(100%,360px);margin:0;transform:none}
+.hero .preview{grid-column:2;grid-row:1;align-self:end;justify-self:start;width:250px;max-width:250px;margin:0 0 -18px -8px;z-index:3}
+}
+@media(max-width:959px){
+.hero-photo{position:absolute;right:20px;top:26px;width:38%;margin:0;z-index:0}
+.hero-photo img{border-radius:16px}
+.hero .preview{display:none}
+}
+.hero-photo{transform:none!important}
+@media(max-width:959px){.hero-photo{width:min(38%,190px)}}
+@media(min-width:960px){.hero .preview{margin:0 0 -22px -52px;width:236px;max-width:236px}}
+/* WhatsApp chat box is back in the hero, kept compact */
+.hero .chat{display:block;margin-top:22px;max-width:520px}
+.hero .chat .reassure{display:none}
+.hero .hero-alt{margin-top:20px}
+.hero .hero-alt [data-call]{display:none}
+@media(max-width:959px){.hero .chat{margin-top:18px}}
+@media(min-width:960px){
+.hero-grid{align-items:start}
+.hero-photo{align-self:start;margin-top:24px;width:min(100%,340px)}
+.hero .preview{align-self:start;margin:250px 0 0 -52px}
+}
+@media(min-width:960px){.hero .preview{margin:270px 0 0 4px}}
