@@ -990,3 +990,42 @@ main.page .final{border-radius:28px}
 .scroll-progress{position:fixed;left:0;top:0;right:0;height:3px;z-index:70;background:linear-gradient(90deg,#F2801F,#FFC857);transform:scaleX(0);transform-origin:0 50%;pointer-events:none}
 .resume{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 14px;padding:12px 16px;border-radius:16px;background:rgba(255,200,87,.14);border:1px solid rgba(255,200,87,.45);color:#fff;text-decoration:none;min-height:48px}
 .resume b{color:#FFC857}.resume:hover,.resume:focus-visible{background:rgba(255,200,87,.24)}
+/* See how it feels: story cards */
+#experience{padding-bottom:calc(var(--sp-section) - 24px)}
+.st-rail-wrap{position:relative}
+.st-rail{display:flex;gap:16px;list-style:none;margin:0;padding:6px max(20px,calc((100vw - 1120px)/2 + 20px)) 18px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:max(20px,calc((100vw - 1120px)/2 + 20px));-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.st-rail::-webkit-scrollbar{display:none}
+.st-rail:focus-visible{outline-offset:-3px}
+.st-card{flex:0 0 min(78vw,300px);scroll-snap-align:start;display:flex;flex-direction:column;border-radius:28px;background:#fff;overflow:hidden;border:1px solid rgba(20,41,90,.08);box-shadow:0 1px 2px rgba(15,29,69,.04),0 16px 40px rgba(15,29,69,.1);transition:transform var(--t-base,280ms) var(--ease,ease)}
+.st-card:hover{transform:translateY(-4px)}
+.st-media{position:relative;display:block;aspect-ratio:3/4;overflow:hidden;background:#14295A}
+.st-media img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s var(--ease,ease)}.st-card:hover .st-media img{transform:scale(1.04)}
+.st-chip{position:absolute;left:12px;top:12px;padding:6px 12px;border-radius:999px;background:rgba(10,16,32,.72);color:#fff;font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.st-chip::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ember);margin-right:7px}
+.st-copy{padding:18px 18px 20px;display:flex;flex-direction:column;gap:6px;flex:1}
+.st-copy h3{margin:0;font-size:20px}.st-copy p{margin:0;color:var(--ink-2,#44506b);font-size:15px;line-height:1.5;flex:1}
+.st-go{margin-top:8px;font-weight:700;color:#B4540A;text-decoration:none;min-height:44px;display:inline-flex;align-items:center}.st-go i{font-style:normal;transition:transform .2s;margin-left:6px}.st-card:hover .st-go i{transform:translateX(4px)}
+.st-ctl{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.st-dots{display:flex;gap:8px}.st-dots i{width:8px;height:8px;border-radius:50%;background:rgba(20,41,90,.2);transition:width .25s,background .25s}.st-dots i.on{width:26px;border-radius:5px;background:var(--ember)}
+.st-btns{display:flex;gap:10px}.st-b{width:48px;height:48px;border-radius:50%;border:1.5px solid rgba(20,41,90,.18);background:#fff;font-size:20px;color:#14295A;cursor:pointer;transition:background .15s,border-color .15s}.st-b:hover:not(:disabled){background:#FFF1E2;border-color:var(--ember)}.st-b:disabled{opacity:.35;cursor:default}
+.st-note{margin-top:8px}
+@media(min-width:900px){.st-card{flex-basis:300px}}
+@media(prefers-reduced-motion:reduce){.st-card,.st-media img{transition:none}.st-card:hover{transform:none}.st-card:hover .st-media img{transform:none}}
+/* ===== Smoothness pass: less to paint, less to lay out ===== */
+.is-off,.is-off *,.is-off *::before,.is-off *::after{animation-play-state:paused!important}
+/* skip the work for sections far below the screen until they get close */
+#prices,#addons-home,#brief,#every-job,#trust,#home-faq,#areas,#bikes,#partners,#experience,#needs,#services-all,#rsa{content-visibility:auto;contain-intrinsic-size:auto 760px}
+footer{content-visibility:auto;contain-intrinsic-size:auto 520px}
+/* heavy effects that cost frames: big blurs on text and on the 200-path map */
+.hero h1{text-shadow:none}
+.cv-map .pm svg{filter:none}
+.pm-glow{filter:none}.pm-glow circle{opacity:.5}
+/* blur only where it is worth it: the nav. Everything else is a solid tint */
+.nav{-webkit-backdrop-filter:saturate(150%) blur(10px);backdrop-filter:saturate(150%) blur(10px);background:rgba(245,245,247,.9)}
+.mbar{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(245,245,247,.97)}
+.st-chip,.hp-badges span{-webkit-backdrop-filter:none;backdrop-filter:none}
+.tk-track,.scroll-progress,.st-rail{will-change:transform}
+.st-rail{will-change:auto}
+/* tap and scroll feel */
+html{-webkit-tap-highlight-color:transparent}
+.btn,.bt,.st-card,.job-grid li{-webkit-tap-highlight-color:transparent;touch-action:manipulation}

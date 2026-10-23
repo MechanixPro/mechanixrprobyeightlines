@@ -23,3 +23,11 @@ test('the phone bar is toggled with its own class, not the .show class of the im
   assert.match(read('../assets/js/app.js'), /mb\.classList\.toggle\('on'/);
   assert.match(read('../assets/css/style.css'), /\.mbar\.on\{transform:none\}/);
 });
+test('the experience cards use only our own Instagram creatives, with no prices baked in, and say what they are', () => {
+  const home = read('../index.html');
+  const sec = home.match(/<section id="experience"[\s\S]*?<\/section>/)[0];
+  assert.equal((sec.match(/<img /g) || []).length, 6);
+  for (const img of sec.match(/<img [^>]*>/g)) { assert.match(img, /width="480" height="640"/); assert.match(img, /alt="Scene from our Instagram:/); }
+  assert.match(sec, /not a specific customer or job/);
+  assert.match(sec, /rel="me noopener"/);
+});
