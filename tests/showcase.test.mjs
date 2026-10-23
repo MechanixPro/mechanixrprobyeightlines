@@ -3,10 +3,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
-test('the home page shows every service as a tile, with cars going to the partner page', () => {
+test('the home page leads with what we offer, then the entry points, in a clear order', () => {
   const home = read('../index.html');
-  const b = home.match(/<div class="bento">[\s\S]*?<\/section>/)[0];
-  for (const href of ['/book/', '/book/?service=repair', '/roadside/', '#addons-home', '/partners/axlio/', '/fleet/']) assert.ok(b.includes(`href="${href}"`), href);
+  const ids = [...home.matchAll(/<section[^>]*id="([^"]+)"/g)].map((m) => m[1]);
+  const at = (id) => ids.indexOf(id);
+  assert.deepEqual(['diwali', 'why', 'needs', 'rsa', 'prices', 'addons-home', 'brief', 'rider-tools', 'every-job', 'trust', 'experience', 'home-faq', 'areas', 'partners'].map(at).every((v, i, a) => v > -1 && (i === 0 || v > a[i - 1])), true, ids.join(','));
+  const why = home.match(/<div class="promo-grid">[\s\S]*?<\/section>/)[0];
+  for (const href of ['/two-wheeler-service-at-home-bangalore/', '/scooty-repair-at-home-bangalore/', '/ev-and-petrol-bike-care-bangalore/', '/verified-bike-garages-bangalore/', '/digital-service-records/', '/doorstep-bike-and-car-repair-near-me/']) assert.ok(why.includes(`href="${href}"`), href);
+  assert.ok(!ids.includes('services-all'), 'the duplicate services tiles are gone');
 });
 test('the Axlio page says what Axlio does, attributes it, and links out safely', () => {
   const p = read('../partners/axlio/index.html');

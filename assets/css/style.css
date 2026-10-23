@@ -1115,5 +1115,16 @@ html{-webkit-tap-highlight-color:transparent}
 .promo-navy{background:linear-gradient(145deg,#14295A,#1F3F86)}
 .promo-gold{background:linear-gradient(145deg,#F2A21F,#C97A06);color:#1F1206}.promo-gold i{background:#1F1206;color:#FFC857}.promo-gold .promo-tag{background:rgba(31,18,6,.15)}
 @media(max-width:900px){.promo-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:560px){.promo-grid{grid-template-columns:1fr}.promo{min-height:0;padding-bottom:64px}}
+@media(max-width:560px){.promo-grid{grid-template-columns:1fr 1fr;gap:10px}.promo{min-height:150px;padding:16px 14px 54px;border-radius:22px}.promo b{font-size:17px}.promo span:not(.promo-tag){font-size:12.5px;line-height:1.35}.promo-tag{font-size:10.5px;padding:4px 9px}.promo i{width:36px;height:36px;right:12px;bottom:12px;font-size:17px}.promo::after{width:120px;height:120px;right:-40px;top:-40px}}
 @media(prefers-reduced-motion:reduce){.promo,.promo i{transition:none}.promo:hover{transform:none}}
+/* Landing pages: hero with a picture, balanced tiles and steps */
+.page-head .row{display:flex;flex-wrap:wrap;gap:12px}
+.pg-grid{display:grid;gap:28px;align-items:center}
+.pg-fig{display:none;margin:0}
+@media(min-width:900px){.pg-grid{grid-template-columns:1.25fr .75fr}.pg-fig{display:block;justify-self:end;width:min(100%,300px);border-radius:28px;overflow:hidden;border:1px solid rgba(255,255,255,.18);box-shadow:0 24px 60px rgba(0,0,0,.4);transform:rotate(2deg)}.pg-fig img{display:block;width:100%;height:auto;aspect-ratio:3/4;object-fit:cover}}
+.job-grid.three{grid-template-columns:repeat(3,1fr)}
+@media(max-width:900px){.job-grid.three{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.job-grid.three{grid-template-columns:1fr}}
+@media(min-width:820px){.soon-steps.steps-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.soon-steps.steps-2 .soon-step{margin:0}}
+.page-head .breadcrumb{color:#B9C5E0}.page-head .breadcrumb a{color:#fff}
+.soon-steps.steps-2{max-width:none;width:100%}
