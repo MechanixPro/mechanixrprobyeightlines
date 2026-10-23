@@ -112,7 +112,7 @@
       ],
       [
         "How much is a problem check?",
-        "A repair or problem check starts from {{text:repair}}, GST included. The repair itself is quoted after the check."
+        "A repair or problem check starts from {{text:repair}}, GST included. If you go ahead with the repair, the check fee is adjusted in your final bill. The repair itself is quoted after the check."
       ],
       [
         "My scooty broke down on the road. What now?",
@@ -450,7 +450,7 @@
       ],
       [
         "How much does the check cost?",
-        "A repair or problem check starts from {{text:repair}}, GST included. The repair quote comes after the check, and nothing starts until you approve it."
+        "A repair or problem check starts from {{text:repair}}, GST included. If you go ahead with the repair, the check fee is adjusted in your final bill. The repair quote comes after the check, and nothing starts until you approve it."
       ],
       [
         "How long will it take?",
