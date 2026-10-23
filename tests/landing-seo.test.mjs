@@ -35,3 +35,11 @@ test('the home page links to every landing page and says Bangalore as well as Be
   assert.match(home, /Bangalore/); assert.match(home, /Bengaluru|Bangalore/);
   const sd = home.match(/<title>(.*?)<\/title>/)[1]; assert.match(sd, /Bangalore/);
 });
+test('the major-repair flow is on the home page, the page exists, and the terms describe pickup, certified garage and the one-time code', () => {
+  const home = read('index.html');
+  assert.match(home, /id="major"/); assert.equal((home.match(/class="flow"[\s\S]*?<\/ol>/)[0].match(/<li>/g) || []).length, 5);
+  assert.ok(home.includes('href="/major-bike-repair-pickup-and-drop-bangalore/"'));
+  const page = read('major-bike-repair-pickup-and-drop-bangalore/index.html');
+  assert.match(page, /Mechanix Pro Certified garage/); assert.match(page, /free in our serviceable area|Free pickup and drop/i); assert.match(page, /one-time code/);
+  const terms = read('terms/index.html'); assert.match(terms, /Mechanix Pro Certified garage, pickup and drop is free/); assert.match(terms, /one-time code/);
+});

@@ -1128,3 +1128,16 @@ html{-webkit-tap-highlight-color:transparent}
 @media(min-width:820px){.soon-steps.steps-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.soon-steps.steps-2 .soon-step{margin:0}}
 .page-head .breadcrumb{color:#B9C5E0}.page-head .breadcrumb a{color:#fff}
 .soon-steps.steps-2{max-width:none;width:100%}
+/* The flow strip: five steps, one line on desktop, a vertical timeline on phones */
+.flow{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:12px;counter-reset:f}
+.flow li{counter-increment:f;position:relative;padding:50px 16px 18px;border-radius:22px;background:#fff;border:1px solid rgba(20,41,90,.08);box-shadow:0 1px 2px rgba(15,29,69,.04),0 12px 32px rgba(15,29,69,.07)}
+.flow li::before{content:counter(f);position:absolute;left:16px;top:14px;width:30px;height:30px;border-radius:50%;background:var(--ember);color:#1F1206;font-weight:800;display:grid;place-items:center}
+.flow li::after{content:"";position:absolute;right:-13px;top:28px;width:14px;height:3px;background:rgba(242,128,31,.55)}.flow li:last-child::after{display:none}
+.flow b{display:block;font-size:17px;margin-bottom:4px}.flow span{font-size:14.5px;color:var(--ink-2,#44506b);line-height:1.4}
+@media(max-width:900px){.flow{grid-template-columns:1fr 1fr}.flow li::after{display:none}}
+@media(max-width:560px){.flow{grid-template-columns:1fr}.flow li{padding:16px 16px 16px 60px}.flow li::before{top:16px}}
+/* Tighter vertical rhythm: less empty space between sections */
+:root{--sp-section:clamp(40px,6vw,76px)}
+.sec-head{margin-bottom:clamp(20px,3vw,32px)}
+.page-head{padding-bottom:clamp(32px,5vw,56px)}
+.wrap>.row,.wrap>div>.row{display:flex;flex-wrap:wrap;gap:12px}

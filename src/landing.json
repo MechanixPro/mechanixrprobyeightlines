@@ -60,7 +60,8 @@
       "scooty-repair-at-home-bangalore",
       "ev-and-petrol-bike-care-bangalore",
       "digital-service-records",
-      "verified-bike-garages-bangalore"
+      "verified-bike-garages-bangalore",
+      "major-bike-repair-pickup-and-drop-bangalore"
     ],
     "image": "doorstep-service-p",
     "image_alt": "Scene from our Instagram: a mechanic crouches beside a motorcycle with a tool tray open on the ground"
@@ -125,7 +126,8 @@
     "related": [
       "two-wheeler-service-at-home-bangalore",
       "ev-and-petrol-bike-care-bangalore",
-      "doorstep-bike-and-car-repair-near-me"
+      "doorstep-bike-and-car-repair-near-me",
+      "major-bike-repair-pickup-and-drop-bangalore"
     ],
     "image": "doorstep-trust-p",
     "image_alt": "Scene from our Instagram: a mechanic services a white scooter outside an apartment building"
@@ -250,7 +252,8 @@
     ],
     "related": [
       "two-wheeler-service-at-home-bangalore",
-      "digital-service-records"
+      "digital-service-records",
+      "major-bike-repair-pickup-and-drop-bangalore"
     ],
     "image": "repair-check-p",
     "image_alt": "Scene from our Instagram: a customer watches a Mechanix Pro mechanic inspect a motorcycle in an apartment parking area"
@@ -383,5 +386,84 @@
     ],
     "image": "roadside-rain-p",
     "image_alt": "Scene from our Instagram: a mechanic in a high-visibility vest fixes a scooter by the roadside in the rain"
+  },
+  {
+    "slug": "major-bike-repair-pickup-and-drop-bangalore",
+    "title": "Major Bike Repair with Free Pickup and Drop, Bangalore | Mechanix Pro",
+    "desc": "Big repair on your bike or scooter? We check it at your door, quote first, then pick it up free and repair it at a Mechanix Pro Certified garage in Bangalore.",
+    "kicker": "Major repairs with pickup and drop",
+    "h1": "Big repair? We check it at your door, then take it to a certified garage.",
+    "lead": "Some jobs cannot be done on the road or in your parking. A Mechanix Pro mechanic checks your bike first, quotes the fix, and if it needs a workshop we pick it up free and repair it at a Mechanix Pro Certified garage.",
+    "tiles": [
+      [
+        "Doorstep check first",
+        "A mechanic comes to you, finds the cause and tells you plainly whether it can be fixed at your door or needs a garage."
+      ],
+      [
+        "Quote before anything moves",
+        "You get the repair quote on WhatsApp. Your bike leaves only after you approve it."
+      ],
+      [
+        "Free pickup and drop",
+        "Pickup and drop is free in our serviceable area, so you do not arrange a vehicle or lose a day."
+      ],
+      [
+        "Mechanix Pro Certified garages",
+        "The repair is done at a garage that has been visited, document-checked, trained and trial-run by our team."
+      ],
+      [
+        "OTP-safe handover",
+        "Your bike leaves with the mechanic and comes back only when you share your one-time code."
+      ],
+      [
+        "Updates on WhatsApp",
+        "We message you when the bike reaches the garage, when work starts and when it is ready to come home."
+      ],
+      [
+        "Invoice and 30-day service warranty",
+        "You get an itemised GST invoice. Our service work carries a 30-day warranty; parts carry the maker's or supplier's limited warranty."
+      ],
+      [
+        "Saved in your service record",
+        "The repair is saved against your bike's registration number, so its history is always on hand."
+      ]
+    ],
+    "steps": [
+      "Book a problem check, or message us with what is wrong.",
+      "The mechanic checks your bike at your door and sends a quote on WhatsApp.",
+      "If it needs a garage, you approve, and we pick it up free with your one-time code.",
+      "The Mechanix Pro Certified garage repairs it, and we keep you posted on WhatsApp.",
+      "We bring it back, you share your code, and you get your invoice and warranty."
+    ],
+    "faq": [
+      [
+        "What counts as a major repair?",
+        "Jobs that usually need a workshop, such as engine, clutch, gearbox, suspension or electrical faults. The mechanic tells you after the check whether your bike needs a garage."
+      ],
+      [
+        "Is pickup and drop really free?",
+        "Yes, pickup and drop is free within our serviceable area in Bangalore. Spare parts and the repair itself are quoted and charged separately, after you approve."
+      ],
+      [
+        "How do I know my bike is safe?",
+        "It goes only to a Mechanix Pro Certified garage, leaves and returns only with your one-time code, and you hear from us on WhatsApp at each step."
+      ],
+      [
+        "How much does the check cost?",
+        "A repair or problem check starts from {{text:repair}}, GST included. The repair quote comes after the check, and nothing starts until you approve it."
+      ],
+      [
+        "How long will it take?",
+        "It depends on the job and on parts. The mechanic gives you an estimate with the quote, and we tell you on WhatsApp if anything changes."
+      ]
+    ],
+    "related": [
+      "scooty-repair-at-home-bangalore",
+      "verified-bike-garages-bangalore",
+      "digital-service-records",
+      "two-wheeler-service-at-home-bangalore"
+    ],
+    "image": "repair-check-p",
+    "image_alt": "Scene from our Instagram: a customer watches a Mechanix Pro mechanic inspect a motorcycle in an apartment parking area"
   }
 ]
