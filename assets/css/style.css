@@ -1163,3 +1163,14 @@ html{-webkit-tap-highlight-color:transparent}
 .hero-card{width:39%;right:1%;top:28px}
 .hero-card img{border-radius:18px;transform:rotate(3deg)}
 }
+/* Hero picture, rain scene as a cut-out that runs off the right edge of the screen: the cut-off scooter simply continues past the edge */
+.hero-rain img{border:0;border-radius:0;box-shadow:none;aspect-ratio:760/974;filter:drop-shadow(0 20px 28px rgba(0,0,0,.4))}
+@media(min-width:820px){
+.hero-rain{width:min(100%,370px);justify-self:end;margin:-14px calc(-1 * max(20px, (100vw - 1120px) / 2 + 20px)) 0 0;transform:none}
+.hero-rain .hc-a{left:-34%;top:8%}.hero-rain .hc-c{left:-20%;bottom:12%}
+.hero-rain::before{width:120%;left:30%}
+}
+@media(max-width:819px){
+.hero-rain{width:46%;right:0;top:26px}
+.hero-rain img{transform:none;border-radius:0}
+}

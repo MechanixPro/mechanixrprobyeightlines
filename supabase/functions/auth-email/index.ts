@@ -14,14 +14,17 @@ Deno.serve(async (req) => {
 
   let payload: HookPayload;
   try { payload = JSON.parse(raw); } catch { return reply(400, { error: { http_code: 400, message: 'Bad request' } }); }
+  // Admins never get a login code: look the person up before deciding what to send.
+  const uid = String(payload?.user?.id ?? '');
+  const isAdmin = uid ? !!(await adminDb().from('admins').select('user_id').eq('user_id', uid).maybeSingle()).data : false;
   const mail = authMailFor(payload, {
     siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 83106 21498'), phoneTel: env('PHONE_TEL', '+918310621498'),
     whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918310621498'), email: 'hello@mechanixpro.in',
-  }, env('SUPABASE_URL'));
+  }, env('SUPABASE_URL'), { isAdmin });
   if (!mail) return reply(400, { error: { http_code: 400, message: 'Nothing to send' } });
 
-  const r = await sendEmail({ to: mail.to, subject: mail.subject, html: mail.html, text: mail.text, tags: { template: 'password_reset' } });
-  try { await adminDb().from('email_log').insert({ to_email: mail.to, template: 'password_reset', status: r.ok ? 'sent' : r.skipped ? 'skipped' : 'failed', provider_id: r.id ?? null, error: r.error ?? null }); } catch { /* the log must never block a login */ }
+  const r = await sendEmail({ to: mail.to, subject: mail.subject, html: mail.html, text: mail.text, tags: { template: mail.template } });
+  try { await adminDb().from('email_log').insert({ to_email: mail.to, template: mail.template, status: r.ok ? 'sent' : r.skipped ? 'skipped' : 'failed', provider_id: r.id ?? null, error: r.error ?? null }); } catch { /* the log must never block a login */ }
   if (!r.ok) { console.error('login mail failed'); return reply(500, { error: { http_code: 500, message: 'Could not send the login email' } }); }
   return reply(200, {});
 });

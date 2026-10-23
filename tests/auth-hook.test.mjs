@@ -36,16 +36,21 @@ test('a password-reset request becomes a mail with the one-time link, built from
   assert.match(m.text, /auth\/v1\/verify\?token=abc123hash&type=recovery/); assert.match(m.subject, /reset/i);
   assert.doesNotMatch(m.html + m.text, /482913/);
 });
-test('login codes and magic links are never sent, so there is no code login', () => {
-  for (const type of ['magiclink', 'email', 'signup', 'invite', 'email_change', 'reauthentication', undefined])
-    assert.equal(authMailFor({ user: { email: 'a@b.in' }, email_data: { token: '123456', token_hash: 'h', email_action_type: type } }, SITE, SB), null, String(type));
+test('Care Buddies get a login code, admins never do, and anything else is refused', () => {
+  const code = (type, admin) => authMailFor({ user: { email: 'a@b.in' }, email_data: { token: '123456', token_hash: 'h', email_action_type: type } }, SITE, SB, { isAdmin: admin });
+  const cb = code('magiclink', false); assert.match(cb.html, /123456/); assert.match(cb.subject, /login code/i); assert.equal(cb.template, 'login_code');
+  assert.ok(code('email', false));
+  assert.equal(code('magiclink', true), null); assert.equal(code('email', true), null);
+  for (const type of ['signup', 'invite', 'email_change', 'reauthentication', undefined]) assert.equal(code(type, false), null, String(type));
   assert.equal(authMailFor({ user: {}, email_data: { email_action_type: 'recovery', token_hash: 'h' } }, SITE, SB), null);
   assert.equal(authMailFor({ user: { email: 'a@b.in' }, email_data: { email_action_type: 'recovery' } }, SITE, SB), null);
+  const r = authMailFor({ user: { email: 'a@b.in' }, email_data: { email_action_type: 'recovery', token_hash: 'h', token: '999999' } }, SITE, SB, { isAdmin: true });
+  assert.equal(r.template, 'password_reset'); assert.doesNotMatch(r.html + r.text, /999999/);
 });
 test('auth-email checks the signature first, sends from no-reply, logs without the code, and is public for Supabase Auth', () => {
   const f = read('../supabase/functions/auth-email/index.ts');
   assert.ok(f.indexOf('verifyWebhook(') < f.indexOf('sendEmail('));
-  assert.match(f, /SEND_EMAIL_HOOK_SECRET/); assert.match(f, /template: 'password_reset'/); assert.match(f, /401/);
+  assert.match(f, /SEND_EMAIL_HOOK_SECRET/); assert.match(f, /template: mail\.template/); assert.match(f, /from\('admins'\)/); assert.match(f, /401/);
   assert.doesNotMatch(f, /console\.(log|error)\([^)]*(token|code)/i); assert.doesNotMatch(f, /insert\([^)]*(token|code:)/i);
   assert.doesNotMatch(f, /FROM_BOOKING/);
   const toml = read('../supabase/config.toml');

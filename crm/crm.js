@@ -65,13 +65,21 @@ $('#sendCode').addEventListener('click', async () => {
   $('#sendCode').disabled = true;
   const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
   $('#sendCode').disabled = false;
-  if (error) { $('#loginErr').textContent = /rate|seconds|too many/i.test(error.message) ? 'Please wait a minute before asking for another code.' : 'Could not send a code. Check the email your supervisor added.'; return; }
+  if (error) { $('#loginErr').textContent = /rate|seconds|too many/i.test(error.message) ? 'Please wait a minute before asking for another code.' : 'Could not send a code. Check the email your supervisor added. Admins: use your password below.'; return; }
   codeEmail = email; $('#codeBox').hidden = false; $('#sendCode').textContent = 'Send a new code'; $('#code').focus();
   $('#loginInfo').textContent = 'We sent a 6-digit code to ' + email + '. It works for 10 minutes.';
 });
 $('#loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const token = $('#code').value.replace(/\D/g, ''); $('#loginErr').textContent = '';
+  $('#loginErr').textContent = '';
+  // Admins and anyone who set a password sign in with it; Care Buddies use the emailed code.
+  const pw = $('#pw') ? $('#pw').value : '';
+  if (pw) {
+    const { error: pe } = await sb.auth.signInWithPassword({ email: $('#em').value.trim().toLowerCase(), password: pw });
+    if (pe) { $('#loginErr').textContent = 'Wrong email or password.'; return; }
+    boot(); return;
+  }
+  const token = $('#code').value.replace(/\D/g, '');
   if (token.length < 6) { $('#loginErr').textContent = 'Enter the 6-digit code.'; return; }
   const { error } = await sb.auth.verifyOtp({ email: codeEmail || $('#em').value.trim().toLowerCase(), token, type: 'email' });
   if (error) { $('#loginErr').textContent = 'That code is wrong or has expired. Ask for a new one.'; return; }

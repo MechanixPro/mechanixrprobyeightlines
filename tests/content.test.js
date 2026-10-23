@@ -69,7 +69,7 @@ test('every model photo file is listed in the credits data and nothing else is s
 
 test('the home page shows real photos for the hero and the five bike types, not drawings', () => {
   const h = read('index.html');
-  assert.match(h, /class="hero-cut[^"]*"[\s\S]*stories\/roadside-rain-p\.webp/);
+  assert.match(h, /class="hero-cut[^"]*"[\s\S]*hero-rain-p\.webp/);
   for (const slug of ['honda-dio', 'hero-splendor-plus', 'bajaj-pulsar-ns160', 'royal-enfield-bullet-350', 'ola-electric-s1-pro']) assert.ok(h.includes('/assets/img/models/' + slug + '.webp'), slug);
   assert.doesNotMatch(h, /hero-bike\.svg|type-(scooter|commuter|sports|cruiser|electric)\.svg/);
 });
