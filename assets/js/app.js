@@ -616,7 +616,7 @@
     var phoneEls = document.querySelectorAll('[data-phone]'); for (var i = 0; i < phoneEls.length; i++) if (C.phoneDisplay) phoneEls[i].textContent = C.phoneDisplay;
     var tel0 = L.callLink(C.callNumber) || L.callLink(C.whatsapp); if (tel0) document.querySelectorAll('[data-call]').forEach(function (a) { a.setAttribute('href', tel0); });
     var sb = $('#sosBtn'); if (sb) sb.addEventListener('click', sos);
-    var mb = $('#mbar'); if (mb) { var onS = function () { mb.classList.toggle('show', window.scrollY > 480); }; window.addEventListener('scroll', onS, { passive: true }); onS(); }
+    var mb = $('#mbar'); if (mb) { var onS = function () { mb.classList.toggle('on', window.scrollY > 480); }; window.addEventListener('scroll', onS, { passive: true }); onS(); }
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/sw.js').catch(function () {});
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

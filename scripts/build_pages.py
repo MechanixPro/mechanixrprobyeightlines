@@ -11,7 +11,7 @@ NAV = '''<div class="diwali-bar" data-diwali-bar role="region" aria-label="Diwal
   <a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="27"><img class="wm" src="/assets/img/logo-wordmark.webp" alt="" width="137" height="12"></a>
   <nav class="links" aria-label="Main"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track booking</a></nav>
   <details class="menu"><summary aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
-    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/join/">Join as a garage or mechanic</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
+    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/join/">Join as a garage or mechanic</a><a href="/partners/axlio/">Car parts and service: Axlio</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
   <a class="btn btn-ghost btn-sm call-btn" href="#" data-call><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call us</a>
   <a class="btn btn-primary btn-sm cta" href="/book/">Get a quote</a>
 </div></header>
@@ -60,7 +60,7 @@ LEGAL_JS = '<script src="/assets/js/page.js" defer></script>'
 CHAT_JS = '<script src="/assets/js/chatstart.js" defer></script>'
 APP_JS = '<script src="/assets/js/pincodes.js" defer></script>\n<script src="/assets/js/pingeo.js" defer></script>\n<script src="/assets/js/pins-live.js" defer></script>\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/model-photos.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/gmaps.js" defer></script>\n<script src="/assets/js/app.js" defer></script>'
 FLOAT = '''<a class="wa-fab" href="#" data-wa="general" aria-label="Chat on WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp us</a>
-<div class="mbar" id="mbar"><a class="btn btn-ghost" href="#" data-call aria-label="Call us"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call</a><a class="btn btn-wa" href="#" data-wa="general">WhatsApp</a><a class="btn btn-primary" href="/book/">Get a quote</a></div>
+<div class="mbar" id="mbar"><a class="btn btn-ghost" href="#" data-call aria-label="Call us"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call</a><a class="btn btn-wa" href="#" data-wa="general">WhatsApp</a><a class="btn btn-primary" href="/book/">Quote</a></div>
 '''
 
 AREAS = [
@@ -818,6 +818,36 @@ def join_page():
     write('join/index.html', HEAD.format(title='Join Mechanix Pro: Garages and Mechanics in Bengaluru', desc='Run a garage or work as a mechanic in Bengaluru? Apply to join the Mechanix Pro network and get doorstep bookings.', url=f'{SITE}/join/', site=SITE, schema='', scripts=LEGAL_JS + '<script src="/assets/js/partner.js" defer></script>', body='', nav=NAV, main='') + body + foot())
     urls.append(('/join/', '0.6'))
 join_page()
+
+# ---- Partner page: Axlio (spare parts and car service). Facts are taken from axlio.in and attributed to it; Axlio is run separately. ----
+def axlio_page():
+    def tiles(items): return ''.join(f'<li class="reveal" style="--i:{i}"><h3>{html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for i, (t, d) in enumerate(items))
+    what = tiles((('Parts that fit', 'Car and bike spare parts, checked against your make, model, year and fuel type before they are packed.'), ('Delivered to you', 'Home or garage delivery in Bengaluru, with a GST invoice on request.'), ('Service kits for mechanics', 'Ready-packed basic service kits, delivered quickly within the store delivery radius.'), ('Car service and roadside help', 'Car services and roadside help, with the help, price and time confirmed before work starts.')))
+    kits = ''.join(f'<tr><th scope="row">{html.escape(a)}</th><td>{html.escape(b_)}</td><td>{html.escape(c)}</td></tr>' for a, b_, c in (
+        ('Car basic service kit', 'Routine service at the car\'s interval', 'Engine oil, oil filter, air filter, petrol spark plugs'), ('Car brake service kit', 'Thin or noisy pads, or a soft pedal', 'Brake pads, brake fluid, brake cleaner'),
+        ('Bike basic service kit', 'Regular service for a bike or scooter', 'Engine oil, air filter, spark plug, chain lube'), ('Bike brake and clutch kit', 'A weak brake or a worn clutch cable', 'Brake shoes or pads, clutch cable')))
+    car = ''.join(f'<li>{html.escape(x)}</li>' for x in ('Periodic service', 'Brake service', 'Jump start', 'Flat tyre help', 'Towing', 'Fuel delivery'))
+    steps = ''.join(f'<li class="soon-step reveal" style="--i:{i}"><span class="soon-n">{i + 1}</span><span>{html.escape(t)}</span></li>' for i, t in enumerate((
+        'Call or WhatsApp Axlio with your vehicle details and the part or kit you need.', 'Axlio confirms the part, the price and the delivery time.', 'You get it delivered, with a GST invoice if you ask for one.')))
+    body = f'''<section class="soon-hero"><div class="soon-glow" aria-hidden="true"></div><div class="wrap">
+  <p class="breadcrumb soon-crumb"><a href="/">Home</a> &rsaquo; Our partner Axlio</p>
+  <div class="soon-hero-grid"><div class="soon-copy"><span class="soon-pill">Partner site</span><h1>Axlio: car and bike spare parts, delivered in Bengaluru.</h1><p class="lead">Mechanix Pro looks after your bike at your door. For cars, and for spare parts, our partner Axlio is the place to go.</p>
+    <div class="row"><a class="btn btn-primary" href="https://axlio.in/" target="_blank" rel="noopener">Visit axlio.in</a><a class="btn btn-ghost-light" href="tel:+919916525304">Call Axlio</a></div>
+    <p class="tiny" style="margin-top:14px;opacity:.85">Axlio is run separately by Bushra Automobiles, Bengaluru. Everything below is from axlio.in. Prices, stock, delivery and returns are set by Axlio.</p></div></div>
+</div></section>
+<section><div class="wrap"><div class="sec-head"><h2>What Axlio does.</h2><p>One store for parts, kits and car help.</p></div><ul class="job-grid">{what}</ul></div></section>
+<section class="band"><div class="wrap"><div class="sec-head"><h2>Service kits.</h2><p>Kit contents depend on your vehicle and on stock. Axlio puts together the right kit on request.</p></div>
+<div class="ax-table card"><table><thead><tr><th scope="col">Kit</th><th scope="col">Good for</th><th scope="col">What is inside</th></tr></thead><tbody>{kits}</tbody></table></div></div></section>
+<section><div class="wrap"><div class="sec-head"><h2>Car services and roadside help.</h2><p>Axlio confirms the help, the price and the time before any work starts.</p></div><ul class="ax-chips">{car}</ul></div></section>
+<section class="band"><div class="wrap"><div class="sec-head"><h2>How ordering works.</h2></div><ol class="soon-steps">{steps}</ol>
+<div class="ax-times"><div><b>30 minutes</b><span>Mechanic service kits, subject to stock, within the store delivery radius</span></div><div><b>Same day</b><span>Parts in stock, when the order is confirmed</span></div><div><b>Next day</b><span>Parts Axlio has to source, with the date given when you order</span></div></div></div></section>
+<section><div class="wrap"><div class="sec-head"><h2>Visit or call.</h2></div>
+<div class="partner-grid"><article class="partner-card"><span class="partner-tag">Store</span><h3>Bushra Automobiles, Jayanagar</h3><p>325, Ground Floor, 32nd E Cross Road, 4th T Block East, Jayanagar, Bengaluru 560041.<br>Monday to Saturday 9 am to 9 pm. Sunday 9 am to 2:30 pm. Please call first so your part is ready.</p><p><b>Call or WhatsApp:</b> <a href="tel:+919916525304">99165 25304</a><br><b>Store phone:</b> <a href="tel:+918277397478">82773 97478</a></p></article>
+<article class="partner-card"><span class="partner-tag">For garages and mechanics</span><h3>Buy parts through Axlio</h3><p>Independent garages, multi-brand workshops, mobile mechanics and fleet operators in Bengaluru can apply for Axlio\'s garage programme. Axlio calls within 2 working days. Pricing is agreed with the store after onboarding.</p><a class="btn btn-ghost" href="https://axlio.in/garages/" target="_blank" rel="noopener">Apply on axlio.in</a></article></div></div></section>
+<section><div class="wrap"><div class="final"><h2>Need a part or a car service?</h2><p>Go straight to Axlio. For your bike, we come to your door.</p><div class="row"><a class="btn btn-primary" href="https://axlio.in/" target="_blank" rel="noopener">Visit axlio.in</a><a class="btn btn-ghost" href="/book/">Book a bike service</a></div></div></div></section>'''
+    write('partners/axlio/index.html', HEAD.format(title='Axlio: Car and Bike Spare Parts in Bengaluru | Mechanix Pro Partner', desc='Axlio is our partner for car and bike spare parts, service kits and car service in Bengaluru. See what they do, how ordering works and where to find them.', url=f'{SITE}/partners/axlio/', site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='') + body + foot())
+    urls.append(('/partners/axlio/', '0.6'))
+axlio_page()
 
 sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + ''.join(f'  <url><loc>{SITE}{u}</loc><lastmod>{TODAY}</lastmod><priority>{p}</priority></url>\n' for u, p in urls) + '</urlset>\n'
 write('sitemap.xml', sm)
