@@ -1163,14 +1163,33 @@ html{-webkit-tap-highlight-color:transparent}
 .hero-card{width:39%;right:1%;top:28px}
 .hero-card img{border-radius:18px;transform:rotate(3deg)}
 }
-/* Hero picture, rain scene as a cut-out that runs off the right edge of the screen: the cut-off scooter simply continues past the edge */
-.hero-rain img{border:0;border-radius:0;box-shadow:none;aspect-ratio:760/974;filter:drop-shadow(0 20px 28px rgba(0,0,0,.4))}
+/* Hero picture, rain scene as a cut-out: mechanic, rider and scooter share one soft glow, and the scooter runs off the right edge of the screen */
+.hero-rain img{border:0;border-radius:0;box-shadow:none;aspect-ratio:622/970;filter:drop-shadow(0 16px 24px rgba(0,0,0,.4))}
+.hero-rain::after{display:none}
+.hero-rain::before{width:110%;left:44%;bottom:14%;background:radial-gradient(circle,rgba(255,138,31,.38),rgba(255,138,31,0) 64%)}
 @media(min-width:820px){
-.hero-rain{width:min(100%,370px);justify-self:end;margin:-14px calc(-1 * max(20px, (100vw - 1120px) / 2 + 20px)) 0 0;transform:none}
-.hero-rain .hc-a{left:-34%;top:8%}.hero-rain .hc-c{left:-20%;bottom:12%}
-.hero-rain::before{width:120%;left:30%}
+.hero-rain{width:min(100%,360px);justify-self:end;margin:-10px calc(-1 * max(12px, (100vw - 1120px) / 2 + 12px)) 0 0;transform:none}
+.hero-rain .hc-a{left:-40%;top:12%}.hero-rain .hc-c{left:-26%;bottom:10%}
 }
 @media(max-width:819px){
 .hero-rain{width:46%;right:0;top:26px}
 .hero-rain img{transform:none;border-radius:0}
 }
+/* Hero, clean pass: headline, two actions, one proof line. The preview card floats over the photo. Chat, call button and the SOS box live lower on the page and in the nav. */
+.hero .chat,.hero .sos,.hero .hero-alt [data-call]{display:none}
+.hero .hero-alt{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.hero .hero-alt .btn{min-height:52px;padding-inline:26px;font-size:16px}
+.hero .hero-alt .btn-wa{order:1}.hero .hero-alt .btn-ghost{order:2}.hero .hero-alt .btn-sos{order:3;background:transparent;box-shadow:none;border:1px solid rgba(255,255,255,.28);color:#fff}
+.hero-proof{margin-top:22px;color:rgba(255,255,255,.82);font-size:15px}
+@media(min-width:960px){
+.hero{padding:72px 0 0;overflow:clip}
+.hero-grid{grid-template-columns:minmax(0,1fr) minmax(0,.9fr);grid-template-rows:auto;align-items:end;gap:24px;min-height:640px}
+.hero-copy{grid-column:1;grid-row:1;align-self:center;padding-bottom:72px}
+.hero .preview{grid-column:2;grid-row:1;align-self:start;justify-self:start;position:relative;z-index:3;width:240px;max-width:240px;margin:12px 0 0 -22px;padding:16px;transform:none}
+.hero .preview .pv-bar,.hero .preview .pv-opts,.hero .preview .pv-label:last-of-type{display:none}
+.hero-rain{grid-column:2;grid-row:1;align-self:end;justify-self:end;width:min(100%,410px);margin:0 calc(-1 * max(12px,(100vw - 1120px) / 2 + 12px)) 0 0}
+.hero-rain .hc-a{left:-6%;top:auto;bottom:22%}.hero-rain .hc-c{left:-26%;bottom:10%}
+.hero-rain .hc-b{display:none}
+}
+@media(max-width:959px){.hero .hero-alt .btn-sos{display:none}}
+@media(max-width:959px){.hero-rain{width:40%;top:30px}.hero .lead{position:relative;z-index:2}}
