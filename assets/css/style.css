@@ -739,7 +739,7 @@ body.page-book .pro{bottom:calc(132px + env(safe-area-inset-bottom,0px))}
 .tick-list b{color:var(--ink)}
 .claims{margin:0 0 18px;font-size:clamp(15px,2.2vw,18px);color:var(--ink-2)}.claims b{color:var(--ink)}
 /* Phones: a shorter hero, so the WhatsApp button and the prices come up sooner */
-@media(max-width:819px){.hero .preview,.hero .hero-photo{display:none}}
+@media(max-width:819px){.hero .preview{display:none}}
 .ride{margin:18px 0 6px}.ride-q{display:block;font-weight:700;margin:0 0 8px}
 .ride-chips{display:flex;flex-wrap:wrap;gap:8px}
 .ride-chip{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:999px;border:1.5px solid rgba(255,255,255,.55);color:inherit;text-decoration:none;font-weight:600;background:rgba(255,255,255,.08);transition:background .15s,transform .15s}
@@ -1043,4 +1043,19 @@ html{-webkit-tap-highlight-color:transparent}
 .hero-strip a::after{content:"";position:absolute;inset:auto 0 0 0;height:50%;background:linear-gradient(to top,rgba(8,16,40,.85),transparent)}
 .hero-strip span{position:absolute;left:9px;bottom:8px;z-index:1;font-weight:750;font-size:12.5px;line-height:1.2}
 .hero-strip span::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ember);margin-right:5px}
+}
+
+/* Hero cut-out: one person and one vehicle, no box, sitting in the background of the hero */
+.hero-cut{margin:0;pointer-events:none;position:relative;z-index:0}
+.hero-cut::before{content:"";position:absolute;left:50%;bottom:6%;width:92%;aspect-ratio:1;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,rgba(255,138,31,.5),rgba(255,138,31,0) 68%)}
+.hero-cut::after{content:"";position:absolute;left:12%;right:8%;bottom:1%;height:6%;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.5),transparent 70%)}
+.hero-cut img{position:relative;z-index:1;display:block;width:100%;height:auto;filter:drop-shadow(0 18px 26px rgba(0,0,0,.35))}
+@media(min-width:820px){
+.hero-cut{grid-column:2;grid-row:2;align-self:end;justify-self:center;width:min(100%,440px);margin-top:-24px}
+}
+@media(max-width:819px){
+.hero{position:relative}
+.hero-cut{position:absolute;right:-3%;top:30px;width:46%;z-index:0}
+.hero-copy{position:relative;z-index:1}
+.hero h1{font-size:clamp(32px,9vw,40px);max-width:60%}
 }
