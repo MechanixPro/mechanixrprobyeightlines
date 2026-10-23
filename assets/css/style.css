@@ -1193,3 +1193,12 @@ html{-webkit-tap-highlight-color:transparent}
 .st-chip{display:none}
 @media(max-width:959px){.hero-rain{top:8px;width:min(40%,170px)}.hero .lead{margin-top:18px}}
 @media(max-width:389px){.hero-rain{top:12px;width:38%}.hero h1{max-width:57%}}
+/* Running line, new look: soft pills that glide past with faded edges, slower, and a pause on hover or touch */
+.ticker{background:transparent;color:#14295A;border:0;margin:14px 0 6px;padding:6px 0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.tk-track{gap:12px;padding-left:12px;animation-duration:60s}
+.tk-track span{display:inline-flex;align-items:center;gap:10px;padding:10px 18px;border-radius:999px;background:#fff;border:1px solid rgba(20,41,90,.1);box-shadow:0 1px 2px rgba(15,29,69,.05),0 8px 20px rgba(15,29,69,.06);font-size:13.5px;font-weight:700;letter-spacing:.01em;text-transform:none;color:#14295A}
+.tk-track span::after{content:none}
+.tk-track span::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ember);box-shadow:0 0 0 4px rgba(242,128,31,.18);flex:none}
+.tk-track span:nth-child(3n+2)::before{background:#14295A;box-shadow:0 0 0 4px rgba(20,41,90,.12)}
+.ticker:hover .tk-track{animation-play-state:paused}
+@media(max-width:640px){.tk-track span{padding:9px 15px;font-size:13px}}
