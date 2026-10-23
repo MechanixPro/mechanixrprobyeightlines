@@ -178,8 +178,12 @@ def seo_fit(page):
             ld = '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": items}, ensure_ascii=False) + '</script>'
             page = page.replace('</head>', ld + '</head>', 1)
     return page
+OG_BY_PAGE = {'services/index.html': 'services', 'roadside/index.html': 'roadside', 'join/index.html': 'join', 'partners/axlio/index.html': 'axlio', 'offers/diwali-ready/index.html': 'diwali', 'areas/index.html': 'areas', 'help/index.html': 'how'}
 def write(path, content):
     full = os.path.join(ROOT, path); os.makedirs(os.path.dirname(full), exist_ok=True)
+    if path in OG_BY_PAGE and path.endswith('.html'):
+        # a card of its own for the link preview on WhatsApp, Instagram and search (the structured-data image stays the shared one)
+        content = content.replace('<meta property="og:image" content="' + SITE + '/assets/img/og.png">', '<meta property="og:image" content="' + SITE + '/assets/img/og/' + OG_BY_PAGE[path] + '.jpg">').replace('<meta name="twitter:image" content="' + SITE + '/assets/img/og.png">', '<meta name="twitter:image" content="' + SITE + '/assets/img/og/' + OG_BY_PAGE[path] + '.jpg">')
     open(full, 'w', encoding='utf-8').write(seo_fit(tok(content)) if path.endswith('.html') else content)
 
 _pc = json.load(open(os.path.join(ROOT, 'src', 'model-photos.json'), encoding='utf-8'))

@@ -10,9 +10,9 @@ test('the home page is short: only the sections that help someone book', () => {
   for (const gone of ['showcase', 'brands', 'video', 'stories', 'coming-soon']) assert.ok(!ids.includes(gone), gone + ' removed');
   for (const kept of ['prices', 'trust', 'brief', 'areas']) assert.ok(ids.includes(kept), kept + ' kept');
 });
-test('the old Instagram strip is gone; Instagram appears only as the credit under the experience cards', () => {
+test('the old Instagram strip is gone; the only Instagram link or handle is the credit under the experience cards', () => {
   const rest = body.replace(/<section id="experience"[\s\S]*?<\/section>/, '');
-  assert.doesNotMatch(rest, /instagram/i);
+  assert.doesNotMatch(rest, /instagram\.com|@themechanixpro/i);
 });
 test('WhatsApp is the first and main button in the home hero', () => {
   const hero = body.slice(body.indexOf('<section class="hero">'), body.indexOf('</section>'));

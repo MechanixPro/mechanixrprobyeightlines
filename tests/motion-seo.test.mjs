@@ -15,6 +15,7 @@ test('the continue nudge appears only for a build with a name, and is cleaned', 
   assert.equal(M.resumeName(null), ''); assert.equal(M.resumeName({}), '');
   assert.equal(M.resumeName({ nick: ' Bullet <b>Raja</b> ' }), 'Bullet bRaja/b');
   assert.equal(M.resumeName({ brand: 'Honda', model: 'Activa 6G' }), 'Honda Activa 6G');
+  assert.equal(M.resumeName({ brand: 'Other' }), ''); assert.equal(M.resumeName({ brand: 'Other', model: 'Other' }), '');
 });
 test('the home page tells search engines its FAQ, its site and its business, with the same words as the page', () => {
   const h = read('../index.html');

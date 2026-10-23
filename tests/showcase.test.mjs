@@ -31,3 +31,9 @@ test('the experience cards use only our own Instagram creatives, with no prices 
   assert.match(sec, /not a specific customer or job/);
   assert.match(sec, /rel="me noopener"/);
 });
+test('key pages have a link-preview card of their own, and the files exist', () => {
+  for (const [page, card] of [['services', 'services'], ['roadside', 'roadside'], ['join', 'join'], ['partners/axlio', 'axlio'], ['help', 'how'], ['areas', 'areas'], ['offers/diwali-ready', 'diwali']]) {
+    assert.match(read(`../${page}/index.html`), new RegExp(`og:image" content="https://mechanixpro.in/assets/img/og/${card}\\.jpg"`), page);
+    assert.ok(readFileSync(new URL(`../assets/img/og/${card}.jpg`, import.meta.url)).length > 10000, card);
+  }
+});

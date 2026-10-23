@@ -34,3 +34,12 @@ Already set: logo, description, 24/7 hours, canned replies. Next: add cars with 
 
 ## Email and invoices
 Emails keep the white header with the logo, now with a thicker ember bar on top and a navy and ember closing bar at the bottom. Payment and rating pages use the same site theme.
+
+## Image pack (made by `python3 scripts/make_presence.py`)
+**Published on the site:** `assets/img/og/` has one link-preview card (1200x630) each for Services, Roadside, Join us, Axlio, Diwali, Areas and How it works, so each page looks right when shared on WhatsApp, Instagram and in search. The home page uses `assets/img/og.png`.
+**For you to upload (not published), in `brand-src/presence/`:**
+- `instagram-profile-1080.jpg`: the shield on ember, for the Instagram profile picture.
+- `highlight-services/roadside/how-it-works/prices/reviews/join-us.jpg`: six story highlight covers (1080x1920, centre-safe).
+- `post-roadside.jpg`, `post-quote.jpg`, `post-doorstep.jpg`: three ready posts (1080x1350) built from our own Instagram creatives.
+- `google-business-logo-720.jpg` and `google-business-cover-1080x608.jpg`: for the Google Business Profile.
+Posts show no prices on purpose, so they never go out of date.

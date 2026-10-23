@@ -12,8 +12,11 @@
   // The words for the "continue" nudge, from a saved build. Returns '' when there is nothing worth resuming.
   function resumeName(saved) {
     if (!saved || typeof saved !== 'object') return '';
-    var name = clean(saved.nick, 24) || clean(((saved.brand || '') + ' ' + (saved.model || '')).trim(), 40);
-    return name;
+    var generic = /^(other|others|choose|select|none|-)$/i;
+    var nick = clean(saved.nick, 24), model = clean(saved.model, 40), brand = clean(saved.brand, 30);
+    if (generic.test(brand)) brand = ''; if (generic.test(model)) model = '';
+    if (nick) return nick;
+    return model ? (brand && model.toLowerCase().indexOf(brand.toLowerCase()) !== 0 ? brand + ' ' + model : model) : '';
   }
   // "10,000+ services done" -> { n: 10000, text: '10,000+', rest: ' services done' }
   function parseCount(text) {

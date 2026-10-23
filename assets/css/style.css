@@ -1029,3 +1029,18 @@ footer{content-visibility:auto;contain-intrinsic-size:auto 520px}
 /* tap and scroll feel */
 html{-webkit-tap-highlight-color:transparent}
 .btn,.bt,.st-card,.job-grid li{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+/* Hero pictures on every screen: our Instagram creatives, linked to what they show */
+.mo{display:block;color:#fff;text-decoration:none}
+.mo-grid{grid-template-rows:170px 170px}
+}
+
+/* Phones: three picture tiles right under the headline, so the home screen shows the experience at once */
+.hero-strip{display:none}
+@media(max-width:819px){
+.hero-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 20px}
+.hero-strip a{position:relative;display:block;aspect-ratio:3/4;overflow:hidden;border-radius:18px;border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 28px rgba(0,0,0,.3);color:#fff;text-decoration:none;background:rgba(255,255,255,.06)}
+.hero-strip img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero-strip a::after{content:"";position:absolute;inset:auto 0 0 0;height:50%;background:linear-gradient(to top,rgba(8,16,40,.85),transparent)}
+.hero-strip span{position:absolute;left:9px;bottom:8px;z-index:1;font-weight:750;font-size:12.5px;line-height:1.2}
+.hero-strip span::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ember);margin-right:5px}
+}
