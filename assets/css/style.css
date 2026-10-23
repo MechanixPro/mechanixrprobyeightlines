@@ -739,7 +739,7 @@ body.page-book .pro{bottom:calc(132px + env(safe-area-inset-bottom,0px))}
 .tick-list b{color:var(--ink)}
 .claims{margin:0 0 18px;font-size:clamp(15px,2.2vw,18px);color:var(--ink-2)}.claims b{color:var(--ink)}
 /* Phones: a shorter hero, so the WhatsApp button and the prices come up sooner */
-@media(max-width:819px){.hero .preview{display:none}}
+@media(max-width:819px){.hero .preview{display:block;position:relative;z-index:1;margin:8px auto 0}}
 .ride{margin:18px 0 6px}.ride-q{display:block;font-weight:700;margin:0 0 8px}
 .ride-chips{display:flex;flex-wrap:wrap;gap:8px}
 .ride-chip{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:999px;border:1.5px solid rgba(255,255,255,.55);color:inherit;text-decoration:none;font-weight:600;background:rgba(255,255,255,.08);transition:background .15s,transform .15s}
@@ -1191,3 +1191,5 @@ html{-webkit-tap-highlight-color:transparent}
 @keyframes stFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @media(prefers-reduced-motion:reduce){.st-card,.st-card.is-active{transform:none;transition:none}.st-card.is-active .st-media img,.st-run .st-dots i.on::after{animation:none}}
 .st-chip{display:none}
+@media(max-width:959px){.hero-rain{top:8px;width:min(40%,170px)}.hero .lead{margin-top:18px}}
+@media(max-width:389px){.hero-rain{top:12px;width:38%}.hero h1{max-width:57%}}
