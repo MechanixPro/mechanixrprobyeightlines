@@ -4,7 +4,7 @@
  "note": "Draft translations. A fluent reader must check every line and set reviewed to true. The page is published only when every line is reviewed.",
  "strings": [
   {
-   "en": "Your bike, serviced where you are.",
+   "en": "Your vehicle, serviced where you are.",
    "t": "ನಿಮ್ಮ ಬೈಕ್, ನೀವಿರುವಲ್ಲಿಯೇ ಸರ್ವಿಸ್.",
    "reviewed": false
   },

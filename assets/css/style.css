@@ -858,3 +858,17 @@ h1,h2,h3{font-weight:650;letter-spacing:-.032em}
 /* Bottom bar on phones: three equal, fixed-height buttons */
 .mbar{align-items:center;gap:8px;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
 .mbar .btn{flex:1 1 0;min-width:0;height:48px;min-height:48px;padding:0 10px;border-radius:14px;font-size:15px;font-weight:650;white-space:nowrap;gap:6px}
+/* Roadside help: a strong, calm section and a clear button in the hero */
+.btn-sos{background:#D93A1F;color:#fff;box-shadow:0 6px 18px rgba(217,58,31,.35)}.btn-sos:hover,.btn-sos:focus-visible{background:#BF2F16}
+.rsa-in{display:grid;grid-template-columns:1.2fr 1fr;gap:28px;padding:clamp(24px,4vw,44px);border-radius:28px;color:#fff;background:radial-gradient(110% 130% at 100% 0%,rgba(217,58,31,.5),transparent 55%),linear-gradient(140deg,#14295A,#0F1D40);box-shadow:0 18px 50px rgba(20,41,90,.25)}
+.rsa-kicker{margin:0 0 6px;color:#FFB59E;font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:13px}
+.rsa-in h2{margin:0 0 10px;color:#fff;font-size:clamp(28px,4.2vw,42px)}.rsa-in p{color:rgba(255,255,255,.9)}
+.rsa-price{margin-top:6px}.rsa-price b{color:#FFC857;font-size:20px}
+.rsa-copy .row{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}
+.rsa-steps{margin:0;padding:0;list-style:none;display:grid;gap:12px;counter-reset:r;align-content:center}
+.rsa-steps li{counter-increment:r;position:relative;padding:14px 16px 14px 54px;border-radius:18px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14)}
+.rsa-steps li::before{content:counter(r);position:absolute;left:14px;top:14px;width:28px;height:28px;border-radius:50%;background:#F2801F;color:#1F1206;font-weight:700;display:grid;place-items:center}
+.rsa-steps b{display:block;color:#fff}.rsa-steps span{color:rgba(255,255,255,.82);font-size:15px}
+.rsa-list{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 0;padding:0;list-style:none}.rsa-list li{padding:9px 16px;border-radius:999px;background:#fff;border:1px solid rgba(20,41,90,.12);font-weight:600;font-size:15px}
+.rsa-car{margin:16px 0 0;padding:16px 20px;border-radius:18px;background:rgba(242,128,31,.1);color:var(--ink,#1d1d1f)}.rsa-car a{font-weight:650}
+@media(max-width:820px){.rsa-in{grid-template-columns:1fr}}
