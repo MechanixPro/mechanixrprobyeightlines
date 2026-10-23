@@ -1202,3 +1202,8 @@ html{-webkit-tap-highlight-color:transparent}
 .tk-track span:nth-child(3n+2)::before{background:#14295A;box-shadow:0 0 0 4px rgba(20,41,90,.12)}
 .ticker:hover .tk-track{animation-play-state:paused}
 @media(max-width:640px){.tk-track span{padding:9px 15px;font-size:13px}}
+/* Promise cards, calmer: icon in a soft ember circle, no side bar, gentle lift on hover */
+.strip li{border-left:0;border:1px solid rgba(20,41,90,.08);gap:14px;transition:transform .25s var(--ease,ease),box-shadow .25s}
+.strip li .ico{flex:none;width:40px!important;height:40px!important;border-radius:50%;background:#FFF1E2!important;display:grid;place-items:center;margin:0!important}
+.strip li:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(20,41,90,.12)}
+@media(prefers-reduced-motion:reduce){.strip li{transition:none}.strip li:hover{transform:none}}
