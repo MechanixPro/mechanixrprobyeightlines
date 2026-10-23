@@ -35,6 +35,26 @@
     return { items: list.map(function (k) { return { key: k, s: SYMPTOMS[k] }; }), road: list.some(function (k) { return SYMPTOMS[k].road; }), service: list.length ? (list.some(function (k) { return SYMPTOMS[k].service === 'repair'; }) ? 'repair' : list.some(function (k) { return SYMPTOMS[k].service === 'general'; }) ? 'general' : 'basic') : '', bookUrl: list.length ? '/book/?service=' + (list.some(function (k) { return SYMPTOMS[k].service === 'repair'; }) ? 'repair' : 'general') + '&issues=' + list.join(',') : '' };
   }
 
+  /** An all-day calendar reminder for the due date, with a nudge two days before. */
+  function reminderIcs(bikeName, dueDate, now) {
+    var pad = function (n) { return String(n).padStart(2, '0'); }, ymd = function (d) { return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()); };
+    var next = new Date(dueDate.getTime()); next.setDate(next.getDate() + 1);
+    var stamp = (now || new Date()).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+    var esc = function (t) { return String(t).replace(/[\\;,]/g, function (c) { return '\\' + c; }).replace(/\n/g, '\\n'); };
+    return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Mechanix Pro//Reminder//EN', 'BEGIN:VEVENT', 'UID:' + ymd(dueDate) + '-service@mechanixpro.in', 'DTSTAMP:' + stamp,
+      'DTSTART;VALUE=DATE:' + ymd(dueDate), 'DTEND;VALUE=DATE:' + ymd(next), 'SUMMARY:' + esc('Bike service due: ' + bikeName), 'DESCRIPTION:' + esc('Book a doorstep service at https://mechanixpro.in/book/ . A quote comes on WhatsApp first.'),
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Service due soon', 'TRIGGER:-P2D', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+  }
+  var PRE_NOTE = { tyre: 'tyres', brake: 'brakes', chain: 'chain', leak: 'oil or a leak', elec: 'lights or horn', battery: 'starting', fuel: 'fuel', gear: 'helmet or documents' };
+  /** Pre-ride result: which ticks are missing, which of them a mechanic should look at, and a prefilled problem-check link. */
+  function preRide(ticked) {
+    var all = Object.keys(PRE_NOTE), miss = all.filter(function (k) { return (ticked || []).indexOf(k) === -1; });
+    var mech = miss.filter(function (k) { return SYMPTOMS[k] || k === 'elec'; });
+    var issue = { tyre: 'tyre', brake: 'brake', chain: 'chain', leak: 'leak', elec: 'elec', battery: 'battery' };
+    var ids = mech.map(function (k) { return issue[k]; }).filter(Boolean).slice(0, 4);
+    return { ready: miss.length === 0, missing: miss, mechanic: mech, safetyFirst: miss.indexOf('brake') > -1 || miss.indexOf('tyre') > -1, bookUrl: ids.length ? '/book/?service=repair&issues=' + ids.join(',') : '' };
+  }
+
   function start(win) {
     var doc = win.document, $ = function (id) { return doc.getElementById(id); };
     var type = $('due-type'), date = $('due-date'), km = $('due-km'), out = $('due-out'); if (!type || !out) return;
@@ -56,7 +76,9 @@
       out.appendChild(el('p', '', line));
       var row = el('div', 'rt-row'), a1 = el('a', 'btn btn-primary btn-sm', r.state === 'ok' ? 'Book ahead' : 'Book a service'); a1.href = '/book/?service=' + (r.state === 'due' ? 'general' : 'basic') + '&km=' + (r.state === 'due' ? 'gt6' : 'mid');
       var a2 = el('a', 'btn btn-wa btn-sm', 'Remind me on WhatsApp'); a2.href = wa('Hi Mechanix Pro, please remind me about my next service.\nBike: ' + r.gap.name + '\nLast service: ' + date.value + (r.gap.km ? '\nKm since then: ' + (km.value || 0) : '')); a2.rel = 'noopener';
-      row.appendChild(a1); row.appendChild(a2); out.appendChild(row);
+      var a3 = el('a', 'btn btn-ghost btn-sm', 'Add to my calendar'); a3.download = 'mechanix-service-reminder.ics'; a3.href = '#';
+      a3.addEventListener('click', function (e) { try { var blob = new win.Blob([reminderIcs(r.gap.name, r.dueDate, new Date())], { type: 'text/calendar' }); a3.href = win.URL.createObjectURL(blob); } catch (x) { e.preventDefault(); } });
+      row.appendChild(a1); row.appendChild(a2); row.appendChild(a3); out.appendChild(row);
     }
     [type, date, km].forEach(function (n) { n.addEventListener('input', renderDue); n.addEventListener('change', renderDue); });
     // symptom guide
@@ -72,7 +94,20 @@
       sout.appendChild(row);
     }
     chips.forEach(function (c) { c.addEventListener('click', function () { var k = c.getAttribute('data-s'), i = picked.indexOf(k); if (i > -1) picked.splice(i, 1); else if (picked.length < 3) picked.push(k); renderSym(); }); });
+    // pre-ride checklist
+    var pre = [].slice.call(doc.querySelectorAll('#pre-list [data-k]')), pout = $('pre-out');
+    function renderPre() {
+      if (!pout) return; pout.textContent = '';
+      var ticked = pre.filter(function (c) { return c.checked; }).map(function (c) { return c.getAttribute('data-k'); });
+      if (!ticked.length) { pout.appendChild(el('p', 'rt-hint', 'Tick what looks good. We tell you what to get checked.')); return; }
+      var r = preRide(ticked), head = el('div', 'rt-state ' + (r.ready ? 'rt-ok' : r.safetyFirst ? 'rt-due' : 'rt-soon'));
+      head.appendChild(el('b', '', r.ready ? 'Good to ride' : r.safetyFirst ? 'Check brakes and tyres before you ride' : 'Almost there')); pout.appendChild(head);
+      if (!r.ready) pout.appendChild(el('p', '', 'Still to check: ' + r.missing.map(function (k) { return PRE_NOTE[k]; }).join(', ') + '.'));
+      else pout.appendChild(el('p', '', 'All eight look good. Ride safe.'));
+      if (r.bookUrl) { var row = el('div', 'rt-row'), a = el('a', 'btn btn-primary btn-sm', 'Get it checked at your door'); a.href = r.bookUrl; row.appendChild(a); if (r.safetyFirst) { var s = el('a', 'btn btn-sos btn-sm', 'Stuck on the road? Get help'); s.href = '/roadside/'; row.appendChild(s); } pout.appendChild(row); }
+    }
+    pre.forEach(function (c) { c.addEventListener('change', renderPre); });
     renderDue();
   }
-  return { start: start, dueStatus: dueStatus, symptomPlan: symptomPlan, GAPS: GAPS, SYMPTOMS: SYMPTOMS };
+  return { start: start, dueStatus: dueStatus, symptomPlan: symptomPlan, reminderIcs: reminderIcs, preRide: preRide, GAPS: GAPS, SYMPTOMS: SYMPTOMS };
 });

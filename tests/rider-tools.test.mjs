@@ -43,3 +43,25 @@ test('the home page has the two tools, and the page script has no inline code', 
   for (const id of ['rider-tools', 'due-type', 'due-date', 'due-km', 'due-out', 'sym-out']) assert.match(h, new RegExp('id="' + id + '"'), id);
   assert.match(h, /rider-tools\.js/); assert.doesNotMatch(h, /<script>[^<]*dueStatus/);
 });
+test('the calendar reminder is a valid all-day event on the due date with a two-day nudge', () => {
+  const ics = T.reminderIcs('scooter', day('2026-11-20'), new Date('2026-10-23T05:00:00Z'));
+  assert.match(ics, /^BEGIN:VCALENDAR\r\n/); assert.match(ics, /DTSTART;VALUE=DATE:20261120/); assert.match(ics, /DTEND;VALUE=DATE:20261121/);
+  assert.match(ics, /SUMMARY:Bike service due: scooter/); assert.match(ics, /TRIGGER:-P2D/); assert.match(ics, /END:VCALENDAR$/);
+  assert.doesNotMatch(ics, /<|>/);
+});
+test('the pre-ride check lists what is missing, puts brakes and tyres first, and links a prefilled problem check', () => {
+  const all = ['tyre', 'brake', 'chain', 'leak', 'elec', 'battery', 'fuel', 'gear'];
+  assert.equal(T.preRide(all).ready, true); assert.equal(T.preRide(all).bookUrl, '');
+  const p = T.preRide(['chain', 'leak', 'elec', 'battery', 'fuel', 'gear']);
+  assert.equal(p.ready, false); assert.deepEqual(p.missing, ['tyre', 'brake']); assert.equal(p.safetyFirst, true);
+  assert.equal(p.bookUrl, '/book/?service=repair&issues=tyre,brake');
+  const q = T.preRide(['tyre', 'brake', 'chain', 'leak', 'elec', 'battery', 'gear']);
+  assert.deepEqual(q.missing, ['fuel']); assert.equal(q.safetyFirst, false); assert.equal(q.bookUrl, '');
+});
+test('the home page has the pre-ride checklist with eight items', () => {
+  const h = read('../index.html'); assert.match(h, /id="rt-pre"/); assert.equal((h.match(/data-k="/g) || []).length, 8);
+});
+test('the install button is a plain script that only appears when the browser offers an install', () => {
+  const js = read('../assets/js/install.js'); assert.match(js, /beforeinstallprompt/); assert.match(js, /preventDefault/);
+  assert.match(read('../index.html'), /install\.js/); assert.doesNotMatch(read('../index.html'), /<script>[^<]*beforeinstallprompt/);
+});
