@@ -3,6 +3,7 @@
 //   1. campaigns: once AiSensy approves a desk template, create its API campaign (no one has to press a button)
 //   2. sla: email the supervisors when a customer has waited 15 minutes for a reply, or a new lead has no owner after 15 minutes
 //   3. rating: ask a customer to rate the job, once, a couple of hours after it is completed
+//   5. watchdog: email the supervisors when the automation, the reply checker or AiSensy stops working, or the templates stay unapproved for a day
 //   4. journey: tell the customer when the quote is ready, when the booking is confirmed with the mechanic, and when the service is done (each once)
 import { adminDb, env, json, safeEqual, getSetting, istHour } from '../_shared/util.ts';
 import { PROJECT_API } from '../_shared/aisensy-project.ts';
@@ -12,6 +13,7 @@ import { ratingToken, ratingUrl } from '../_shared/rating.ts';
 import { sendEmail } from '../_shared/resend.ts';
 import { supervisorEmails } from '../_shared/desk-notify.ts';
 import { formatWhen } from '../_shared/when.ts';
+import { runWatchdog } from '../_shared/desk-health.ts';
 
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
 const MIN = 60_000;
@@ -147,6 +149,9 @@ Deno.serve(async (req) => {
       result.journey = { sent: sentN, failed: failN }; if (sentN || failN) await log('journey', failN === 0, { sent: sentN, failed: failN });
     }
   } catch (e) { result.journey = { error: String((e as Error).message) }; await log('journey', false, { error: String((e as Error).message) }); }
+
+  /* 5. watchdog: email the supervisors if the reply checker, AiSensy or the templates need attention */
+  try { result.health = await runWatchdog(db, DESK_URL, 'automation'); } catch (e) { result.health = { error: String((e as Error).message) }; }
 
   await db.from('settings').upsert({ key: 'desk_automation_heartbeat', value: { at: new Date().toISOString(), result } }, { onConflict: 'key' }).then(() => {}, () => {});
   return json(req, { ok: true, ...result });

@@ -110,3 +110,13 @@ Rules: only customers who agreed to WhatsApp and have not opted out; only jobs t
 
 **To go live:** open the desk, Team, WhatsApp setup, and press **Submit templates**. WhatsApp must approve the three new templates (usually within a day). The desk then creates their API campaigns by itself, with no further action.
 Not built, because the desk has no such status yet: "mechanic is on the way". It needs an "en route" step in the mechanic flow first.
+
+## Watchdog and alerts (2026-10-23)
+`desk-automation` and `desk-poll-replies` both run a watchdog (`_shared/desk-health.ts`, rules in `desk-health-rules.ts`, tests in `tests/desk-health.test.mjs`). It emails the supervisors and owner logins once per problem, then again after a cool-down:
+- automation has not run for 15 minutes (judged by the reply checker, so a stopped job is still noticed)
+- reply checker silent for 25 minutes, 8 AM to 10 PM IST only
+- every AiSensy check failed on the last run (key or plan problem)
+- 3 or more failed automation steps in an hour
+- WhatsApp templates still unapproved after 24 hours (names listed), repeated daily
+Reported problems are remembered in the setting `desk_health_alerts`. Customer-wait alerts (15 minutes without an answer, new lead with no owner) were already emailed by the SLA job.
+The desk, Team, Automation panel shows the same checks live.

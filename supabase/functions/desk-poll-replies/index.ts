@@ -2,6 +2,8 @@
 // Asks AiSensy (Project API, included in the plan) when each open lead's customer last wrote, so the desk can show "customer replied, nobody answered yet" without webhooks.
 import { adminDb, env, json, safeEqual } from '../_shared/util.ts';
 import { fetchContact } from '../_shared/aisensy-contact.ts';
+import { runWatchdog } from '../_shared/desk-health.ts';
+const DESK_URL = Deno.env.get('DESK_URL') ?? 'https://mechanixpro-crm.pages.dev/crm/';
 
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
 
@@ -31,5 +33,6 @@ Deno.serve(async (req) => {
   };
   await Promise.all([worker(), worker(), worker(), worker()]);
   await db.from('settings').upsert({ key: 'desk_poll_heartbeat', value: { at: new Date().toISOString(), checked, updated, failed } }, { onConflict: 'key' }).then(() => {}, () => {});
-  return json(req, { ok: true, checked, updated, failed });
+  const health = await runWatchdog(db, DESK_URL, 'poll').catch(() => null);
+  return json(req, { ok: true, checked, updated, failed, health });
 });
