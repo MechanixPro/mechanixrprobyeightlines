@@ -25,7 +25,7 @@ Add-ons:
 ${add}
 Areas served: ${ctx.info.areas ?? 'All of Bengaluru (PIN codes 560001 to 560110)'}
 Hours: ${ctx.info.hours ?? 'Open 24/7'}. Warranty: ${ctx.info.warranty ?? '30 days on our service work'}.
-Parts are OEM certified and mechanics are Mechanix Pro certified. Parts and extra work are charged only after the customer approves an itemised estimate from the mechanic.
+Parts are OEM or aftermarket, sourced from our partner Axlio, and labelled so the customer can choose. Mechanics are Mechanix Pro certified. The 30-day warranty covers our service work. Parts carry a limited warranty on the terms of the part's manufacturer or supplier. Parts and extra work are charged only after the customer approves an itemised estimate from the mechanic.
 Free cancellation up to 2 hours before the slot (checkup and quote fee refunded). Time slots: morning (9–12), afternoon (12–4), evening (4–8), or asap for emergencies.
 Today's date (IST): ${ctx.today}.
 

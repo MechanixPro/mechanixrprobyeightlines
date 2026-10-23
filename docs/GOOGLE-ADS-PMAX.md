@@ -42,7 +42,7 @@ Honda, TVS, Bajaj & More
 **Long headlines** (5; each 90 characters or fewer):
 ```
 Bike service at your door in Bengaluru. Quote on WhatsApp first, work after your OK.
-Certified mechanics, OEM-certified parts and a 30-day service warranty, at your home.
+Certified mechanics, OEM or aftermarket parts, 30-day service warranty, at home.
 Build your bike service in under a minute and see the price. Quote comes on WhatsApp.
 Scooter, commuter and Royal Enfield service at your doorstep anywhere in Bengaluru.
 Tell us what your bike needs. We quote first and start only after you say yes.
@@ -52,7 +52,7 @@ Tell us what your bike needs. We quote first and start only after you say yes.
 ```
 A certified mechanic comes to your home. Quote on WhatsApp first, work after your OK.
 Brakes, oil, chain, wash and more at your door. 30-day service warranty.
-Bikes, scooters and Royal Enfields across Bengaluru. OEM-certified parts.
+Bikes, scooters and Royal Enfields across Bengaluru. OEM and aftermarket parts.
 Tell us what your bike needs and see the price. Exact quote on WhatsApp.
 Doorstep bike service in Bengaluru. Quote first.
 ```

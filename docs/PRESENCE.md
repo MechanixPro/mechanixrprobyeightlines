@@ -1,6 +1,6 @@
 # Mechanix Pro presence kit (bold theme, 2026-10-23)
 
-Brand: navy #14295A, ember #F2801F, the shield logo as supplied. Tone: direct, calm, no made-up numbers. Allowed claims: 10,000+ services done, 1,300+ gated communities trust us, open 24/7, quote first, 30-day service warranty, OEM-certified parts.
+Brand: navy #14295A, ember #F2801F, the shield logo as supplied. Tone: direct, calm, no made-up numbers. Allowed claims: 10,000+ services done, 1,300+ gated communities trust us, open 24/7, quote first, 30-day service warranty, OEM and aftermarket parts.
 Cars: always "with our partner Axlio". Mechanix Pro itself services bikes and scooters.
 
 ## Instagram (@themechanixpro)
@@ -21,7 +21,7 @@ Cars with partner Axlio 👇
 **Hours:** Open 24 hours, all days.
 **Phone:** +91 83106 21498. **Website:** https://mechanixpro.in. **Booking link:** https://mechanixpro.in/book/
 **Description (under 750):**
-Mechanix Pro is a doorstep bike and scooter service in Bengaluru. A Mechanix Pro-certified mechanic comes to your home or office, sends a quote on WhatsApp first, and starts only after you say yes. Basic, General and Full service, repairs and problem checks, washes and add-ons, and roadside help when your bike breaks down or gets a puncture. OEM-certified parts are fitted only after your approval, with a 30-day service warranty on our work. We are open 24/7. For cars and spare parts, our partner Axlio is at axlio.in.
+Mechanix Pro is a doorstep bike and scooter service in Bengaluru. A Mechanix Pro-certified mechanic comes to your home or office, sends a quote on WhatsApp first, and starts only after you say yes. Basic, General and Full service, repairs and problem checks, washes and add-ons, and roadside help when your bike breaks down or gets a puncture. OEM and aftermarket parts are fitted only after your approval, with a 30-day service warranty on our work. We are open 24/7. For cars and spare parts, our partner Axlio is at axlio.in.
 **Services to add (name and price from the Prices tab):** Basic service, General service, Full service, Repair or problem check, Roadside emergency visit, Foam wash, Chain clean and lube, Brake tuning, Tyre and puncture check, Battery health test.
 **Photos to add (real ones only):** mechanic at a doorstep, parts being shown to a customer, the van or tool kit, a finished bike. No stock photos.
 **Posts:** one a week, same copy as Instagram. **Reviews:** reply to every review in one or two sentences, by name.

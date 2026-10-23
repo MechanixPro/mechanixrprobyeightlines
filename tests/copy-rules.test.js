@@ -26,11 +26,11 @@ test('the confirmation email explains the fee when it is known', () => {
   const t = read('supabase/functions/_shared/email-templates.ts');
   assert.match(t, /checkupFee/); assert.match(t, /checkup and quote fee/i);
 });
-test('parts are OEM certified and mechanics are Mechanix Pro certified, said plainly on the key pages', () => {
-  for (const f of ['index.html', 'services/index.html', 'help/index.html']) { const h = read(f); assert.match(h, /OEM[- ]certified parts/i, f); }
+test('parts are OEM or aftermarket and mechanics are Mechanix Pro certified, said plainly on the key pages', () => {
+  for (const f of ['index.html', 'services/index.html', 'help/index.html']) { const h = read(f); assert.match(h, /OEM and aftermarket parts/i, f); }
   for (const f of ['index.html', 'help/index.html']) assert.match(read(f), /Mechanix Pro[- ]certified mechanic/i, f);
-  assert.match(read('terms/index.html'), /OEM[- ]certified/i);
-  assert.match(read('supabase/functions/_shared/ai.ts'), /OEM[- ]certified/i);
+  assert.match(read('terms/index.html'), /OEM or aftermarket/i);
+  assert.match(read('supabase/functions/_shared/ai.ts'), /OEM or aftermarket/i);
 });
 test('there is no vague "certified mechanic" left without saying who certified them', () => {
   for (const f of pages()) { const h = read(f).replace(/Mechanix Pro[- ]certified/gi, ''); assert.doesNotMatch(h, /(^|[^-])\b[Cc]ertified mechanic/, f); }

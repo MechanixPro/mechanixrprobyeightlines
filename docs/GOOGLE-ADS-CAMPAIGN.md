@@ -90,7 +90,7 @@ Mechanix Pro Bengaluru
 ```
 A certified mechanic comes to your home. Quote on WhatsApp first, work after your OK.
 Brakes, oil, chain, wash and more at your door. 30-day service warranty.
-Bikes, scooters and Royal Enfields across Bengaluru. OEM-certified parts.
+Bikes, scooters and Royal Enfields across Bengaluru. OEM and aftermarket parts.
 Tell us what your bike needs and see the price. Exact quote on WhatsApp.
 ```
 

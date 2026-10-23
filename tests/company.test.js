@@ -25,7 +25,7 @@ test('Terms, Privacy and Contact name the operator, address and GSTIN', () => {
     const h = read(f);
     assert.ok(h.includes('NOVA VENTURES'), f); assert.ok(h.includes('Haralur Main Rd'), f); assert.ok(h.includes('560102'), f); assert.ok(h.includes(co.gstin), f);
   }
-  assert.match(read('terms/index.html'), /Last updated: 8 October 2026/); assert.match(read('privacy/index.html'), /Last updated: 8 October 2026/);
+  assert.match(read('terms/index.html'), /Last updated: 23 October 2026/); assert.match(read('privacy/index.html'), /Last updated: 23 October 2026/);
 });
 test('every page footer says Mechanix Pro is a brand of the company and shows the GSTIN', () => {
   for (const f of pages().filter((x) => x !== '404.html' && x !== 'offline.html')) {

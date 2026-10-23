@@ -13,7 +13,7 @@ test('the one booking email explains the whole journey and how the money is prot
 });
 test('the email lists the service promises and only true claims', () => {
   const m = bookingReceived({ ...base, checkupFee: 99, newCustomer: true });
-  for (const re of [/certified mechanic/i, /OEM-certified parts/i, /30-day/i, /OTP/i, /GST invoice/i]) assert.match(m.html, re, String(re));
+  for (const re of [/certified mechanic/i, /OEM and aftermarket parts/i, /30-day/i, /OTP/i, /GST invoice/i]) assert.match(m.html, re, String(re));
   for (const re of [/\b\d[\d,]*\+? (bikes|reviews|ratings|customers)/i, /4\.\d\s*(star|\/)/i, /best/i, /guarantee/i]) assert.doesNotMatch(m.html, re, String(re));
 });
 test('a new customer is told the Rs 99 slot fee, a returning customer the Rs 349 checkup and quote fee', () => {
