@@ -915,3 +915,31 @@ body{overflow-x:clip}
 .mo-a{grid-column:1;grid-row:1/3}.mo-b{grid-column:2;grid-row:1}.mo-c{grid-column:3;grid-row:1/3}.mo-d{grid-column:2;grid-row:2}
 .hero-photo[data-mosaic] .hp-badges{position:static;margin-top:12px}
 @media(prefers-reduced-motion:reduce){.mo img{transition:none}.mo:hover img{transform:none}}
+/* Coverage check: a dark console with a glowing map and a big PIN field */
+.cover{display:grid;grid-template-columns:1.05fr 1fr;gap:0;border-radius:32px;overflow:hidden;background:#fff;box-shadow:0 24px 70px rgba(20,41,90,.18);border:1px solid rgba(20,41,90,.08)}
+.cv-left{padding:clamp(24px,4vw,48px);display:flex;flex-direction:column;gap:12px}
+.cv-kicker{margin:0;color:#B4540A;font-weight:800;letter-spacing:.1em;text-transform:uppercase;font-size:13px}
+.cover h2{margin:0;font-size:clamp(30px,4.2vw,48px);line-height:1.04}
+.cv-sub{margin:0 0 6px;color:var(--ink-2,#44506b);font-size:18px}
+.cv-input{position:relative;display:block;margin:2px 0 0}.cv-input svg{position:absolute;left:18px;top:50%;transform:translateY(-50%);width:26px;height:26px;fill:none;stroke:#F2801F;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cv-input input{width:100%;height:68px;padding:0 20px 0 56px;border-radius:20px;border:2px solid rgba(20,41,90,.15);font-size:26px;font-weight:700;letter-spacing:.14em;background:#F7F8FB;transition:border-color .2s,box-shadow .2s,background .2s}
+.cv-input input:focus{outline:0;border-color:#F2801F;background:#fff;box-shadow:0 0 0 5px rgba(242,128,31,.2)}
+.cover .pc-out{margin:0;min-height:30px;padding:0;font-weight:700;font-size:17px}
+.cover .pc-out.ok{color:#14702F}.cover .pc-out.no{color:#9A4A00}
+.cover .pc-out.ok::before,.cover .pc-out.no::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;background:currentColor;box-shadow:0 0 0 5px color-mix(in srgb,currentColor 18%,transparent)}
+.cv-try{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.cv-try span{font-size:14px;color:var(--muted,#636366);font-weight:600}
+.cv-try button{min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid rgba(20,41,90,.14);background:#fff;font:650 14px var(--font);color:#14295A;cursor:pointer;transition:background .15s,border-color .15s}.cv-try button:hover,.cv-try button:focus-visible{background:#FFF1E2;border-color:#F2801F}
+.cv-facts{list-style:none;margin:8px 0 0;padding:16px 0 0;border-top:1px solid rgba(20,41,90,.1);display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.cv-facts b{display:block;font-size:17px;color:#14295A}.cv-facts span{font-size:13.5px;color:var(--muted,#636366);line-height:1.3;display:block}
+.cv-right{position:relative;background:radial-gradient(90% 70% at 50% 40%,#1F3F86,#0E1B3F 70%);min-height:420px;display:grid;place-items:center;padding:24px}
+.cv-right::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:36px 36px;mask-image:radial-gradient(70% 70% at 50% 50%,#000,transparent)}
+.cv-map{position:relative;width:100%;max-width:440px}
+.cv-tag{position:absolute;left:0;top:-4px;z-index:2;padding:6px 12px;border-radius:999px;background:rgba(242,128,31,.2);border:1px solid rgba(242,128,31,.55);color:#FFC38A;font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.cv-map .pm{background:none;margin:18px 0 0;max-width:none}.cv-map .pm svg{max-height:420px;filter:drop-shadow(0 12px 28px rgba(0,0,0,.4))}
+.cv-map .pm-area{fill:#24448F;stroke:#0E1B3F;stroke-width:1}.cv-map .pm-glow circle{fill:#F2801F;opacity:.18}.cv-map .pm-dot{fill:#FFC38A;opacity:.85}
+.cv-map .pm-hub text{fill:#fff;stroke:#0E1B3F}.cv-map .pm-hub-ring{fill:rgba(242,128,31,.25)}
+.cv-map .pm-sel-area{fill:rgba(242,128,31,.55);stroke:#FFC857}
+@media(max-width:900px){.cover{grid-template-columns:1fr}.cv-right{min-height:360px}.cv-facts{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:520px){.cv-input input{height:60px;font-size:22px}.cv-facts{grid-template-columns:1fr}.cv-facts li{display:flex;gap:10px;align-items:baseline}}
+@media(prefers-reduced-motion:reduce){.cv-input input,.cv-try button{transition:none}}
+.cv-map .pm{border-radius:24px;overflow:hidden}.cv-map .pm svg{border-radius:24px}

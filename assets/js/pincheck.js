@@ -23,6 +23,7 @@
       if (r.link) { var a = document.createElement('a'); a.href = '/book/?pin=' + r.link; a.textContent = ' Build your service'; out.appendChild(a); }
     }
     input.addEventListener('input', update);
+    box.querySelectorAll('[data-pin]').forEach(function (b) { b.addEventListener('click', function () { input.value = b.getAttribute('data-pin'); update(); input.focus({ preventScroll: true }); }); });
     document.addEventListener('mxp:pins', update);
   });
 })();
