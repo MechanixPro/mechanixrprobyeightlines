@@ -93,11 +93,12 @@ function withBike(l) { const b = S.bikes.find((x) => x.id === l.bike_id); return
 
 /* Engine size: bikes of 150 to 250cc and above have their own prices. Without those price rows the form keeps the old single "above 180cc" box. */
 function hasTiers() { return S.services.some((x) => x.id === 'basic250' && x.active); }
+function hasBig() { return S.services.some((x) => x.id === 'basic500' && x.active); }
 function engineOf(bike) { return bike.engine_class || (bike.big_bike ? 'big' : 'std'); }
 function engineField(prefix, bike, enabled) {
   if (!hasTiers()) return `<label class="check"><input type="checkbox" id="${prefix}-big"${bike?.big_bike ? ' checked' : ''}${enabled ? '' : ' disabled'}><span>Above 180cc (adds the big-bike surcharge to Basic, General and Full)${enabled ? '' : ' (no bike saved on this booking)'}</span></label>`;
   const cur = bike ? engineOf(bike) : 'std';
-  return `<label class="label" for="${prefix}-engine">Engine size</label><select id="${prefix}-engine"${enabled ? '' : ' disabled'}>${[['std', 'Up to 149cc'], ['mid', '150 to 250cc'], ['big', 'Above 250cc (adds the surcharge)']].map(([v, t]) => `<option value="${v}"${cur === v ? ' selected' : ''}>${t}</option>`).join('')}</select>${enabled ? '' : '<p class="muted tiny">No bike saved on this booking.</p>'}`;
+  return `<label class="label" for="${prefix}-engine">Engine size</label><select id="${prefix}-engine"${enabled ? '' : ' disabled'}>${[['std', 'Up to 149cc'], ['mid', '150 to 250cc'], ['big', hasBig() ? '251 to 500cc' : 'Above 250cc (adds the surcharge)']].map(([v, t]) => `<option value="${v}"${cur === v ? ' selected' : ''}>${t}</option>`).join('')}</select>${enabled ? '' : '<p class="muted tiny">No bike saved on this booking.</p>'}`;
 }
 function engineRead(prefix) { const s = $('#' + prefix + '-engine'); return s ? { engine: s.value } : { bigBike: !!$('#' + prefix + '-big')?.checked }; }
 
@@ -258,7 +259,7 @@ function updateSplitPreview() {
   if (sample) sample.textContent = `On a ${rupee(1000)} job: the mechanic gets ${rupee(sp.mechanic)} and the company keeps ${rupee(sp.company)}.` + (sp.gst ? ` (${rupee(sp.gst)} is GST.)` : '');
 }
 function openNewBooking(c) {
-  const svcs = S.services.filter((x) => x.kind === 'service' && x.active && !/250$/.test(x.id)), adds = S.services.filter((x) => x.kind === 'addon' && x.active);
+  const svcs = S.services.filter((x) => x.kind === 'service' && x.active && !/(250|500)$/.test(x.id)), adds = S.services.filter((x) => x.kind === 'addon' && x.active);
   const sel = (id, opts, d) => `<select id="${id}">${opts.map(([v, t]) => `<option value="${v}"${v === d ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
   S.open = null; S.openCust = null; S.openMech = null;
   $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">Add booking</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
@@ -450,7 +451,7 @@ function payoutCardBody(l, m) {
 const todayIST = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
 function serviceEditCard(l) {
   const bike = S.bikes.find((b) => b.id === l.bike_id);
-  const pkgs = S.services.filter((x) => x.kind === 'service' && !/250$/.test(x.id)), adds = S.services.filter((x) => x.kind === 'addon');
+  const pkgs = S.services.filter((x) => x.kind === 'service' && !/(250|500)$/.test(x.id)), adds = S.services.filter((x) => x.kind === 'addon');
   const slot = (v, t) => `<option value="${v}"${l.preferred_slot === v ? ' selected' : ''}>${t}</option>`;
   return `<details class="card" style="margin-top:12px" id="esCard"><summary style="cursor:pointer;font:600 17px var(--f-display)">Service, visit time and address</summary>
     <p class="tiny muted" style="margin:8px 0 6px">Change the package, add-ons, visit time or place. The estimate is worked out again from the live prices. Press Save changes at the bottom to keep your edits.</p>

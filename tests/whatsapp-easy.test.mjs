@@ -19,7 +19,7 @@ test('every price card has an Ask on WhatsApp link that names that service', () 
   const cards = home.slice(home.indexOf('class="price-cards"'), home.indexOf('</ul>', home.indexOf('class="price-cards"')));
   const links = [...cards.matchAll(/data-wa-text="([^"]+)"/g)].map((m) => m[1]);
   assert.equal(links.length, 4);
-  for (const [i, name] of ['Basic', 'General', 'Full', 'problem check'].entries()) assert.match(links[i], new RegExp(name, 'i'));
+  for (const [i, name] of ['Basic', 'Standard', 'Full', 'problem check'].entries()) assert.match(links[i], new RegExp(name, 'i'));
 });
 test('the final call to action puts WhatsApp first', () => {
   const end = home.slice(home.lastIndexOf('<div class="final">'));

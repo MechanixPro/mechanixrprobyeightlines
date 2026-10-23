@@ -47,15 +47,15 @@
     }
     function final() {
       name.textContent = NICK; input.classList.remove('on'); pick('general'); bar(3);
-      pack.textContent = '"' + NICK + '"'; add.textContent = 'General service + Foam wash'; cur = priceOf('general') + priceOf('wash'); price.textContent = rupee(cur);
+      pack.textContent = '"' + NICK + '"'; add.textContent = 'Standard service + Foam wash'; cur = priceOf('general') + priceOf('wash'); price.textContent = rupee(cur);
     }
     function reset() { name.textContent = ''; pick(''); bar(1); cur = 0; price.textContent = rupee(0); pack.textContent = 'Your bike'; add.textContent = 'Choose a service'; input.classList.add('on'); }
     function run() {
       reset(); var i = 0;
       (function type() {
         if (i < NICK.length) { name.textContent = NICK.slice(0, ++i); return later(type, 85); }
-        later(function () { input.classList.remove('on'); bar(2); pick('general'); pack.textContent = '"' + NICK + '"'; add.textContent = 'General service'; count(priceOf('general'), 600); }, 500);
-        later(function () { bar(3); add.textContent = 'General service + Foam wash'; count(priceOf('general') + priceOf('wash'), 500); }, 1900);
+        later(function () { input.classList.remove('on'); bar(2); pick('general'); pack.textContent = '"' + NICK + '"'; add.textContent = 'Standard service'; count(priceOf('general'), 600); }, 500);
+        later(function () { bar(3); add.textContent = 'Standard service + Foam wash'; count(priceOf('general') + priceOf('wash'), 500); }, 1900);
         later(run, 5200);
       })();
     }

@@ -202,7 +202,7 @@ for slug, name, pins, locs, why in AREAS:
     book = f'/book/?area={urllib.parse.quote(name)}'
     faq = [
       (f'Do you come to my home in {name}?', f'Yes. Our mechanics cover {locs}. We service your bike at home, at your office parking or at the roadside.'),
-      (f'How much is a bike service in {name}?', 'Basic service from {{text:basic}}, General from {{text:general}}, Full from {{text:full}} for bikes up to 149cc; 150 to 250cc bikes cost more, and above 250cc add {{feetext:bigbike}}. GST included. Your exact quote comes on WhatsApp, and parts only after your approval.'),
+      (f'How much is a bike service in {name}?', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}} for bikes up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices. GST included. Your exact quote comes on WhatsApp, and parts only after your approval.'),
       ('How fast can a mechanic reach me?', 'Scheduled services are done in your chosen slot. For breakdowns, use the Get help button and we send the nearest available mechanic.'),
     ]
     schema = '<script type="application/ld+json">' + json.dumps({
@@ -219,7 +219,7 @@ for slug, name, pins, locs, why in AREAS:
 <p>{why} Instead of losing half a day at a garage, a Mechanix Pro mechanic services your bike where it is parked, usually in 60 to 90 minutes.</p>
 <h2>Starting prices in {name}</h2>
 <div class="card">{''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES)}</div>
-<p class="tiny muted" style="margin-top:8px">Bikes and scooters up to 149cc; 150 to 250cc bikes cost more, and above 250cc add {{{{fee:bigbike}}}}. GST included. Pincodes: {pins}.</p>
+<p class="tiny muted" style="margin-top:8px">Bikes and scooters up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices. GST included. Pincodes: {pins}.</p>
 <h2>Popular bikes we service in {name}</h2>
 <p class="areas">{POPULAR}</p>
 <h2>Other areas we serve</h2>
@@ -250,7 +250,7 @@ LEGAL = {
 <p class="muted">Last updated: [date]. Draft — to be reviewed by a lawyer before launch.</p>
 <h2>1. Service</h2><p>Mechanix Pro, operated by [Registered business name] (GSTIN [GSTIN]), provides two-wheeler service and repair at your location in our service areas in Bengaluru, through trained mechanics from our partner workshops.</p>
 <h2>2. Booking</h2><p>You can request a booking on our website or WhatsApp. A booking is confirmed when we confirm your slot and you pay the checkup and quote fee (currently {{fee:advance}}). The fee is adjusted in your final bill if you go ahead with the service. New customers, meaning a mobile number with no earlier completed job, pay a reduced slot fee of {{fee:newfee}} instead, on the same terms.</p>
-<h2>3. Prices and extra work</h2><p>Listed prices include GST and cover the labour and items described for each package. Parts are OEM or aftermarket, sourced from our partner Axlio, and each part is labelled in your quote so you can choose. Parts, oil above standard grade and work outside the package are charged only after you approve an itemised estimate.</p>
+<h2>3. Prices and extra work</h2><p>Listed prices include GST and cover the labour and items described for each package. Parts are OEM or aftermarket, sourced from our partner Axlio, and each part is labelled in your quote so you can choose. Parts, oil above standard grade and work outside the package are charged only after you approve an itemised estimate. Packages are priced by engine size (up to 149cc, 150 to 250cc and 251 to 500cc). Engine oil is replaced in Full service for bikes up to 250cc, and in Standard and Full service for 251 to 500cc. Air and oil filters are checked, and replacing them is not included. Minor repairs are limited to basic adjustments and small fixes. Pickup and drop is free in our serviceable area.</p>
 <h2>4. Payment</h2><p>The checkup and quote fee and final payments are made through Razorpay (UPI, cards, wallets, net banking) or as agreed with us. Invoices show GST separately.</p>
 <h2>5. Cancellation</h2><p>See our <a href="/refund-policy/">Refund & Cancellation Policy</a>.</p>
 <h2>6. Vehicle handover</h2><p>If your bike must go to a workshop, it leaves only after you share a one-time code with the mechanic, and returns the same way. Please remove valuables. Keep your registration and insurance documents valid.</p>
@@ -341,12 +341,12 @@ for brand, name, t, big in load_bikes():
     url = f'{SITE}/bike-service/{slug}/'
     first = 'repair' if t == 'e' else 'basic'
     first_name = 'Repair or problem check' if t == 'e' else 'Basic service'
-    surcharge = ' This bike is usually 150cc or more, so the 150 to 250cc prices on our Services page apply, and above 250cc add {{fee:bigbike}}.' if big else ''
+    surcharge = ' This bike is usually 150cc or more, so its 150 to 250cc or 251 to 500cc prices on our Services page apply.' if big else ''
     title = f'{full} Service at Home in Bengaluru | Mechanix Pro'
     desc = f'Doorstep {full} {"problem check" if t == "e" else "service"} in Bengaluru, from {{{{text:{first}}}}}. Mechanix Pro certified mechanics, OEM and aftermarket parts, {{{{days}}}}-day warranty. Quote on WhatsApp first.'
     book = f'/book/?brand={urllib.parse.quote(brand, safe="")}&amp;model={urllib.parse.quote(name, safe="")}'
     faq = [
-      (f'How much does a {full} {"problem check" if t == "e" else "service"} cost in Bengaluru?', ('A problem check starts from {{text:repair}}.' if t == 'e' else 'Basic service from {{text:basic}}, General from {{text:general}} and Full from {{text:full}}.') + (' This bike is usually 150cc or more, so the 150 to 250cc prices on the Services page apply, and above 250cc add {{feetext:bigbike}}.' if big and t != 'e' else '') + ' GST included. Your exact quote comes on WhatsApp before any work starts.'),
+      (f'How much does a {full} {"problem check" if t == "e" else "service"} cost in Bengaluru?', ('A problem check starts from {{text:repair}}.' if t == 'e' else 'Basic service from {{text:basic}}, General from {{text:general}} and Full from {{text:full}}.') + (' This bike is usually 150cc or more, so its 150 to 250cc or 251 to 500cc prices on the Services page apply.' if big and t != 'e' else '') + ' GST included. Your exact quote comes on WhatsApp before any work starts.'),
       (f'Can you service my {full} at home?', f'Yes. A Mechanix Pro certified mechanic comes to your home or office in Bengaluru. {timing}'),
       ('Is there a warranty on the work?', 'Yes, {{days}} days on the work, with OEM and aftermarket parts.'),
       ('Do I pay before the work starts?', 'You approve the quote first. A {{feetext:advance}} checkup and quote fee ({{feetext:newfee}} for new customers) holds your slot and is adjusted in your final bill if you go ahead.'),
@@ -453,7 +453,7 @@ for slug, (title, desc, h1, lead, points, msg, cta) in GROUP.items():
 <ul>{''.join(f'<li>{p}</li>' for p in points)}</ul>
 <h2>Prices</h2>
 <div class="card">{''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES if k in ('basic', 'general', 'full', 'repair'))}</div>
-<p class="tiny muted" style="margin-top:8px">Per bike, up to 149cc; 150 to 250cc bikes cost more, and above 250cc add {{{{fee:bigbike}}}}. GST included. Group quotes are confirmed on WhatsApp.</p>
+<p class="tiny muted" style="margin-top:8px">Per bike, up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices. GST included. Group quotes are confirmed on WhatsApp.</p>
 <h2>How it works</h2>
 <ol><li>Message us the number of bikes and your location.</li><li>We reply with a group quote and a service day.</li><li>Each owner approves, and the mechanics arrive on the day.</li></ol>
 '''
@@ -771,7 +771,7 @@ urls.append(('/roadside/', '0.8'))
 MAIN = [
   ('', 'home', 'Two Wheeler Doorstep Service in Bangalore | Mechanix Pro', 'Two wheeler service at home in Bangalore (Bengaluru) from {{text:basic}}. Servicing in as fast as 2 hours, scooty repair, EV and petrol bike care. Quote first.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n' + CHAT_JS, '1.0'),
   ('book', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.9'),
-  ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, General from {{text:general}}, Full from {{text:full}}. GST included. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
+  ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}}. GST included. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
   ('help', 'help', 'How Doorstep Bike Service Works and FAQ | Mechanix Pro', 'How Mechanix Pro works: build your service, get a WhatsApp quote, approve, and we service your bike at your door in Bengaluru. Answers to common questions.', 'help.jsonld', 'page-help', APP_JS, '0.8'),
 ]
 for slug, src, title, desc, ld, body, scripts, prio in MAIN:

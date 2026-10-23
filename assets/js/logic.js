@@ -27,14 +27,18 @@
   /* Engine-size pricing: a package has a second price for 150-250cc bikes (the row with the same id plus 250). Above 250cc is that price plus the surcharge.
      When the tier rows are missing (or off), everything below behaves as before: one price, plus the surcharge for the large class. */
   function hasTiers(items) { return !!(find(items, 'basic250') || find(items, 'general250') || find(items, 'full250')); }
-  function isTierRow(id) { return /250$/.test(String(id)); }
+  function isTierRow(id) { return /(250|500)$/.test(String(id)); }
   function tierRow(st, service, items) {
-    if (service && PACKAGES.indexOf(service.id) > -1 && (st.cc === 'mid' || st.cc === 'big')) { var t = find(items || [], service.id + '250'); if (t) return t; }
+    if (service && PACKAGES.indexOf(service.id) > -1 && (st.cc === 'mid' || st.cc === 'big')) {
+      var t = (st.cc === 'big' ? find(items || [], service.id + '500') : null) || find(items || [], service.id + '250');
+      if (t) return t;
+    }
     return service;
   }
+  function hasBigRows(items) { return !!(find(items, 'basic500') || find(items, 'general500') || find(items, 'full500')); }
   function engineLabel(st, items) {
     if (!hasTiers(items)) return st.cc === 'big' ? ' (above 180cc)' : '';
-    return st.cc === 'mid' ? ' (150-250cc)' : st.cc === 'big' ? ' (above 250cc)' : ' (up to 149cc)';
+    return st.cc === 'mid' ? ' (150-250cc)' : st.cc === 'big' ? (hasBigRows(items) ? ' (251-500cc)' : ' (above 250cc)') : ' (up to 149cc)';
   }
   /* The engine class guessed from a model in our list: a number in the name (Pulsar 220F, SP 160, CB300F) wins, else the old "large" flag. */
   function engineGuess(model, large) {
@@ -43,10 +47,10 @@
     if (cc >= 251) return 'big'; if (cc >= 150) return 'mid'; if (cc) return large ? 'big' : 'std';
     return large ? 'big' : 'std';
   }
-  function surcharge(st, service, cfg) { return st.cc === 'big' && PACKAGES.indexOf(service.id) > -1 ? (cfg.bigBikeSurcharge || 0) : 0; }
+  function surcharge(st, service, cfg, items) { return st.cc === 'big' && PACKAGES.indexOf(service.id) > -1 && !find(items || [], service.id + '500') ? (cfg.bigBikeSurcharge || 0) : 0; }
   function total(st, items, cfg) {
     var s = find(items, st.service); if (!s) return 0;
-    var t = tierRow(st, s, items).price + surcharge(st, s, cfg);
+    var t = tierRow(st, s, items).price + surcharge(st, s, cfg, items);
     st.addons.forEach(function (a) { var x = find(items, a); if (x) t += x.price; });
     return t;
   }
@@ -275,5 +279,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { hasTiers: hasTiers, isTierRow: isTierRow, tierRow: tierRow, engineLabel: engineLabel, engineGuess: engineGuess, leadQuality: leadQuality, placeToFields: placeToFields, receiptBars: receiptBars, pinFromLocation: pinFromLocation, pinInfo: pinInfo, inBengaluru: inBengaluru, nearestPlace: nearestPlace, prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { hasBigRows: hasBigRows, surcharge: surcharge, hasTiers: hasTiers, isTierRow: isTierRow, tierRow: tierRow, engineLabel: engineLabel, engineGuess: engineGuess, leadQuality: leadQuality, placeToFields: placeToFields, receiptBars: receiptBars, pinFromLocation: pinFromLocation, pinInfo: pinInfo, inBengaluru: inBengaluru, nearestPlace: nearestPlace, prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });

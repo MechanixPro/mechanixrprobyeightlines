@@ -5,7 +5,7 @@ import json, os, re, sys, urllib.request
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, 'src', 'site.json'); APP = os.path.join(ROOT, 'assets', 'js', 'app.js')
 q = lambda s: json.dumps(s, ensure_ascii=False).replace('"', "'")
-DESC = {'basic250': 'Oil level check, chain lube, brake adjust, wash', 'general250': 'Engine oil change, filter clean, 20-point check', 'full250': 'General service plus throttle body clean, brake pads check, polish', 'basic': 'Oil level check, chain lube, brake adjust, wash', 'general': 'Engine oil change, filter clean, 20-point check', 'full': 'General service plus throttle body clean, brake pads check, polish', 'repair': 'Checkup and quote visit; repair quoted before work starts', 'sos': 'Puncture, battery or breakdown; mechanic dispatched now'}
+DESC = {'basic': 'Essential maintenance and safety checks', 'general': 'Extended maintenance for better performance', 'full': 'Complete care for best performance, with an engine oil change and foam wash', 'basic250': 'Essential maintenance and safety checks', 'general250': 'Extended maintenance for better performance', 'full250': 'Complete care for best performance, with an engine oil change and foam wash', 'basic500': 'Essential maintenance and safety checks', 'general500': 'Extended maintenance with an engine oil change', 'full500': 'Complete care for best performance, with an engine oil change and foam wash', 'repair': 'Checkup and quote visit; repair quoted before work starts', 'sos': 'Puncture, battery or breakdown; mechanic dispatched now'}
 ADDON_NAMES = {'wash': 'Foam wash', 'chain': 'Chain clean and lube', 'brake': 'Brake tuning', 'tyre': 'Tyre and puncture check', 'battery': 'Battery health test'}
 
 def write_defaults(site):

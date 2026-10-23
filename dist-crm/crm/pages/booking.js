@@ -5,11 +5,13 @@ const getCatalog = async () => (catalog ||= await rpc('crm_booking_catalog'));
 const SOURCES = [['phone', 'Phone call'], ['whatsapp', 'WhatsApp'], ['walk_in', 'Walk in'], ['instagram', 'Meta (Instagram)'], ['website', 'Website']];
 
 /** Create a booking. It becomes the same lead the admin sees: customer, bike, service, add-ons, slot, address and quote. */
-/** The package price for an engine class, from the catalog the database sends. 150 to 250cc use the second price; above 250cc adds the surcharge. */
-export const ENGINES = [['std', 'Up to 149cc'], ['mid', '150 to 250cc'], ['big', 'Above 250cc (adds the surcharge)']];
+/** The package price for an engine class, from the catalog the database sends. 150 to 250cc and 251 to 500cc have their own prices. Without 251-500cc prices, the large class is the 150-250cc price plus the old surcharge (big_fee). */
+export const ENGINES = [['std', 'Up to 149cc'], ['mid', '150 to 250cc'], ['big', '251 to 500cc']];
 export function packagePrice(cat, s, engine) {
-  const tier = engine === 'mid' || engine === 'big' ? (cat.tiers || {})[s.id] : null;
-  return (tier ?? s.price) + (engine === 'big' && ['basic', 'general', 'full'].includes(s.id) ? Number(cat.big_fee || 0) : 0);
+  const t = cat.tiers || {}, mid = (t.mid || {})[s.id], big = (t.big || {})[s.id];
+  if (engine === 'mid') return mid ?? s.price;
+  if (engine === 'big') return big ?? ((mid ?? s.price) + (['basic', 'general', 'full'].includes(s.id) ? Number(cat.big_fee || 0) : 0));
+  return s.price;
 }
 export async function newBooking(ctx, pre = {}) {
   let cat; try { cat = await getCatalog(); } catch (e) { return toast(clean(e), true); }
@@ -19,7 +21,7 @@ export async function newBooking(ctx, pre = {}) {
     ${field('Address', 'address', { type: 'textarea', rows: 2, max: 200 })}
     <div class="grid2">${field('Bike brand', 'brand', { half: true })}${field('Bike model', 'model', { half: true })}${field('Registration number', 'reg_no', { placeholder: 'KA01AB1234', half: true })}
     ${field('Where is the job?', 'job_place', { type: 'select', blank: false, options: [['doorstep', 'At the customer'], ['garage', 'At a garage']], half: true })}</div>
-    ${Object.keys(cat.tiers || {}).length ? field('Engine size', 'engine_class', { type: 'select', blank: false, options: ENGINES, hint: 'Bikes of 150 to 250cc have their own package prices.' }) : ''}
+    ${Object.keys((cat.tiers || {}).mid || {}).length ? field('Engine size', 'engine_class', { type: 'select', blank: false, options: ENGINES, hint: 'Bikes of 150 to 250cc have their own package prices.' }) : ''}
     ${field('Service', 'service_id', { type: 'select', required: true, options: cat.services.map((s) => [s.id, `${s.name} from ${rupee(s.price)}`]) })}
     ${cat.addons.length ? field('Add-ons', 'addons', { type: 'checks', options: cat.addons.map((a) => [a.id, `${a.name} · ${rupee(a.price)}`]) }) : ''}
     <div class="grid2">${field('Preferred date', 'preferred_date', { type: 'date', min: today, half: true })}${field('Time slot', 'preferred_slot', { type: 'select', options: SLOTS, half: true })}
@@ -48,7 +50,7 @@ export async function newBooking(ctx, pre = {}) {
 export async function editBooking(ctx, lead) {
   const confirmed = ['paid', 'scheduled', 'completed'].includes(lead.status);
   let cat = null; if (!confirmed) { try { cat = await getCatalog(); } catch (e) { cat = null; } }
-  const body = `${cat && Object.keys(cat.tiers || {}).length ? field('Engine size', 'engine_class', { type: 'select', blank: 'Keep the bike\'s engine size', options: ENGINES }) : ''}${cat ? field('Service', 'service_id', { type: 'select', blank: false, value: lead.service_id, options: cat.services.map((s) => [s.id, `${s.name} from ${rupee(s.price)}`]) }) + (cat.addons.length ? field('Add-ons', 'addons', { type: 'checks', value: lead.addons || [], options: cat.addons.map((a) => [a.id, `${a.name} · ${rupee(a.price)}`]) }) : '') : '<p class="small muted">The service of a confirmed booking is changed in the admin.</p>'}
+  const body = `${cat && Object.keys((cat.tiers || {}).mid || {}).length ? field('Engine size', 'engine_class', { type: 'select', blank: 'Keep the bike\'s engine size', options: ENGINES }) : ''}${cat ? field('Service', 'service_id', { type: 'select', blank: false, value: lead.service_id, options: cat.services.map((s) => [s.id, `${s.name} from ${rupee(s.price)}`]) }) + (cat.addons.length ? field('Add-ons', 'addons', { type: 'checks', value: lead.addons || [], options: cat.addons.map((a) => [a.id, `${a.name} · ${rupee(a.price)}`]) }) : '') : '<p class="small muted">The service of a confirmed booking is changed in the admin.</p>'}
     <div class="grid2">${field('Preferred date', 'preferred_date', { type: 'date', value: lead.preferred_date || '', half: true })}${field('Time slot', 'preferred_slot', { type: 'select', options: SLOTS, value: lead.preferred_slot, half: true })}
     ${field('PIN code', 'pincode', { inputmode: 'numeric', value: lead.pincode, half: true })}${field('Area', 'area', { value: lead.area, half: true })}</div>
     ${field('Address', 'address', { type: 'textarea', rows: 2, max: 200, value: lead.address })}${field('Requirements and notes', 'notes', { type: 'textarea', rows: 3, value: lead.notes })}`;

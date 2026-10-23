@@ -10,11 +10,14 @@ export function buildServiceEdit(f, { services = [], today, currentDate = null }
   if (f.service && !svc) return { ok: false, error: 'Choose a valid service' };
   const addons = svc ? [...new Set((f.addons || []).filter((id) => services.some((s) => s.id === id && s.kind === 'addon')))] : [];
   const bigFee = services.find((s) => s.id === 'bigbike' && s.kind === 'fee')?.price ?? 300;
-  // Engine size: 'mid' (150 to 250cc) and 'big' (above 250cc) use the package's second price; 'big' also adds the surcharge. Without an engine value, the old yes/no box applies.
+  // Engine size: 'mid' (150 to 250cc) and 'big' (251 to 500cc) use the package's own price for that class. Without the 251-500cc row, 'big' is the 150-250cc price plus the old surcharge.
+  // Without an engine value, the old yes/no box applies.
   const engine = ['std', 'mid', 'big'].includes(f.engine) ? f.engine : null;
   const big = engine ? engine === 'big' : !!f.bigBike;
-  const tier = svc && PACKAGES.includes(svc.id) && (engine === 'mid' || engine === 'big') ? services.find((s) => s.id === svc.id + '250' && s.kind === 'service' && s.active !== false) : null;
-  const surcharge = svc && big && PACKAGES.includes(svc.id) ? bigFee : 0;
+  const isPkg = !!svc && PACKAGES.includes(svc.id);
+  const row = (sfx) => services.find((s) => s.id === svc.id + sfx && s.kind === 'service' && s.active !== false);
+  const tier = isPkg && (engine === 'mid' || engine === 'big') ? (engine === 'big' ? row('500') || row('250') : row('250')) : null;
+  const surcharge = isPkg ? (engine ? (engine === 'big' && !row('500') ? bigFee : 0) : (f.bigBike ? bigFee : 0)) : 0;
   const est = svc ? (tier ? tier.price : svc.price) + surcharge + addons.reduce((t, id) => t + services.find((s) => s.id === id).price, 0) : null;
   const pincode = String(f.pincode ?? '').replace(/\s/g, '');
   if (pincode && !/^\d{6}$/.test(pincode)) return { ok: false, error: 'PIN code must be 6 digits' };

@@ -26,8 +26,10 @@ export function buildNewBooking(f, { services = [], today }) {
   const bigFee = services.find((s) => s.id === 'bigbike' && s.kind === 'fee')?.price ?? 300;
   const engine = ['std', 'mid', 'big'].includes(f.engine) ? f.engine : null;
   const big = engine ? engine === 'big' : !!f.bigBike;
-  const tier = svc && ['basic', 'general', 'full'].includes(svc.id) && (engine === 'mid' || engine === 'big') ? services.find((s) => s.id === svc.id + '250' && s.kind === 'service' && s.active !== false) : null;
-  const surcharge = svc && big && ['basic', 'general', 'full'].includes(svc.id) ? bigFee : 0;
+  const isPkg = !!svc && ['basic', 'general', 'full'].includes(svc.id);
+  const row = (sfx) => services.find((s) => s.id === svc.id + sfx && s.kind === 'service' && s.active !== false);
+  const tier = isPkg && (engine === 'mid' || engine === 'big') ? (engine === 'big' ? row('500') || row('250') : row('250')) : null;
+  const surcharge = isPkg ? (engine ? (engine === 'big' && !row('500') ? bigFee : 0) : (f.bigBike ? bigFee : 0)) : 0;
   const est = svc ? (tier ? tier.price : svc.price) + surcharge + addons.reduce((t, id) => t + services.find((s) => s.id === id).price, 0) : null;
 
   const date = /^\d{4}-\d{2}-\d{2}$/.test(f.date || '') ? f.date : null;

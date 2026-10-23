@@ -7,10 +7,10 @@
     "h1": "Two wheeler service at home in Bangalore.",
     "lead": "A Mechanix Pro mechanic comes to your door for your bike or scooter. You get a quote on WhatsApp first, and work starts only after you say yes. Servicing in as fast as 2 hours.",
     "tiles": [
-      ["Expert 2-wheeler service", "Basic, General and Full service by Mechanix Pro-certified mechanics, with a clear list of what is checked."],
+      ["Expert 2-wheeler service", "Basic, Standard and Full service by Mechanix Pro-certified mechanics, with a clear checklist of 15, 24 or 28 points."],
       ["Doorstep, not a garage queue", "We service at your home, office parking or society. No pickup, no losing half a day at a workshop."],
       ["Quote first, pay after you say yes", "Your price comes on WhatsApp before any work. Parts and extra work are charged only after you approve."],
-      ["Servicing in as fast as 2 hours", "Once the mechanic arrives, a basic service can be done in about two hours. Bigger jobs take longer, and we tell you before we start."],
+      ["Servicing in as fast as 2 hours", "Once the mechanic arrives, a basic service can be done in about two hours, and pickup and drop is free in our serviceable area. Bigger jobs take longer, and we tell you before we start."],
       ["Digital service records", "Every job has a booking reference and a GST invoice, and your bike's history is kept against its registration number."],
       ["30-day service warranty", "If the same work fails within 30 days, we redo it free. Parts carry the maker's or supplier's limited warranty."]
     ],
@@ -18,7 +18,7 @@
     "faq": [
       ["Do you do two wheeler service at home in Bangalore?", "Yes. Our mechanics come to your home, office or society parking across Bangalore (Bengaluru), for bikes and scooters, petrol and electric."],
       ["How fast can a service be done?", "A basic service can be done in as fast as 2 hours once the mechanic arrives. The time depends on the package and on what the mechanic finds, and we tell you before any extra work starts."],
-      ["What does it cost?", "Basic from {{text:basic}}, General from {{text:general}}, Full from {{text:full}} for bikes up to 149cc, GST included. Bikes of 150 to 250cc have their own prices, and above 250cc add {{feetext:bigbike}}. Your exact quote comes on WhatsApp first."],
+      ["What does it cost?", "Basic from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}} for bikes up to 149cc, GST included. Bikes of 150 to 250cc and 251 to 500cc have their own prices. Your exact quote comes on WhatsApp first."],
       ["Which bikes do you service?", "Scooters, commuter motorcycles, Royal Enfields, performance bikes and electric scooters. Not sure about yours? Message us the model and we confirm."]
     ],
     "related": ["scooty-repair-at-home-bangalore", "ev-and-petrol-bike-care-bangalore", "digital-service-records", "verified-bike-garages-bangalore"]
@@ -55,7 +55,7 @@
     "h1": "EV and petrol bike care at your door.",
     "lead": "One team for both. Petrol bikes get a proper service, electric scooters get a proper check. Same doorstep visit, same quote first.",
     "tiles": [
-      ["Petrol bikes and scooters", "Engine oil, filters, spark plug, chain, brakes, clutch and a full safety check, in Basic, General and Full packages."],
+      ["Petrol bikes and scooters", "Engine oil level and filters in Basic and Standard, an engine oil change in Full, plus spark plug, chain, brakes, clutch and a safety check, in Basic, Standard and Full packages."],
       ["Electric scooters and bikes", "Range, charging, brakes, tyres, suspension, lights, wiring and display checks. No engine oil to change, so no engine-oil charges on EV pages."],
       ["Problem check for either", "Something feels wrong? A problem check finds the cause and quotes the fix before work starts."],
       ["Roadside help for both", "Puncture, a bike that will not start, or a scooter that stopped: share your location and we send the nearest mechanic."],
@@ -66,7 +66,7 @@
     "faq": [
       ["Do you service electric scooters at home?", "We do doorstep checks for electric scooters and bikes: range drop, charging problems, brakes, tyres, suspension, lights, wiring and display issues. Some faults need the maker's service centre, and we tell you if so."],
       ["What does an EV check cost?", "Electric bikes use the problem check, from {{text:repair}}, GST included."],
-      ["Is petrol bike service different?", "Yes. Petrol bikes get Basic, General or Full service with oil, filters, spark plug, chain and brakes. See the Services page for what each one covers."]
+      ["Is petrol bike service different?", "Yes. Petrol bikes get Basic, Standard or Full service with filters, spark plug, chain and brakes, and an engine oil change in Full service (and in Standard for 251 to 500cc). See the Services page for what each one covers."]
     ],
     "related": ["two-wheeler-service-at-home-bangalore", "scooty-repair-at-home-bangalore", "digital-service-records"]
   },

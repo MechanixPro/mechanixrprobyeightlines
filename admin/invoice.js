@@ -20,11 +20,15 @@ export function buildInvoice(lead, services, opts = {}) {
   const ov = cleanOverride(lead.invoice_override);
   const lines = [];
   const svc = ov ? undefined : byId.get(lead.service_id);
-  // Bikes of 150 to 250cc (and above) are billed at the second price of the package, when that row exists.
-  const tier = svc && SERVICE_PACKAGES.includes(lead.service_id) && (lead.engine_class === 'mid' || lead.engine_class === 'big') ? byId.get(lead.service_id + '250') : null;
+  // Bikes of 150 to 250cc and of 251 to 500cc are billed at their own price of the package, when that row exists.
+  const eng = lead.engine_class;
+  const isPkg = !!svc && SERVICE_PACKAGES.includes(lead.service_id);
+  const tier = isPkg && (eng === 'mid' || eng === 'big') ? (eng === 'big' ? (byId.get(lead.service_id + '500') ?? byId.get(lead.service_id + '250')) : byId.get(lead.service_id + '250')) : null;
+  const no500 = !byId.get(lead.service_id + '500');
   if (svc && svc.kind === 'service') lines.push(tier && tier.kind === 'service' ? { name: tier.name, amount: tier.price } : { name: svc.name, amount: svc.price });
   const big = byId.get('bigbike');
-  if (svc && lead.big_bike && SERVICE_PACKAGES.includes(lead.service_id)) lines.push({ name: big ? big.name : 'Big bike surcharge', amount: big ? big.price : 300 });
+  // The old surcharge is for bookings made before engine classes, and for the large class when it has no 251-500cc price of its own.
+  if (isPkg && (eng ? eng === 'big' && no500 : lead.big_bike)) lines.push({ name: big ? big.name : 'Big bike surcharge', amount: big ? big.price : 300 });
   if (ov) lines.push(...ov.lines);
   for (const id of ov ? [] : lead.addons || []) { const a = byId.get(id); if (a && a.kind === 'addon') lines.push({ name: a.name, amount: a.price }); }
 

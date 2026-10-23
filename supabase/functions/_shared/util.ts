@@ -66,7 +66,7 @@ export async function getSetting<T>(db: SupabaseClient, key: string, fallback: T
 
 /** Recompute a booking estimate on the server from the database price list (never trust browser totals). The pricing rules live in engine-price.ts. */
 export async function priceBooking(db: SupabaseClient, serviceId: string, addons: string[], bigBike: boolean, engine: string | null = null) {
-  const ids = [serviceId, ...(wantsTier(serviceId, engine) ? [serviceId + '250'] : []), ...addons, 'bigbike'];
+  const ids = [serviceId, ...(wantsTier(serviceId, engine) ? [serviceId + '250', serviceId + '500'] : []), ...addons, 'bigbike'];
   const { data, error } = await db.from('services').select('id,kind,name,price').in('id', ids).eq('active', true);
   if (error) throw error;
   return priceFromRows(data ?? [], serviceId, addons, bigBike, engine);

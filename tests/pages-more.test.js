@@ -27,7 +27,7 @@ test('electric model pages do not talk about engine oil, and big bikes mention t
   const ev = read('bike-service/ola-electric-s1-pro/index.html');
   assert.doesNotMatch(ev.replace(/no engine oil[^<]*/gi, ''), /engine oil/i);
   const big = read('bike-service/honda-cb300r/index.html');
-  assert.match(big, /150 to 250cc prices/);
+  assert.match(big, /150 to 250cc or 251 to 500cc prices/);
 });
 test('model pages credit the photographer and are in the sitemap', () => {
   const h = read('bike-service/honda-activa-6g/index.html');

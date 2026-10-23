@@ -23,7 +23,7 @@ function py(sliceFrom, sliceTo, files, code) {
 test('home shows real prices from the price source and explains the checkup fee', () => {
   const h = read('index.html');
   assert.match(h, /id="prices"/);
-  for (const n of ['Basic service', 'General service', 'Full service', 'Repair or problem check']) assert.ok(h.includes('<h3>' + n + '</h3>'), n);
+  for (const n of ['Basic service', 'Standard service', 'Full service', 'Repair or problem check']) assert.ok(h.includes('<h3>' + n + '</h3>'), n);
   assert.match(h, /How the .{0,40}349.{0,10} checkup and quote fee works/);
   assert.match(h, /More than 2 hours before your slot/);
   assert.doesNotMatch(h, /\{\{/);

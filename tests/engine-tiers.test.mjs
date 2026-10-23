@@ -74,3 +74,25 @@ test('the booking page and the services page show the three engine sizes and the
   assert.match(read('services/index.html'), /150 to 250cc: <b>/);
   for (const f of ['supabase/functions/submit-lead/index.ts']) assert.match(read(f), /engine_class/);
 });
+
+// ---- The owner's price posters: a 251-500cc class with its own prices (no surcharge) ----
+const S5 = [...S,
+  { id: 'basic500', kind: 'service', name: 'Basic service (251-500cc)', price: 999 }, { id: 'general500', kind: 'service', name: 'Standard service (251-500cc)', price: 1499 }, { id: 'full500', kind: 'service', name: 'Full service (251-500cc)', price: 2199 }];
+test('posters: 251-500cc has its own price per package and no surcharge on top', () => {
+  assert.equal(L.hasBigRows(S5), true); assert.equal(L.hasBigRows(S), false);
+  assert.equal(L.total(st({ cc: 'big', service: 'general' }), S5, CFG), 1499);
+  assert.equal(L.total(st({ cc: 'big', service: 'full', addons: ['wash'] }), S5, CFG), 2199 + 199);
+  assert.equal(L.total(st({ cc: 'mid', service: 'basic' }), S5, CFG), 799);
+  assert.equal(L.total(st({ cc: 'big', service: 'repair' }), S5, CFG), 799);
+  assert.match(L.buildDraftMessage(st({ cc: 'big' }), S5, CFG, 'https://x'), /\(251-500cc\)/);
+});
+test('posters: the server, the admin forms and both invoices agree on the 251-500cc price', () => {
+  assert.equal(priceFromRows(S5, 'general', ['wash'], true, 'big').total, 1499 + 199);
+  assert.equal(priceFromRows(S5, 'general', [], false, 'mid').total, 1299);
+  assert.equal(priceFromRows(S5, 'general', [], true, null).total, 799 + 300, 'an old client without an engine class keeps the old rule');
+  const ctx = { services: S5, today: '2026-10-23' };
+  assert.equal(buildServiceEdit({ service: 'general', engine: 'big' }, ctx).lead.est_total, 1499);
+  const lead = { ref: 'MP-1', name: 'A', phone: '9', service_id: 'general', addons: [], coupon_discount: 0, paid_amount: 0, created_at: '2026-10-23T00:00:00Z', engine_class: 'big', big_bike: true };
+  assert.equal(buildInvoice(lead, S5).total, 1499); assert.equal(buildInvoiceFn(lead, S5).total, 1499);
+  assert.equal(buildInvoice(lead, S).total, 1299 + 300, 'without 251-500cc rows the old surcharge still applies');
+});
