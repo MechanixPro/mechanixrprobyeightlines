@@ -15,7 +15,8 @@ import { formatWhen } from '../_shared/when.ts';
 
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
 const MIN = 60_000;
-const DESK_URL = 'https://mechanixpro-crm.pages.dev/crm/';
+// The desk address. Set the DESK_URL secret to switch to the custom domain (https://crew.mechanixpro.in/crm/) once its DNS record is live.
+const DESK_URL = Deno.env.get('DESK_URL') ?? 'https://mechanixpro-crm.pages.dev/crm/';
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 
 Deno.serve(async (req) => {
