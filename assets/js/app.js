@@ -16,7 +16,7 @@
     { id: 'tyre', kind: 'addon', name: 'Tyre and puncture check', price: 49 },
     { id: 'battery', kind: 'addon', name: 'Battery health test', price: 0 },
     { id: 'advance', kind: 'fee', name: 'Checkup and quote fee', price: 349 },
-    { id: 'newfee', kind: 'fee', name: 'New customer slot fee', price: 1799 },
+    { id: 'newfee', kind: 'fee', name: 'New customer slot fee', price: 99 },
     { id: 'bigbike', kind: 'fee', name: 'Above-180cc surcharge', price: 300 }
   ];
   var ICONS = {

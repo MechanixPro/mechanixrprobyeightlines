@@ -1,7 +1,7 @@
 {
   "warrantyDays": 30,
   "advance": 349,
-  "newCustomerFee": 1799,
+  "newCustomerFee": 99,
   "bigBike": 300,
   "services": {
     "basic": {
