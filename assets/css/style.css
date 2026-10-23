@@ -1199,3 +1199,5 @@ html{-webkit-tap-highlight-color:transparent}
 .bike-card img[src*="ola-electric"]{object-position:74% 50%}
 @media(max-width:389px){.nav .brand .wm{width:104px!important;height:auto!important}.nav .wrap{gap:8px}.hero h1{max-width:57%}.hero-rain{width:38%}}
 @media(max-width:340px){.nav .brand .wm{display:none!important}}
+@media(max-width:959px){.hero-rain{top:8px;width:min(40%,170px)}.hero .lead{margin-top:18px}}
+@media(max-width:389px){.hero-rain{top:12px;width:38%}}
