@@ -24,10 +24,29 @@
     if (!st.km && st.issues.length) r = 'repair';
     return r;
   }
+  /* Engine-size pricing: a package has a second price for 150-250cc bikes (the row with the same id plus 250). Above 250cc is that price plus the surcharge.
+     When the tier rows are missing (or off), everything below behaves as before: one price, plus the surcharge for the large class. */
+  function hasTiers(items) { return !!(find(items, 'basic250') || find(items, 'general250') || find(items, 'full250')); }
+  function isTierRow(id) { return /250$/.test(String(id)); }
+  function tierRow(st, service, items) {
+    if (service && PACKAGES.indexOf(service.id) > -1 && (st.cc === 'mid' || st.cc === 'big')) { var t = find(items || [], service.id + '250'); if (t) return t; }
+    return service;
+  }
+  function engineLabel(st, items) {
+    if (!hasTiers(items)) return st.cc === 'big' ? ' (above 180cc)' : '';
+    return st.cc === 'mid' ? ' (150-250cc)' : st.cc === 'big' ? ' (above 250cc)' : ' (up to 149cc)';
+  }
+  /* The engine class guessed from a model in our list: a number in the name (Pulsar 220F, SP 160, CB300F) wins, else the old "large" flag. */
+  function engineGuess(model, large) {
+    var nums = (String(model || '').match(/\d{3}/g) || []).map(Number).filter(function (n) { return n >= 100 && n <= 1300; });
+    var cc = nums.length ? Math.max.apply(null, nums) : 0;
+    if (cc >= 251) return 'big'; if (cc >= 150) return 'mid'; if (cc) return large ? 'big' : 'std';
+    return large ? 'big' : 'std';
+  }
   function surcharge(st, service, cfg) { return st.cc === 'big' && PACKAGES.indexOf(service.id) > -1 ? (cfg.bigBikeSurcharge || 0) : 0; }
   function total(st, items, cfg) {
     var s = find(items, st.service); if (!s) return 0;
-    var t = s.price + surcharge(st, s, cfg);
+    var t = tierRow(st, s, items).price + surcharge(st, s, cfg);
     st.addons.forEach(function (a) { var x = find(items, a); if (x) t += x.price; });
     return t;
   }
@@ -41,7 +60,7 @@
     var placeTxt = { pickup: 'Pick up and drop (please collect my bike)', home: 'At my home or office', road: 'Stuck on the road (I will share my live location)', unsure: 'Not sure, please advise' }[road ? 'road' : st.place];
     var extras = st.addons.map(function (a) { var x = find(items, a); return x ? x.name : ''; }).filter(Boolean);
     var lines = ['Hi Mechanix Pro, I would like a quote for my bike:', '',
-      'Bike: ' + bikeTitle(st) + (st.cc === 'big' ? ' (above 180cc)' : ''),
+      'Bike: ' + bikeTitle(st) + engineLabel(st, items),
       'Service: ' + (sv ? sv.name : '') + (extras.length ? ' + ' + extras.join(', ') : '')];
     if (st.km) lines.push('Last service: ' + KM_TXT[st.km]);
     if (st.issues.length) lines.push('Problems: ' + st.issues.map(function (i) { return ISSUE_TXT[i] || i; }).join(', '));
@@ -62,7 +81,7 @@
     var asap = isRoad(st);
     return {
       name: st.name.trim(), phone: st.phone, area: st.area, bike_brand: st.brand, bike_model: st.model.trim(), bike_nickname: st.nick.trim(),
-      big_bike: st.cc === 'big', bike_type: st.type, service_id: st.service, addons: st.addons, km_band: st.km, issues: st.issues,
+      big_bike: st.cc === 'big', engine_class: ['std', 'mid', 'big'].indexOf(st.cc) > -1 ? st.cc : 'std', bike_type: st.type, service_id: st.service, addons: st.addons, km_band: st.km, issues: st.issues,
       note: String(st.note || '').trim(), place: st.place, contact_pref: st.contact === 'call' ? 'call' : 'whatsapp', ref_code: st.ref_code || null, coupon_code: cleanCoupon(st.coupon) || null, request_type: st.requestType === 'callback' ? 'callback' : 'quote', reg_no: cleanReg(st.reg) || null, reminder_opt_in: st.reminder === true,
       email: validEmail(st.email) ? String(st.email).trim().toLowerCase() : null, email_marketing: validEmail(st.email) && st.emailOffers === true, campaign: st.campaign || null,
       address: String(st.address || '').trim() || null, pincode: /^\d{6}$/.test(String(st.pin || '').replace(/\s/g, '')) ? String(st.pin).replace(/\s/g, '') : '', lat: validGeo(st.lat, st.lng) ? st.lat : null, lng: validGeo(st.lat, st.lng) ? st.lng : null,
@@ -194,14 +213,14 @@
     var uniq = function (a, ok, max) { var out = []; (Array.isArray(a) ? a : []).forEach(function (x) { if (typeof x === 'string' && ok(x) && out.indexOf(x) < 0 && out.length < max) out.push(x); }); return out; };
     var kind = function (id, k) { return items.some(function (x) { return x.id === id && x.kind === k; }); };
     return {
-      brand: o.b, model: String(o.m == null ? '' : o.m).slice(0, 40), type: ['m', 's', 'e'].indexOf(o.t) > -1 ? o.t : '', cc: o.c === 'big' ? 'big' : 'std', nick: String(o.n == null ? '' : o.n).slice(0, 24),
+      brand: o.b, model: String(o.m == null ? '' : o.m).slice(0, 40), type: ['m', 's', 'e'].indexOf(o.t) > -1 ? o.t : '', cc: o.c === 'big' ? 'big' : o.c === 'mid' ? 'mid' : 'std', nick: String(o.n == null ? '' : o.n).slice(0, 24),
       km: Object.prototype.hasOwnProperty.call(KM_TXT, o.k) ? o.k : '', issues: uniq(o.i, function (x) { return Object.prototype.hasOwnProperty.call(ISSUE_TXT, x); }, 15),
       service: typeof o.s === 'string' && kind(o.s, 'service') ? o.s : '', addons: uniq(o.a, function (x) { return kind(x, 'addon'); }, 10)
     };
   }
   function buildDraftMessage(st, items, cfg, link) {
     var sv = find(items, st.service);
-    var lines = ['Hi Mechanix Pro, I am still choosing and would like help finishing this:', '', 'Bike: ' + bikeTitle(st) + (st.cc === 'big' ? ' (above 180cc)' : '')];
+    var lines = ['Hi Mechanix Pro, I am still choosing and would like help finishing this:', '', 'Bike: ' + bikeTitle(st) + engineLabel(st, items)];
     if (sv) { var ex = st.addons.map(function (a) { var x = find(items, a); return x ? x.name : ''; }).filter(Boolean); lines.push('Service: ' + sv.name + (ex.length ? ' + ' + ex.join(', ') : '')); }
     if (st.km) lines.push('Last service: ' + KM_TXT[st.km]);
     if (st.issues.length) lines.push('Problems: ' + st.issues.map(function (i) { return ISSUE_TXT[i] || i; }).join(', '));
@@ -256,5 +275,5 @@
     return out;
   }
   function callLink(num) { var d = String(num || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
-  return { leadQuality: leadQuality, placeToFields: placeToFields, receiptBars: receiptBars, pinFromLocation: pinFromLocation, pinInfo: pinInfo, inBengaluru: inBengaluru, nearestPlace: nearestPlace, prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
+  return { hasTiers: hasTiers, isTierRow: isTierRow, tierRow: tierRow, engineLabel: engineLabel, engineGuess: engineGuess, leadQuality: leadQuality, placeToFields: placeToFields, receiptBars: receiptBars, pinFromLocation: pinFromLocation, pinInfo: pinInfo, inBengaluru: inBengaluru, nearestPlace: nearestPlace, prefillExtras: prefillExtras, icsFor: icsFor, calendarGrid: calendarGrid, dayLabelFor: dayLabelFor, timeWindows: timeWindows, hourGroup: hourGroup, windowLabel: windowLabel, whenLabel: whenLabel, addDaysIso: addDaysIso, cleanReg: cleanReg, encodeBuild: encodeBuild, decodeBuild: decodeBuild, buildDraftMessage: buildDraftMessage, shouldPromptExit: shouldPromptExit, validEmail: validEmail, modelSlug: modelSlug, cleanCoupon: cleanCoupon, styleOf: styleOf, tileImage: tileImage, prefillFromQuery: prefillFromQuery, nearestArea: nearestArea, distanceKm: distanceKm, mapsLink: mapsLink, validGeo: validGeo, captureAttribution: captureAttribution, callLink: callLink, rupee: rupee, findModel: findModel, recommend: recommend, total: total, buildMessage: buildMessage, leadPayload: leadPayload, bikeTitle: bikeTitle, KM_TXT: KM_TXT, ISSUE_TXT: ISSUE_TXT, PACKAGES: PACKAGES };
 });

@@ -61,7 +61,8 @@ Deno.serve(async (req) => {
   if ((byPhone ?? 0) >= 3 || (byIp ?? 0) >= 10) return json(req, { error: 'Too many requests' }, 429);
 
   // 4) Price on the server
-  const priced = await priceBooking(db, serviceId, addons, b.big_bike === true);
+  const engine = ['std', 'mid', 'big'].includes(String(b.engine_class)) ? String(b.engine_class) : null;
+  const priced = await priceBooking(db, serviceId, addons, engine ? engine === 'big' : b.big_bike === true, engine);
   if (!priced) return json(req, { error: 'Choose a valid service' }, 400);
 
   // 5) Customer + bike (shared with the future app)
@@ -70,7 +71,7 @@ Deno.serve(async (req) => {
   // A blocked customer's booking is not saved. They still reach WhatsApp from the website, so nobody is left stuck.
   if (cust.blocked) return json(req, { ok: true, ref: null, total: priced.total });
   const { data: bike } = await db.from('bikes').insert({
-    customer_id: cust.id, brand: clean(b.bike_brand, 30), model: clean(b.bike_model, 40), nickname: clean(b.bike_nickname, 24) || null, big_bike: b.big_bike === true,
+    customer_id: cust.id, brand: clean(b.bike_brand, 30), model: clean(b.bike_model, 40), nickname: clean(b.bike_nickname, 24) || null, big_bike: engine ? engine === 'big' : b.big_bike === true, engine_class: engine,
   }).select('id').single();
 
   // Coupon: checked here, never trusted from the browser. A bad code simply gives no discount.

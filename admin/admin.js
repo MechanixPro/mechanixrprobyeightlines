@@ -88,6 +88,19 @@ async function boot() {
     .subscribe();
 }
 
+/* The engine size lives on the bike. An invoice needs it, so bring it onto the booking before billing. */
+function withBike(l) { const b = S.bikes.find((x) => x.id === l.bike_id); return b ? { ...l, big_bike: !!b.big_bike, engine_class: b.engine_class || null } : l; }
+
+/* Engine size: bikes of 150 to 250cc and above have their own prices. Without those price rows the form keeps the old single "above 180cc" box. */
+function hasTiers() { return S.services.some((x) => x.id === 'basic250' && x.active); }
+function engineOf(bike) { return bike.engine_class || (bike.big_bike ? 'big' : 'std'); }
+function engineField(prefix, bike, enabled) {
+  if (!hasTiers()) return `<label class="check"><input type="checkbox" id="${prefix}-big"${bike?.big_bike ? ' checked' : ''}${enabled ? '' : ' disabled'}><span>Above 180cc (adds the big-bike surcharge to Basic, General and Full)${enabled ? '' : ' (no bike saved on this booking)'}</span></label>`;
+  const cur = bike ? engineOf(bike) : 'std';
+  return `<label class="label" for="${prefix}-engine">Engine size</label><select id="${prefix}-engine"${enabled ? '' : ' disabled'}>${[['std', 'Up to 149cc'], ['mid', '150 to 250cc'], ['big', 'Above 250cc (adds the surcharge)']].map(([v, t]) => `<option value="${v}"${cur === v ? ' selected' : ''}>${t}</option>`).join('')}</select>${enabled ? '' : '<p class="muted tiny">No bike saved on this booking.</p>'}`;
+}
+function engineRead(prefix) { const s = $('#' + prefix + '-engine'); return s ? { engine: s.value } : { bigBike: !!$('#' + prefix + '-big')?.checked }; }
+
 /* ---------- data ---------- */
 async function loadLeads() {
   const { data, error } = await sb.from('leads').select('*').is('deleted_at', null).order('created_at', { ascending: false }).limit(500);
@@ -245,7 +258,7 @@ function updateSplitPreview() {
   if (sample) sample.textContent = `On a ${rupee(1000)} job: the mechanic gets ${rupee(sp.mechanic)} and the company keeps ${rupee(sp.company)}.` + (sp.gst ? ` (${rupee(sp.gst)} is GST.)` : '');
 }
 function openNewBooking(c) {
-  const svcs = S.services.filter((x) => x.kind === 'service' && x.active), adds = S.services.filter((x) => x.kind === 'addon' && x.active);
+  const svcs = S.services.filter((x) => x.kind === 'service' && x.active && !/250$/.test(x.id)), adds = S.services.filter((x) => x.kind === 'addon' && x.active);
   const sel = (id, opts, d) => `<select id="${id}">${opts.map(([v, t]) => `<option value="${v}"${v === d ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
   S.open = null; S.openCust = null; S.openMech = null;
   $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">Add booking</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
@@ -262,7 +275,7 @@ function openNewBooking(c) {
     <label class="label" for="nb-model">Model</label><input id="nb-model" maxlength="40" placeholder="Activa 6G, Classic 350…">
     <label class="label" for="nb-nick">Nickname (optional)</label><input id="nb-nick" maxlength="24">
     <label class="label" for="nb-reg">Registration number (optional)</label><input id="nb-reg" maxlength="14" placeholder="KA 03 AB 1234">
-    <label class="check"><input type="checkbox" id="nb-big"><span>Above 180cc (adds the big-bike charge to service packages)</span></label></div></div>
+    ${engineField('nb', null, true)}</div></div>
   <div class="card" style="margin-top:12px"><h3>Service</h3><div class="inline-form">
     <label class="label" for="nb-service">Package</label>${sel('nb-service', [['', 'Not decided yet'], ...svcs.map((x) => [x.id, `${x.name} · ${rupee(x.price)}`])], '')}
     <div><span class="label">Add-ons</span>${adds.map((a) => `<label class="check"><input type="checkbox" data-nb-addon="${esc(a.id)}"><span>${esc(a.name)} · ${rupee(a.price)}</span></label>`).join('')}</div>
@@ -403,7 +416,7 @@ const SRC = { job: 'set on this job', mechanic: "this mechanic's usual rate", de
 const isoDay = (d) => (d ? new Date(new Date(d).getTime() + 330 * 60000).toISOString().slice(0, 10) : '');
 function jobFacts(l) {
   const a = salesModel().accounts.find((x) => x.lead_id === l.id);
-  const inv = buildInvoice(l, S.services), rate = jobRate(l), sp = jobSplit({ service: inv.taxable, gst: inv.total - inv.taxable, pct: rate.pct, adjust: l.commission_adjust });
+  const inv = buildInvoice(withBike(l), S.services), rate = jobRate(l), sp = jobSplit({ service: inv.taxable, gst: inv.total - inv.taxable, pct: rate.pct, adjust: l.commission_adjust });
   const dd = new Date(l.completed_at || l.paid_at || l.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   const bc = a ? a.byChannel : { company_manual: 0, company_portal: 0, mechanic: 0 };
   return { inv, rate, sp, a, job: { ref: l.ref, date: dd, place: rate.place, service: sp.base, gst: sp.gst, total: inv.total, pct: sp.pct, adjust: sp.adjust, adjustNote: l.commission_note || '', earnings: sp.earnings, company: sp.company, collected: a ? a.collected : 0, byChannel: bc, remitDue: a ? a.remitDue : 0, payoutDue: a ? a.payoutDue : 0 } };
@@ -437,13 +450,13 @@ function payoutCardBody(l, m) {
 const todayIST = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
 function serviceEditCard(l) {
   const bike = S.bikes.find((b) => b.id === l.bike_id);
-  const pkgs = S.services.filter((x) => x.kind === 'service'), adds = S.services.filter((x) => x.kind === 'addon');
+  const pkgs = S.services.filter((x) => x.kind === 'service' && !/250$/.test(x.id)), adds = S.services.filter((x) => x.kind === 'addon');
   const slot = (v, t) => `<option value="${v}"${l.preferred_slot === v ? ' selected' : ''}>${t}</option>`;
   return `<details class="card" style="margin-top:12px" id="esCard"><summary style="cursor:pointer;font:600 17px var(--f-display)">Service, visit time and address</summary>
     <p class="tiny muted" style="margin:8px 0 6px">Change the package, add-ons, visit time or place. The estimate is worked out again from the live prices. Press Save changes at the bottom to keep your edits.</p>
     <label class="label" for="es-service">Service</label><select id="es-service"><option value="">Not chosen yet</option>${pkgs.map((x) => `<option value="${x.id}"${x.id === l.service_id ? ' selected' : ''}>${esc(x.name)} (${rupee(x.price)})</option>`).join('')}</select>
     <fieldset style="border:0;padding:0;margin:10px 0 0"><legend class="label">Add-ons</legend>${adds.map((x) => `<label class="check"><input type="checkbox" data-es-addon="${x.id}"${(l.addons || []).includes(x.id) ? ' checked' : ''}><span>${esc(x.name)} (${x.price ? rupee(x.price) : 'free'})</span></label>`).join('')}</fieldset>
-    <label class="check"><input type="checkbox" id="es-big"${bike?.big_bike ? ' checked' : ''}${bike ? '' : ' disabled'}><span>Above 180cc (adds the big-bike surcharge to Basic, General and Full)${bike ? '' : ' (no bike saved on this booking)'}</span></label>
+    ${engineField('es', bike, !!bike)}
     <label class="label" for="es-date">Visit day</label><input id="es-date" type="date" value="${esc(l.preferred_date || '')}">
     <label class="label" for="es-slot">Time slot</label><select id="es-slot"><option value="">No slot</option>${slot('morning', 'Morning (9 to 12)')}${slot('afternoon', 'Afternoon (12 to 4)')}${slot('evening', 'Evening (4 to 8)')}${slot('asap', 'As soon as possible')}</select>
     <label class="label" for="es-time">Exact time <span class="muted" style="font-weight:400">(optional)</span></label><input id="es-time" maxlength="30" value="${esc(l.preferred_time || '')}" placeholder="For example: 5:30 PM">
@@ -467,7 +480,7 @@ function invoiceCard(l) {
   const mine = S.invoicesAll.filter((r) => r.lead_id === l.id).sort((a, b) => b.revision - a.revision);
   const live = mine.filter((r) => !r.voided_at);
   let made = null;
-  if (!mine.length) { try { const inv = buildInvoice(l, S.services, { customer: S.customers.find((c) => c.id === l.customer_id) || null }); if (inv.lines.length) made = inv; } catch (e) { made = null; } }
+  if (!mine.length) { try { const inv = buildInvoice(withBike(l), S.services, { customer: S.customers.find((c) => c.id === l.customer_id) || null }); if (inv.lines.length) made = inv; } catch (e) { made = null; } }
   if (!mine.length && !made) return '';
   const row = (r) => `<tr${r.voided_at ? ' style="opacity:.6"' : ''}><td><b>${esc(r.number)}</b>${r.voided_at ? ' <span class="pill p-bad">Deleted</span>' : ''}</td><td>${esc(when(r.issued_at))}</td><td class="num">${rupee2(r.total)}</td><td class="tiny muted">${r.has_gst ? 'GST ' + r.gst_rate + '%' : 'No GST'}${r.voided_at && r.void_reason ? ' · ' + esc(r.void_reason) : ''}</td></tr>`;
   const table = mine.length ? `<div class="scroll"><table style="min-width:420px"><thead><tr><th>Number</th><th>Saved</th><th class="num">Total</th><th></th></tr></thead><tbody>${mine.map(row).join('')}</tbody></table></div>` : `<p class="small" style="margin:0"><b>${esc(made.number)}</b> · ${rupee2(made.total)} <span class="muted">· made from the booking, saved when printed or emailed</span></p>`;
@@ -569,7 +582,7 @@ document.addEventListener('input', (e) => { if (e.target.closest && e.target.clo
 document.addEventListener('change', (e) => { if (e.target.closest && e.target.closest('#esCard')) updateEstimate(); });
 function updateEstimate() {
   const el = $('#es-est'); if (!el) return;
-  const r = buildServiceEdit({ service: $('#es-service').value, addons: [...document.querySelectorAll('[data-es-addon]')].filter((c) => c.checked).map((c) => c.getAttribute('data-es-addon')), bigBike: $('#es-big').checked }, { services: S.services });
+  const r = buildServiceEdit({ service: $('#es-service').value, addons: [...document.querySelectorAll('[data-es-addon]')].filter((c) => c.checked).map((c) => c.getAttribute('data-es-addon')), ...engineRead('es') }, { services: S.services });
   el.textContent = r.ok && r.lead.est_total != null ? rupee(r.lead.est_total) : 'not set';
 }
 const ACT = {
@@ -703,9 +716,9 @@ const ACT = {
     const upd = { status: $('#ls').value, mechanic_id: mid, assigned_to: $('#la').value.trim() || (mech ? mech.name : null), notes: $('#ln').value.trim() || null, ai_enabled: $('#lai').checked };
     // the service section is only applied when something in it was changed, so saving never reworks an old estimate by accident
     const bike = S.bikes.find((b) => b.id === l.bike_id);
-    const f = { service: $('#es-service').value, addons: [...document.querySelectorAll('[data-es-addon]')].filter((c) => c.checked).map((c) => c.getAttribute('data-es-addon')), bigBike: $('#es-big').checked,
+    const f = { service: $('#es-service').value, addons: [...document.querySelectorAll('[data-es-addon]')].filter((c) => c.checked).map((c) => c.getAttribute('data-es-addon')), ...engineRead('es'),
       date: $('#es-date').value, slot: $('#es-slot').value, time: $('#es-time').value, area: $('#es-area').value, pincode: $('#es-pin').value, address: $('#es-address').value, note: $('#es-note').value };
-    const was = { service: l.service_id || '', addons: [...(l.addons || [])], bigBike: !!(bike && bike.big_bike), date: l.preferred_date || '', slot: l.preferred_slot || '', time: l.preferred_time || '', area: l.area || '', pincode: l.pincode || '', address: l.address || '', note: l.note || '' };
+    const was = { service: l.service_id || '', addons: [...(l.addons || [])], engine: bike ? engineOf(bike) : undefined, bigBike: bike && !hasTiers() ? !!bike.big_bike : undefined, date: l.preferred_date || '', slot: l.preferred_slot || '', time: l.preferred_time || '', area: l.area || '', pincode: l.pincode || '', address: l.address || '', note: l.note || '' };
     const key = (o) => JSON.stringify({ ...o, addons: [...o.addons].sort() });
     let svc = null;
     if (key(f) !== key(was)) {
@@ -747,7 +760,7 @@ const ACT = {
     if (!confirm(`Add ${todo.length} past invoice${todo.length === 1 ? '' : 's'}? They are built from each booking's current details and marked as rebuilt.`)) return;
     const rowsNew = [];
     for (const l of todo) {
-      const customer = S.customers.find((c) => c.id === l.customer_id) || null, mech = S.mechanics.find((m) => m.id === l.mechanic_id) || null, inv = buildInvoice(l, S.services, { customer });
+      const customer = S.customers.find((c) => c.id === l.customer_id) || null, mech = S.mechanics.find((m) => m.id === l.mechanic_id) || null, inv = buildInvoice(withBike(l), S.services, { customer });
       if (inv.lines.length) rowsNew.push(snapshotRow({ invoice: inv, lead: l, customer, mechanic: mechFor(l), via: 'rebuilt', basis: basis(), revision: 1, now: l.completed_at || l.paid_at || l.created_at }));
     }
     if (!rowsNew.length) return toast('No past invoices to add');
@@ -1044,7 +1057,7 @@ const ACT = {
   newBookingForCustomer() { const c = S.customers.find((x) => x.id === S.openCust); if (c) openNewBooking(c); },
   async saveNewBooking() {
     const v = (id) => ($('#' + id)?.value ?? '');
-    const f = { name: v('nb-name'), phone: v('nb-phone'), email: v('nb-email'), source: v('nb-source'), status: v('nb-status'), brand: v('nb-brand'), model: v('nb-model'), nickname: v('nb-nick'), regNo: v('nb-reg'), bigBike: $('#nb-big').checked,
+    const f = { name: v('nb-name'), phone: v('nb-phone'), email: v('nb-email'), source: v('nb-source'), status: v('nb-status'), brand: v('nb-brand'), model: v('nb-model'), nickname: v('nb-nick'), regNo: v('nb-reg'), ...engineRead('nb'),
       service: v('nb-service'), addons: [...document.querySelectorAll('[data-nb-addon]:checked')].map((x) => x.dataset.nbAddon), area: v('nb-area'), pincode: v('nb-pin'), address: v('nb-addr'), place: v('nb-place'),
       date: v('nb-date'), slot: v('nb-slot'), time: v('nb-time'), km: v('nb-km'), note: v('nb-note'), whatsapp: $('#nb-wa').checked, reminder: $('#nb-rem').checked };
     const r = buildNewBooking(f, { services: S.services, today: new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10) });

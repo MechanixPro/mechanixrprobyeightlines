@@ -22,7 +22,9 @@ export function buildInvoice(lead: LeadLike, services: Svc[], opts: { date?: str
   const ov = cleanOverride((lead as any).invoice_override);
   const lines: Array<{ name: string; amount: number }> = [];
   const svc = ov ? undefined : byId.get(String(lead.service_id));
-  if (svc && svc.kind === 'service') lines.push({ name: svc.name, amount: svc.price });
+  // Bikes of 150 to 250cc (and above) are billed at the second price of the package, when that row exists.
+  const tier = svc && SERVICE_PACKAGES.includes(String(lead.service_id)) && ((lead as any).engine_class === 'mid' || (lead as any).engine_class === 'big') ? byId.get(String(lead.service_id) + '250') : null;
+  if (svc && svc.kind === 'service') lines.push(tier && tier.kind === 'service' ? { name: tier.name, amount: tier.price } : { name: svc.name, amount: svc.price });
   const big = byId.get('bigbike');
   if (svc && lead.big_bike && SERVICE_PACKAGES.includes(String(lead.service_id))) lines.push({ name: big ? big.name : 'Big bike surcharge', amount: big ? big.price : 300 });
   if (ov) lines.push(...ov.lines);

@@ -16,8 +16,11 @@ export const PUBLIC_ITEMS: { id: string; kind: 'service' | 'addon'; name: string
 
 export function buildPublicServices(rows: { id: string; price: unknown; active?: boolean }[], source = 'axlio') {
   const price = new Map(rows.filter((r) => r.active !== false).map((r) => [r.id, Number(r.price)]));
+  const bigFee = price.get('bigbike');
   const items = PUBLIC_ITEMS.filter((i) => price.has(i.id) && Number.isFinite(price.get(i.id)!)).map((i) => ({
-    id: i.id, kind: i.kind, name: i.name, description: i.blurb, price_inr: price.get(i.id)!, price_note: i.kind === 'service' && i.id !== 'sos' ? 'Starting price, GST included, for bikes and scooters up to 180cc' : 'GST included',
+    id: i.id, kind: i.kind, name: i.name, description: i.blurb, price_inr: price.get(i.id)!,
+    ...(price.has(i.id + '250') ? { price_150_to_250cc_inr: price.get(i.id + '250')!, above_250cc_surcharge_inr: bigFee ?? 300 } : {}),
+    price_note: price.has(i.id + '250') ? 'Starting price, GST included, for bikes and scooters up to 149cc. 150 to 250cc has its own price; above 250cc add the surcharge to that price' : i.kind === 'service' && i.id !== 'sos' ? 'Starting price, GST included' : 'GST included',
     book_url: `${SITE}${i.url}${i.url.includes('?') ? '&' : '?'}campaign=${source}`,
   }));
   return {

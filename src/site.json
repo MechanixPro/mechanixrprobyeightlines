@@ -113,6 +113,84 @@
         "• Repair estimate before major work",
         "• No major repair without customer approval"
       ]
+    },
+    "basic250": {
+      "name": "Basic service (150-250cc)",
+      "price": 799,
+      "includes": [
+        "# Engine & Lubrication",
+        "1. Engine oil level and condition — inspect",
+        "2. Oil filter — inspect; clean if serviceable",
+        "3. Spark plug — inspect and clean",
+        "4. Visible engine leaks — inspect",
+        "# Air & Fuel System",
+        "5. Air filter — inspect and clean if suitable",
+        "6. Fuel hose and visible fuel lines — inspect",
+        "# Drive System & Controls",
+        "7. Chain and sprockets — inspect and clean, if applicable",
+        "8. Chain tension and lubrication — check, if applicable",
+        "9. Throttle operation and cable — inspect",
+        "10. Clutch lever and free play — check, if applicable",
+        "# Braking System",
+        "11. Front brake — inspect",
+        "12. Rear brake — inspect",
+        "# Tyres & Wheels",
+        "13. Tyre condition and wear — inspect",
+        "14. Tyre pressure — check and adjust",
+        "# Electrical System"
+      ]
+    },
+    "general250": {
+      "name": "General service (150-250cc)",
+      "price": 1299,
+      "includes": [
+        "A. Engine & Lubrication",
+        "1. Engine oil level and condition — inspect",
+        "2. Oil filter — inspect; clean if serviceable",
+        "3. Spark plug — inspect and clean",
+        "4. Visible engine leaks — inspect",
+        "5. Engine oil strainer screen — clean where accessible and serviceable",
+        "6. Engine idle speed and idling quality — check",
+        "B. Air & Fuel System",
+        "7. Air filter — inspect and clean if suitable",
+        "8. Fuel hose and visible fuel lines — inspect",
+        "9. Carburettor or throttle body — inspect and clean as appropriate",
+        "C. Drive System & Controls",
+        "10. Chain and sprockets — inspect and clean, if applicable",
+        "11. Chain tension and lubrication — check and adjust, if applicable",
+        "12. Throttle operation and cable — inspect",
+        "13. Clutch lever and free play — check, if applicable",
+        "14. Clutch engagement and operation — inspect",
+        "15. Gear shifting and transmission operation — inspect",
+        "D. Braking System",
+        "16. Front brake — inspect"
+      ]
+    },
+    "full250": {
+      "name": "Full service (150-250cc)",
+      "price": 1799,
+      "includes": [
+        "A. Engine & Lubrication",
+        "1. Engine oil level and condition — inspect",
+        "2. Oil filter — inspect; clean if serviceable",
+        "3. Spark plug — inspect and clean",
+        "4. Visible engine leaks — inspect",
+        "5. Engine oil strainer screen — clean where accessible and serviceable",
+        "6. Engine idle speed and idling quality — check",
+        "7. Engine idle and abnormal noise — assess",
+        "8. Visible engine oil leaks and seals — inspect",
+        "B. Air & Fuel System",
+        "9. Air filter — inspect and clean if suitable",
+        "10. Fuel hose and visible fuel lines — inspect",
+        "11. Carburettor or throttle body — inspect and clean as appropriate",
+        "C. Drive System & Controls",
+        "12. Chain and sprockets — inspect and clean, if applicable",
+        "13. Chain tension and lubrication — check and adjust, if applicable",
+        "14. Throttle operation and cable — inspect",
+        "15. Clutch lever and free play — check, if applicable",
+        "16. Clutch engagement and operation — inspect",
+        "17. Gear shifting and transmission operation — inspect"
+      ]
     }
   },
   "addons": {

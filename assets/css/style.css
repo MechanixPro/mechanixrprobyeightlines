@@ -1097,3 +1097,4 @@ html{-webkit-tap-highlight-color:transparent}
 .rt-g-open{min-height:44px;padding:0 6px 0 14px;border:0;background:none;font:650 14.5px var(--font);color:#14295A;cursor:pointer}
 .rt-g-del{width:40px;min-height:44px;border:0;background:none;font-size:20px;color:#8a93a8;cursor:pointer}.rt-g-del:hover{color:#B0301B}
 .rt-g-due{border-color:#D93A1F}.rt-g-soon{border-color:#F2A21F}.rt-g-ok{border-color:#1B9B4B}
+.bill .pr2{display:block;grid-column:2;font-size:14px;font-weight:600;color:var(--muted,#636366);margin-top:-2px}.bill .pr2 b{color:#14295A}

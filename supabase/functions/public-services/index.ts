@@ -8,7 +8,7 @@ const H = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: H });
   if (req.method !== 'GET') return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: H });
-  const { data, error } = await adminDb().from('services').select('id,price,active').in('id', ['basic', 'general', 'full', 'repair', 'sos', 'wash', 'chain', 'brake', 'tyre', 'battery']);
+  const { data, error } = await adminDb().from('services').select('id,price,active').in('id', ['basic', 'general', 'full', 'basic250', 'general250', 'full250', 'bigbike', 'repair', 'sos', 'wash', 'chain', 'brake', 'tyre', 'battery']);
   if (error) return new Response(JSON.stringify({ error: 'Unavailable' }), { status: 503, headers: H });
   const src = new URL(req.url).searchParams.get('source') ?? 'axlio';
   return new Response(JSON.stringify(buildPublicServices(data ?? [], /^[a-z0-9-]{1,24}$/.test(src) ? src : 'axlio')), { headers: H });

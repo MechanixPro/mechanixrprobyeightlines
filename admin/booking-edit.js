@@ -10,8 +10,12 @@ export function buildServiceEdit(f, { services = [], today, currentDate = null }
   if (f.service && !svc) return { ok: false, error: 'Choose a valid service' };
   const addons = svc ? [...new Set((f.addons || []).filter((id) => services.some((s) => s.id === id && s.kind === 'addon')))] : [];
   const bigFee = services.find((s) => s.id === 'bigbike' && s.kind === 'fee')?.price ?? 300;
-  const surcharge = svc && f.bigBike && PACKAGES.includes(svc.id) ? bigFee : 0;
-  const est = svc ? svc.price + surcharge + addons.reduce((t, id) => t + services.find((s) => s.id === id).price, 0) : null;
+  // Engine size: 'mid' (150 to 250cc) and 'big' (above 250cc) use the package's second price; 'big' also adds the surcharge. Without an engine value, the old yes/no box applies.
+  const engine = ['std', 'mid', 'big'].includes(f.engine) ? f.engine : null;
+  const big = engine ? engine === 'big' : !!f.bigBike;
+  const tier = svc && PACKAGES.includes(svc.id) && (engine === 'mid' || engine === 'big') ? services.find((s) => s.id === svc.id + '250' && s.kind === 'service' && s.active !== false) : null;
+  const surcharge = svc && big && PACKAGES.includes(svc.id) ? bigFee : 0;
+  const est = svc ? (tier ? tier.price : svc.price) + surcharge + addons.reduce((t, id) => t + services.find((s) => s.id === id).price, 0) : null;
   const pincode = String(f.pincode ?? '').replace(/\s/g, '');
   if (pincode && !/^\d{6}$/.test(pincode)) return { ok: false, error: 'PIN code must be 6 digits' };
   const date = /^\d{4}-\d{2}-\d{2}$/.test(f.date || '') ? f.date : null;
@@ -25,7 +29,7 @@ export function buildServiceEdit(f, { services = [], today, currentDate = null }
       preferred_date: date, preferred_slot: date ? slot : null, preferred_time: date ? txt(f.time, 30) || null : null,
       area: txt(f.area, 40) || null, pincode: pincode || null, address: txt(f.address, 200) || null, note: txt(f.note, 500) || null,
     },
-    bike: svc ? { big_bike: !!f.bigBike } : null,
+    bike: svc ? (engine ? { big_bike: big, engine_class: engine } : { big_bike: !!f.bigBike }) : null,
   };
 }
 

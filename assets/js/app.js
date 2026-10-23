@@ -10,6 +10,9 @@
     { id: 'full', kind: 'service', name: 'Full service', price: 1299, description: 'General service plus throttle body clean, brake pads check, polish', includes: ['A. Engine & Lubrication', '1. Engine oil level and condition — inspect', '2. Oil filter — inspect; clean if serviceable', '3. Spark plug — inspect and clean', '4. Visible engine leaks — inspect', '5. Engine oil strainer screen — clean where accessible and serviceable', '6. Engine idle speed and idling quality — check', '7. Engine idle and abnormal noise — assess', '8. Visible engine oil leaks and seals — inspect', 'B. Air & Fuel System', '9. Air filter — inspect and clean if suitable', '10. Fuel hose and visible fuel lines — inspect', '11. Carburettor or throttle body — inspect and clean as appropriate', 'C. Drive System & Controls', '12. Chain and sprockets — inspect and clean, if applicable', '13. Chain tension and lubrication — check and adjust, if applicable', '14. Throttle operation and cable — inspect', '15. Clutch lever and free play — check, if applicable', '16. Clutch engagement and operation — inspect', '17. Gear shifting and transmission operation — inspect'] },
     { id: 'repair', kind: 'service', name: 'Repair or problem check', price: 799, description: 'Checkup and quote visit; repair quoted before work starts', includes: ['AT YOUR DOOR STEP', '• Diagnose the bike problem', '• Identify the cause of the issue', '• Complete vehicle inspection', '• Check engine, brakes, battery & electricals', '• Check unusual noise, vibration or starting issues', '• Get a clear repair estimate before work', '• Customer approval required before any repair', '• Genuine parts replacement, if required'] },
     { id: 'sos', kind: 'service', name: 'Roadside emergency', price: 1299, description: 'Puncture, battery or breakdown; mechanic dispatched now', includes: ['Mechanic dispatched to your location now', '• Quick roadside assistance', '• Bike breakdown diagnosis', '• Puncture assistance', '• Battery jump-start assistance', '• Starting problem assistance', '• Minor on-the-spot repairs', '• Fuel-related assistance', '• Emergency towing support, if required', '• Repair estimate before major work', '• No major repair without customer approval'] },
+    { id: 'basic250', kind: 'service', name: 'Basic service (150-250cc)', price: 799, description: 'Oil level check, chain lube, brake adjust, wash', includes: ['# Engine & Lubrication', '1. Engine oil level and condition — inspect', '2. Oil filter — inspect; clean if serviceable', '3. Spark plug — inspect and clean', '4. Visible engine leaks — inspect', '# Air & Fuel System', '5. Air filter — inspect and clean if suitable', '6. Fuel hose and visible fuel lines — inspect', '# Drive System & Controls', '7. Chain and sprockets — inspect and clean, if applicable', '8. Chain tension and lubrication — check, if applicable', '9. Throttle operation and cable — inspect', '10. Clutch lever and free play — check, if applicable', '# Braking System', '11. Front brake — inspect', '12. Rear brake — inspect', '# Tyres & Wheels', '13. Tyre condition and wear — inspect', '14. Tyre pressure — check and adjust', '# Electrical System'] },
+    { id: 'general250', kind: 'service', name: 'General service (150-250cc)', price: 1299, description: 'Engine oil change, filter clean, 20-point check', includes: ['A. Engine & Lubrication', '1. Engine oil level and condition — inspect', '2. Oil filter — inspect; clean if serviceable', '3. Spark plug — inspect and clean', '4. Visible engine leaks — inspect', '5. Engine oil strainer screen — clean where accessible and serviceable', '6. Engine idle speed and idling quality — check', 'B. Air & Fuel System', '7. Air filter — inspect and clean if suitable', '8. Fuel hose and visible fuel lines — inspect', '9. Carburettor or throttle body — inspect and clean as appropriate', 'C. Drive System & Controls', '10. Chain and sprockets — inspect and clean, if applicable', '11. Chain tension and lubrication — check and adjust, if applicable', '12. Throttle operation and cable — inspect', '13. Clutch lever and free play — check, if applicable', '14. Clutch engagement and operation — inspect', '15. Gear shifting and transmission operation — inspect', 'D. Braking System', '16. Front brake — inspect'] },
+    { id: 'full250', kind: 'service', name: 'Full service (150-250cc)', price: 1799, description: 'General service plus throttle body clean, brake pads check, polish', includes: ['A. Engine & Lubrication', '1. Engine oil level and condition — inspect', '2. Oil filter — inspect; clean if serviceable', '3. Spark plug — inspect and clean', '4. Visible engine leaks — inspect', '5. Engine oil strainer screen — clean where accessible and serviceable', '6. Engine idle speed and idling quality — check', '7. Engine idle and abnormal noise — assess', '8. Visible engine oil leaks and seals — inspect', 'B. Air & Fuel System', '9. Air filter — inspect and clean if suitable', '10. Fuel hose and visible fuel lines — inspect', '11. Carburettor or throttle body — inspect and clean as appropriate', 'C. Drive System & Controls', '12. Chain and sprockets — inspect and clean, if applicable', '13. Chain tension and lubrication — check and adjust, if applicable', '14. Throttle operation and cable — inspect', '15. Clutch lever and free play — check, if applicable', '16. Clutch engagement and operation — inspect', '17. Gear shifting and transmission operation — inspect'] },
     { id: 'wash', kind: 'addon', name: 'Foam wash', price: 199 },
     { id: 'chain', kind: 'addon', name: 'Chain clean and lube', price: 149 },
     { id: 'brake', kind: 'addon', name: 'Brake tuning', price: 99 },
@@ -17,7 +20,7 @@
     { id: 'battery', kind: 'addon', name: 'Battery health test', price: 0 },
     { id: 'advance', kind: 'fee', name: 'Checkup and quote fee', price: 349 },
     { id: 'newfee', kind: 'fee', name: 'New customer slot fee', price: 99 },
-    { id: 'bigbike', kind: 'fee', name: 'Above-180cc surcharge', price: 300 }
+    { id: 'bigbike', kind: 'fee', name: 'Above-250cc surcharge', price: 300 }
   ];
   var ICONS = {
     basic: '<path d="M12 3s6 6.2 6 10.5a6 6 0 0 1-12 0C6 9.2 12 3 12 3z"/>',
@@ -49,11 +52,12 @@
   function rupee(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
   function svc(id) { for (var i = 0; i < items.length; i++) if (items[i].id === id) return items[i]; return null; }
   function isEV() { return st.type === 'e'; }
-  function services() { return items.filter(function (x) { return x.kind === 'service' && !(isEV() && ['basic', 'general', 'full'].indexOf(x.id) > -1); }); }
+  function services() { return items.filter(function (x) { return x.kind === 'service' && !L.isTierRow(x.id) && !(isEV() && ['basic', 'general', 'full'].indexOf(x.id) > -1); }); }
   function addons() { return items.filter(function (x) { return x.kind === 'addon'; }); }
   function load() {
     var d = { reg: '', reminder: false, requestType: 'quote', email: '', emailOffers: false, coupon: '', address: '', lat: null, lng: null, contact: 'whatsapp', step: 0, brand: '', model: '', type: '', cc: 'std', nick: '', km: '', issues: [], note: '', service: 'general', picked: false, addons: [], place: 'home', area: '', pin: '', areaAuto: false, dateIso: '', hour: null, slot: '', name: '', phone: '', consent: true };
-    try { var s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s === 'object') for (var k in d) if (k in s) d[k] = s[k]; } catch (e) {}
+    try { var s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s === 'object') { for (var k in d) if (k in s) d[k] = s[k]; if (!('ccv' in s)) d.cc = 'std'; } } catch (e) {} // a draft saved before engine sizes had a different meaning for the large class: start it again at the smallest
+    d.ccv = 2;
     return d;
   }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
@@ -100,17 +104,20 @@
   function findModel(brand, name) { return L.findModel(BIKES, brand, name); }
   function applyModel() {
     var m = findModel(st.brand, st.model);
-    if (m) { st.type = m[1]; st.cc = m[2] ? 'big' : 'std'; } else st.type = '';
+    if (m) { st.type = m[1]; st.cc = L.hasTiers(items) && m[1] !== 'e' ? L.engineGuess(m[0], m[2]) : (m[2] ? 'big' : 'std'); } else st.type = '';
     if (isEV() && !svc(st.service) || (isEV() && ['basic', 'general', 'full'].indexOf(st.service) > -1)) { st.service = 'repair'; }
   }
   function modelNote() {
     var m = findModel(st.brand, st.model);
     if (!m) return st.model.trim().length > 1 ? 'Not in our list. No problem, our expert will confirm the details.' : '';
-    return (m[1] === 's' ? 'Scooter' : m[1] === 'e' ? 'Electric scooter' : 'Motorcycle') + (m[2] && m[1] !== 'e' ? ', above 180cc' : m[1] === 'e' ? '' : ', up to 180cc');
+    var kind = m[1] === 's' ? 'Scooter' : m[1] === 'e' ? 'Electric scooter' : 'Motorcycle';
+    if (m[1] === 'e') return kind;
+    if (L.hasTiers(items)) return kind + ', usually ' + (st.cc === 'mid' ? '150 to 250cc' : st.cc === 'big' ? 'above 250cc' : 'up to 149cc') + '. Not right? Pick the engine size below.';
+    return kind + (m[2] ? ', above 180cc' : ', up to 180cc');
   }
   function recommend() { return L.recommend(st); }
   function priceTxt(x) {
-    var p = x.price + (st.cc === 'big' && ['basic', 'general', 'full'].indexOf(x.id) > -1 ? fee('bigbike', 300) : 0);
+    var p = L.tierRow(st, x, items).price + (st.cc === 'big' && ['basic', 'general', 'full'].indexOf(x.id) > -1 ? fee('bigbike', 300) : 0);
     return rupee(p);
   }
 
@@ -240,7 +247,11 @@
   function callbackDone() {
     return '<div class="confirm-panel" role="status"><b>Saved. We will call you soon.</b><p>' + (cbDone.ref ? 'Your reference is <b>' + esc(cbDone.ref) + '</b>. ' : '') + 'Our expert will call you from ' + esc(C.phoneDisplay || 'our number') + '. You can also chat with us now.</p><div class="chips"><button type="button" class="btn btn-wa btn-sm" data-act="sendDraft">Chat on WhatsApp</button><button type="button" class="btn btn-ghost btn-sm" data-act="copyBuild">Copy link to my build</button></div></div>';
   }
-  function ccSeg() { return '<button type="button" data-act="cc" data-v="std" aria-pressed="' + (st.cc === 'std') + '">Up to 180cc</button><button type="button" data-act="cc" data-v="big" aria-pressed="' + (st.cc === 'big') + '">Above 180cc</button>'; }
+  function ccSeg() {
+    if (L.hasTiers(items)) return [['std', 'Up to 149cc'], ['mid', '150 to 250cc'], ['big', 'Above 250cc']].map(function (o) { return '<button type="button" data-act="cc" data-v="' + o[0] + '" aria-pressed="' + (st.cc === o[0]) + '">' + o[1] + '</button>'; }).join('');
+    return ccSegLegacy();
+  }
+  function ccSegLegacy() { return '<button type="button" data-act="cc" data-v="std" aria-pressed="' + (st.cc === 'std') + '">Up to 180cc</button><button type="button" data-act="cc" data-v="big" aria-pressed="' + (st.cc === 'big') + '">Above 180cc</button>'; }
   function issueName(id) { var l = ISSUES.concat(ISSUES_EV); for (var i = 0; i < l.length; i++) if (l[i][0] === id) return l[i][1]; return ''; }
 
   function validate() {
@@ -568,13 +579,13 @@
 
   function renderPrices() {
     var el = $('#priceList'); if (!el) return;
-    el.innerHTML = services().map(function (x) { return '<li' + (x.id === 'sos' ? ' class="sos-row"' : '') + '>' + icon(x.id) + '<h3>' + esc(x.name) + '</h3><span class="pr">' + rupee(x.price) + '</span><p>' + esc(x.description || '') + '</p><a class="go" href="/book/" data-pick="' + esc(x.id) + '">Build with this</a></li>'; }).join('');
+    el.innerHTML = services().map(function (x) { var t = ['basic', 'general', 'full'].indexOf(x.id) > -1 ? svc(x.id + '250') : null; return '<li' + (x.id === 'sos' ? ' class="sos-row"' : '') + '>' + icon(x.id) + '<h3>' + esc(x.name) + '</h3><span class="pr">' + rupee(x.price) + '</span>' + (t ? '<span class="pr2">150 to 250cc: <b>' + rupee(t.price) + '</b></span>' : '') + '<p>' + esc(x.description || '') + '</p><a class="go" href="/book/" data-pick="' + esc(x.id) + '">Build with this</a></li>'; }).join('');
   }
   function renderSummary() {
     var el = $('#summary'); if (!el) return;
-    var sv = svc(st.service), extra = (st.cc === 'big' && sv && ['basic', 'general', 'full'].indexOf(sv.id) > -1) ? fee('bigbike', 300) : 0;
-    var rows = sv ? '<div><dt>' + esc(sv.name) + '</dt><dd>' + rupee(sv.price) + '</dd></div>' : '';
-    if (extra) rows += '<div><dt>Above 180cc</dt><dd>+' + rupee(extra) + '</dd></div>';
+    var sv = svc(st.service), extra = (st.cc === 'big' && sv && ['basic', 'general', 'full'].indexOf(sv.id) > -1) ? fee('bigbike', 300) : 0, base = sv ? L.tierRow(st, sv, items) : null;
+    var rows = sv ? '<div><dt>' + esc(base.name) + '</dt><dd>' + rupee(base.price) + '</dd></div>' : '';
+    if (extra) rows += '<div><dt>' + (L.hasTiers(items) ? 'Above 250cc' : 'Above 180cc') + '</dt><dd>+' + rupee(extra) + '</dd></div>';
     st.addons.forEach(function (a) { var x = svc(a); if (x) rows += '<div><dt>' + esc(x.name) + '</dt><dd>' + (x.price ? '+' + rupee(x.price) : 'Free') + '</dd></div>'; });
     el.innerHTML = '<div class="card"><small>Your package for</small><h3>' + esc(bikeTitle().replace(/^./, function (c) { return c.toUpperCase(); })) + '</h3><dl>' + rows + '</dl>' + includedBox(sv, 'Included') + '<div class="tot tear"><span>Starting estimate, GST included</span><b>' + rupee(total()) + '</b></div><p>' + 'New customers pay only ₹' + fee('newfee', 99) + ' (returning customers ₹' + fee('advance', 349) + ') to confirm the booking, adjusted in your final bill if you go ahead. Final quote comes on WhatsApp.</p></div>';
   }

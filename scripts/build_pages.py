@@ -202,7 +202,7 @@ for slug, name, pins, locs, why in AREAS:
     book = f'/book/?area={urllib.parse.quote(name)}'
     faq = [
       (f'Do you come to my home in {name}?', f'Yes. Our mechanics cover {locs}. We service your bike at home, at your office parking or at the roadside.'),
-      (f'How much is a bike service in {name}?', 'Basic service from {{text:basic}}, General from {{text:general}}, Full from {{text:full}} for bikes up to 180cc; above 180cc add {{feetext:bigbike}}. GST included. Your exact quote comes on WhatsApp, and parts only after your approval.'),
+      (f'How much is a bike service in {name}?', 'Basic service from {{text:basic}}, General from {{text:general}}, Full from {{text:full}} for bikes up to 149cc; 150 to 250cc bikes cost more, and above 250cc add {{feetext:bigbike}}. GST included. Your exact quote comes on WhatsApp, and parts only after your approval.'),
       ('How fast can a mechanic reach me?', 'Scheduled services are done in your chosen slot. For breakdowns, use the Get help button and we send the nearest available mechanic.'),
     ]
     schema = '<script type="application/ld+json">' + json.dumps({
@@ -219,7 +219,7 @@ for slug, name, pins, locs, why in AREAS:
 <p>{why} Instead of losing half a day at a garage, a Mechanix Pro mechanic services your bike where it is parked, usually in 60 to 90 minutes.</p>
 <h2>Starting prices in {name}</h2>
 <div class="card">{''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES)}</div>
-<p class="tiny muted" style="margin-top:8px">Bikes and scooters up to 180cc; above 180cc add {{{{fee:bigbike}}}} to service packages. GST included. Pincodes: {pins}.</p>
+<p class="tiny muted" style="margin-top:8px">Bikes and scooters up to 149cc; 150 to 250cc bikes cost more, and above 250cc add {{{{fee:bigbike}}}}. GST included. Pincodes: {pins}.</p>
 <h2>Popular bikes we service in {name}</h2>
 <p class="areas">{POPULAR}</p>
 <h2>Other areas we serve</h2>
@@ -341,12 +341,12 @@ for brand, name, t, big in load_bikes():
     url = f'{SITE}/bike-service/{slug}/'
     first = 'repair' if t == 'e' else 'basic'
     first_name = 'Repair or problem check' if t == 'e' else 'Basic service'
-    surcharge = ' Because this bike is above 180cc, add {{fee:bigbike}} to Basic, General and Full service packages.' if big else ''
+    surcharge = ' This bike is usually 150cc or more, so the 150 to 250cc prices on our Services page apply, and above 250cc add {{fee:bigbike}}.' if big else ''
     title = f'{full} Service at Home in Bengaluru | Mechanix Pro'
     desc = f'Doorstep {full} {"problem check" if t == "e" else "service"} in Bengaluru, from {{{{text:{first}}}}}. Mechanix Pro certified mechanics, OEM and aftermarket parts, {{{{days}}}}-day warranty. Quote on WhatsApp first.'
     book = f'/book/?brand={urllib.parse.quote(brand, safe="")}&amp;model={urllib.parse.quote(name, safe="")}'
     faq = [
-      (f'How much does a {full} {"problem check" if t == "e" else "service"} cost in Bengaluru?', ('A problem check starts from {{text:repair}}.' if t == 'e' else 'Basic service from {{text:basic}}, General from {{text:general}} and Full from {{text:full}}.') + (' Because this bike is above 180cc, add {{feetext:bigbike}} to service packages.' if big and t != 'e' else '') + ' GST included. Your exact quote comes on WhatsApp before any work starts.'),
+      (f'How much does a {full} {"problem check" if t == "e" else "service"} cost in Bengaluru?', ('A problem check starts from {{text:repair}}.' if t == 'e' else 'Basic service from {{text:basic}}, General from {{text:general}} and Full from {{text:full}}.') + (' This bike is usually 150cc or more, so the 150 to 250cc prices on the Services page apply, and above 250cc add {{feetext:bigbike}}.' if big and t != 'e' else '') + ' GST included. Your exact quote comes on WhatsApp before any work starts.'),
       (f'Can you service my {full} at home?', f'Yes. A Mechanix Pro certified mechanic comes to your home or office in Bengaluru. {timing}'),
       ('Is there a warranty on the work?', 'Yes, {{days}} days on the work, with OEM and aftermarket parts.'),
       ('Do I pay before the work starts?', 'You approve the quote first. A {{feetext:advance}} checkup and quote fee ({{feetext:newfee}} for new customers) holds your slot and is adjusted in your final bill if you go ahead.'),
@@ -360,7 +360,7 @@ for brand, name, t, big in load_bikes():
     price_rows = ''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES if k in ('basic', 'general', 'full', 'repair'))
     body = f'''<p class="breadcrumb"><a href="/">Home</a> › <a href="/book/?brand={urllib.parse.quote(brand, safe="")}">{html.escape(brand)}</a> › {html.escape(name)}</p>
 <h1 style="font-size:clamp(32px,6vw,50px)">{html.escape(full)} service at your doorstep in Bengaluru.</h1>
-<p class="muted" style="font-size:20px">A Mechanix Pro certified mechanic comes to your home or office for your {html.escape(full)}, a {kind} {'above 180cc' if big else 'up to 180cc'}. Quote on WhatsApp first, and nothing starts without your OK.</p>
+<p class="muted" style="font-size:20px">A Mechanix Pro certified mechanic comes to your home or office for your {html.escape(full)}, a {kind}. Quote on WhatsApp first, and nothing starts without your OK.</p>
 <figure class="model-fig"><img src="/assets/img/models/{slug}.webp" width="600" height="420" decoding="async" alt="{html.escape(full)} {kind} (example photo)"><figcaption class="tiny muted">Example photo: "{html.escape(c['title'])}" by {html.escape(c['author'])}, <a href="{html.escape(c['license_url'])}" rel="noopener">{html.escape(c['license'])}</a>, <a href="{html.escape(c['source'])}" rel="noopener">source</a>. It shows an example bike, not a customer's.</figcaption></figure>
 <p><a class="btn btn-primary" href="{book}">Build your service for this bike</a> <a class="btn btn-wa" href="#" data-wa="Bengaluru" data-wa-text="Hi Mechanix Pro, I need a quote for my {html.escape(full)}.">Get a quote on WhatsApp</a></p>
 <h2>What we check on a {html.escape(full)}</h2>
@@ -453,7 +453,7 @@ for slug, (title, desc, h1, lead, points, msg, cta) in GROUP.items():
 <ul>{''.join(f'<li>{p}</li>' for p in points)}</ul>
 <h2>Prices</h2>
 <div class="card">{''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES if k in ('basic', 'general', 'full', 'repair'))}</div>
-<p class="tiny muted" style="margin-top:8px">Per bike, up to 180cc; above 180cc add {{{{fee:bigbike}}}} to service packages. GST included. Group quotes are confirmed on WhatsApp.</p>
+<p class="tiny muted" style="margin-top:8px">Per bike, up to 149cc; 150 to 250cc bikes cost more, and above 250cc add {{{{fee:bigbike}}}}. GST included. Group quotes are confirmed on WhatsApp.</p>
 <h2>How it works</h2>
 <ol><li>Message us the number of bikes and your location.</li><li>We reply with a group quote and a service day.</li><li>Each owner approves, and the mechanics arrive on the day.</li></ol>
 '''

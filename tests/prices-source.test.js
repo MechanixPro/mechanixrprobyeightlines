@@ -15,7 +15,8 @@ test('site.json is the one list of prices, the fees and the warranty length', ()
 });
 test('the database holds every service, add-on and fee, and the app defaults match site.json', () => {
   const seed = read('supabase/migrations/20261006000000_init.sql');
-  for (const id of Object.keys(site.services)) assert.match(seed, new RegExp(`\\('${id}','service',`), 'seed ' + id);
+  const tiers = read('supabase/migrations/20261126000000_engine_tiers.sql');
+  for (const id of Object.keys(site.services)) { if (/250$/.test(id)) { assert.match(tiers, new RegExp(`'${id}'`), 'engine-tier migration ' + id); continue; } assert.match(seed, new RegExp(`\\('${id}','service',`), 'seed ' + id); }
   for (const id of Object.keys(site.addons)) assert.match(seed, new RegExp(`\\('${id}','addon',`), 'seed ' + id);
   const app = read('assets/js/app.js');
   for (const [id, s] of Object.entries(site.services)) assert.match(app, new RegExp(`id: '${id}', kind: 'service'[^}]*price: ${s.price}\\b`), 'app ' + id);
@@ -27,6 +28,7 @@ test('the services in the database carry the "what is included" lists from site.
   const m = read('supabase/migrations/20261012000000_prices_fees_includes.sql');
   assert.match(m, /add column if not exists includes jsonb not null default '\[\]'::jsonb/);
   for (const [id, s] of Object.entries(site.services)) {
+    if (/250$/.test(id)) continue; // the engine-size rows copy the includes of their base package
     const hit = m.match(new RegExp(`update public\\.services set includes = '(\\[[^\\n]*\\])'::jsonb where id = '${id}'`));
     assert.ok(hit, 'no includes for ' + id); assert.ok(JSON.parse(hit[1]).length >= 3, id);
   }

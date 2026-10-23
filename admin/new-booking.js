@@ -24,8 +24,11 @@ export function buildNewBooking(f, { services = [], today }) {
   if (f.service && !svc) return { error: 'Choose a valid service' };
   const addons = svc ? [...new Set((f.addons || []).filter((id) => services.some((s) => s.id === id && s.kind === 'addon')))] : [];
   const bigFee = services.find((s) => s.id === 'bigbike' && s.kind === 'fee')?.price ?? 300;
-  const surcharge = svc && f.bigBike && ['basic', 'general', 'full'].includes(svc.id) ? bigFee : 0;
-  const est = svc ? svc.price + surcharge + addons.reduce((t, id) => t + services.find((s) => s.id === id).price, 0) : null;
+  const engine = ['std', 'mid', 'big'].includes(f.engine) ? f.engine : null;
+  const big = engine ? engine === 'big' : !!f.bigBike;
+  const tier = svc && ['basic', 'general', 'full'].includes(svc.id) && (engine === 'mid' || engine === 'big') ? services.find((s) => s.id === svc.id + '250' && s.kind === 'service' && s.active !== false) : null;
+  const surcharge = svc && big && ['basic', 'general', 'full'].includes(svc.id) ? bigFee : 0;
+  const est = svc ? (tier ? tier.price : svc.price) + surcharge + addons.reduce((t, id) => t + services.find((s) => s.id === id).price, 0) : null;
 
   const date = /^\d{4}-\d{2}-\d{2}$/.test(f.date || '') ? f.date : null;
   const slot = pick(SLOTS, f.slot, null);
@@ -33,7 +36,7 @@ export function buildNewBooking(f, { services = [], today }) {
   if (date && today && date < today) return { error: 'That day is in the past' };
 
   const brand = txt(f.brand, 30), model = txt(f.model, 40);
-  const bike = brand || model ? { brand, model, nickname: txt(f.nickname, 24) || null, big_bike: !!f.bigBike } : null;
+  const bike = brand || model ? { brand, model, nickname: txt(f.nickname, 24) || null, big_bike: big, ...(engine ? { engine_class: engine } : {}) } : null;
   const status = pick(STATUSES, f.status, 'contacted');
   return {
     customer: { phone, name, email: email || null },

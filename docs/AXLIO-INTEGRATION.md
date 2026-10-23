@@ -20,7 +20,8 @@
   "roadside_url": "https://mechanixpro.in/roadside/?campaign=axlio",
   "items": [
     { "id": "basic", "kind": "service", "name": "Basic service", "description": "...", "price_inr": 599,
-      "price_note": "Starting price, GST included, for bikes and scooters up to 180cc",
+      "price_150_to_250cc_inr": 799, "above_250cc_surcharge_inr": 300,
+      "price_note": "Starting price, GST included, for bikes and scooters up to 149cc. 150 to 250cc has its own price; above 250cc add the surcharge to that price",
       "book_url": "https://mechanixpro.in/book/?service=basic&campaign=axlio" }
   ]
 }

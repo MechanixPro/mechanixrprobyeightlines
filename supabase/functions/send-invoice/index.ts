@@ -23,7 +23,9 @@ Deno.serve(async (req) => {
   const { data: cust } = lead.customer_id ? await db.from('customers').select('email,company_name,gstin,address').eq('id', lead.customer_id).maybeSingle() : { data: null };
   if (!cust?.email) return json(req, { error: 'This customer did not give an email address' }, 400);
   const { data: services } = await db.from('services').select('id,kind,name,price');
-  const invoice = buildInvoice(lead, services ?? [], { customer: cust });
+  // The engine size lives on the bike: bring it onto the booking so the bill matches the estimate.
+  const { data: bike } = lead.bike_id ? await db.from('bikes').select('big_bike,engine_class').eq('id', lead.bike_id).maybeSingle() : { data: null };
+  const invoice = buildInvoice({ ...lead, big_bike: bike?.big_bike ?? false, engine_class: bike?.engine_class ?? null }, services ?? [], { customer: cust });
   if (!invoice.lines.length) return json(req, { error: 'This booking has no priced items to invoice' }, 400);
 
   const mail = invoiceEmail({
