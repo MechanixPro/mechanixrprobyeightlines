@@ -18,7 +18,7 @@ NAV = '''<div class="diwali-bar" data-diwali-bar role="region" aria-label="Diwal
   <a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="27"><img class="wm" src="/assets/img/logo-wordmark.webp" alt="" width="137" height="12"></a>
   <nav class="links" aria-label="Main"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track booking</a></nav>
   <details class="menu"><summary aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
-    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/join/">Join as a garage or mechanic</a><a href="/partners/axlio/">Car parts and service: Axlio</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
+    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/join/">Join as a garage or mechanic</a><a href="/two-wheeler-service-at-home-bangalore/">Two wheeler service at home</a><a href="/scooty-repair-at-home-bangalore/">Scooty repair at home</a><a href="/ev-and-petrol-bike-care-bangalore/">EV and petrol bike care</a><a href="/verified-bike-garages-bangalore/">Verified garages</a><a href="/partners/axlio/">Car parts and service: Axlio</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
   <a class="btn btn-ghost btn-sm call-btn" href="#" data-call><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call us</a>
   <a class="btn btn-primary btn-sm cta" href="/book/">Get a quote</a>
 </div></header>
@@ -769,7 +769,7 @@ write('roadside/index.html', _road + f'''<section class="hero"><div class="wrap"
 urls.append(('/roadside/', '0.8'))
 
 MAIN = [
-  ('', 'home', 'Bike Service & Roadside Help in Bengaluru | Mechanix Pro', 'Doorstep bike and scooter service in Bengaluru from {{text:basic}}, plus roadside help 24/7. Quote first on WhatsApp, pay after you say yes. {{days}}-day service warranty.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n' + CHAT_JS, '1.0'),
+  ('', 'home', 'Two Wheeler Doorstep Service in Bangalore | Mechanix Pro', 'Two wheeler service at home in Bangalore (Bengaluru) from {{text:basic}}. Servicing in as fast as 2 hours, scooty repair, EV and petrol bike care. Quote first.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n' + CHAT_JS, '1.0'),
   ('book', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.9'),
   ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, General from {{text:general}}, Full from {{text:full}}. GST included. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
   ('help', 'help', 'How Doorstep Bike Service Works and FAQ | Mechanix Pro', 'How Mechanix Pro works: build your service, get a WhatsApp quote, approve, and we service your bike at your door in Bengaluru. Answers to common questions.', 'help.jsonld', 'page-help', APP_JS, '0.8'),
@@ -867,6 +867,29 @@ def axlio_page():
     write('partners/axlio/index.html', HEAD.format(title='Axlio: Car and Bike Spare Parts in Bengaluru | Mechanix Pro Partner', desc='Axlio is our partner for car and bike spare parts, service kits and car service in Bengaluru. See what they do, how ordering works and where to find them.', url=f'{SITE}/partners/axlio/', site=SITE, schema=crumbs(('Our partner Axlio', '/partners/axlio/')) + ld_tag({"@context": "https://schema.org", "@type": "WebPage", "name": "Axlio: car and bike spare parts in Bengaluru", "url": SITE + "/partners/axlio/", "about": {"@type": "Organization", "name": "Axlio", "url": "https://axlio.in/"}}), scripts=LEGAL_JS, body='', nav=NAV, main='') + body + foot())
     urls.append(('/partners/axlio/', '0.6'))
 axlio_page()
+
+# ---- Search landing pages (src/landing.json): the things riders actually search for, each with its own useful page, FAQ and structured data ----
+LANDING = json.load(open(os.path.join(ROOT, 'src', 'landing.json'), encoding='utf-8'))
+def landing_pages():
+    by = {x['slug']: x for x in LANDING}
+    for x in LANDING:
+        url = f"{SITE}/{x['slug']}/"
+        tiles = ''.join(f'<li class="reveal" style="--i:{i}"><h3>{html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for i, (t, d) in enumerate(x['tiles']))
+        steps = ''.join(f'<li class="soon-step reveal" style="--i:{i}"><span class="soon-n">{i + 1}</span><span>{html.escape(t)}</span></li>' for i, t in enumerate(x['steps']))
+        faq = ''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in x['faq'])
+        rel = ''.join(f'<a class="ride-chip rel-chip" href="/{r}/">{html.escape(by[r]["kicker"])}</a>' for r in x.get('related', []) if r in by)
+        cta_t, cta_h = x.get('cta', ['Build your service', '/book/'])
+        ld = crumbs((x['kicker'], f"/{x['slug']}/")) + ld_tag({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in x['faq']]}) + ld_tag({"@context": "https://schema.org", "@type": "Service", "name": x['kicker'], "serviceType": x['kicker'], "url": url, "description": x['desc'], "provider": {"@type": "AutoRepair", "name": "Mechanix Pro", "url": SITE + "/"}, "areaServed": [{"@type": "City", "name": "Bengaluru"}, {"@type": "City", "name": "Bangalore"}]})
+        body = f'''<section class="page-head"><div class="wrap"><p class="breadcrumb soon-crumb"><a href="/">Home</a> &rsaquo; {html.escape(x["kicker"])}</p><h1>{html.escape(x["h1"])}</h1><p>{html.escape(x["lead"])}</p>
+  <div class="row" style="margin-top:22px"><a class="btn btn-primary" href="{cta_h}">{html.escape(cta_t)}</a><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I am looking for {html.escape(x["kicker"].lower())} in Bangalore.&#10;Bike model: &#10;Area: ">Ask on WhatsApp</a></div></div></section>
+<section class="strip" aria-label="Our promises"><div class="wrap"><ul><li>Servicing in as fast as 2 hours</li><li>Quote first, work after your OK</li><li>{{{{days}}}}-day service warranty</li><li>Open 24/7</li></ul></div></section>
+<section><div class="wrap"><div class="sec-head"><h2>What you get.</h2></div><ul class="job-grid">{tiles}</ul></div></section>
+<section class="band"><div class="wrap"><div class="sec-head"><h2>How it works.</h2></div><ol class="soon-steps">{steps}</ol></div></section>
+<section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Questions we get asked.</h2></div>{faq}<p class="tiny muted" style="margin-top:18px">Prices include GST. Your exact quote comes on WhatsApp first.</p><div class="rel-row"><span class="tiny muted">Also see:</span>{rel}</div></div></section>
+<section><div class="wrap"><div class="final"><h2>Ready when your bike is.</h2><p>Build your service in under a minute, or just message us.</p><div class="row"><a class="btn btn-primary" href="/book/">Build your service</a><a class="btn btn-ghost" href="#" data-wa="general">Get a quote on WhatsApp</a></div></div></div></section>'''
+        write(f"{x['slug']}/index.html", HEAD.format(title=html.escape(x['title']), desc=html.escape(x['desc']), url=url, site=SITE, schema=ld, scripts=LEGAL_JS, body='', nav=NAV, main='') + body + foot())
+        urls.append((f"/{x['slug']}/", '0.8'))
+landing_pages()
 
 sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + ''.join(f'  <url><loc>{SITE}{u}</loc><lastmod>{TODAY}</lastmod><priority>{p}</priority></url>\n' for u, p in urls) + '</urlset>\n'
 write('sitemap.xml', sm)

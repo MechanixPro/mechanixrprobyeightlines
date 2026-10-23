@@ -1098,3 +1098,22 @@ html{-webkit-tap-highlight-color:transparent}
 .rt-g-del{width:40px;min-height:44px;border:0;background:none;font-size:20px;color:#8a93a8;cursor:pointer}.rt-g-del:hover{color:#B0301B}
 .rt-g-due{border-color:#D93A1F}.rt-g-soon{border-color:#F2A21F}.rt-g-ok{border-color:#1B9B4B}
 .bill .pr2{display:block;grid-column:2;font-size:14px;font-weight:600;color:var(--muted,#636366);margin-top:-2px}.bill .pr2 b{color:#14295A}
+.rel-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px}.rel-chip{border-color:rgba(20,41,90,.18)!important;color:#14295A!important;background:#fff!important;min-height:44px}
+/* Promo banners and the hero kicker */
+.hero-kicker{margin:0 0 10px;display:inline-block;padding:6px 14px;border-radius:999px;background:rgba(255,200,87,.16);border:1px solid rgba(255,200,87,.5);color:#FFC857;font-weight:750;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+@media(max-width:819px){.hero-kicker{font-size:11.5px;padding:5px 11px;max-width:60%}}
+.promo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.promo{position:relative;display:flex;flex-direction:column;gap:8px;padding:26px 24px 56px;border-radius:28px;color:#fff;text-decoration:none;overflow:hidden;min-height:210px;box-shadow:0 16px 40px rgba(15,29,69,.18);transition:transform var(--t-base,280ms) var(--ease,ease),box-shadow var(--t-base,280ms)}
+.promo::after{content:"";position:absolute;right:-50px;top:-50px;width:190px;height:190px;border-radius:50%;background:rgba(255,255,255,.12)}
+.promo:hover,.promo:focus-visible{transform:translateY(-5px);box-shadow:0 26px 54px rgba(15,29,69,.28)}
+.promo b{font-size:clamp(22px,2.4vw,28px);line-height:1.1;letter-spacing:-.03em;position:relative;z-index:1}
+.promo span:not(.promo-tag){font-size:15.5px;line-height:1.4;opacity:.92;position:relative;z-index:1;max-width:26em}
+.promo-tag{align-self:flex-start;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.2);font-weight:750;font-size:12px;letter-spacing:.06em;text-transform:uppercase;position:relative;z-index:1}
+.promo i{position:absolute;right:22px;bottom:18px;width:44px;height:44px;border-radius:50%;background:#fff;color:#14295A;display:grid;place-items:center;font-style:normal;font-size:20px;font-weight:700;transition:transform .2s;z-index:1}
+.promo:hover i{transform:translateX(4px)}
+.promo-ember{background:linear-gradient(145deg,#FF8A1F,#D9600A)}
+.promo-navy{background:linear-gradient(145deg,#14295A,#1F3F86)}
+.promo-gold{background:linear-gradient(145deg,#F2A21F,#C97A06);color:#1F1206}.promo-gold i{background:#1F1206;color:#FFC857}.promo-gold .promo-tag{background:rgba(31,18,6,.15)}
+@media(max-width:900px){.promo-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.promo-grid{grid-template-columns:1fr}.promo{min-height:0;padding-bottom:64px}}
+@media(prefers-reduced-motion:reduce){.promo,.promo i{transition:none}.promo:hover{transform:none}}

@@ -1,0 +1,145 @@
+[
+  {
+    "slug": "two-wheeler-service-at-home-bangalore",
+    "title": "Two Wheeler Service at Home in Bangalore | Mechanix Pro",
+    "desc": "Two wheeler doorstep service in Bangalore (Bengaluru). Expert mechanics come to your home or office, quote on WhatsApp first, servicing in as fast as 2 hours.",
+    "kicker": "Two wheeler service at home",
+    "h1": "Two wheeler service at home in Bangalore.",
+    "lead": "A Mechanix Pro mechanic comes to your door for your bike or scooter. You get a quote on WhatsApp first, and work starts only after you say yes. Servicing in as fast as 2 hours.",
+    "tiles": [
+      ["Expert 2-wheeler service", "Basic, General and Full service by Mechanix Pro-certified mechanics, with a clear list of what is checked."],
+      ["Doorstep, not a garage queue", "We service at your home, office parking or society. No pickup, no losing half a day at a workshop."],
+      ["Quote first, pay after you say yes", "Your price comes on WhatsApp before any work. Parts and extra work are charged only after you approve."],
+      ["Servicing in as fast as 2 hours", "Once the mechanic arrives, a basic service can be done in about two hours. Bigger jobs take longer, and we tell you before we start."],
+      ["Digital service records", "Every job has a booking reference and a GST invoice, and your bike's history is kept against its registration number."],
+      ["30-day service warranty", "If the same work fails within 30 days, we redo it free. Parts carry the maker's or supplier's limited warranty."]
+    ],
+    "steps": ["Build your service, or message us on WhatsApp with your bike and area.", "Our expert sends your quote. You approve it and pick a slot.", "The mechanic arrives, services your bike at your door and shows you what was done.", "You get your GST invoice, and your service record is saved."],
+    "faq": [
+      ["Do you do two wheeler service at home in Bangalore?", "Yes. Our mechanics come to your home, office or society parking across Bangalore (Bengaluru), for bikes and scooters, petrol and electric."],
+      ["How fast can a service be done?", "A basic service can be done in as fast as 2 hours once the mechanic arrives. The time depends on the package and on what the mechanic finds, and we tell you before any extra work starts."],
+      ["What does it cost?", "Basic from {{text:basic}}, General from {{text:general}}, Full from {{text:full}} for bikes up to 149cc, GST included. Bikes of 150 to 250cc have their own prices, and above 250cc add {{feetext:bigbike}}. Your exact quote comes on WhatsApp first."],
+      ["Which bikes do you service?", "Scooters, commuter motorcycles, Royal Enfields, performance bikes and electric scooters. Not sure about yours? Message us the model and we confirm."]
+    ],
+    "related": ["scooty-repair-at-home-bangalore", "ev-and-petrol-bike-care-bangalore", "digital-service-records", "verified-bike-garages-bangalore"]
+  },
+  {
+    "slug": "scooty-repair-at-home-bangalore",
+    "title": "Scooty Repair at Home in Bangalore | Mechanix Pro",
+    "desc": "Scooty and scooter repair at your home in Bangalore. Problem check by an expert mechanic, quote first on WhatsApp, work after you approve. Open 24/7.",
+    "kicker": "Scooty repair at home",
+    "h1": "Scooty repair at home in Bangalore.",
+    "lead": "Activa, Jupiter, Access, Dio or an electric scooter: tell us what is wrong and a mechanic comes to your door, finds the cause and quotes the fix before any work starts.",
+    "tiles": [
+      ["Hard to start", "Often a weak battery, a worn spark plug or a dirty air filter. We test and tell you which."],
+      ["Low pickup or mileage", "Often a clogged air filter, old oil or a worn belt. A service usually brings it back."],
+      ["Brakes weak or noisy", "Often worn shoes or pads. We check them and show you before replacing anything."],
+      ["Puncture or worn tyre", "We come to you for a puncture, and check the tread and pressure on the spot."],
+      ["Battery or self-start", "A battery health test shows if your scooty will start tomorrow."],
+      ["Strange noise or vibration", "Chain, belt, suspension or bearings. We find the cause first and quote the fix."]
+    ],
+    "steps": ["Tell us the problem on WhatsApp, or tick it in our free symptom guide.", "Book a problem check. A mechanic comes at your slot.", "He finds the cause and sends a quote. Nothing extra starts until you say yes.", "You get your invoice, and the repair is saved in your service record."],
+    "faq": [
+      ["Can you repair my scooty at home?", "Most scooty problems can be checked and many fixed at your door: starting, brakes, battery, tyres, belts and servicing. If a repair needs a workshop, we tell you before anything is moved, and the bike leaves only with your one-time code."],
+      ["How much is a problem check?", "A repair or problem check starts from {{text:repair}}, GST included. The repair itself is quoted after the check."],
+      ["My scooty broke down on the road. What now?", "Use our roadside help: share your location on WhatsApp and we send the nearest mechanic. Roadside visits start from {{text:sos}}."],
+      ["Do you repair electric scooters too?", "Yes, we check electric scooters for range, charging, brakes, tyres, lights and display problems."]
+    ],
+    "related": ["two-wheeler-service-at-home-bangalore", "ev-and-petrol-bike-care-bangalore", "doorstep-bike-and-car-repair-near-me"]
+  },
+  {
+    "slug": "ev-and-petrol-bike-care-bangalore",
+    "title": "EV and Petrol Bike Care at Home in Bangalore | Mechanix Pro",
+    "desc": "Electric and petrol two wheeler care at your door in Bangalore. EV scooter checks for range, charging and brakes; petrol bike service with a quote first.",
+    "kicker": "EV and petrol bike care",
+    "h1": "EV and petrol bike care at your door.",
+    "lead": "One team for both. Petrol bikes get a proper service, electric scooters get a proper check. Same doorstep visit, same quote first.",
+    "tiles": [
+      ["Petrol bikes and scooters", "Engine oil, filters, spark plug, chain, brakes, clutch and a full safety check, in Basic, General and Full packages."],
+      ["Electric scooters and bikes", "Range, charging, brakes, tyres, suspension, lights, wiring and display checks. No engine oil to change, so no engine-oil charges on EV pages."],
+      ["Problem check for either", "Something feels wrong? A problem check finds the cause and quotes the fix before work starts."],
+      ["Roadside help for both", "Puncture, a bike that will not start, or a scooter that stopped: share your location and we send the nearest mechanic."],
+      ["Honest about what we can fix", "If an EV fault needs the maker's service centre, we say so plainly instead of guessing."],
+      ["Digital service records", "Each visit is saved against your bike, petrol or electric, so its history is always on hand."]
+    ],
+    "steps": ["Tell us if it is petrol or electric, the model and your area.", "We send the right package or a problem check, with the price.", "A mechanic visits at your slot and shows you the findings.", "You approve any extra work first, then get your invoice."],
+    "faq": [
+      ["Do you service electric scooters at home?", "We do doorstep checks for electric scooters and bikes: range drop, charging problems, brakes, tyres, suspension, lights, wiring and display issues. Some faults need the maker's service centre, and we tell you if so."],
+      ["What does an EV check cost?", "Electric bikes use the problem check, from {{text:repair}}, GST included."],
+      ["Is petrol bike service different?", "Yes. Petrol bikes get Basic, General or Full service with oil, filters, spark plug, chain and brakes. See the Services page for what each one covers."]
+    ],
+    "related": ["two-wheeler-service-at-home-bangalore", "scooty-repair-at-home-bangalore", "digital-service-records"]
+  },
+  {
+    "slug": "verified-bike-garages-bangalore",
+    "title": "Verified Bike Garages in Bangalore | Mechanix Pro Certified",
+    "desc": "Mechanix Pro Certified garages and mechanics in Bangalore. Each one is visited, document-checked, trained and trial-run before taking customer jobs.",
+    "kicker": "Verified and Mechanix Pro Certified garages",
+    "h1": "Verified bike garages. Mechanix Pro Certified.",
+    "lead": "Your bike should be in trusted hands, at your door or in a workshop. Every garage and mechanic in our network is checked before the first job.",
+    "tiles": [
+      ["Visited in person", "Our team visits the workshop, sees the bays, tools and how the work is done."],
+      ["Documents checked", "Identity and business documents are verified before anyone goes live."],
+      ["Trained our way", "A short training on how Mechanix Pro works: quote first, approval before extra work, honest findings."],
+      ["Trial jobs first", "New partners start with a few supervised jobs before they take regular bookings."],
+      ["Rated by customers", "After each job we ask the customer to rate it. Low ratings are looked at by our team."],
+      ["OTP-safe handover", "If a bike must go to a workshop, it leaves and returns only with your one-time code."]
+    ],
+    "steps": ["The garage or mechanic applies online.", "Our team calls, then visits.", "Documents and tools are checked, and training is done.", "Trial jobs, then they go live with the Mechanix Pro Certified name."],
+    "faq": [
+      ["What does Mechanix Pro Certified mean?", "It means the garage or mechanic has been visited, document-checked, trained on our way of working and trial-run before taking customer jobs."],
+      ["Can my garage join?", "Yes, if you are in Bangalore. Apply on our Join us page and our team will call you."],
+      ["Can I choose the garage?", "Your quote and visit are handled by our team, and we assign a Mechanix Pro Certified mechanic. Tell us if you have a preference."]
+    ],
+    "cta": ["Apply to join", "/join/"],
+    "related": ["two-wheeler-service-at-home-bangalore", "digital-service-records"]
+  },
+  {
+    "slug": "digital-service-records",
+    "title": "Digital Service Records for Your Bike | Mechanix Pro",
+    "desc": "Every Mechanix Pro job is saved as a digital service record: booking reference, GST invoice and what was done, kept against your bike's registration number.",
+    "kicker": "Digital service records",
+    "h1": "A digital service record for every bike.",
+    "lead": "No more lost paper bills. Every job we do is saved, so you and the next mechanic always know what was done and when.",
+    "tiles": [
+      ["Booking reference", "Each job gets a reference like MP-XXXXXX that you can use to track it."],
+      ["GST invoice by email", "An itemised invoice with GST, sent after the service, so you always have the bill."],
+      ["Kept against your bike", "The history is kept against your bike and its registration number, not on a scrap of paper."],
+      ["Service reminders", "Tell us if you want a reminder and we will message you when your next service is due."],
+      ["Warranty clarity", "The record shows the date of service, so your 30-day service warranty period is never a guess."],
+      ["Fleets and societies", "Fleets get a record for every bike, so one owner can see the whole group."]
+    ],
+    "steps": ["Book a service, with your bike's registration number if you like.", "The mechanic completes the job and we mark it done.", "Your invoice and record are saved.", "Next time, we already know your bike."],
+    "faq": [
+      ["What is a digital service record?", "A saved record of each job on your bike: what was done, the date, the invoice and the booking reference."],
+      ["Where do I see my booking?", "Use Track your booking on our site with your booking reference."],
+      ["Is my data safe?", "Your details are kept as described in our Privacy Policy. We never sell your data."]
+    ],
+    "cta": ["Track your booking", "/track/"],
+    "related": ["two-wheeler-service-at-home-bangalore", "verified-bike-garages-bangalore", "ev-and-petrol-bike-care-bangalore"]
+  },
+  {
+    "slug": "doorstep-bike-and-car-repair-near-me",
+    "title": "Doorstep Bike and Car Repair Near Me, Bangalore | Mechanix Pro",
+    "desc": "Looking for bike or car repair near you in Bangalore? Mechanix Pro comes to your door for bikes and scooters; cars and spare parts through partner Axlio.",
+    "kicker": "Repair near me",
+    "h1": "Doorstep bike repair near you. Cars with our partner.",
+    "lead": "For bikes and scooters, Mechanix Pro comes to you anywhere in Bangalore. For cars and spare parts, our partner Axlio takes care of you.",
+    "tiles": [
+      ["Bike and scooter repair", "Problem checks, repairs and servicing at your door. A quote first, and work only after you approve."],
+      ["Roadside help", "Broken down or punctured? Share your location and we send the nearest mechanic."],
+      ["Car service and parts: Axlio", "Our partner Axlio lists periodic and brake service, jump start, flat tyre help, towing and fuel delivery for cars, plus spare parts."],
+      ["Every PIN in the city", "We cover all of Bangalore, PIN codes 560001 to 560110. Type yours on the home page."],
+      ["Open 24/7", "Message us any time on WhatsApp. We are open 24/7."],
+      ["Parts you can choose", "Parts are OEM or aftermarket, sourced from Axlio and labelled in your quote."]
+    ],
+    "steps": ["Tell us the vehicle and your area.", "Bike: we quote and send a mechanic. Car or parts: we point you to Axlio.", "You approve before any work starts.", "You get an invoice and a service record."],
+    "faq": [
+      ["Do you repair cars?", "Mechanix Pro services bikes and scooters. For cars and spare parts we work with our partner Axlio, which lists car services and roadside help. See their page for what they offer."],
+      ["Is there a bike repair near me in Bangalore?", "Yes. Our mechanics come to you across Bangalore, so there is no need to travel to a garage."],
+      ["What if my bike breaks down on the road?", "Share your live location on WhatsApp and we send the nearest mechanic. We are open 24/7."]
+    ],
+    "cta": ["See Axlio's services", "/partners/axlio/"],
+    "related": ["two-wheeler-service-at-home-bangalore", "scooty-repair-at-home-bangalore"]
+  }
+]
