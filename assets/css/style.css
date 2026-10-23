@@ -1193,3 +1193,9 @@ html{-webkit-tap-highlight-color:transparent}
 }
 @media(max-width:959px){.hero .hero-alt .btn-sos{display:none}}
 @media(max-width:959px){.hero-rain{width:40%;top:30px}.hero .lead{position:relative;z-index:2}}
+/* Phone picture fixes: the chip no longer sits on the poster headline, bike photos keep the whole bike in frame */
+.st-chip{top:auto;bottom:12px}
+.bike-card img{aspect-ratio:3/2}
+.bike-card img[src*="ola-electric"]{object-position:74% 50%}
+@media(max-width:389px){.nav .brand .wm{width:104px!important;height:auto!important}.nav .wrap{gap:8px}.hero h1{max-width:57%}.hero-rain{width:38%}}
+@media(max-width:340px){.nav .brand .wm{display:none!important}}
