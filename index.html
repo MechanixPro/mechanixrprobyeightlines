@@ -128,7 +128,9 @@
       <div class="rt-card" id="rt-due">
         <span class="rt-tag">Service due check</span>
         <h3>Is your bike due for a service?</h3>
+        <div class="rt-garage" id="garage" hidden aria-label="Your garage"></div>
         <div class="rt-fields">
+          <div class="rt-name"><label class="label" for="due-name">Name your bike (optional)</label><input id="due-name" maxlength="24" placeholder="e.g. Raja" autocomplete="off"></div>
           <div><label class="label" for="due-type">Your bike</label><select id="due-type"><option value="scooter">Scooter</option><option value="commuter">Commuter motorcycle</option><option value="perf">Performance or cruiser</option><option value="ev">Electric scooter or bike</option></select></div>
           <div><label class="label" for="due-date">Last service on</label><input id="due-date" type="date"></div>
           <div id="due-km-wrap"><label class="label" for="due-km">Km since then</label><input id="due-km" inputmode="numeric" maxlength="5" placeholder="e.g. 2500"></div>

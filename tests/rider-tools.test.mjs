@@ -65,3 +65,17 @@ test('the install button is a plain script that only appears when the browser of
   const js = read('../assets/js/install.js'); assert.match(js, /beforeinstallprompt/); assert.match(js, /preventDefault/);
   assert.match(read('../index.html'), /install\.js/); assert.doesNotMatch(read('../index.html'), /<script>[^<]*beforeinstallprompt/);
 });
+test('my garage keeps at most three bikes, newest first, replaces a bike of the same name, and cleans everything', () => {
+  let g = [];
+  g = T.addBike(g, { name: 'Raja', type: 'scooter', last: '2026-09-01', km: 1200 });
+  g = T.addBike(g, { name: 'Bull<b>et', type: 'perf', last: '2026-08-01', km: 3000 });
+  g = T.addBike(g, { name: '', type: 'ev', last: '2026-07-01', km: 99999 });
+  g = T.addBike(g, { name: 'Dio', type: 'commuter', last: '2026-10-01', km: 100 });
+  assert.deepEqual(g.map((b) => b.name), ['Dio', 'electric scooter or bike', 'Bullbet']);   // the first bike, Raja, was pushed out
+  assert.equal(g.length, 3); assert.doesNotMatch(JSON.stringify(g), /[<>]/);
+  assert.equal(g[1].km, 0);                                   // electric bikes keep no km
+  const again = T.addBike(g, { name: 'dio', type: 'scooter', last: '2026-10-10', km: 5 });
+  assert.equal(again.length, 3); assert.equal(again[0].type, 'scooter');
+  assert.equal(T.addBike(g, { name: 'x', type: 'jet', last: '2026-10-10' }).length, 3);   // bad bike is ignored
+  assert.deepEqual(T.removeBike(g, 'Dio').map((b) => b.name).includes('Dio'), false);
+});

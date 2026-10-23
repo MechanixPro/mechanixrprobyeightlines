@@ -35,6 +35,21 @@
     return { items: list.map(function (k) { return { key: k, s: SYMPTOMS[k] }; }), road: list.some(function (k) { return SYMPTOMS[k].road; }), service: list.length ? (list.some(function (k) { return SYMPTOMS[k].service === 'repair'; }) ? 'repair' : list.some(function (k) { return SYMPTOMS[k].service === 'general'; }) ? 'general' : 'basic') : '', bookUrl: list.length ? '/book/?service=' + (list.some(function (k) { return SYMPTOMS[k].service === 'repair'; }) ? 'repair' : 'general') + '&issues=' + list.join(',') : '' };
   }
 
+  // ---- My garage: up to three bikes saved on this device only ----
+  var GARAGE_KEY = 'mxp_garage_v1';
+  function cleanBike(b) {
+    if (!b || !GAPS[b.type] || !/^\d{4}-\d{2}-\d{2}$/.test(String(b.last || ''))) return null;
+    var name = String(b.name || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 24) || GAPS[b.type].name;
+    var km = Math.round(Number(b.km)); if (!(km >= 0 && km <= 60000)) km = 0;
+    return { name: name, type: b.type, last: b.last, km: GAPS[b.type].km ? km : 0 };
+  }
+  function addBike(list, bike) {
+    var c = cleanBike(bike); if (!c) return (list || []).slice(0, 3);
+    var out = (list || []).map(cleanBike).filter(Boolean).filter(function (x) { return x.name.toLowerCase() !== c.name.toLowerCase(); });
+    out.unshift(c); return out.slice(0, 3);
+  }
+  function removeBike(list, name) { return (list || []).map(cleanBike).filter(Boolean).filter(function (x) { return x.name !== name; }); }
+
   /** An all-day calendar reminder for the due date, with a nudge two days before. */
   function reminderIcs(bikeName, dueDate, now) {
     var pad = function (n) { return String(n).padStart(2, '0'); }, ymd = function (d) { return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()); };
@@ -78,7 +93,9 @@
       var a2 = el('a', 'btn btn-wa btn-sm', 'Remind me on WhatsApp'); a2.href = wa('Hi Mechanix Pro, please remind me about my next service.\nBike: ' + r.gap.name + '\nLast service: ' + date.value + (r.gap.km ? '\nKm since then: ' + (km.value || 0) : '')); a2.rel = 'noopener';
       var a3 = el('a', 'btn btn-ghost btn-sm', 'Add to my calendar'); a3.download = 'mechanix-service-reminder.ics'; a3.href = '#';
       a3.addEventListener('click', function (e) { try { var blob = new win.Blob([reminderIcs(r.gap.name, r.dueDate, new Date())], { type: 'text/calendar' }); a3.href = win.URL.createObjectURL(blob); } catch (x) { e.preventDefault(); } });
-      row.appendChild(a1); row.appendChild(a2); row.appendChild(a3); out.appendChild(row);
+      var a4 = el('button', 'btn btn-ghost btn-sm', 'Save to my garage'); a4.type = 'button'; a4.addEventListener('click', function () { if (win.MXP_GARAGE_SAVE) win.MXP_GARAGE_SAVE(); a4.textContent = 'Saved on this device'; a4.disabled = true; });
+      row.appendChild(a1); row.appendChild(a2); row.appendChild(a3); row.appendChild(a4); out.appendChild(row);
+      out.appendChild(el('p', 'tiny muted', 'Saved only on this device. Nothing is sent to us.'));
     }
     [type, date, km].forEach(function (n) { n.addEventListener('input', renderDue); n.addEventListener('change', renderDue); });
     // symptom guide
@@ -103,11 +120,34 @@
       var r = preRide(ticked), head = el('div', 'rt-state ' + (r.ready ? 'rt-ok' : r.safetyFirst ? 'rt-due' : 'rt-soon'));
       head.appendChild(el('b', '', r.ready ? 'Good to ride' : r.safetyFirst ? 'Check brakes and tyres before you ride' : 'Almost there')); pout.appendChild(head);
       if (!r.ready) pout.appendChild(el('p', '', 'Still to check: ' + r.missing.map(function (k) { return PRE_NOTE[k]; }).join(', ') + '.'));
-      else pout.appendChild(el('p', '', 'All eight look good. Ride safe.'));
+      else {
+        pout.appendChild(el('p', '', 'All eight look good. Ride safe.'));
+        var sr = el('div', 'rt-row'), sh = el('a', 'btn btn-wa btn-sm', 'Tell a riding friend'); sh.rel = 'noopener'; sh.target = '_blank';
+        sh.href = 'https://wa.me/?text=' + encodeURIComponent('Ten-second pre-ride check done and I am good to ride. Try it before your next ride: https://mechanixpro.in/#rider-tools');
+        sr.appendChild(sh); pout.appendChild(sr);
+      }
       if (r.bookUrl) { var row = el('div', 'rt-row'), a = el('a', 'btn btn-primary btn-sm', 'Get it checked at your door'); a.href = r.bookUrl; row.appendChild(a); if (r.safetyFirst) { var s = el('a', 'btn btn-sos btn-sm', 'Stuck on the road? Get help'); s.href = '/roadside/'; row.appendChild(s); } pout.appendChild(row); }
     }
     pre.forEach(function (c) { c.addEventListener('change', renderPre); });
+    // garage
+    var gbox = $('garage'), nameIn = $('due-name'), garage = [];
+    try { garage = JSON.parse(win.localStorage.getItem(GARAGE_KEY) || '[]').map(cleanBike).filter(Boolean).slice(0, 3); } catch (e) { garage = []; }
+    function persist() { try { win.localStorage.setItem(GARAGE_KEY, JSON.stringify(garage)); } catch (e) {} }
+    function renderGarage() {
+      if (!gbox) return; gbox.textContent = ''; gbox.hidden = !garage.length; if (!garage.length) return;
+      gbox.appendChild(el('span', 'rt-g-label', 'Your garage'));
+      garage.forEach(function (b) {
+        var r = dueStatus(b.type, b.last, b.km, new Date()), w = el('span', 'rt-g-item' + (r ? ' rt-g-' + r.state : ''));
+        var open = el('button', 'rt-g-open', b.name + (r ? ' · ' + (r.state === 'due' ? 'due now' : r.state === 'soon' ? 'due soon' : 'on track') : '')); open.type = 'button';
+        open.addEventListener('click', function () { nameIn.value = b.name; type.value = b.type; date.value = b.last; km.value = b.km || ''; renderDue(); });
+        var del = el('button', 'rt-g-del', '\u00d7'); del.type = 'button'; del.setAttribute('aria-label', 'Remove ' + b.name + ' from your garage');
+        del.addEventListener('click', function () { garage = removeBike(garage, b.name); persist(); renderGarage(); });
+        w.appendChild(open); w.appendChild(del); gbox.appendChild(w);
+      });
+    }
+    win.MXP_GARAGE_SAVE = function () { garage = addBike(garage, { name: nameIn.value, type: type.value, last: date.value, km: km.value || 0 }); persist(); renderGarage(); };
+    renderGarage();
     renderDue();
   }
-  return { start: start, dueStatus: dueStatus, symptomPlan: symptomPlan, reminderIcs: reminderIcs, preRide: preRide, GAPS: GAPS, SYMPTOMS: SYMPTOMS };
+  return { start: start, dueStatus: dueStatus, symptomPlan: symptomPlan, reminderIcs: reminderIcs, preRide: preRide, addBike: addBike, removeBike: removeBike, cleanBike: cleanBike, GAPS: GAPS, SYMPTOMS: SYMPTOMS };
 });

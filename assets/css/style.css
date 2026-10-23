@@ -1090,3 +1090,10 @@ html{-webkit-tap-highlight-color:transparent}
 @media(max-width:700px){.rt-list{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.rt-list label{transition:none}}
 .install-row{padding-block:6px 18px}
+.rt-fields .rt-name{grid-column:1/-1}.rt-fields>div:nth-child(2){grid-column:1/-1}
+.rt-garage{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px;padding:10px 12px;border-radius:16px;background:#F5F7FB}
+.rt-garage[hidden]{display:none}.rt-g-label{font-weight:750;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#44506b;margin-right:4px}
+.rt-g-item{display:inline-flex;align-items:center;border-radius:999px;background:#fff;border:1.5px solid rgba(20,41,90,.14);overflow:hidden}
+.rt-g-open{min-height:44px;padding:0 6px 0 14px;border:0;background:none;font:650 14.5px var(--font);color:#14295A;cursor:pointer}
+.rt-g-del{width:40px;min-height:44px;border:0;background:none;font-size:20px;color:#8a93a8;cursor:pointer}.rt-g-del:hover{color:#B0301B}
+.rt-g-due{border-color:#D93A1F}.rt-g-soon{border-color:#F2A21F}.rt-g-ok{border-color:#1B9B4B}
