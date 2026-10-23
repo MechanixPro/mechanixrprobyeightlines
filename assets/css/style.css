@@ -1242,3 +1242,19 @@ html{-webkit-tap-highlight-color:transparent}
 .hero .preview{align-self:start;margin:250px 0 0 -52px}
 }
 @media(min-width:960px){.hero .preview{margin:270px 0 0 4px}}
+/* Hero stage: the rain scene with its background removed, standing on a soft ember-lit panel; the scooter runs off the left edge of the panel */
+.hero-stage{position:relative;overflow:hidden;border-radius:26px;background:radial-gradient(120% 70% at 70% 100%,rgba(242,128,31,.55),rgba(242,128,31,0) 62%),linear-gradient(165deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.16);aspect-ratio:666/1100}
+.hero-stage img{position:absolute;left:0;bottom:0;width:100%;height:auto;aspect-ratio:666/1040;border:0;border-radius:0;box-shadow:none;object-fit:contain;filter:drop-shadow(0 14px 18px rgba(0,0,0,.4))}
+/* Transparent version: no panel, only a soft glow behind the people; the scooter fades in at its cut edge */
+.hero-stage{border:0;border-radius:0;overflow:visible;background:radial-gradient(closest-side,rgba(242,128,31,.42),rgba(242,128,31,0)) center 70%/110% 70% no-repeat;aspect-ratio:666/1060}
+.hero-stage img{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 9%);mask-image:linear-gradient(90deg,transparent 0,#000 9%)}
+@media(min-width:960px){
+.hero-grid{align-items:center}
+.hero-photo.hero-stage{align-self:center;margin-top:0;width:min(100%,400px);justify-self:end}
+.hero .preview{display:none}
+}
+@media(max-width:959px){.hero-photo.hero-stage{width:min(40%,180px);top:20px}.hero-stage img{-webkit-mask-image:none;mask-image:none}}
+.hero-stage{background:radial-gradient(ellipse closest-side,rgba(242,128,31,.4),rgba(242,128,31,0)) center 72%/100% 72% no-repeat!important}
+.hero-stage img{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 4%);mask-image:linear-gradient(90deg,transparent 0,#000 4%)}
+.hero-stage{box-shadow:none!important}.hero-stage img{background:none!important}
+@media(max-width:959px){.hero-photo.hero-stage{position:absolute;right:16px;top:20px;margin:0;z-index:0}}
