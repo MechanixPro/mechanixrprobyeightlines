@@ -14,7 +14,7 @@ test('the home page leads with what we offer, then the entry points, in a clear 
 });
 test('the Axlio page says what Axlio does, attributes it, and links out safely', () => {
   const p = read('../partners/axlio/index.html');
-  assert.match(p, /run separately by Bushra Automobiles/);
+  assert.match(p, /run separately from Mechanix Pro/);
   assert.match(p, /Jayanagar/); assert.match(p, /30 minutes/); assert.match(p, /Periodic service/);
   for (const a of p.match(/<a [^>]*href="https:\/\/axlio\.in[^"]*"[^>]*>/g)) assert.match(a, /rel="noopener"/);
   assert.doesNotMatch(p, /Eightlines/);
