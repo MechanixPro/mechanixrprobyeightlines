@@ -65,7 +65,7 @@ def highlight(label, path):
 for lbl in ('Services', 'Roadside', 'How it works', 'Prices', 'Reviews', 'Join us'): highlight(lbl, os.path.join(PACK, 'highlight-' + lbl.lower().replace(' ', '-') + '.jpg'))
 def post(story, title, sub, path):
     W, H = 1080, 1350; img = Image.new('RGB', (W, H), NAVY); d = ImageDraw.Draw(img)
-    pic = Image.open(os.path.join(ROOT, f'assets/img/stories/{story}.webp')).convert('RGB'); pic = pic.resize((W, int(W * pic.size[1] / pic.size[0])), Image.LANCZOS)
+    pic = Image.open(os.path.join(ROOT, f'assets/img/stories/{story}-p.webp')).convert('RGB'); pic = pic.resize((W, int(W * pic.size[1] / pic.size[0])), Image.LANCZOS)
     img.paste(pic.crop((0, 0, W, 900)), (0, 0)); d.rectangle((0, 900, W, H), fill=NAVY); d.rectangle((0, 900, W, 914), fill=EMBER)
     tl = wrap(d, title, F(66), W - 120)[:2]
     for i, ln in enumerate(tl): d.text((60, 945 + i * 72), ln, font=F(66), fill='white')

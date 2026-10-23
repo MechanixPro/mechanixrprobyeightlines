@@ -3,6 +3,7 @@
 //   1. campaigns: once AiSensy approves a desk template, create its API campaign (no one has to press a button)
 //   2. sla: email the supervisors when a customer has waited 15 minutes for a reply, or a new lead has no owner after 15 minutes
 //   3. rating: ask a customer to rate the job, once, a couple of hours after it is completed
+//   4. journey: tell the customer when the quote is ready, when the booking is confirmed with the mechanic, and when the service is done (each once)
 import { adminDb, env, json, safeEqual, getSetting, istHour } from '../_shared/util.ts';
 import { PROJECT_API } from '../_shared/aisensy-project.ts';
 import { sendCampaign } from '../_shared/aisensy-send.ts';
@@ -10,6 +11,7 @@ import { DESK_TEMPLATES } from '../_shared/desk-templates.ts';
 import { ratingToken, ratingUrl } from '../_shared/rating.ts';
 import { sendEmail } from '../_shared/resend.ts';
 import { supervisorEmails } from '../_shared/desk-notify.ts';
+import { formatWhen } from '../_shared/when.ts';
 
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
 const MIN = 60_000;
@@ -103,6 +105,47 @@ Deno.serve(async (req) => {
       result.rating = { sent: sentN, failed: failN }; if (sentN || failN) await log('rating', failN === 0, { sent: sentN, failed: failN });
     }
   } catch (e) { result.rating = { error: String((e as Error).message) }; await log('rating', false, { error: String((e as Error).message) }); }
+
+  /* 4. journey messages: quote ready, booking confirmed, service done. Only for jobs that changed after the switch-on time, each once per job (a revised quote goes once more). */
+  try {
+    const ready = await getSetting<Record<string, boolean>>(db, 'desk_campaigns', {});
+    if (await getSetting(db, 'desk_auto_journey', true) && env('AISENSY_API_KEY')) {
+      const since = new Date(Math.max(Date.parse(String(await getSetting(db, 'desk_journey_since', new Date().toISOString()))) || 0, Date.now() - 24 * 3600_000)).toISOString();
+      const tpl = (n: string) => DESK_TEMPLATES.find((t) => t.name === n)!;
+      type Job = { l: any; kind: string; t: string; params: string[]; note: string };
+      const jobs: Job[] = [];
+      const base = () => db.from('leads').select('id,ref,name,phone,area,est_total,status,preferred_date,preferred_slot,mechanic_id,completed_at,address').is('deleted_at', null).eq('consent_whatsapp', true).eq('opted_out', false).gt('updated_at', since).limit(30);
+      if (ready[tpl('mxp_quote_ready').campaign]) {
+        const { data } = await base().eq('status', 'quoted').gt('est_total', 0);
+        for (const l of data ?? []) jobs.push({ l, kind: 'journey_quote:' + Math.round(l.est_total), t: 'mxp_quote_ready', params: [String(l.name).split(' ')[0], l.ref, String(Math.round(l.est_total))], note: 'Quote sent automatically' });
+      }
+      if (ready[tpl('mxp_booking_confirmed').campaign]) {
+        const { data } = await base().eq('status', 'scheduled').not('mechanic_id', 'is', null).not('preferred_date', 'is', null);
+        const mids = [...new Set((data ?? []).map((l: any) => l.mechanic_id))];
+        const { data: ms } = mids.length ? await db.from('mechanics').select('id,name').in('id', mids) : { data: [] };
+        for (const l of data ?? []) { const m = (ms ?? []).find((x: any) => x.id === l.mechanic_id); jobs.push({ l, kind: 'journey_booked:' + l.preferred_date + ':' + l.preferred_slot + ':' + l.mechanic_id, t: 'mxp_booking_confirmed', params: [String(l.name).split(' ')[0], l.ref, formatWhen(l.preferred_date, l.preferred_slot), String(m?.name ?? 'from our team').split(' ')[0], l.area || 'your address'], note: 'Booking confirmation sent automatically' }); }
+      }
+      if (ready[tpl('mxp_service_done').campaign]) {
+        const { data } = await base().eq('status', 'completed').not('completed_at', 'is', null);
+        for (const l of data ?? []) jobs.push({ l, kind: 'journey_done', t: 'mxp_service_done', params: [String(l.name).split(' ')[0], l.ref], note: 'Service-done message sent automatically' });
+      }
+      const ids = [...new Set(jobs.map((j) => j.l.id))];
+      const { data: sent } = ids.length ? await db.from('crm_alerts_sent').select('lead_id,kind').in('lead_id', ids) : { data: [] };
+      let sentN = 0, failN = 0;
+      for (const j of jobs.filter((x) => !(sent ?? []).some((s: any) => s.lead_id === x.l.id && s.kind === x.kind)).slice(0, 12)) {
+        const t = tpl(j.t);
+        const r = await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: t.campaign, phone: j.l.phone, name: j.l.name, params: j.params, source: 'mechanix-desk-journey' });
+        // Mark it either way so a failing number is not retried every three minutes; the log shows the failure.
+        await db.from('crm_alerts_sent').upsert({ lead_id: j.l.id, kind: j.kind }, { onConflict: 'lead_id,kind', ignoreDuplicates: true });
+        if (r.ok) {
+          sentN++;
+          await db.from('messages').insert({ lead_id: j.l.id, phone: j.l.phone, direction: 'out', sender: 'system', body: j.note }).then(() => {}, () => {});
+          await db.from('crm_activities').insert({ lead_id: j.l.id, actor: null, kind: 'whatsapp', body: j.note + ' on WhatsApp' }).then(() => {}, () => {});
+        } else { failN++; console.error('journey', j.t, j.l.ref, r.error); }
+      }
+      result.journey = { sent: sentN, failed: failN }; if (sentN || failN) await log('journey', failN === 0, { sent: sentN, failed: failN });
+    }
+  } catch (e) { result.journey = { error: String((e as Error).message) }; await log('journey', false, { error: String((e as Error).message) }); }
 
   await db.from('settings').upsert({ key: 'desk_automation_heartbeat', value: { at: new Date().toISOString(), result } }, { onConflict: 'key' }).then(() => {}, () => {});
   return json(req, { ok: true, ...result });

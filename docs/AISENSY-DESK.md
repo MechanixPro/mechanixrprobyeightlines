@@ -93,3 +93,20 @@ The bubble is the site's own, not AiSensy's script: it keeps the strict content 
 - It qualifies enquiries (bike model, service, area, PIN code, slot), never states a price (it points to mechanixpro.in/services and says the team sends the quote), never creates payment links (the team sends the Razorpay link for the initial booking amount, or the customer pays at mechanixpro.in/pay), puts safety first on accidents, and hands over to a person on complaints, refunds, accidents and roadside emergencies.
 - The stale product list (it had Basic service at ₹499) was removed so the agent cannot quote old prices.
 - The "Push qualified leads to your CRM" setting (to the `aisensy-lead` function, header `x-aisensy-secret`) did not keep its values after saving in AiSensy, so leads from the agent are not yet pushed to the desk. After going live, check that screen again.
+
+
+## Customer journey messages (added 2026-10-23)
+The desk now keeps the customer posted on WhatsApp on its own, from the same scheduled job as the rating request (`desk-automation`, every 3 minutes, 24/7). Each message is sent **once per job** and is logged in the lead's activity. One switch, **Keep the customer posted on WhatsApp**, is on the Team screen under Automation.
+
+| When the desk shows | Template | Message |
+|---|---|---|
+| Status **Quoted** with a total | `mxp_quote_ready` | "Your quote for booking X is Rs N, GST included. Nothing starts until you approve it. Reply YES…" (a revised total sends once more) |
+| Status **Scheduled** with a mechanic and a slot | `mxp_booking_confirmed` | Booking confirmed for the slot, the mechanic's first name and the area |
+| Status **Completed** | `mxp_service_done` | Service done, the 30-day service warranty has started, the GST invoice is on its way |
+| Two hours after Completed | `mxp_desk_rating_link` | Rating request with the signed link (already live) |
+| Payment link button | `mxp_desk_payment_link` | Payment link (already live) |
+
+Rules: only customers who agreed to WhatsApp and have not opted out; only jobs that changed after the switch-on time (`desk_journey_since`) and in the last 24 hours, so old leads never get a burst of messages; the first message of a job never repeats.
+
+**To go live:** open the desk, Team, WhatsApp setup, and press **Submit templates**. WhatsApp must approve the three new templates (usually within a day). The desk then creates their API campaigns by itself, with no further action.
+Not built, because the desk has no such status yet: "mechanic is on the way". It needs an "en route" step in the mechanic flow first.

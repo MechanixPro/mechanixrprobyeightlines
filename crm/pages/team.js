@@ -92,6 +92,7 @@ function automationPanel(a) {
   return `<h3>Automation</h3><div class="card auto">
     <div class="auto-grid">${row('rating', 'Ask for a rating after each job', 'Two hours after a job is completed, once, 9 AM to 8 PM. Low ratings open a ticket and email the supervisors.')}
       ${row('sla', 'Alert when a customer waits', 'An email to the supervisors after 15 minutes without an answer, or a new lead with no owner.')}
+      ${row('journey', 'Keep the customer posted on WhatsApp', 'Sends a message when the quote is ready, when the booking is confirmed with the mechanic’s name, and when the service is done. Each once per job.')}
       ${row('report', 'Daily report at 9:30 PM', 'Leads, bookings, ratings and each Care Buddy’s day, emailed to the supervisors.')}</div>
     <ul class="auto-status">
       <li>${dot(live(poll && poll.at, 20) || !cron.some((c) => c.name === 'desk-poll-replies'))} Customer replies checked ${poll ? ago(poll.at) : 'not yet'}${poll ? ` (${poll.checked} leads)` : ''}</li>

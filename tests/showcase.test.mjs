@@ -42,5 +42,9 @@ test('the hero has one cut-out picture, not a grid of tiles', () => {
   const hero = h.slice(h.indexOf('<section class="hero">'), h.indexOf('</section>'));
   assert.equal((hero.match(/<img [^>]*>/g) || []).filter((i) => /hero-roadside/.test(i)).length, 1);
   assert.doesNotMatch(hero, /mo-grid|hero-strip/);
-  assert.ok(readFileSync(new URL('../assets/img/hero-roadside.webp', import.meta.url)).length > 20000);
+  assert.ok(readFileSync(new URL('../assets/img/hero-roadside-p.webp', import.meta.url)).length > 20000);
+});
+test('the site pictures use the plate-covered versions only', () => {
+  const home = read('../index.html');
+  for (const m of home.matchAll(/assets\/img\/(stories\/[a-z-]+|hero-roadside[a-z-]*)\.webp/g)) assert.match(m[1], /-p$/, m[0]);
 });
