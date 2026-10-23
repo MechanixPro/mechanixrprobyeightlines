@@ -9,8 +9,8 @@ const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 const offers = JSON.parse(read('src/offers.json'));
 const site = JSON.parse(read('src/site.json'));
 
-test('four ad campaigns exist with a slug, headline and a real service', () => {
-  assert.deepEqual(offers.map((o) => o.slug).sort(), ['bike-service', 'ev-check', 'monsoon-check', 'pre-trip-check']);
+test('five ad campaigns exist with a slug, headline and a real service', () => {
+  assert.deepEqual(offers.map((o) => o.slug).sort(), ['bike-service', 'diwali-ready', 'ev-check', 'monsoon-check', 'pre-trip-check']);
   for (const o of offers) { assert.match(o.slug, /^[a-z0-9-]+$/); assert.ok(o.headline && o.lead && o.service in site.services); assert.ok(o.checks.length >= 4); }
 });
 for (const o of offers) {

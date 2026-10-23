@@ -5,12 +5,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = 'https://mechanixpro.in'
 TODAY = datetime.date.today().isoformat()
 
-NAV = '''<a class="skip" href="#main">Skip to content</a>
+NAV = '''<div class="diwali-bar" data-diwali-bar role="region" aria-label="Diwali"><a href="/offers/diwali-ready/"><span class="db-spark" aria-hidden="true">&#10024;</span><b>Diwali special.</b> <span data-diwali-line>Get your bike checked at your door before the festive rides. Quote first, open 24/7.</span><u> See how &rarr;</u></a><button type="button" class="db-x" aria-label="Close the Diwali banner">&times;</button></div>
+<a class="skip" href="#main">Skip to content</a>
 <header class="nav"><div class="wrap">
   <a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="27"><img class="wm" src="/assets/img/logo-wordmark.webp" alt="" width="137" height="12"></a>
   <nav class="links" aria-label="Main"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track booking</a></nav>
   <details class="menu"><summary aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
-    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
+    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/join/">Join as a garage or mechanic</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
   <a class="btn btn-ghost btn-sm call-btn" href="#" data-call><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call us</a>
   <a class="btn btn-primary btn-sm cta" href="/book/">Get a quote</a>
 </div></header>
@@ -52,7 +53,7 @@ HEAD = '''<!doctype html>
 {nav}<main id="main" class="{main}">
 '''
 FOOT = '''</main>
-{footer}{extra}<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pingeo.js" defer></script><script src="/assets/js/pinmap.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script><script src="/assets/js/reveal.js" defer></script><script src="/assets/js/media.js" defer></script><script src="/assets/js/apollo.js" defer></script></body>
+{footer}{extra}<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pingeo.js" defer></script><script src="/assets/js/pinmap.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script><script src="/assets/js/diwali.js" defer></script><script src="/assets/js/reveal.js" defer></script><script src="/assets/js/media.js" defer></script><script src="/assets/js/apollo.js" defer></script></body>
 </html>
 '''
 LEGAL_JS = '<script src="/assets/js/page.js" defer></script>'
@@ -784,6 +785,39 @@ for slug, src, title, desc, ld, body, scripts, prio in MAIN:
     write(f'{slug}/index.html' if slug else 'index.html', out)
     if slug: urls.append((f'/{slug}/', prio))
 urls[0] = ('/', '1.0')
+
+# ---- Join us: garages and independent mechanics apply here. The form goes to the submit-partner function and lands in the desk as a garage at "applied". ----
+def join_page():
+    kinds = ''.join(f'<label class="chip-check"><input type="radio" name="pt-kind" value="{k}"{" checked" if k == "garage" else ""}><span>{l}</span></label>' for k, l in (('garage', 'Garage or workshop'), ('mechanic', 'Independent mechanic')))
+    work = ''.join(f'<label class="chip-check"><input type="checkbox" name="pt-work" value="{k}"><span>{l}</span></label>' for k, l in (('bike', 'Motorcycles'), ('scooter', 'Scooters'), ('electric', 'Electric bikes and scooters'), ('car', 'Cars')))
+    steps = ''.join(f'<li class="soon-step reveal" style="--i:{i}"><span class="soon-n">{i + 1}</span><span>{html.escape(t)}</span></li>' for i, t in enumerate((
+        'You apply here. It takes two minutes.', 'Our team calls you and visits your workshop.', 'We check your documents and tools.', 'A short training on how Mechanix Pro works.', 'A few trial jobs, then you go live.')))
+    body = f'''<section class="soon-hero"><div class="soon-glow" aria-hidden="true"></div><div class="wrap">
+  <p class="breadcrumb soon-crumb"><a href="/">Home</a> &rsaquo; Join us</p>
+  <div class="soon-hero-grid"><div class="soon-copy"><span class="soon-pill">For garages and mechanics</span><h1>Join the Mechanix Pro network.</h1><p class="lead">Run a garage or work as a mechanic in Bengaluru? Apply to join us. We bring doorstep bookings, you bring the skill.</p>
+    <div class="row"><a class="btn btn-primary" href="#apply">Apply now</a><a class="btn btn-ghost-light" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I run a garage / I am a mechanic and I want to join your network.">Ask on WhatsApp</a></div></div></div>
+</div></section>
+<section class="band"><div class="wrap"><div class="sec-head"><h2>How joining works.</h2><p>Every garage and mechanic is checked before the first job, so customers can trust the name.</p></div><ol class="soon-steps">{steps}</ol></div></section>
+<section id="apply"><div class="wrap"><div class="sec-head"><h2>Apply to join.</h2><p>Fill this in and our team will call you. We use these details only to contact you about joining.</p></div>
+<form class="wl card" id="partnerForm" novalidate>
+  <fieldset class="wl-interests"><legend class="label">I am a</legend><div class="wl-chips">{kinds}</div></fieldset>
+  <div class="wl-grid">
+    <div><label class="label" for="pt-owner">Your name</label><input id="pt-owner" maxlength="80" autocomplete="name"></div>
+    <div><label class="label" for="pt-mobile">Mobile number</label><input id="pt-mobile" inputmode="numeric" maxlength="10" autocomplete="tel-national" placeholder="10-digit number"></div>
+    <div id="pt-name-wrap"><label class="label" for="pt-name">Garage name</label><input id="pt-name" maxlength="80"></div>
+    <div id="pt-bays-wrap"><label class="label" for="pt-bays">Number of bays (optional)</label><input id="pt-bays" inputmode="numeric" maxlength="2"></div>
+    <div><label class="label" for="pt-address">Area or address in Bengaluru</label><input id="pt-address" maxlength="200" autocomplete="street-address"></div>
+    <div><label class="label" for="pt-pin">PIN code (optional)</label><input id="pt-pin" inputmode="numeric" maxlength="6" autocomplete="postal-code"></div>
+  </div>
+  <fieldset class="wl-interests"><legend class="label">What do you work on?</legend><div class="wl-chips">{work}</div></fieldset>
+  <label class="label" for="pt-note">Anything else we should know? (optional)</label><input id="pt-note" maxlength="300">
+  <label class="check"><input type="checkbox" id="pt-consent"><span>It is fine to contact me about joining Mechanix Pro.</span></label>
+  <button class="btn btn-primary" type="submit" style="margin-top:14px">Send my application</button>
+  <p class="wl-msg" id="ptMsg" role="status" aria-live="polite"></p>
+</form></div></section>'''
+    write('join/index.html', HEAD.format(title='Join Mechanix Pro: Garages and Mechanics in Bengaluru', desc='Run a garage or work as a mechanic in Bengaluru? Apply to join the Mechanix Pro network and get doorstep bookings.', url=f'{SITE}/join/', site=SITE, schema='', scripts=LEGAL_JS + '<script src="/assets/js/partner.js" defer></script>', body='', nav=NAV, main='') + body + foot())
+    urls.append(('/join/', '0.6'))
+join_page()
 
 sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + ''.join(f'  <url><loc>{SITE}{u}</loc><lastmod>{TODAY}</lastmod><priority>{p}</priority></url>\n' for u, p in urls) + '</urlset>\n'
 write('sitemap.xml', sm)
