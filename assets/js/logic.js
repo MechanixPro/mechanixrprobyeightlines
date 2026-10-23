@@ -221,6 +221,8 @@
     var pn = (p.get('pin') || '').replace(/\s/g, ''); if (/^\d{6}$/.test(pn)) out.pin = pn;
     out.nick = (p.get('nick') || '').replace(/<[^>]*>/g, '').replace(/[<>"\u0000-\u001f]/g, '').trim().slice(0, 24);
     var wantS = (p.get('service') || '').trim().toLowerCase(); if (wantS && (serviceIds || []).indexOf(wantS) > -1) out.service = wantS;
+    out.issues = (p.get('issues') || '').split(',').map(function (x) { return x.trim().toLowerCase(); }).filter(function (x, i, a) { return ISSUE_TXT[x] && a.indexOf(x) === i; }).slice(0, 4);
+    var wantK = (p.get('km') || '').trim().toLowerCase(); out.km = KM_TXT[wantK] ? wantK : '';
     return out;
   }
   function prefillFromQuery(search, bikes) {

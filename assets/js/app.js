@@ -602,10 +602,11 @@
     if (pre.brand) { if (st.brand !== pre.brand) { st.brand = pre.brand; st.model = ''; } if (pre.model) st.model = pre.model; st.step = 0; }
     var ex = L.prefillExtras(location.search, items.map(function (x) { return x.id; }));
     if (ex.nick) st.nick = ex.nick;
+    if (ex.issues && ex.issues.length) { st.issues = ex.issues; } if (ex.km) st.km = ex.km;
     if (ex.pin) { st.pin = ex.pin; var pi0 = L.pinInfo(ex.pin, window.MXP_PINS || {}); if (pi0 && pi0.known && !st.area) { st.area = pi0.name; st.areaAuto = true; } }
     if (ex.service && svc(ex.service) && !service) { st.service = ex.service; st.picked = true; }
     if (service && svc(service)) st.service = service;
-    if (ex.nick || pre.brand || ex.service || ex.pin) save();
+    if (ex.nick || pre.brand || ex.service || ex.pin || (ex.issues && ex.issues.length) || ex.km) save();
     if (st.step > 3) st.step = 0;
     var t0 = todayIso(); calY = +t0.slice(0, 4); calM = +t0.slice(5, 7) - 1;
     if (st.dateIso && st.dateIso < t0) { st.dateIso = ''; st.hour = null; st.slot = ''; }

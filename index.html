@@ -121,6 +121,33 @@
           </div>
   </div>
 </section>
+<section id="rider-tools" class="reveal" aria-labelledby="rt-h">
+  <div class="wrap">
+    <div class="sec-head"><h2 id="rt-h">Free tools for riders.</h2><p>Two things worth a minute before your next ride. No sign-up, nothing is sent anywhere.</p></div>
+    <div class="rt-grid">
+      <div class="rt-card" id="rt-due">
+        <span class="rt-tag">Service due check</span>
+        <h3>Is your bike due for a service?</h3>
+        <div class="rt-fields">
+          <div><label class="label" for="due-type">Your bike</label><select id="due-type"><option value="scooter">Scooter</option><option value="commuter">Commuter motorcycle</option><option value="perf">Performance or cruiser</option><option value="ev">Electric scooter or bike</option></select></div>
+          <div><label class="label" for="due-date">Last service on</label><input id="due-date" type="date"></div>
+          <div id="due-km-wrap"><label class="label" for="due-km">Km since then</label><input id="due-km" inputmode="numeric" maxlength="5" placeholder="e.g. 2500"></div>
+        </div>
+        <div class="rt-out" id="due-out" role="status" aria-live="polite"><p class="rt-hint">Pick the date of your last service to see where you stand.</p></div>
+        <p class="tiny muted">Typical gaps for most bikes. Your owner&rsquo;s manual has the exact number for yours.</p>
+      </div>
+      <div class="rt-card" id="rt-sym">
+        <span class="rt-tag">What is my bike telling me?</span>
+        <h3>Tap what you notice.</h3>
+        <div class="rt-chips" role="group" aria-label="Symptoms">
+          <button type="button" data-s="start" aria-pressed="false">Hard to start</button><button type="button" data-s="pickup" aria-pressed="false">Low pickup or mileage</button><button type="button" data-s="brake" aria-pressed="false">Weak or noisy brakes</button><button type="button" data-s="chain" aria-pressed="false">Chain noise</button><button type="button" data-s="clutch" aria-pressed="false">Clutch hard or slipping</button><button type="button" data-s="battery" aria-pressed="false">Battery or self-start</button><button type="button" data-s="tyre" aria-pressed="false">Puncture or worn tyre</button><button type="button" data-s="heat" aria-pressed="false">Engine heating</button><button type="button" data-s="leak" aria-pressed="false">Oil leak</button>
+        </div>
+        <div class="rt-out" id="sym-out" role="status" aria-live="polite"><p class="rt-hint">Pick up to three. We show the usual causes and what to do.</p></div>
+        <p class="tiny muted">General guidance, not a diagnosis. A mechanic checks the real cause and quotes first.</p>
+      </div>
+    </div>
+  </div>
+</section>
 <section id="experience" class="reveal" aria-labelledby="exp-h">
   <div class="wrap">
     <div class="sec-head"><h2 id="exp-h">See how it feels.</h2><p>From your first message to the finished ride, in three moments. Swipe through.</p></div>
@@ -311,5 +338,5 @@
 </footer>
 <a class="wa-fab" href="#" data-wa="general" aria-label="Chat on WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp us</a>
 <div class="mbar" id="mbar"><a class="btn btn-ghost" href="#" data-call aria-label="Call us"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call</a><a class="btn btn-wa" href="#" data-wa="general">WhatsApp</a><a class="btn btn-primary" href="/book/">Quote</a></div>
-<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pingeo.js" defer></script><script src="/assets/js/pinmap.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script><script src="/assets/js/motion.js" defer></script><script src="/assets/js/stories.js" defer></script><script src="/assets/js/perf.js" defer></script><script src="/assets/js/diwali.js" defer></script><script src="/assets/js/reveal.js" defer></script><script src="/assets/js/media.js" defer></script><script src="/assets/js/apollo.js" defer></script></body>
+<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pingeo.js" defer></script><script src="/assets/js/pinmap.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script><script src="/assets/js/motion.js" defer></script><script src="/assets/js/stories.js" defer></script><script src="/assets/js/perf.js" defer></script><script src="/assets/js/rider-tools.js" defer></script><script src="/assets/js/diwali.js" defer></script><script src="/assets/js/reveal.js" defer></script><script src="/assets/js/media.js" defer></script><script src="/assets/js/apollo.js" defer></script></body>
 </html>

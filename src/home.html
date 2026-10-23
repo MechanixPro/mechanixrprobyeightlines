@@ -80,6 +80,33 @@
           </div>
   </div>
 </section>
+<section id="rider-tools" class="reveal" aria-labelledby="rt-h">
+  <div class="wrap">
+    <div class="sec-head"><h2 id="rt-h">Free tools for riders.</h2><p>Two things worth a minute before your next ride. No sign-up, nothing is sent anywhere.</p></div>
+    <div class="rt-grid">
+      <div class="rt-card" id="rt-due">
+        <span class="rt-tag">Service due check</span>
+        <h3>Is your bike due for a service?</h3>
+        <div class="rt-fields">
+          <div><label class="label" for="due-type">Your bike</label><select id="due-type"><option value="scooter">Scooter</option><option value="commuter">Commuter motorcycle</option><option value="perf">Performance or cruiser</option><option value="ev">Electric scooter or bike</option></select></div>
+          <div><label class="label" for="due-date">Last service on</label><input id="due-date" type="date"></div>
+          <div id="due-km-wrap"><label class="label" for="due-km">Km since then</label><input id="due-km" inputmode="numeric" maxlength="5" placeholder="e.g. 2500"></div>
+        </div>
+        <div class="rt-out" id="due-out" role="status" aria-live="polite"><p class="rt-hint">Pick the date of your last service to see where you stand.</p></div>
+        <p class="tiny muted">Typical gaps for most bikes. Your owner&rsquo;s manual has the exact number for yours.</p>
+      </div>
+      <div class="rt-card" id="rt-sym">
+        <span class="rt-tag">What is my bike telling me?</span>
+        <h3>Tap what you notice.</h3>
+        <div class="rt-chips" role="group" aria-label="Symptoms">
+          <button type="button" data-s="start" aria-pressed="false">Hard to start</button><button type="button" data-s="pickup" aria-pressed="false">Low pickup or mileage</button><button type="button" data-s="brake" aria-pressed="false">Weak or noisy brakes</button><button type="button" data-s="chain" aria-pressed="false">Chain noise</button><button type="button" data-s="clutch" aria-pressed="false">Clutch hard or slipping</button><button type="button" data-s="battery" aria-pressed="false">Battery or self-start</button><button type="button" data-s="tyre" aria-pressed="false">Puncture or worn tyre</button><button type="button" data-s="heat" aria-pressed="false">Engine heating</button><button type="button" data-s="leak" aria-pressed="false">Oil leak</button>
+        </div>
+        <div class="rt-out" id="sym-out" role="status" aria-live="polite"><p class="rt-hint">Pick up to three. We show the usual causes and what to do.</p></div>
+        <p class="tiny muted">General guidance, not a diagnosis. A mechanic checks the real cause and quotes first.</p>
+      </div>
+    </div>
+  </div>
+</section>
 <section id="experience" class="reveal" aria-labelledby="exp-h">
   <div class="wrap">
     <div class="sec-head"><h2 id="exp-h">See how it feels.</h2><p>From your first message to the finished ride, in three moments. Swipe through.</p></div>

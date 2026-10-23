@@ -91,7 +91,13 @@ A hand-off for anyone (or any future Claude session) who continues this work. It
 
 
 ## Care Buddy desk (CRM) — state 2026-10-22
-- Phase 1 built and tested; **not deployed yet** (CRM project mechanixpro-crm). Migrations 20261110 to 20261115 are applied to Supabase (permissions engine, leads RPCs, garages/hubs/visits, mechanics onboarding, booking sync, tickets, RSA, playbooks/fitments/SOPs, pickers).
+- **Live** at https://mechanixpro-crm.pages.dev/crm/ (Cloudflare project mechanixpro-crm, deploy with `sh scripts/build_crm.sh` then wrangler). Automation runs every 3 minutes (pg_cron). No Care Buddy accounts exist yet; the owner is the only login until a supervisor adds people on the Team screen. Migrations 20261110 to 20261115 are applied to Supabase (permissions engine, leads RPCs, garages/hubs/visits, mechanics onboarding, booking sync, tickets, RSA, playbooks/fitments/SOPs, pickers).
 - Front-end: `crm/crm.js` (shell, My day, lead sheet), `crm/ui.js` (helpers), `crm/pages/*` (one file per screen). Menu is built from `crm_me().permissions`; the database enforces every action with `crm_can()`.
 - Starter RSA playbooks are DRAFTS: a technical head must review and publish them before agents see them.
 - Phase 2 waits for the AiSensy number and templates (Inbox, payment link, ratings, coupons screen, client reports). Phase 3 is the calling tool (Agentive).
+
+
+## Pricing sheet by engine size (state 2026-10-23)
+- On 16 Oct the owner typed an engine-size sheet into the admin Prices tab by renaming rows: Basic 0-149cc 599, Standard 0-149cc 799, Full 0-149cc 1,299, Basic 150-250cc 799, Standard 150-250cc 1,299, Full 150-250cc 1,799, above-250cc surcharge 300.
+- That overwrote `repair`, `sos` and `newfee` (the slot fee showed Rs 1,799). Migration 20261125 restored the three core rows (Repair or problem check 799, Roadside emergency 1,299, new-customer slot fee Rs 99) and saved the 150-250cc tiers as inactive rows `basic250`, `general250`, `full250`.
+- **Pending:** rebuild booking, server pricing, invoices, admin and the desk around engine classes (0-149, 150-250, above 250 = 150-250 price plus the surcharge). Rules to confirm with the owner first.
