@@ -526,6 +526,7 @@ function moneyCardBody(l) {
   const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
   return `<div class="card" style="margin-top:12px">${head}<p style="margin:0 0 6px">${a.statusLabels.map(statusPill).join(' ')}</p>
     <dl class="kv">${row('Invoice total', '<b>' + rupee2(a.total) + '</b>')}${row('Collected by the company, manual', rupee2(a.byChannel.company_manual))}${row('Collected online (Razorpay)', rupee2(a.byChannel.company_portal))}${row('Collected by the mechanic', rupee2(a.byChannel.mechanic))}${row('Customer still owes', '<b>' + rupee2(a.outstanding) + '</b>')}${a.mechanicId ? row('Mechanic must pay the company', rupee2(a.remitDue)) + row('Company must pay the mechanic', rupee2(a.payoutDue)) : ''}</dl>
+    ${a.remitDue > 0.005 && l.mechanic_id ? `<div class="remit-box"><b>${esc(S.mechanics.find((m) => m.id === l.mechanic_id)?.name || 'The mechanic')} owes the company ${rupee2(a.remitDue)}</b><span class="tiny muted">Collected at the door. Send a payment link on WhatsApp for the company share only. When it is paid it is recorded here automatically.</span><button class="btn btn-wa btn-sm" type="button" data-act="mechPayLink" data-amt="${a.remitDue}" data-id="${l.id}">Send payment link to the mechanic</button></div>` : ''}
     ${entryRows(entries, true)}${btn}</div>`;
 }
 async function openLead(id, silent) {
@@ -995,6 +996,18 @@ const ACT = {
   async invPrint() { const l = S.leads.find((x) => x.id === S.open); if (!l || !detailsOk(l)) return; await saveInvoiceCopy(l, 'print'); window.print(); },
   invEdit() { const b = $('#invEditBox'); if (!b) return; b.hidden = !b.hidden; if (!b.hidden) b.scrollIntoView({ block: 'nearest' }); },
   invAddRow() { $('#ie-rows').insertAdjacentHTML('beforeend', invEditRow('', '')); $('#ie-rows').lastElementChild.querySelector('input').focus(); },
+  async mechPayLink(btn) {
+    const l = S.leads.find((x) => x.id === btn.dataset.id); if (!l) return;
+    const m = S.mechanics.find((x) => x.id === l.mechanic_id); if (!m || !m.phone) return toast('Add the mechanic\'s phone number first');
+    const amt = Math.round(Number(btn.dataset.amt) * 100) / 100; if (!(amt >= 1)) return toast('Nothing is due');
+    btn.disabled = true; const old = btn.textContent; btn.textContent = 'Making link…';
+    const { data, error } = await sb.functions.invoke('mechanic-pay-link', { body: { lead_id: l.id, amount: amt } });
+    btn.disabled = false; btn.textContent = old;
+    if (error || !data || data.error) return toast('Could not make the link: ' + ((data && data.error) || (error && error.message) || 'try again'));
+    const first = String(m.name).split(' ')[0];
+    const text = `Hi ${first}, booking ${l.ref} is complete. Please pay the company share ${rupee2(amt)} here: ${data.url}`;
+    window.open(waLink(m.phone, text), '_blank', 'noopener'); toast('Link made. WhatsApp is open with the message ready.');
+  },
   iselMode() { S.imode = !S.imode; S.isel.clear(); render(); },
   iselAll() { registerRows().forEach((r) => S.isel.add(r.lead_id)); render(); },
   async iselDelete() {

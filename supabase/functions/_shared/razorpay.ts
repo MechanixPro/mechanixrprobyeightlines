@@ -3,7 +3,7 @@ import { env } from './util.ts';
 
 export const razorpayReady = () => Boolean(env('RAZORPAY_KEY_ID') && env('RAZORPAY_KEY_SECRET'));
 
-export async function createPaymentLink(opts: { amount: number; ref: string; leadId: string; name: string; phone: string; description: string }) {
+export async function createPaymentLink(opts: { amount: number; ref: string; leadId: string; name: string; phone: string; description: string; notes?: Record<string, string> }) {
   if (!razorpayReady()) throw new Error('Razorpay keys are not configured');
   const auth = btoa(`${env('RAZORPAY_KEY_ID')}:${env('RAZORPAY_KEY_SECRET')}`);
   const r = await fetch('https://api.razorpay.com/v1/payment_links', {
@@ -15,7 +15,7 @@ export async function createPaymentLink(opts: { amount: number; ref: string; lea
       reference_id: `${opts.ref}-${Date.now().toString(36)}`,
       customer: { name: opts.name, contact: '+91' + opts.phone },
       notify: { sms: false, email: false }, reminder_enable: false,
-      notes: { lead_id: opts.leadId, ref: opts.ref },
+      notes: { lead_id: opts.leadId, ref: opts.ref, ...(opts.notes ?? {}) },
       expire_by: Math.floor(Date.now() / 1000) + 3 * 24 * 3600,
     }),
   });

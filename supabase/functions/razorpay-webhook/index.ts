@@ -15,6 +15,14 @@ Deno.serve(async (req) => {
   const leadId = pl?.notes?.lead_id;
   if (!leadId) return new Response('no lead');
   const db = adminDb();
+  // A mechanic paying the company's share: record a remittance for that mechanic and booking. The booking itself stays as it is.
+  if (pl?.notes?.purpose === 'remittance' && pl?.notes?.mechanic_id) {
+    const amt = (pay?.amount ?? pl?.amount_paid ?? 0) / 100;
+    const { error } = await db.from('ledger_entries').insert({ lead_id: leadId, mechanic_id: pl.notes.mechanic_id, entry_type: 'remittance', amount: amt, method: 'Razorpay payment link', reference: pay?.id ?? null, gateway_txn_id: pay?.id ?? null, source: 'gateway', note: 'Company share paid by the mechanic through a payment link' });
+    if (error && error.code !== '23505') { console.error('remittance insert failed', error); return new Response('retry', { status: 500 }); }
+    await db.from('audit_log').insert({ actor: null, action: 'mechanic_remitted', details: { lead: leadId, amount: amt, payment_id: pay?.id } });
+    return new Response('ok');
+  }
   const { data: lead } = await db.from('leads').select('*').eq('id', leadId).maybeSingle();
   if (!lead || lead.status === 'paid') return new Response('ok');
 
