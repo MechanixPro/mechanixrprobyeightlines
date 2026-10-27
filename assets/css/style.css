@@ -1247,3 +1247,10 @@ html{-webkit-tap-highlight-color:transparent}
 .rate-table th{background:#14295A;color:#fff;text-align:left;padding:12px 14px;font-size:13.5px}.rate-table td{padding:12px 14px;border-bottom:1px solid rgba(20,41,90,.08);vertical-align:top}
 .rate-table .num{text-align:right;white-space:nowrap}.rate-table tr:last-child td{border-bottom:0}
 @media(max-width:560px){.rate-table th,.rate-table td{padding:10px 8px;font-size:13px}.rate-table th{font-size:11.5px}}
+/* Hero background, convoy: a line of bikes (Royal Enfield and others) rides slowly across behind the headline, all facing the way they travel */
+.hero-ride{height:46%}
+.hero-ride .convoy{position:absolute;left:0;bottom:16px;display:flex;align-items:flex-end;gap:clamp(48px,7vw,120px);width:max-content;animation:heroConvoy 80s linear infinite;will-change:transform}
+.hero-ride .convoy img{position:static;width:auto;height:clamp(96px,14vw,180px);opacity:.3;filter:saturate(.9) drop-shadow(0 14px 18px rgba(0,0,0,.4));animation:none}
+@keyframes heroConvoy{0%{transform:translateX(-100%)}100%{transform:translateX(100vw)}}
+@media(max-width:700px){.hero-ride{height:30%}.hero-ride .convoy{animation-duration:60s}.hero-ride .convoy img{height:clamp(70px,22vw,110px);opacity:.26}}
+@media(prefers-reduced-motion:reduce){.hero-ride .convoy{animation:none;transform:none;left:-2%}}
