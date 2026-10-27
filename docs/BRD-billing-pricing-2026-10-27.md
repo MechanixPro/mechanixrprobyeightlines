@@ -80,3 +80,17 @@ Risks: invoice numbers and revisions are accounting records, so edits must never
 3. **Shareable link.** Is this one fixed link for all company payments (like a payment page), or a link you create per amount and send to a customer? Where should payments be matched to bookings?
 4. **Website rate card.** Show prices before GST, with GST, or both? One page for bikes only?
 5. **Price shown on the site.** Notes say "excluding GST" for the list. Should customer-facing prices stay GST-inclusive as now (current rule, ₹499 etc.)?
+
+## 7. Answers received 2026-10-27 (owner)
+1. **Mandatory fields:** customer name, mobile number and vehicle number are required to save, print or email an invoice. Email stays optional. "Serial number" means the invoice number, which stays automatic. (Phase 1, built locally.)
+2. **Shareable payment link (R5):** the link is reusable. Every payment made through it is recorded when the payment provider calls back (the callback is stored in the payments ledger). Matching to a booking is by mobile number or reference; anything that does not match stays in an "Unmatched payments" list for the admin to assign.
+3. **Prices are shown excluding GST** to customers too (not only on the admin screen and rate card). GST at 18% is added on top and shown on the quote, payment and invoice. **This changes every customer-facing price and the amount charged**, so it is its own phase; see section 8.
+4. **New service:** "Puncture sorted at your doorstep or anywhere", **₹599 excluding GST** (the "Puncture - 599, it excluding GST" line on page 1 of the notes).
+5. **Prices tab:** the admin can edit packages and add-ons **and** add new package types.
+
+## 8. Added phases
+| Phase | Work | Notes |
+|---|---|---|
+| 4a | Pricing semantics: prices become "before GST". Show "+ GST" on site, quote, desk, booking and payment; charge price plus GST; invoice basis defaults to before GST. | Needs one decision: do the current numbers (499, 799, 1,299, fees) stay as they are and GST is added on top (customers pay about 18% more), or are the current GST-inclusive amounts converted down to before-GST numbers (customers pay the same as today)? |
+| 4b | Add the Puncture service at ₹599 before GST: service row, site service cards and rate card, booking builder, desk catalog, FAQ, sync script. | Keep prices consistent across app.js defaults, build_pages.py, SQL seed and FAQ. |
+| 5 | Shareable payment link with callback recording and an Unmatched payments list. | Uses the existing Razorpay webhook; add a reusable payment link and a ledger entry per callback. |

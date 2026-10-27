@@ -4,7 +4,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { adminDb, env, json, corsHeaders } from '../_shared/util.ts';
 import { sendEmail, FROM_BOOKING } from '../_shared/resend.ts';
 import { invoiceEmail } from '../_shared/email-templates.ts';
-import { buildInvoice } from '../_shared/invoice.ts';
+import { buildInvoice, missingDetails } from '../_shared/invoice.ts';
 import { COMPANY } from '../_shared/company.ts';
 
 Deno.serve(async (req) => {
@@ -24,8 +24,10 @@ Deno.serve(async (req) => {
   if (!cust?.email) return json(req, { error: 'This customer did not give an email address' }, 400);
   const { data: services } = await db.from('services').select('id,kind,name,price');
   // The engine size lives on the bike: bring it onto the booking so the bill matches the estimate.
-  const { data: bike } = lead.bike_id ? await db.from('bikes').select('big_bike,engine_class').eq('id', lead.bike_id).maybeSingle() : { data: null };
-  const invoice = buildInvoice({ ...lead, big_bike: bike?.big_bike ?? false, engine_class: bike?.engine_class ?? null }, services ?? [], { customer: cust });
+  const { data: bike } = lead.bike_id ? await db.from('bikes').select('big_bike,engine_class,reg_no,brand,model').eq('id', lead.bike_id).maybeSingle() : { data: null };
+  const invoice = buildInvoice({ ...lead, big_bike: bike?.big_bike ?? false, engine_class: bike?.engine_class ?? null }, services ?? [], { customer: cust, bike });
+  const miss = missingDetails(invoice);
+  if (miss.length) return json(req, { error: 'Add the ' + miss.join(', ') + ' to the invoice first' }, 400);
   if (!invoice.lines.length) return json(req, { error: 'This booking has no priced items to invoice' }, 400);
 
   const mail = invoiceEmail({

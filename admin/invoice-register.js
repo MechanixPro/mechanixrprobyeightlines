@@ -23,7 +23,7 @@ export function snapshotRow({ invoice, lead, customer, mechanic, via, basis, rev
   const clean = (v, n) => (String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n) || null);
   return {
     lead_id: lead.id, ref: invoice.ref, number: invoice.number + (revision > 1 ? '-R' + revision : ''), revision, issued_at: now, via: ['print', 'email', 'rebuilt'].includes(via) ? via : 'print',
-    customer_id: lead.customer_id || (customer && customer.id) || null, customer_name: clean(invoice.customer.name, 80) || 'Customer', customer_phone: clean(invoice.customer.phone, 15),
+    customer_id: lead.customer_id || (customer && customer.id) || null, customer_name: clean(invoice.customer.name, 80) || 'Customer', customer_phone: clean(invoice.customer.phone, 15), customer_email: clean(invoice.customer.email, 120), vehicle_reg: clean(invoice.vehicle && invoice.vehicle.reg, 14),
     customer_company: clean((customer && customer.company_name) || invoice.customer.company, 80), customer_gstin: clean((customer && customer.gstin) || invoice.customer.gstin, 15),
     mechanic_id: mechanic ? mechanic.id : null, mechanic_name: mechanic ? clean(mechanic.name, 80) : null,
     has_gst: rate > 0, gst_rate: rate, basis: invoice.basis === 'excl' ? 'excl' : 'incl',

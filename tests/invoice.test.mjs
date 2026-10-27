@@ -119,3 +119,27 @@ test('the plain-text invoice email says the same thing about GST as the HTML one
   assert.match(mk('excl').text, /Amounts are before GST/); assert.match(mk('excl').html, /Amounts are before GST/); assert.doesNotMatch(mk('excl').text, /Prices include 18% GST/);
   assert.match(mk('incl').text, /Prices include 18% GST/);
 });
+
+import { missingDetails } from '../admin/invoice.js';
+import { missingDetails as missingFn } from '../supabase/functions/_shared/invoice.ts';
+test('an invoice needs customer name, mobile and vehicle number; email is optional', () => {
+  const bike = { reg_no: 'ka 05 mq 1234', brand: 'Honda', model: 'Activa' };
+  for (const [build, miss] of [[buildInvoice, missingDetails], [buildInvoiceFn, missingFn]]) {
+    const v = build(lead, services, { bike });
+    assert.equal(v.vehicle.reg, 'KA 05 MQ 1234'); assert.equal(v.vehicle.label, 'Honda Activa'); assert.deepEqual(miss(v), []);
+    assert.deepEqual(miss(build(lead, services)), ['vehicle number']);
+    assert.deepEqual(miss(build({ ...lead, name: 'Customer', phone: '12345' }, services, { bike })), ['customer name', 'mobile number']);
+    assert.deepEqual(miss(build(lead, services, { bike: { reg_no: 'KA' } })), ['vehicle number']);
+    assert.equal(build(lead, services, { bike, customer: { email: 'a@b.in' } }).customer.email, 'a@b.in');
+    assert.equal(build(lead, services, { bike }).customer.email, null);
+  }
+});
+
+test('send-invoice refuses an invoice with missing details and the email shows the vehicle', () => {
+  const fn = readFileSync(new URL('../supabase/functions/send-invoice/index.ts', import.meta.url), 'utf8');
+  assert.match(fn, /missingDetails\(invoice\)/); assert.match(fn, /reg_no,brand,model/);
+  const tpl = readFileSync(new URL('../supabase/functions/_shared/email-templates.ts', import.meta.url), 'utf8');
+  assert.match(tpl, /Vehicle <b>\$\{escapeHtml\(v\.vehicle\.reg\)\}/);
+  const ui = readFileSync(new URL('../admin/admin.js', import.meta.url), 'utf8');
+  for (const a of ['invPrint', 'invEmail', 'invSaveEdit']) assert.match(ui.slice(ui.indexOf('async ' + a + '(')).slice(0, 260), /detailsOk\(l\)/, a);
+});

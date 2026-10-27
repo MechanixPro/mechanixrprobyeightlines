@@ -15,6 +15,22 @@ function cleanOverride(o) {
   return lines.length ? { basis: o.basis === 'incl' ? 'incl' : 'excl', rate: RATES.includes(Number(o.rate)) ? Number(o.rate) : 18, lines } : null;
 }
 
+// The vehicle on the invoice: registration number in capitals, plus a readable bike name.
+function vehicleOf(b) {
+  const reg = String((b && b.reg_no) || '').replace(/[^A-Za-z0-9 -]/g, '').trim().toUpperCase().slice(0, 14);
+  const label = [b && b.brand, b && b.model].filter(Boolean).join(' ').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 60) || null;
+  return { reg: reg || null, label };
+}
+
+// What an invoice must have before it can be saved, printed or emailed. Email is optional. Returns plain-words labels of what is missing.
+export function missingDetails(inv) {
+  const out = [], name = String((inv.customer && inv.customer.name) || '').trim(), phone = String((inv.customer && inv.customer.phone) || '').replace(/\D/g, '').slice(-10);
+  if (name.length < 2 || /^customer$/i.test(name)) out.push('customer name');
+  if (!/^[6-9]\d{9}$/.test(phone)) out.push('mobile number');
+  if (!inv.vehicle || !inv.vehicle.reg || inv.vehicle.reg.replace(/[^A-Z0-9]/g, '').length < 4) out.push('vehicle number');
+  return out;
+}
+
 export function buildInvoice(lead, services, opts = {}) {
   const byId = new Map((services || []).map((s) => [s.id, s]));
   const ov = cleanOverride(lead.invoice_override);
@@ -46,7 +62,8 @@ export function buildInvoice(lead, services, opts = {}) {
   const when = new Date(opts.date || Date.now());
   const dateLabel = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(when);
   return {
-    number: 'INV-' + lead.ref, ref: lead.ref, dateLabel, customer: { name: lead.name, phone: lead.phone, company: clean80(opts.customer && opts.customer.company_name), gstin: clean80(opts.customer && opts.customer.gstin), address: clean80(opts.customer && opts.customer.address, 160) },
+    number: 'INV-' + lead.ref, ref: lead.ref, dateLabel, customer: { name: lead.name, phone: lead.phone, company: clean80(opts.customer && opts.customer.company_name), gstin: clean80(opts.customer && opts.customer.gstin), address: clean80(opts.customer && opts.customer.address, 160), email: clean80((opts.customer && opts.customer.email) || lead.email, 120) },
+    vehicle: vehicleOf(opts.bike),
     lines, subtotal: rupees(subtotal), discount: rupees(discount), couponDiscount: rupees(couponDiscount), extraDiscount: rupees(extraDiscount), extraNote: String(lead.extra_discount_note || '').slice(0, 80), total: rupees(total),
     basis, taxable: rupees(taxable), cgst: rupees(cgst), sgst: rupees(sgst), gstRate: rate,
     paid: rupees(paid), balance: rupees(total - paid), refund: rupees(Math.max(0, paidRaw - total)),

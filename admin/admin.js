@@ -7,7 +7,7 @@ import { rangeFor, buildReport, reportCsv, payoutReport } from './report.js';
 import { splitJob } from './split.js';
 import { pinRows, validPin, cleanPin, cleanPinName } from './pins-view.js';
 import { interestCounts, waitlistRows, interestLabel } from './waitlist-view.js';
-import { buildInvoice } from './invoice.js';
+import { buildInvoice, missingDetails } from './invoice.js';
 import { buildNewBooking } from './new-booking.js';
 import { buildServiceEdit } from './booking-edit.js';
 import { groupOf, firstTab, navBadges } from './nav.js';
@@ -96,6 +96,7 @@ async function boot() {
 }
 
 /* The engine size lives on the bike. An invoice needs it, so bring it onto the booking before billing. */
+const bikeOf = (l) => S.bikes.find((x) => x.id === l.bike_id) || S.bikes.filter((x) => x.customer_id && x.customer_id === l.customer_id)[0] || null;
 function withBike(l) { const b = S.bikes.find((x) => x.id === l.bike_id); return b ? { ...l, big_bike: !!b.big_bike, engine_class: b.engine_class || null } : l; }
 
 /* Engine size: bikes of 150 to 250cc and above have their own prices. Without those price rows the form keeps the old single "above 180cc" box. */
@@ -979,12 +980,29 @@ const ACT = {
     if (!data.more) S.offerKey = null;
   },
   invoice() { const l = S.leads.find((x) => x.id === S.open); if (l) openInvoice(l); },
-  async invPrint() { const l = S.leads.find((x) => x.id === S.open); if (l) await saveInvoiceCopy(l, 'print'); window.print(); },
+  async invPrint() { const l = S.leads.find((x) => x.id === S.open); if (!l || !detailsOk(l)) return; await saveInvoiceCopy(l, 'print'); window.print(); },
   invEdit() { const b = $('#invEditBox'); if (!b) return; b.hidden = !b.hidden; if (!b.hidden) b.scrollIntoView({ block: 'nearest' }); },
   invAddRow() { $('#ie-rows').insertAdjacentHTML('beforeend', invEditRow('', '')); $('#ie-rows').lastElementChild.querySelector('input').focus(); },
+  async invSaveDetails() {
+    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    const name = $('#cdn-name').value.trim(), phone = $('#cdn-phone').value.replace(/\D/g, '').slice(-10), reg = $('#cdn-reg').value.replace(/[^A-Za-z0-9 -]/g, '').trim().toUpperCase(), email = $('#cdn-email').value.trim().toLowerCase();
+    if (name.length < 2) return toast('Add the customer name');
+    if (!/^[6-9]\d{9}$/.test(phone)) return toast('Add a 10-digit mobile number');
+    if (reg.replace(/[^A-Z0-9]/g, '').length < 4) return toast('Add the vehicle number');
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast('Check the email, or leave it empty');
+    try {
+      let cid = l.customer_id, bid = l.bike_id || bikeOf(l)?.id || null;
+      if (cid) { const { error } = await sb.from('customers').update({ name, phone, email: email || null }).eq('id', cid); if (error) throw error; }
+      if (bid) { const { error } = await sb.from('bikes').update({ reg_no: reg }).eq('id', bid); if (error) throw error; }
+      else if (cid) { const { data, error } = await sb.from('bikes').insert({ customer_id: cid, reg_no: reg }).select('id').single(); if (error) throw error; bid = data.id; }
+      const { error } = await sb.from('leads').update({ name, phone, ...(bid ? { bike_id: bid } : {}), ...(email ? { email } : {}) }).eq('id', l.id); if (error) throw error;
+      await audit('invoice_details_saved', { ref: l.ref });
+    } catch (e) { return toast('Could not save the details: ' + (e.message || 'try again')); }
+    toast('Details saved'); await Promise.all([loadLeads(), loadPeople()]); openInvoice(S.leads.find((x) => x.id === l.id), { quick: true });
+  },
   invDelRow(btn) { btn.closest('.ie-row').remove(); },
   async invSaveEdit() {
-    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    const l = S.leads.find((x) => x.id === S.open); if (!l || !detailsOk(l)) return;
     const lines = [...document.querySelectorAll('#ie-rows .ie-row')].map((r) => ({ name: r.querySelector('[data-ie=name]').value.trim(), amount: parseFloat(r.querySelector('[data-ie=amount]').value) })).filter((x) => x.name || x.amount);
     if (!lines.length) return toast('Add at least one item');
     if (lines.some((x) => !x.name)) return toast('Give every amount an item name');
@@ -1015,7 +1033,7 @@ const ACT = {
     await loadLeads(); openInvoice(S.leads.find((x) => x.id === l.id), { quick: true });
   },
   async invEmail(btn) {
-    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    const l = S.leads.find((x) => x.id === S.open); if (!l || !detailsOk(l)) return;
     btn.disabled = true; const old = btn.textContent; btn.textContent = 'Sending…';
     const { data, error } = await sb.functions.invoke('send-invoice', { body: { lead_id: l.id } });
     btn.disabled = false; btn.textContent = old;
@@ -1229,11 +1247,19 @@ function countUp(el, to, ms) {
 const invEditRow = (name, amount) => `<div class="inv-adjust-row ie-row"><input data-ie="name" maxlength="80" placeholder="Item, for example: Clutch plate set" value="${esc(name)}" aria-label="Item name"><input data-ie="amount" inputmode="decimal" maxlength="9" placeholder="Amount" value="${esc(amount)}" aria-label="Amount"><button class="btn btn-ghost btn-sm" type="button" data-act="invDelRow" aria-label="Remove this item">Remove</button></div>`;
 
 // Save a copy of the invoice when it is printed or emailed. The same figures are never saved twice; a change is saved as a new revision.
+// An invoice is saved, printed or emailed only with the customer's name, mobile number and vehicle number.
+function detailsOk(lead) {
+  const miss = missingDetails(buildInvoice(lead, S.services, { customer: S.customers.find((c) => c.id === lead.customer_id) || null, bike: bikeOf(lead) }));
+  if (!miss.length) return true;
+  toast('Add the ' + miss.join(', ') + ' first'); const f = document.querySelector('.inv-need'); if (f) { f.classList.add('warn'); f.scrollIntoView({ block: 'center' }); const i = f.querySelector('input:not([value])') || f.querySelector('input'); if (i) i.focus(); }
+  return false;
+}
 async function saveInvoiceCopy(lead, via) {
   try {
     const customer = S.customers.find((c) => c.id === lead.customer_id) || null, mech = S.mechanics.find((m) => m.id === lead.mechanic_id) || null;
-    const inv = buildInvoice(lead, S.services, { customer });
+    const inv = buildInvoice(lead, S.services, { customer, bike: bikeOf(lead) });
     if (!inv.lines.length) return null;
+    if (missingDetails(inv).length) return null;
     const mine = S.invoicesAll.filter((r) => r.lead_id === lead.id).sort((a, b) => b.revision - a.revision), live = S.invoices.filter((r) => r.lead_id === lead.id).sort((a, b) => b.revision - a.revision);
     const row = snapshotRow({ invoice: inv, lead, customer, mechanic: mechFor(lead), via, basis: basis(), revision: (mine[0]?.revision || 0) + 1, now: new Date().toISOString() });
     if (live[0] && sameFigures(live[0], row)) return live[0];
@@ -1244,7 +1270,7 @@ async function saveInvoiceCopy(lead, via) {
   } catch (e) { toast('Could not save the invoice copy'); return null; }
 }
 async function openInvoice(lead, opts = {}) {
-  const co = await loadCompany(), v = buildInvoice(lead, S.services, { customer: S.customers.find((c) => c.id === lead.customer_id) }), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || opts.quick;
+  const co = await loadCompany(), v = buildInvoice(lead, S.services, { customer: S.customers.find((c) => c.id === lead.customer_id), bike: bikeOf(lead) }), need = missingDetails(v), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || opts.quick;
   $('#inv')?.remove();
   const addr = [...(co.addressLines || []), [co.city, co.state, co.pincode].filter(Boolean).join(' ')].filter(Boolean).map(esc).join('<br>');
   const el = document.createElement('div'); el.id = 'inv'; el.className = 'inv-wrap'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Invoice ' + v.number);
@@ -1253,7 +1279,10 @@ async function openInvoice(lead, opts = {}) {
   <div class="inv-paper" hidden>
     <div class="inv-head"><div><img src="/assets/img/logo.svg" alt="" width="40" height="42"><b class="inv-co">${esc(co.legalName)}</b><span class="inv-sub">Trading as ${esc(co.brand)}<br>${addr}${co.gstin ? '<br>GSTIN ' + esc(co.gstin) : ''}</span></div>
       <div class="inv-meta"><h2>${v.gstRate ? 'TAX INVOICE' : 'INVOICE'}</h2><span>${esc(v.number)}</span><span>${esc(v.dateLabel)}</span></div></div>
-    <p class="inv-to"><span>Billed to</span><b>${esc(v.customer.company || v.customer.name)}</b>${v.customer.company ? ' (' + esc(v.customer.name) + ')' : ''} · ${esc(v.customer.phone)}${v.customer.address ? '<br>' + esc(v.customer.address) : ''}${v.customer.gstin ? '<br>GSTIN ' + esc(v.customer.gstin) : ''}</p>
+    <p class="inv-to"><span>Billed to</span><b>${esc(v.customer.company || v.customer.name)}</b>${v.customer.company ? ' (' + esc(v.customer.name) + ')' : ''} · ${esc(v.customer.phone)}${v.customer.email ? '<br>' + esc(v.customer.email) : ''}${v.vehicle.reg ? '<br>Vehicle <b>' + esc(v.vehicle.reg) + '</b>' + (v.vehicle.label ? ' · ' + esc(v.vehicle.label) : '') : ''}${v.customer.address ? '<br>' + esc(v.customer.address) : ''}${v.customer.gstin ? '<br>GSTIN ' + esc(v.customer.gstin) : ''}</p>
+    <div class="inv-need card${need.length ? ' warn' : ''}"><b>Customer details</b> <span class="tiny muted">${need.length ? 'Add the ' + need.join(', ') + ' before you save, print or email.' : 'These print on the invoice. Email is optional.'}</span>
+      <div class="inv-adjust-row"><input id="cdn-name" maxlength="80" placeholder="Customer name" aria-label="Customer name" value="${esc(v.customer.name && !/^customer$/i.test(v.customer.name) ? v.customer.name : '')}"><input id="cdn-phone" inputmode="numeric" maxlength="12" placeholder="Mobile number" aria-label="Mobile number" value="${esc(v.customer.phone || '')}"></div>
+      <div class="inv-adjust-row"><input id="cdn-reg" maxlength="14" autocapitalize="characters" placeholder="Vehicle number, for example KA05MQ1234" aria-label="Vehicle number" value="${esc(v.vehicle.reg || '')}"><input id="cdn-email" type="email" maxlength="120" placeholder="Email (optional)" aria-label="Email" value="${esc(v.customer.email || '')}"><button class="btn btn-primary btn-sm" type="button" data-act="invSaveDetails">Save details</button></div></div>
     <table class="inv-table"><thead><tr><th>Item</th><th class="num">Amount (${v.basis === 'excl' ? 'excl.' : 'incl.'} GST)</th></tr></thead><tbody>
       ${v.lines.length ? v.lines.map((l, i) => `<tr class="inv-line" style="--i:${i}"><td>${esc(l.name)}</td><td class="num">${inr(l.amount)}</td></tr>`).join('') : '<tr><td colspan="2" class="muted">No priced items on this booking.</td></tr>'}
       ${v.couponDiscount ? `<tr class="inv-line" style="--i:${v.lines.length}"><td>Coupon discount</td><td class="num">− ${inr(v.couponDiscount)}</td></tr>` : ''}${v.extraDiscount ? `<tr class="inv-line" style="--i:${v.lines.length + 1}"><td>Special discount${v.extraNote ? ' (' + esc(v.extraNote) + ')' : ''}</td><td class="num">− ${inr(v.extraDiscount)}</td></tr>` : ''}</tbody></table>

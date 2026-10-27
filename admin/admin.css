@@ -169,3 +169,5 @@ details.card>summary{list-style:none}
 details.card>summary::-webkit-details-marker{display:none}
 details.card>summary::after{content:"  ▾";color:var(--muted,#5a6678)}
 details.card[open]>summary::after{content:"  ▴"}
+.inv-need{margin:12px 0;padding:12px;border-radius:14px}.inv-need.warn{border-color:#E8A33D;background:#FFF8EC}
+@media print{.inv-need{display:none!important}}
