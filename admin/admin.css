@@ -181,3 +181,12 @@ details.card[open]>summary::after{content:"  ▴"}
 .inv-tr.picked,.inv-row.picked{background:#FFF4E6}.inv-tr{cursor:pointer}
 
 .remit-box{margin:10px 0;padding:12px;border-radius:14px;background:#EAF7EF;border:1px solid #b9e3c9;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+/* Theme polish: calmer cards, navy numbers, clear paid / due colours, roomier tap targets */
+.kpi{border:1px solid rgba(20,41,90,.08);border-top:3px solid var(--ember)}.kpi b{color:#14295A}
+.list,.card{border:1px solid rgba(20,41,90,.07)}
+.row{min-height:56px}.row:hover{background:#F4F6FB}
+.pill.paid,.pill.completed{background:#DFF5E8;color:#14703f}.pill.payment_sent{background:#FFEBD2;color:#9a4c05}
+.tabs button{min-height:40px}.tabs button[aria-current="page"]{background:#14295A;color:#fff}
+.btn-sm{min-height:40px}
+.sheet-panel{background:#F6F8FC}
+@media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.sheet-panel{padding-inline:14px}}
