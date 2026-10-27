@@ -30,3 +30,7 @@ test('the card system is wired end to end', () => {
   assert.match(read('admin/admin.js'), /data-act="warrantyCard"/);
   assert.ok(readFileSync(new URL('../warranty/index.html', import.meta.url), 'utf8').includes('warranty.js'));
 });
+
+test('the site build ships the warranty and rate card pages', () => {
+  const sh = read('scripts/build_site.sh'); assert.match(sh, /\brate-card\b/); assert.match(sh, /\bwarranty\b/);
+});
