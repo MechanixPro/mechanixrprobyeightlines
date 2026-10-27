@@ -1231,3 +1231,13 @@ html{-webkit-tap-highlight-color:transparent}
 .watch-frame.on .watch-play{opacity:0;pointer-events:none;transform:scale(.8)}
 .watch-card figcaption{padding:12px 4px 0;display:flex;flex-direction:column;gap:2px}.watch-card figcaption b{font-size:16px}.watch-card figcaption span{font-size:14px;color:var(--muted,#5b6785)}
 @media(max-width:560px){.watch-grid{gap:12px}.watch-frame{border-width:4px;border-radius:20px}.watch-card figcaption b{font-size:14px}.watch-card figcaption span{font-size:12.5px}}
+/* Warranty card page */
+.wr-card{position:relative;max-width:460px;border-radius:24px;padding:22px 22px 24px;background:linear-gradient(155deg,#14295A,#0B1220);color:#fff;box-shadow:0 2px 4px rgba(15,29,69,.1),0 24px 50px rgba(15,29,69,.25);margin:18px 0}
+.wr-card header{display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:.03em}.wr-card header img{width:28px;height:auto}
+.wr-state{margin-left:auto;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border-radius:99px;padding:4px 12px;background:#DFF5E8;color:#14703f}
+.wr-card.ended .wr-state{background:#FFEBD2;color:#9a4c05}
+.wr-card h2{color:#fff;font-size:28px;margin:18px 0 2px}.wr-sub{margin:0;color:rgba(255,255,255,.88)}
+.wr-card dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:16px 0;max-width:62%}.wr-card dt{color:rgba(255,255,255,.8);font-size:14px}.wr-card dd{margin:0;font-weight:600}
+.wr-qr{position:absolute;right:20px;bottom:22px;width:34%;max-width:140px;background:#fff;border-radius:14px;padding:6px}.wr-qr svg{display:block;width:100%;height:auto}
+.wr-terms{max-width:560px;padding-left:20px;color:var(--ink-2,#44506b)}
+@media(max-width:480px){.wr-card dl{max-width:100%}.wr-qr{position:static;margin:6px 0 0 auto;width:40%}}

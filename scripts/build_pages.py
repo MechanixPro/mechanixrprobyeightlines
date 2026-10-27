@@ -672,6 +672,15 @@ write('track/index.html', _tr + '''<h1 style="font-size:40px">Track your booking
 <p class="tiny muted">Can't find it? Message us on WhatsApp with your name and number and we will tell you where it stands.</p>''' + foot(FLOAT))
 
 
+# Warranty page: the card a customer opens from WhatsApp or by scanning its QR. The details come from the public warranty-verify function.
+_wr = HEAD.format(title='Your Warranty Card | Mechanix Pro', desc='Open and verify your Mechanix Pro service warranty card.', url=f'{SITE}/warranty/', site=SITE, schema='', scripts=LEGAL_JS + '<script src="/assets/js/warranty.js" defer></script>', body='page-warranty', nav=NAV, main='')
+_wr = _wr.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
+write('warranty/index.html', _wr + '''<h1 style="font-size:40px">Your warranty card.</h1>
+<p class="muted" style="font-size:18px" id="wrLead">Checking your card.</p>
+<div id="wrCard" aria-live="polite"></div>
+<p class="tiny muted">Cards are issued when a booking is completed and fully paid. If something looks wrong, message us on WhatsApp with your booking number.</p>''' + foot(FLOAT))
+
+
 # Rate page: a customer rates a finished job from the link we send on WhatsApp. The link carries the booking reference and a signature (checked by the submit-rating function).
 _rt = HEAD.format(title='Rate Your Service | Mechanix Pro', desc='Tell us how your Mechanix Pro service went.', url=f'{SITE}/rate/', site=SITE, schema='', scripts=LEGAL_JS + '<script src="/assets/js/rate.js" defer></script>', body='', nav=NAV, main='page')
 _rt = _rt.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)

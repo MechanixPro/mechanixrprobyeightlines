@@ -527,6 +527,7 @@ function moneyCardBody(l) {
   return `<div class="card" style="margin-top:12px">${head}<p style="margin:0 0 6px">${a.statusLabels.map(statusPill).join(' ')}</p>
     <dl class="kv">${row('Invoice total', '<b>' + rupee2(a.total) + '</b>')}${row('Collected by the company, manual', rupee2(a.byChannel.company_manual))}${row('Collected online (Razorpay)', rupee2(a.byChannel.company_portal))}${row('Collected by the mechanic', rupee2(a.byChannel.mechanic))}${row('Customer still owes', '<b>' + rupee2(a.outstanding) + '</b>')}${a.mechanicId ? row('Mechanic must pay the company', rupee2(a.remitDue)) + row('Company must pay the mechanic', rupee2(a.payoutDue)) : ''}</dl>
     ${a.remitDue > 0.005 && l.mechanic_id ? `<div class="remit-box"><b>${esc(S.mechanics.find((m) => m.id === l.mechanic_id)?.name || 'The mechanic')} owes the company ${rupee2(a.remitDue)}</b><span class="tiny muted">Collected at the door. Send a payment link on WhatsApp for the company share only. When it is paid it is recorded here automatically.</span><button class="btn btn-wa btn-sm" type="button" data-act="mechPayLink" data-amt="${a.remitDue}" data-id="${l.id}">Send payment link to the mechanic</button></div>` : ''}
+    ${l.status === 'completed' && a.outstanding <= 0.005 && a.collected > 0.005 ? `<div class="remit-box"><b>Fully paid. Warranty card ready to send.</b><span class="tiny muted">A card with the vehicle, dates, terms and a QR code. It is also sent automatically on WhatsApp once the message template is approved.</span><button class="btn btn-wa btn-sm" type="button" data-act="warrantyCard" data-id="${l.id}">Send warranty card on WhatsApp</button></div>` : ''}
     ${entryRows(entries, true)}${btn}</div>`;
 }
 async function openLead(id, silent) {
@@ -1007,6 +1008,16 @@ const ACT = {
     const first = String(m.name).split(' ')[0];
     const text = `Hi ${first}, booking ${l.ref} is complete. Please pay the company share ${rupee2(amt)} here: ${data.url}`;
     window.open(waLink(m.phone, text), '_blank', 'noopener'); toast('Link made. WhatsApp is open with the message ready.');
+  },
+  async warrantyCard(btn) {
+    const l = S.leads.find((x) => x.id === btn.dataset.id); if (!l) return;
+    btn.disabled = true; const old = btn.textContent; btn.textContent = 'Making card…';
+    const { data, error } = await sb.functions.invoke('warranty-card', { body: { lead_id: l.id } });
+    btn.disabled = false; btn.textContent = old;
+    if (error || !data || data.error) { let msg = data && data.error; if (!msg && error && error.context && error.context.json) { try { msg = (await error.context.json()).error; } catch (x) { /* ignore */ } } return toast('Could not make the card: ' + (msg || (error && error.message) || 'try again')); }
+    const first = String(l.name).split(' ')[0], until = new Date(data.valid_until + 'T12:00:00+05:30').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    window.open(waLink(l.phone, `Hi ${first}, thank you. Your Mechanix Pro booking ${l.ref} is fully paid and your service warranty card is ready. It is valid until ${until}. Open and verify it here: ${data.url}`), '_blank', 'noopener');
+    await audit('warranty_card_shared', { ref: l.ref, code: data.code }); toast('Card ready. WhatsApp is open with the message.');
   },
   iselMode() { S.imode = !S.imode; S.isel.clear(); render(); },
   iselAll() { registerRows().forEach((r) => S.isel.add(r.lead_id)); render(); },

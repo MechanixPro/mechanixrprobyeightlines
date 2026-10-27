@@ -21,6 +21,9 @@ export const DESK_TEMPLATES: DeskTemplate[] = [
   { campaign: 'mxp_service_done', name: 'mxp_service_done', label: 'Service done', category: 'UTILITY',
     text: 'Hi {{1}}, your bike service for booking {{2}} is done. Our 30-day service warranty has started, and your GST invoice is on its way. Reply here if anything feels off.',
     sample: 'Hi [Name], your bike service for booking [Booking] is done. Our 30-day service warranty has started, and your GST invoice is on its way. Reply here if anything feels off.', params: 2 },
+  { campaign: 'mxp_warranty_card', name: 'mxp_warranty_card', label: 'Warranty card', category: 'UTILITY',
+    text: 'Hi {{1}}, thank you. Your Mechanix Pro booking {{2}} is fully paid and your service warranty card is ready. It is valid until {{3}}. Open and verify it here: {{4}} Thank you for choosing Mechanix Pro.',
+    sample: 'Hi [Name], thank you. Your Mechanix Pro booking [Booking] is fully paid and your service warranty card is ready. It is valid until [Date]. Open and verify it here: [Link] Thank you for choosing Mechanix Pro.', params: 4 },
 ];
 
 /** Number of distinct {{n}} placeholders, and whether they run 1..n with no gaps (WhatsApp requires that). */

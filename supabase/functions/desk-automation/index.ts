@@ -14,6 +14,7 @@ import { sendEmail } from '../_shared/resend.ts';
 import { supervisorEmails } from '../_shared/desk-notify.ts';
 import { formatWhen } from '../_shared/when.ts';
 import { runWatchdog } from '../_shared/desk-health.ts';
+import { issueCard, cardUrl } from '../_shared/warranty.ts';
 
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
 const MIN = 60_000;
@@ -149,6 +150,30 @@ Deno.serve(async (req) => {
       result.journey = { sent: sentN, failed: failN }; if (sentN || failN) await log('journey', failN === 0, { sent: sentN, failed: failN });
     }
   } catch (e) { result.journey = { error: String((e as Error).message) }; await log('journey', false, { error: String((e as Error).message) }); }
+
+  /* 6. warranty cards: once a completed booking is fully paid, make its card; send it on WhatsApp when the template is approved. Only for bookings completed after the switch-on time. */
+  try {
+    if (await getSetting(db, 'desk_auto_warranty', true)) {
+      const since = String(await getSetting(db, 'warranty_since', new Date().toISOString()));
+      const { data: cands } = await db.rpc('warranty_candidates', { p_since: since });
+      let made = 0, sentN = 0;
+      for (const c of (cands ?? []).slice(0, 8)) { const r = await issueCard(db, c.lead_id); if (r.card) made++; }
+      const ready = await getSetting<Record<string, boolean>>(db, 'desk_campaigns', {});
+      const t = DESK_TEMPLATES.find((x) => x.name === 'mxp_warranty_card')!;
+      if (ready[t.campaign] && env('AISENSY_API_KEY')) {
+        const { data: unsent } = await db.from('warranty_cards').select('id,code,lead_id,customer_name,phone,valid_until').is('sent_at', null).gt('created_at', new Date(Date.now() - 7 * 86400_000).toISOString()).limit(8);
+        const ids = (unsent ?? []).map((u: any) => u.lead_id);
+        const { data: leads } = ids.length ? await db.from('leads').select('id,ref,consent_whatsapp,opted_out').in('id', ids) : { data: [] };
+        for (const u of unsent ?? []) {
+          const l = (leads ?? []).find((x: any) => x.id === u.lead_id); if (!l || !l.consent_whatsapp || l.opted_out) continue;
+          const r = await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: t.campaign, phone: u.phone, name: u.customer_name, params: [String(u.customer_name).split(' ')[0], l.ref, new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date(u.valid_until + 'T12:00:00+05:30')), cardUrl(u.code)], source: 'mechanix-desk-warranty' });
+          await db.from('warranty_cards').update({ sent_at: new Date().toISOString() }).eq('id', u.id);
+          if (r.ok) { sentN++; await db.from('crm_activities').insert({ lead_id: u.lead_id, actor: null, kind: 'whatsapp', body: 'Warranty card sent automatically on WhatsApp' }).then(() => {}, () => {}); }
+        }
+      }
+      result.warranty = { made, sent: sentN }; if (made || sentN) await log('warranty', true, { made, sent: sentN });
+    }
+  } catch (e) { result.warranty = { error: String((e as Error).message) }; await log('warranty', false, { error: String((e as Error).message) }); }
 
   /* 5. watchdog: email the supervisors if the reply checker, AiSensy or the templates need attention */
   try { result.health = await runWatchdog(db, DESK_URL, 'automation'); } catch (e) { result.health = { error: String((e as Error).message) }; }
