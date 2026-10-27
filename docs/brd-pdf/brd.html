@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Mechanix Pro: Business Requirements, billing, payments, pricing and website</title>
+<style>
+@page{size:A4;margin:16mm 14mm 16mm}
+:root{--navy:#14295A;--ember:#F2801F;--ink:#1c2540;--muted:#5b6785;--line:#dfe4ef;--soft:#f4f6fb}
+*{box-sizing:border-box}
+body{margin:0;font:11pt/1.5 -apple-system,"SF Pro Text","Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink)}
+h1,h2,h3{color:var(--navy);letter-spacing:-.01em;margin:0}
+h2{font-size:19pt;margin:0 0 6px;padding-top:2px}
+h3{font-size:12.5pt;margin:16px 0 4px}
+p{margin:6px 0}
+.page{page-break-after:always}.page:last-child{page-break-after:auto}
+.cover{height:262mm;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(160deg,#0B1220,#14295A 130%);color:#fff;margin:-16mm -14mm;padding:22mm 18mm;position:relative;overflow:hidden}
+.cover h1{color:#fff;font-size:34pt;line-height:1.05;margin:14px 0 10px}
+.cover .tag{display:inline-block;border:1px solid rgba(255,255,255,.35);border-radius:99px;padding:5px 14px;font-size:9pt;letter-spacing:.12em;text-transform:uppercase;color:#FFC27A}
+.cover p{color:rgba(255,255,255,.92);font-size:12.5pt;max-width:140mm}
+.cover img.bike{position:absolute;right:-30mm;bottom:20mm;width:150mm;opacity:.5}
+.cover .meta{font-size:10pt;color:rgba(255,255,255,.92);line-height:1.7}
+.cover .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15pt;letter-spacing:.02em}
+.cover .logo img{width:34px}
+table{border-collapse:collapse;width:100%;margin:8px 0;font-size:10pt}
+th{background:var(--navy);color:#fff;text-align:left;padding:7px 9px;font-weight:600}
+td{padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:nth-child(even) td{background:#fafbfe}
+.note{background:#FFF4E6;border-left:4px solid var(--ember);padding:9px 12px;border-radius:6px;margin:10px 0;font-size:10pt}
+.ok{background:#EAF7EF;border-left-color:#1e9e57}
+.tag2{display:inline-block;font-size:8.5pt;font-weight:700;border-radius:99px;padding:2px 9px;background:#E7ECF8;color:var(--navy);white-space:nowrap}
+.tag2.live{background:#DFF5E8;color:#14703f}.tag2.build{background:#FFEBD2;color:#9a4c05}
+.fig{margin:10px 0;break-inside:avoid}
+.fig img{width:100%;border:1px solid var(--line);border-radius:10px;display:block}
+.cap{font-size:9pt;color:var(--muted);margin-top:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.two .fig img{width:100%}
+.phone{width:62mm;margin:0 auto}
+ul{margin:6px 0 6px 18px;padding:0}li{margin:2px 0}
+.sig td{height:34px;border:1px solid var(--line);background:#fff!important}
+/* mock screens */
+.mock{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px;margin:10px 0;break-inside:avoid;box-shadow:0 2px 8px rgba(20,41,90,.08)}
+.mock .bar{display:flex;gap:6px;margin:-4px 0 10px}.mock .bar i{width:9px;height:9px;border-radius:50%;background:#d6dcea}
+.mock h4{margin:0 0 6px;font-size:11pt;color:var(--navy)}
+.field{border:1px solid #cfd6e6;border-radius:8px;padding:6px 9px;font-size:9.5pt;background:#fff;color:#222}
+.field.need{border-color:#E8A33D;background:#FFF8EC}
+.field small{display:block;color:var(--muted);font-size:7.5pt}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}.row>*{flex:1;min-width:30mm}
+.btn{display:inline-block;border-radius:99px;padding:6px 14px;font-weight:700;font-size:9.5pt;background:var(--ember);color:#1F1206}
+.btn.navy{background:var(--navy);color:#fff}.btn.ghost{background:#eef1f8;color:var(--navy)}.btn.wa{background:#25D366;color:#063B1C}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font-size:9.5pt}.kv b{text-align:right}
+.pill{display:inline-block;border-radius:99px;padding:2px 9px;font-size:8.5pt;font-weight:700}
+.pill.g{background:#DFF5E8;color:#14703f}.pill.o{background:#FFEBD2;color:#9a4c05}.pill.n{background:#E7ECF8;color:var(--navy)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.stat{border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center}.stat b{display:block;font-size:14pt;color:var(--navy)}.stat span{font-size:8pt;color:var(--muted)}
+.wamsg{background:#E7FFDB;border-radius:12px 12px 12px 2px;padding:9px 12px;font-size:9.5pt;max-width:92mm;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.wamsg .t{font-size:7.5pt;color:#6b7c6b;text-align:right}
+.wabg{background:#EFE7DD;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.wcard{width:86mm;border-radius:16px;background:linear-gradient(150deg,#14295A,#0B1220);color:#fff;padding:14px;position:relative;overflow:hidden}
+.wcard .top{display:flex;justify-content:space-between;align-items:center}.wcard .brand{display:flex;gap:6px;align-items:center;font-weight:800;font-size:10pt}.wcard .brand img{width:20px}
+.wcard h5{margin:10px 0 2px;font-size:13pt;color:#fff}.wcard .sm{font-size:8pt;color:rgba(255,255,255,.9)}
+.wcard .qr{position:absolute;right:12px;bottom:12px;background:#fff;border-radius:8px;padding:5px;width:25mm}.wcard .qr img{width:100%;display:block}
+.wcard .kvs{margin-top:10px;font-size:8.5pt;display:grid;grid-template-columns:auto 1fr;gap:2px 10px;max-width:52mm}.wcard .kvs span{color:rgba(255,255,255,.85)}
+.flow{display:flex;align-items:stretch;gap:6px;margin:10px 0}.flow .s{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px;font-size:9pt;background:#fff}.flow .s b{display:block;color:var(--navy);margin-bottom:2px}.flow .a{align-self:center;color:var(--ember);font-weight:900}
+</style></head><body>
+
+<!-- COVER -->
+<section class="page"><div class="cover">
+  <div><div class="logo"><img src="img/logo.svg" alt="">MECHANIX PRO</div></div>
+  <img class="bike" src="img/bike.webp" alt="">
+  <div>
+    <span class="tag">Business requirements document</span>
+    <h1>Billing, payments, pricing<br>and website experience</h1>
+    <p>What we heard from you, what each change will look like before we build it, and the order we will deliver it in.</p>
+  </div>
+  <div class="meta">Prepared for: Mechanix Pro (NOVA VENTURES)<br>Version 1.0 for approval &middot; 27 October 2026<br>Status: awaiting your review and sign-off</div>
+</div></section>
+
+<!-- 1 SUMMARY -->
+<section class="page">
+<h2>1. Summary</h2>
+<p>This document turns your handwritten notes and later messages into a list of changes, shows a picture of each change <b>before we edit anything</b>, and sets the delivery order. Pictures marked <span class="tag2 live">Live preview</span> are real screenshots of the working site. Pictures marked <span class="tag2">Mock-up</span> show the proposed screen; they will be built to match once you approve.</p>
+<h3>Decisions you have already given us</h3>
+<table><tr><th style="width:36%">Topic</th><th>Your decision</th></tr>
+<tr><td>Invoice must-haves</td><td>Customer name, mobile number and vehicle number are required to save, print or email an invoice. Email is optional. "Serial number" is the invoice number, which stays automatic.</td></tr>
+<tr><td>GST on prices</td><td>All prices stay exactly as they are and are <b>excluding GST and taxes</b>. GST at 18% is added on top and shown separately on the quote, payment and invoice.</td></tr>
+<tr><td>New service</td><td>"Puncture sorted at your doorstep or anywhere": <b>&#8377;599 excluding GST</b>.</td></tr>
+<tr><td>Prices screen</td><td>The admin can edit packages and add-ons, and add new package types.</td></tr>
+<tr><td>Payment link</td><td>A link shared on WhatsApp with the mechanic to pay the company its share of what the mechanic collected from the customer. Every payment is recorded automatically when the payment provider confirms it.</td></tr>
+</table>
+<h3>Everything in this document at a glance</h3>
+<table><tr><th>#</th><th>Change</th><th>Where</th><th>Status</th></tr>
+<tr><td>1</td><td>Moving bike in the website background</td><td>Website home</td><td><span class="tag2 build">Built, preview below</span></td></tr>
+<tr><td>2</td><td>"Watch the work": your two job videos on the home page</td><td>Website home</td><td><span class="tag2 build">Built, preview below</span></td></tr>
+<tr><td>3</td><td>Invoice details required before save, print or email; vehicle number on the invoice</td><td>Admin, invoices</td><td><span class="tag2 build">Built, awaiting release</span></td></tr>
+<tr><td>4</td><td>Booking shows what the customer has paid, the balance and the vehicle number</td><td>Admin, bookings and customers</td><td><span class="tag2">Proposed</span></td></tr>
+<tr><td>5</td><td>Change an invoice: update the same one, or issue a separate one</td><td>Admin, invoices</td><td><span class="tag2">Proposed</span></td></tr>
+<tr><td>6</td><td>Payment link on WhatsApp for the mechanic to pay the company share</td><td>Admin, payments</td><td><span class="tag2">Proposed</span></td></tr>
+<tr><td>7</td><td>Warranty card with QR, validity and terms on WhatsApp once a booking is fully paid</td><td>Admin and customer WhatsApp</td><td><span class="tag2">Proposed</span></td></tr>
+<tr><td>8</td><td>Prices excluding GST everywhere; new Puncture service; add options; website rate card</td><td>Admin prices, website, quotes</td><td><span class="tag2">Proposed</span></td></tr>
+<tr><td>9</td><td>Refreshed admin theme and easier screens</td><td>Admin</td><td><span class="tag2">Proposed</span></td></tr>
+</table>
+</section>
+
+<!-- 2 WEBSITE -->
+<section class="page">
+<h2>2. Website: moving bike and job videos</h2>
+<h3>2.1 Moving bike in the background <span class="tag2 live">Live preview</span></h3>
+<p>The Royal Enfield picture you sent now sits behind the home page headline and rides slowly across the screen, with a glowing road line under it. It is kept faint so the headline and buttons stay easy to read. It stops moving for visitors who have turned off animation on their phone, and it is smaller on phones.</p>
+<div class="two"><div class="fig"><img src="img/site-hero.png" alt=""><div class="cap">Desktop: the bike is visible at the bottom-left, behind the text.</div></div>
+<div class="fig phone"><img src="img/site-hero-phone.png" alt=""><div class="cap">Phone: smaller, same ride.</div></div></div>
+<div class="note">The bike picture shows Royal Enfield branding. It is used as a decorative background only. If you prefer a picture of your own bikes later, we can swap it.</div>
+<h3>2.2 "Watch the work": your two videos <span class="tag2 live">Live preview</span></h3>
+<p>Your two oil-change clips appear as a new section below "See how it feels". Each plays silently on a loop while it is on screen, pauses when the visitor scrolls away, and has a tap-to-play button. The clips are compressed (about 0.9 MB each) so the page stays fast.</p>
+<div class="fig"><img src="img/site-watch.png" alt=""><div class="cap">Two phone-style video cards with a short caption each.</div></div>
+<div class="note">The oil bottles in the clips show other companies' brand names. The section carries a small line saying those names belong to their makers. If you would rather hide them, we can blur the labels.</div>
+</section>
+
+<!-- 3 INVOICES -->
+<section class="page">
+<h2>3. Invoices</h2>
+<h3>3.1 Required details, shown at the top of every invoice <span class="tag2">Mock-up</span></h3>
+<p>An invoice cannot be saved, printed or emailed until the customer name, mobile number and vehicle number are filled. The screen tells you exactly which one is missing. Email is optional. These details also print on the PDF and appear in the emailed invoice.</p>
+<div class="mock"><div class="bar"><i></i><i></i><i></i></div>
+<h4>Customer details <span style="font-weight:400;font-size:9pt;color:#5b6785">Add the vehicle number before you save, print or email.</span></h4>
+<div class="row"><div class="field">Asha Rao<small>Customer name</small></div><div class="field">98765 43210<small>Mobile number</small></div></div>
+<div class="row"><div class="field need">&nbsp;<small>Vehicle number, for example KA05MQ1234 (required)</small></div><div class="field">asha@example.com<small>Email (optional)</small></div><div style="flex:0"><span class="btn">Save details</span></div></div>
+<div class="row" style="margin-top:10px"><span class="btn navy" style="opacity:.45">Print or save as PDF</span><span class="btn ghost" style="opacity:.45">Email to customer</span><span class="btn ghost" style="opacity:.45">Save invoice</span></div>
+</div>
+<h3>3.2 Changing an invoice: same invoice or a new one <span class="tag2">Mock-up</span></h3>
+<p>When something changes after an invoice is issued, you choose one of two clear paths:</p>
+<div class="two">
+<div class="mock"><h4>Update this invoice</h4><p style="font-size:9.5pt">Use for a correction (wrong amount, missing item, wrong vehicle number). The invoice keeps its number and gets a revision mark, for example <b>INV-MP-53020C-R2</b>. The old version stays in the register but is marked "replaced".</p></div>
+<div class="mock"><h4>Create a separate invoice</h4><p style="font-size:9.5pt">Use for extra work done later, or when part of the bill is for a different customer or company. It gets its own number, for example <b>INV-MP-53020C-B</b>, and its own total. The booking shows all of its invoices together with one overall paid and balance figure.</p></div></div>
+<p>Every change asks for a short reason and is recorded, so nothing is ever lost. Deleted invoices are hidden, not erased, and can be restored.</p>
+<h3>3.3 Open invoices to edit; select and delete several <span class="tag2">Mock-up</span></h3>
+<div class="mock"><div class="bar"><i></i><i></i><i></i></div>
+<table style="margin:0"><tr><th style="width:5%"></th><th>Invoice</th><th>Customer</th><th>Vehicle</th><th>Total</th><th>Paid</th><th></th></tr>
+<tr><td>&#9745;</td><td>INV-MP-53020C</td><td>Asha Rao</td><td>KA05MQ1234</td><td>&#8377;942.82</td><td><span class="pill g">Paid</span></td><td>Open &rsaquo;</td></tr>
+<tr><td>&#9745;</td><td>INV-MP-8841AB</td><td>Ravi Kumar</td><td>KA03JK7788</td><td>&#8377;706.82</td><td><span class="pill o">Part</span></td><td>Open &rsaquo;</td></tr>
+<tr><td>&#9744;</td><td>INV-MP-77C210</td><td>Mohan S</td><td>KA01AB4321</td><td>&#8377;1,532.82</td><td><span class="pill n">Due</span></td><td>Open &rsaquo;</td></tr></table>
+<div class="row" style="margin-top:8px"><span class="btn ghost">Select all shown</span><span class="btn navy">Delete selected (2)</span></div></div>
+<p>Clicking a row opens that invoice ready to edit. Select mode lets you tick several and delete them with one confirmation and a reason.</p>
+</section>
+
+<!-- 4 PAYMENTS -->
+<section class="page">
+<h2>4. Payments, bookings and customers</h2>
+<h3>4.1 Booking shows what the customer paid <span class="tag2">Mock-up</span></h3>
+<div class="mock"><div class="bar"><i></i><i></i><i></i></div>
+<h4>Booking MP-53020C &middot; Asha Rao &middot; <span style="color:#14295A">KA05MQ1234 (Honda Activa)</span></h4>
+<div class="stats"><div class="stat"><b>&#8377;942.82</b><span>Total incl. GST</span></div><div class="stat"><b>&#8377;500.00</b><span>Paid by customer</span></div><div class="stat"><b>&#8377;442.82</b><span>Balance</span></div><div class="stat"><b>12 Oct</b><span>Last payment</span></div></div>
+<p class="cap" style="margin-top:8px">Payments list: &#8377;500 UPI on 12 Oct 2026. The customer's page shows each vehicle with its number and the customer's total spend across all bookings.</p></div>
+<h3>4.2 Payment link on WhatsApp for the mechanic <span class="tag2">Mock-up</span></h3>
+<p>When a mechanic collects money from the customer, the company's share comes back through a payment link sent on WhatsApp. The mechanic pays only the company's share, never the full amount. Each payment is recorded the moment the payment provider confirms it.</p>
+<div class="flow"><div class="s"><b>1. Mechanic collects</b>Customer pays the mechanic at the doorstep.</div><div class="a">&rsaquo;</div><div class="s"><b>2. Admin sends link</b>One tap sends a WhatsApp message with the amount due to the company.</div><div class="a">&rsaquo;</div><div class="s"><b>3. Mechanic pays</b>Pays the company's share by UPI or card.</div><div class="a">&rsaquo;</div><div class="s"><b>4. Recorded</b>Matched to the booking automatically. Unmatched payments wait in a list.</div></div>
+<div class="wabg"><div class="wamsg">Hi Suresh, booking <b>MP-53020C</b> (KA05MQ1234) is complete.<br>Customer paid you <b>&#8377;942.82</b>. Your share <b>&#8377;282.85</b>.<br>Please pay the company share <b>&#8377;659.97</b> here:<br><u style="color:#0b6ba8">https://rzp.io/l/mxp-xxxxxx</u><div class="t">4:12 PM &#10003;&#10003;</div></div></div>
+<p class="cap">Example figures. Real amounts follow the mechanic's agreed percentage and the company's chosen basis.</p>
+<div class="note"><b>To confirm before build:</b> one link per booking (shown above), or one fixed link the mechanic uses for any amount. We recommend one link per booking because the amount and the booking are filled in for them.</div>
+</section>
+
+<!-- 5 WARRANTY -->
+<section class="page">
+<h2>5. Warranty card on WhatsApp</h2>
+<p>As soon as a booking is fully paid, the customer receives a warranty card on WhatsApp. It carries the booking details, the validity dates, a short summary of the terms and a QR code. Scanning the QR opens a page on mechanixpro.in that confirms the warranty is genuine and shows the same details.</p>
+<h3>5.1 The card <span class="tag2">Mock-up</span></h3>
+<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+<div class="wcard"><div class="top"><div class="brand"><img src="img/logo.svg" alt="">MECHANIX PRO</div><span class="sm">Service warranty</span></div>
+<h5>Asha Rao</h5><div class="sm">Honda Activa &middot; KA05MQ1234</div>
+<div class="kvs"><span>Booking</span><b>MP-53020C</b><span>Service</span><b>Standard service</b><span>Done on</span><b>12 Oct 2026</b><span>Valid until</span><b>11 Nov 2026</b><span>Card no.</span><b>MPW-24Q9X7</b></div>
+<div class="qr"><img src="img/qr-sample.svg" alt="QR"></div><div style="height:48px"></div></div>
+<div style="flex:1;min-width:60mm"><div class="wabg"><div class="wamsg">Thank you, Asha. Your booking <b>MP-53020C</b> is fully paid. Here is your Mechanix Pro warranty card, valid until <b>11 Nov 2026</b>. Scan the QR to verify it any time.<div class="t">6:40 PM &#10003;&#10003;</div></div></div></div></div>
+<h3>5.2 Draft terms printed on the card and the verify page</h3>
+<ul>
+<li><b>Validity:</b> 30 days from the date the service was done (matches the current "30-day service warranty" on the site).</li>
+<li><b>Covers:</b> workmanship on the service performed. Parts carry the part maker's limited warranty, as labelled on the invoice.</li>
+<li><b>Does not cover:</b> accidents, misuse, water damage, wear parts used up in normal riding, or work done by anyone else after our service.</li>
+<li><b>To claim:</b> message the number on the card with the booking number and a photo of the issue.</li>
+</ul>
+<div class="note">These terms are draft wording. Please confirm or edit them before they go on a customer-facing card; the final wording should be reviewed against your invoice terms.</div>
+<p><b>When it is sent:</b> once, automatically, when the booking's paid amount equals its total. If the amount changes later (for example extra work), the card is not re-sent unless you choose to resend it.</p>
+</section>
+
+<!-- 6 PRICING -->
+<section class="page">
+<h2>6. Prices excluding GST, Puncture service and rate card</h2>
+<p>Your price numbers do not change. They are before GST and taxes, and 18% GST is added on top. Customers see both parts clearly before they pay.</p>
+<table><tr><th>Service</th><th style="text-align:right">Price (excl. GST)</th><th style="text-align:right">GST 18%</th><th style="text-align:right">Customer pays</th></tr>
+<tr><td>Basic service</td><td align="right">&#8377;499.00</td><td align="right">&#8377;89.82</td><td align="right"><b>&#8377;588.82</b></td></tr>
+<tr><td>Standard service</td><td align="right">&#8377;799.00</td><td align="right">&#8377;143.82</td><td align="right"><b>&#8377;942.82</b></td></tr>
+<tr><td>Full service</td><td align="right">&#8377;1,299.00</td><td align="right">&#8377;233.82</td><td align="right"><b>&#8377;1,532.82</b></td></tr>
+<tr><td><b>Puncture sorted at your doorstep or anywhere (new)</b></td><td align="right"><b>&#8377;599.00</b></td><td align="right">&#8377;107.82</td><td align="right"><b>&#8377;706.82</b></td></tr></table>
+<div class="note"><b>Please note:</b> today the site and the payment amounts treat these numbers as already including GST. Moving to "excluding GST" means customers will pay about 18% more than they do now for the same service, unless you choose to lower the numbers. We have followed your instruction (numbers stay, GST added on top). Tell us if you want any price adjusted before release.</div>
+<h3>6.1 Prices screen in the admin <span class="tag2">Mock-up</span></h3>
+<div class="mock"><div class="bar"><i></i><i></i><i></i></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><h4>Money &rsaquo; Prices</h4><span class="btn">+ Add an option</span></div>
+<table style="margin:4px 0 0"><tr><th>Option</th><th>Type</th><th style="text-align:right">Before GST</th><th style="text-align:right">GST</th><th style="text-align:right">Total</th><th>Warranty</th><th></th></tr>
+<tr><td>Basic service</td><td>Package</td><td align="right">&#8377;499</td><td align="right">&#8377;89.82</td><td align="right">&#8377;588.82</td><td>30 days</td><td>Edit</td></tr>
+<tr><td>Standard service</td><td>Package</td><td align="right">&#8377;799</td><td align="right">&#8377;143.82</td><td align="right">&#8377;942.82</td><td>30 days</td><td>Edit</td></tr>
+<tr><td>Full service</td><td>Package</td><td align="right">&#8377;1,299</td><td align="right">&#8377;233.82</td><td align="right">&#8377;1,532.82</td><td>30 days</td><td>Edit</td></tr>
+<tr><td>Puncture sorted, doorstep or anywhere</td><td>New package</td><td align="right">&#8377;599</td><td align="right">&#8377;107.82</td><td align="right">&#8377;706.82</td><td>7 days</td><td>Edit</td></tr></table></div>
+<h3>6.2 Website rate card <span class="tag2">Mock-up</span></h3>
+<div class="mock" style="background:#0B1220;color:#fff"><h4 style="color:#fff">Bangalore bike rate card</h4><p style="font-size:9pt;color:#cfd6e6;margin:0 0 6px">Prices are before GST. 18% GST is added at checkout. Quote first, pay after you say yes.</p>
+<div class="row"><div class="field" style="background:#fff"><b>Basic service</b><br>&#8377;499 <small>+ GST</small></div><div class="field" style="background:#fff"><b>Standard service</b><br>&#8377;799 <small>+ GST</small></div><div class="field" style="background:#fff"><b>Full service</b><br>&#8377;1,299 <small>+ GST</small></div><div class="field" style="background:#fff;border-color:#F2801F"><b>Puncture sorted</b><br>&#8377;599 <small>+ GST &middot; doorstep or anywhere</small></div></div></div>
+</section>
+
+<!-- 7 THEME -->
+<section class="page">
+<h2>7. Refreshed theme and easier screens (admin)</h2>
+<p>We will bring the admin panel in line with the website: the same navy and orange, larger type, roomier spacing, clear status colours and bigger tap targets so it works well on a phone. The structure you already know stays the same.</p>
+<h3>Proposed look <span class="tag2">Mock-up</span></h3>
+<div class="mock"><div class="bar"><i></i><i></i><i></i></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><h4>Today</h4><span class="pill n">27 Oct 2026</span></div>
+<div class="stats"><div class="stat"><b>12</b><span>Bookings today</span></div><div class="stat"><b>&#8377;9,420</b><span>Collected</span></div><div class="stat"><b>&#8377;2,160</b><span>Balance due</span></div><div class="stat"><b>3</b><span>Mechanic payments due</span></div></div>
+<table style="margin-top:10px"><tr><th>Booking</th><th>Customer</th><th>Vehicle</th><th>Status</th><th></th></tr>
+<tr><td>MP-53020C</td><td>Asha Rao</td><td>KA05MQ1234</td><td><span class="pill g">Paid</span></td><td>Open</td></tr>
+<tr><td>MP-8841AB</td><td>Ravi Kumar</td><td>KA03JK7788</td><td><span class="pill o">Part paid</span></td><td>Send payment link</td></tr></table></div>
+<h3>What changes</h3>
+<ul><li>One clear page title and one main action per screen.</li><li>Paid, part paid and due shown with the same colours everywhere.</li><li>Vehicle number and paid amount visible wherever a booking or customer is listed.</li><li>Large buttons and fields on phones; keyboard focus visible; text that meets accessibility contrast.</li></ul>
+<h2 style="margin-top:22px">8. Delivery order</h2>
+<table><tr><th>Phase</th><th>What you will see</th><th>Depends on</th></tr>
+<tr><td>1 (done, awaiting release)</td><td>Invoice details required; vehicle number and email on invoice and email; moving bike; job videos</td><td>Your release approval</td></tr>
+<tr><td>2</td><td>Edit from the invoice list; same-or-new invoice choice; select and delete; booking paid and balance; customer vehicle number and total spend</td><td>Phase 1</td></tr>
+<tr><td>3</td><td>Prices excluding GST everywhere; Puncture &#8377;599; add options; website rate card; charge amounts with GST added</td><td>Your confirmation of the price table in section 6</td></tr>
+<tr><td>4</td><td>Mechanic payment link on WhatsApp with automatic recording and an unmatched-payments list</td><td>Payment provider links; phase 3 amounts</td></tr>
+<tr><td>5</td><td>Warranty card with QR on WhatsApp, verify page</td><td>WhatsApp message template approval by Meta; your approval of the terms</td></tr>
+<tr><td>6</td><td>Admin theme refresh</td><td>Can run alongside the others</td></tr></table>
+</section>
+
+<!-- 9 ASSUMPTIONS / SIGN OFF -->
+<section class="page">
+<h2>9. Assumptions, risks and open points</h2>
+<ul>
+<li><b>Handwriting:</b> a few lines in the notes were hard to read. We read them as set out above. Please correct anything we got wrong.</li>
+<li><b>WhatsApp approvals:</b> the warranty card and the mechanic payment message are sent as WhatsApp template messages. Meta must approve each template first, which can take a day or more and is outside our control. Meta business verification also helps.</li>
+<li><b>Price change:</b> moving to prices excluding GST changes what customers are charged. We will not release phase 3 until you approve the price table.</li>
+<li><b>Accounting records:</b> invoices are never erased. Edits create revisions; deletes hide and can be restored.</li>
+<li><b>Brand names in media:</b> the background bike and the oil bottles show other companies' brands; used as decoration and job footage only.</li>
+<li><b>Out of scope now:</b> the dashboard and bookings screens (you marked them "all good"), AiSensy and ads.</li>
+</ul>
+<h3>Questions for you</h3>
+<ol>
+<li>Payment link: one link per booking (recommended) or one fixed link for any amount?</li>
+<li>Warranty: is 30 days right for every service, and what should the Puncture service carry (we assumed 7 days)? Please approve or edit the terms in section 5.2.</li>
+<li>Price table in section 6: approve, or tell us which numbers to change.</li>
+<li>Admin refresh: any colours or screens you especially want changed?</li>
+</ol>
+<h3>Approval</h3>
+<table class="sig"><tr><th style="width:30%">Name</th><th style="width:30%">Role</th><th>Signature and date</th></tr><tr><td></td><td>Owner, Mechanix Pro</td><td></td></tr><tr><td></td><td>Project lead</td><td></td></tr></table>
+</section>
+</body></html>

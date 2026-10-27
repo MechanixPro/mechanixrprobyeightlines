@@ -11,8 +11,9 @@ test('the video and its poster are in the project and small enough for phones', 
   assert.ok(size('assets/video/how-it-works.mp4') < 3 * 1024 * 1024);
   assert.ok(size('assets/video/how-it-works-poster.webp') < 150 * 1024);
 });
-test('the home page no longer shows the video, and the video files stay in the project', () => {
-  assert.doesNotMatch(read('index.html'), /<video/);
+test('the home page has no autoplay hero video; only the two muted job clips in Watch the work', () => {
+  const vids = read('index.html').match(/<video[^>]*>/g) || [];
+  assert.equal(vids.length, 2); vids.forEach((v) => { assert.match(v, /data-watch/); assert.match(v, /muted/); assert.doesNotMatch(v, /autoplay/); });
 });
 test('the first play is recorded through the shared tags, with no personal data', () => {
   const j = read('assets/js/media.js');
