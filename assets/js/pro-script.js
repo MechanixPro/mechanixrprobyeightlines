@@ -29,7 +29,7 @@
       if (nick) return { state: 'nod', text: 'Nice, ' + nick + '! Now pick what it needs.' };
       if (model) return { state: 'nod', text: model + ', good choice. Now tell us what it needs.' };
     }
-    if (kind === 'service' && d.name) return { state: 'nod', text: clean(d.name, 40) + ': from ' + rupee(d.price) + ', GST included. Your exact quote comes on WhatsApp.' };
+    if (kind === 'service' && d.name) return { state: 'nod', text: clean(d.name, 40) + ': from ' + rupee(d.price) + ', excluding GST. Your exact quote comes on WhatsApp.' };
     if (kind === 'pin') {
       if (d.served) return { state: 'cheer', text: 'Good news, we serve ' + (clean(d.name, 40) || 'your area') + '.' };
       return { state: 'think', text: 'We reach all of Bengaluru. Outside it? Send it anyway and we will tell you when we do.' };

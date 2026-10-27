@@ -100,7 +100,7 @@ The desk now keeps the customer posted on WhatsApp on its own, from the same sch
 
 | When the desk shows | Template | Message |
 |---|---|---|
-| Status **Quoted** with a total | `mxp_quote_ready` | "Your quote for booking X is Rs N, GST included. Nothing starts until you approve it. Reply YES…" (a revised total sends once more) |
+| Status **Quoted** with a total | `mxp_quote_ready_v2` | "Your quote for booking X is Rs N, GST included. Nothing starts until you approve it. Reply YES…" (a revised total sends once more) |
 | Status **Scheduled** with a mechanic and a slot | `mxp_booking_confirmed` | Booking confirmed for the slot, the mechanic's first name and the area |
 | Status **Completed** | `mxp_service_done` | Service done, the 30-day service warranty has started, the GST invoice is on its way |
 | Two hours after Completed | `mxp_desk_rating_link` | Rating request with the signed link (already live) |

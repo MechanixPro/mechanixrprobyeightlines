@@ -17,3 +17,11 @@ test('templates are reported after a day of waiting, with their names', () => {
   assert.equal(p[0].key, 'templates_waiting'); assert.match(p[0].line, /mxp_quote_ready/); assert.equal(p[0].coolHours, 24);
   assert.deepEqual(keys({ campaignsReady: true, waitingSince: ago(99 * 60) }), []);
 });
+
+import { readFileSync } from 'node:fs';
+test('the desk lead sheet shows the same money figures as the admin', () => {
+  const crm = readFileSync(new URL('../crm/crm.js', import.meta.url), 'utf8');
+  assert.match(crm, /crm_lead_money/); assert.match(crm, /Vehicle number/); assert.match(crm, /Quote, excluding GST/);
+  const sql = readFileSync(new URL('../supabase/migrations/20261203000000_desk_lead_money.sql', import.meta.url), 'utf8');
+  assert.match(sql, /crm_can_see/); assert.match(sql, /voided_at is null/); assert.match(sql, /reverses_id/);
+});

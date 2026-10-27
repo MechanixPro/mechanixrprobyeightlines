@@ -21,7 +21,7 @@ export function buildPublicServices(rows: { id: string; price: unknown; active?:
     id: i.id, kind: i.kind, name: i.name, description: i.blurb, price_inr: price.get(i.id)!,
     ...(price.has(i.id + '250') ? { price_150_to_250cc_inr: price.get(i.id + '250')! } : {}),
     ...(price.has(i.id + '500') ? { price_251_to_500cc_inr: price.get(i.id + '500')! } : price.has(i.id + '250') ? { above_250cc_surcharge_inr: bigFee ?? 300 } : {}),
-    price_note: price.has(i.id + '250') ? (price.has(i.id + '500') ? 'Starting price, GST included, for bikes and scooters up to 149cc. 150 to 250cc and 251 to 500cc have their own prices. Pickup and drop is free in the serviceable area' : 'Starting price, GST included, for bikes and scooters up to 149cc. 150 to 250cc has its own price; above 250cc add the surcharge to that price') : i.kind === 'service' && i.id !== 'sos' ? 'Starting price, GST included' : 'GST included',
+    price_note: price.has(i.id + '250') ? (price.has(i.id + '500') ? 'Starting price, excluding GST, for bikes and scooters up to 149cc. 150 to 250cc and 251 to 500cc have their own prices. Pickup and drop is free in the serviceable area' : 'Starting price, excluding GST, for bikes and scooters up to 149cc. 150 to 250cc has its own price; above 250cc add the surcharge to that price') : i.kind === 'service' && i.id !== 'sos' ? 'Starting price, excluding GST' : 'excluding GST',
     book_url: `${SITE}${i.url}${i.url.includes('?') ? '&' : '?'}campaign=${source}`,
   }));
   return {

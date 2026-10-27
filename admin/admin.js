@@ -137,6 +137,7 @@ async function loadSettings() { const { data } = await sb.from('settings').selec
 const svcName = (id) => S.services.find((s) => s.id === id)?.name ?? id ?? '—';
 
 /* ---------- views ---------- */
+document.addEventListener('input', (e) => { const t = e.target; if (t && t.matches && t.matches('.ptable [data-k=price]')) { const tr = t.closest('tr'), g = gstOf(parseInt(t.value, 10) || 0), a = tr.querySelector('.gstc'), b = tr.querySelector('.totc'); if (a) a.textContent = g.gst; if (b) b.innerHTML = '<b>' + g.total + '</b>'; } });
 document.addEventListener('click', (e) => {
   const dt = e.target.closest('[data-dt]'); if (dt) { S.dt = dt.dataset.dt; document.querySelectorAll('.dpanel').forEach((p) => { p.hidden = p.id !== 'dt-' + S.dt; }); document.querySelectorAll('[data-dt]').forEach((b) => b.setAttribute('aria-selected', b.dataset.dt === S.dt)); return; }
   const gb = e.target.closest('[data-group]'); if (gb) { const g = gb.dataset.group; S.tab = S.lastTab[g] || firstTab(g); syncNav(); render(); return; }
@@ -1159,6 +1160,15 @@ const ACT = {
     if (error) return toast(isOwner() ? error.message : 'Only the owner can change this');
     await audit('includes_updated', { id, items: list.length }); toast('Saved. Customers see it now'); await loadServices(); render();
   },
+  async addPrice() {
+    const name = $('#np-name').value.trim(), kind = $('#np-kind').value === 'addon' ? 'addon' : 'service', price = parseInt($('#np-price').value, 10), description = $('#np-desc').value.trim() || null;
+    if (name.length < 3) return toast('Give the option a name'); if (!(price >= 0 && price < 100000)) return toast('Check the price');
+    let id = name.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 14) || 'option'; if (S.services.some((x) => x.id === id)) id += String(Date.now()).slice(-3);
+    const sort = Math.max(0, ...S.services.map((x) => x.sort || 0)) + 1;
+    const { error } = await sb.from('services').insert({ id, kind, name, price, description, sort, active: true });
+    if (error) return toast(isOwner() ? error.message : 'Only the owner can add options');
+    await audit('price_added', { id, name, kind, price }); toast('Option added'); await loadServices(); render();
+  },
   async savePrice(btn) {
     const id = btn.dataset.id, tr = btn.closest('tr');
     const upd = { name: $('[data-k=name]', tr).value.trim(), price: parseInt($('[data-k=price]', tr).value, 10), active: $('[data-k=active]', tr).checked };
@@ -1174,9 +1184,13 @@ const ACT = {
   },
 };
 
+const gstOf = (price) => { const p = Number(price) || 0, g = Math.round(p * 18) / 100; return { gst: rupee2(g), total: rupee2(p + g) }; };
 function prices() {
-  return `<h1 style="font-size:34px">Prices</h1><p class="muted">Changes go live on the website and in AI replies immediately.${isOwner() ? '' : ' Only the owner can edit.'}</p>
-  <div class="card tbl"><table class="ptable"><thead><tr><th>Item</th><th>Type</th><th>Price ₹</th><th>Live</th><th></th></tr></thead><tbody>${S.services.map((s) => `<tr><td><input data-k="name" value="${esc(s.name)}" aria-label="Name"${isOwner() ? '' : ' disabled'}></td><td>${({ service: 'Service', addon: 'Add-on', fee: 'Fee' })[s.kind] ?? s.kind}</td><td><input data-k="price" inputmode="numeric" value="${s.price}" style="width:100px" aria-label="Price"${isOwner() ? '' : ' disabled'}></td><td><input type="checkbox" data-k="active"${s.active ? ' checked' : ''} aria-label="Live"${isOwner() ? '' : ' disabled'}></td><td>${isOwner() ? `<button class="btn btn-ghost btn-sm" type="button" data-act="savePrice" data-id="${esc(s.id)}">Save</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
+  return `<h1 style="font-size:34px">Prices</h1><p class="muted">Prices are shown <b>before GST</b>. GST at 18% is added on the final invoice. Changes go live on the website and in AI replies immediately.${isOwner() ? '' : ' Only the owner can edit.'}</p>
+  <div class="card tbl"><table class="ptable"><thead><tr><th>Item</th><th>Type</th><th>Price ₹ (before GST)</th><th>GST 18%</th><th>With GST</th><th>Live</th><th></th></tr></thead><tbody>${S.services.map((s) => `<tr><td><input data-k="name" value="${esc(s.name)}" aria-label="Name"${isOwner() ? '' : ' disabled'}></td><td>${({ service: 'Service', addon: 'Add-on', fee: 'Fee' })[s.kind] ?? s.kind}</td><td><input data-k="price" inputmode="numeric" value="${s.price}" style="width:100px" aria-label="Price"${isOwner() ? '' : ' disabled'}></td><td class="gstc">${gstOf(s.price).gst}</td><td class="totc"><b>${gstOf(s.price).total}</b></td><td><input type="checkbox" data-k="active"${s.active ? ' checked' : ''} aria-label="Live"${isOwner() ? '' : ' disabled'}></td><td>${isOwner() ? `<button class="btn btn-ghost btn-sm" type="button" data-act="savePrice" data-id="${esc(s.id)}">Save</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
+  ${isOwner() ? `<div class="card" style="margin-top:14px"><h3>Add an option</h3><p class="tiny muted" style="margin:0 0 8px">A new service or add-on. It appears in the booking choices and on the website after the next site update. The price is before GST.</p>
+    <div class="inv-adjust-row"><input id="np-name" maxlength="80" placeholder="Name, for example Chain set fitted" aria-label="Name"><select id="np-kind" aria-label="Type"><option value="service">Service</option><option value="addon">Add-on</option></select><input id="np-price" inputmode="numeric" maxlength="6" placeholder="Price ₹ before GST" aria-label="Price before GST"></div>
+    <input id="np-desc" maxlength="160" placeholder="One line shown to customers (optional)" aria-label="Description" style="margin-top:8px"><div style="margin-top:10px"><button class="btn btn-primary btn-sm" type="button" data-act="addPrice">Add option</button></div></div>` : ''}
   <h2 style="font-size:24px;margin:28px 0 6px">What is included</h2><p class="muted">Shown to customers while they choose a service, one item per line. It also feeds the services page after the next site update.</p>
   ${S.services.filter((x) => x.kind === 'service').map((x) => `<details class="card" style="margin-bottom:10px"><summary style="font-weight:600">${esc(x.name)} <span class="muted" style="font-weight:400">· ${(x.includes || []).length} items</span></summary><label class="label" for="inc-${esc(x.id)}">One item per line</label><textarea id="inc-${esc(x.id)}" rows="6"${isOwner() ? '' : ' disabled'}>${esc((x.includes || []).join('\n'))}</textarea>${isOwner() ? `<button class="btn btn-ghost btn-sm" style="margin-top:10px" type="button" data-act="saveIncludes" data-id="${esc(x.id)}">Save</button>` : ''}</details>`).join('')}`;
 }

@@ -1241,3 +1241,9 @@ html{-webkit-tap-highlight-color:transparent}
 .wr-qr{position:absolute;right:20px;bottom:22px;width:34%;max-width:140px;background:#fff;border-radius:14px;padding:6px}.wr-qr svg{display:block;width:100%;height:auto}
 .wr-terms{max-width:560px;padding-left:20px;color:var(--ink-2,#44506b)}
 @media(max-width:480px){.wr-card dl{max-width:100%}.wr-qr{position:static;margin:6px 0 0 auto;width:40%}}
+
+/* Rate card */
+.rate-table{width:100%;border-collapse:collapse;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(15,29,69,.06),0 10px 28px rgba(15,29,69,.08);margin:6px 0 18px}
+.rate-table th{background:#14295A;color:#fff;text-align:left;padding:12px 14px;font-size:13.5px}.rate-table td{padding:12px 14px;border-bottom:1px solid rgba(20,41,90,.08);vertical-align:top}
+.rate-table .num{text-align:right;white-space:nowrap}.rate-table tr:last-child td{border-bottom:0}
+@media(max-width:560px){.rate-table th,.rate-table td{padding:10px 8px;font-size:13px}.rate-table th{font-size:11.5px}}

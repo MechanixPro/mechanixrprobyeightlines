@@ -23,7 +23,7 @@ test('Pro reacts to the build: the bike name, the service and price, the PIN, an
   assert.match(P.react('bike', { nick: 'Raja' }).text, /Nice, Raja!/);
   assert.match(P.react('bike', { model: 'Activa 6G' }).text, /Activa 6G/);
   const s = P.react('service', { name: 'General service', price: 1299 });
-  assert.match(s.text, /General service/); assert.match(s.text, /₹1,299/); assert.match(s.text, /GST included/);
+  assert.match(s.text, /General service/); assert.match(s.text, /₹1,299/); assert.match(s.text, /excluding GST/);
   assert.match(P.react('pin', { served: true, name: 'HSR Layout' }).text, /we serve HSR Layout/i);
   assert.match(P.react('pin', { served: false }).text, /all of Bengaluru/i);
   const f = P.react('final', {}); assert.equal(f.state, 'cheer'); assert.match(f.text, /quote first/i);

@@ -49,7 +49,7 @@
       ],
       [
         "What does it cost?",
-        "Basic from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}} for bikes up to 149cc, GST included. Bikes of 150 to 250cc and 251 to 500cc have their own prices. Your exact quote comes on WhatsApp first."
+        "Basic from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}} for bikes up to 149cc, excluding GST. Bikes of 150 to 250cc and 251 to 500cc have their own prices. Your exact quote comes on WhatsApp first."
       ],
       [
         "Which bikes do you service?",
@@ -112,7 +112,7 @@
       ],
       [
         "How much is a problem check?",
-        "A repair or problem check starts from {{text:repair}}, GST included. If you go ahead with the repair, the check fee is adjusted in your final bill. The repair itself is quoted after the check."
+        "A repair or problem check starts from {{text:repair}}, excluding GST. If you go ahead with the repair, the check fee is adjusted in your final bill. The repair itself is quoted after the check."
       ],
       [
         "My scooty broke down on the road. What now?",
@@ -178,7 +178,7 @@
       ],
       [
         "What does an EV check cost?",
-        "Electric bikes use the problem check, from {{text:repair}}, GST included."
+        "Electric bikes use the problem check, from {{text:repair}}, excluding GST."
       ],
       [
         "Is petrol bike service different?",
@@ -450,7 +450,7 @@
       ],
       [
         "How much does the check cost?",
-        "A repair or problem check starts from {{text:repair}}, GST included. If you go ahead with the repair, the check fee is adjusted in your final bill. The repair quote comes after the check, and nothing starts until you approve it."
+        "A repair or problem check starts from {{text:repair}}, excluding GST. If you go ahead with the repair, the check fee is adjusted in your final bill. The repair quote comes after the check, and nothing starts until you approve it."
       ],
       [
         "How long will it take?",

@@ -24,7 +24,7 @@
   function priceLine(prices, need) {
     prices = prices || {};
     var p = need === 'problem' ? prices.repair : prices.service;
-    return (need === 'problem' ? 'A problem check starts at ' : 'Service starts from ') + (p || 'our price list') + ', GST included. You get your quote on WhatsApp first and pay only after you approve it.';
+    return (need === 'problem' ? 'A problem check starts at ' : 'Service starts from ') + (p || 'our price list') + ', excluding GST. You get your quote on WhatsApp first and pay only after you approve it.';
   }
 
   function start(win) {

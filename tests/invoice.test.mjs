@@ -143,3 +143,13 @@ test('send-invoice refuses an invoice with missing details and the email shows t
   const ui = readFileSync(new URL('../admin/admin.js', import.meta.url), 'utf8');
   for (const a of ['invPrint', 'invEmail', 'invSaveEdit']) assert.match(ui.slice(ui.indexOf('async ' + a + '(')).slice(0, 260), /detailsOk\(l\)/, a);
 });
+
+test('bookings made after the cutover are billed before GST with GST added on top; older ones keep their inclusive bills', () => {
+  for (const build of [buildInvoice, buildInvoiceFn]) {
+    const nw = build({ ...lead, addons: [], service_id: 'general', created_at: '2026-10-28T10:00:00+05:30' }, services);
+    assert.equal(nw.basis, 'excl'); assert.equal(nw.taxable, 1299); assert.equal(nw.total, 1532.82); assert.equal(+(nw.cgst + nw.sgst).toFixed(2), 233.82);
+    const old = build({ ...lead, addons: [], service_id: 'general', created_at: '2026-10-20T10:00:00+05:30' }, services);
+    assert.equal(old.basis, 'incl'); assert.equal(old.total, 1299);
+    assert.equal(build({ ...lead, addons: [], service_id: 'general' }, services).basis, 'incl');
+  }
+});

@@ -14,7 +14,7 @@ test('site.json is the one list of prices, the fees and the warranty length', ()
   for (const id of ['basic', 'general', 'full', 'repair', 'sos']) { assert.ok(site.services[id].price >= 0); assert.ok(site.services[id].includes.length >= 3, id); }
 });
 test('the database holds every service, add-on and fee, and the app defaults match site.json', () => {
-  const seed = read('supabase/migrations/20261006000000_init.sql');
+  const seed = read('supabase/migrations/20261006000000_init.sql') + read('supabase/migrations/20261202000000_puncture_service.sql');
   const tiers = read('supabase/migrations/20261126000000_engine_tiers.sql') + read('supabase/migrations/20261129000000_poster_price_list.sql');
   for (const id of Object.keys(site.services)) { if (/(250|500)$/.test(id)) { assert.match(tiers, new RegExp(`'${id}'`), 'engine-tier migration ' + id); continue; } assert.match(seed, new RegExp(`\\('${id}','service',`), 'seed ' + id); }
   for (const id of Object.keys(site.addons)) assert.match(seed, new RegExp(`\\('${id}','addon',`), 'seed ' + id);
@@ -25,7 +25,7 @@ test('the database holds every service, add-on and fee, and the app defaults mat
   assert.match(fees, /\('advance','fee',/); assert.match(fees, /\('bigbike','fee',/);
 });
 test('the services in the database carry the "what is included" lists from site.json', () => {
-  const m = read('supabase/migrations/20261012000000_prices_fees_includes.sql');
+  const m = read('supabase/migrations/20261012000000_prices_fees_includes.sql') + read('supabase/migrations/20261202000000_puncture_service.sql');
   assert.match(m, /add column if not exists includes jsonb not null default '\[\]'::jsonb/);
   for (const [id, s] of Object.entries(site.services)) {
     if (/(250|500)$/.test(id)) continue; // the engine-size rows carry their own checklists (see the poster price-list migration)

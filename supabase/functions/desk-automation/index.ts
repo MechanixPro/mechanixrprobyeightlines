@@ -119,9 +119,9 @@ Deno.serve(async (req) => {
       type Job = { l: any; kind: string; t: string; params: string[]; note: string };
       const jobs: Job[] = [];
       const base = () => db.from('leads').select('id,ref,name,phone,area,est_total,status,preferred_date,preferred_slot,mechanic_id,completed_at,address').is('deleted_at', null).eq('consent_whatsapp', true).eq('opted_out', false).gt('updated_at', since).limit(30);
-      if (ready[tpl('mxp_quote_ready').campaign]) {
+      if (ready[tpl('mxp_quote_ready_v2').campaign]) {
         const { data } = await base().eq('status', 'quoted').gt('est_total', 0);
-        for (const l of data ?? []) jobs.push({ l, kind: 'journey_quote:' + Math.round(l.est_total), t: 'mxp_quote_ready', params: [String(l.name).split(' ')[0], l.ref, String(Math.round(l.est_total))], note: 'Quote sent automatically' });
+        for (const l of data ?? []) jobs.push({ l, kind: 'journey_quote:' + Math.round(l.est_total), t: 'mxp_quote_ready_v2', params: [String(l.name).split(' ')[0], l.ref, String(Math.round(l.est_total))], note: 'Quote sent automatically' });
       }
       if (ready[tpl('mxp_booking_confirmed').campaign]) {
         const { data } = await base().eq('status', 'scheduled').not('mechanic_id', 'is', null).not('preferred_date', 'is', null);

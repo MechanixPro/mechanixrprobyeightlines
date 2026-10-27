@@ -1,5 +1,7 @@
 // Invoice figures for the invoice email. Same rules as admin/invoice.js (a test checks they give identical numbers).
 // Prices include 18% GST, so the bill carves taxable value, CGST and SGST out of the total.
+// From this moment the price list is shown before GST and GST at the invoice rate is added on the final invoice. Bookings made earlier keep their old GST-inclusive bills.
+const GST_ON_TOP_FROM = Date.parse('2026-10-27T09:00:00+05:30');
 const SERVICE_PACKAGES = ['basic', 'general', 'full'];
 const RATES = [0, 5, 12, 18]; // GST rates the admin can choose per invoice; anything else falls back to 18%
 const clean80 = (v: unknown, n = 80): string | null => String(v || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n) || null;
@@ -54,7 +56,7 @@ export function buildInvoice(lead: LeadLike, services: Svc[], opts: { date?: str
   const couponDiscount = Math.min(subtotal, paise(lead.coupon_discount));
   const extraDiscount = Math.min(subtotal - couponDiscount, paise(lead.extra_discount)); // a last-minute discount at the customer's request
   const discount = couponDiscount + extraDiscount;
-  const basis = ov ? ov.basis : 'incl';
+  const basis = ov ? ov.basis : (Date.parse(String((lead as any).created_at || '')) >= GST_ON_TOP_FROM ? 'excl' : 'incl');
   // "excl": the lines are before GST, so the tax is added on what is left after discounts. "incl": the tax is carved out of the total.
   const rate = ov ? ov.rate : 18;
   const taxable = basis === 'excl' ? subtotal - discount : Math.round((subtotal - discount) / (1 + rate / 100));

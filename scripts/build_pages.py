@@ -202,7 +202,7 @@ for slug, name, pins, locs, why in AREAS:
     book = f'/book/?area={urllib.parse.quote(name)}'
     faq = [
       (f'Do you come to my home in {name}?', f'Yes. Our mechanics cover {locs}. We service your bike at home, at your office parking or at the roadside.'),
-      (f'How much is a bike service in {name}?', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}} for bikes up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices. GST included. Your exact quote comes on WhatsApp, and parts only after your approval.'),
+      (f'How much is a bike service in {name}?', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}} for bikes up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices. excluding GST. Your exact quote comes on WhatsApp, and parts only after your approval.'),
       ('How fast can a mechanic reach me?', 'Scheduled services are done in your chosen slot. For breakdowns, use the Get help button and we send the nearest available mechanic.'),
     ]
     schema = '<script type="application/ld+json">' + json.dumps({
@@ -219,7 +219,7 @@ for slug, name, pins, locs, why in AREAS:
 <p>{why} Instead of losing half a day at a garage, a Mechanix Pro mechanic services your bike where it is parked, usually in 60 to 90 minutes.</p>
 <h2>Starting prices in {name}</h2>
 <div class="card">{''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES)}</div>
-<p class="tiny muted" style="margin-top:8px">Bikes and scooters up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices. GST included. Pincodes: {pins}.</p>
+<p class="tiny muted" style="margin-top:8px">Bikes and scooters up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices. excluding GST. Pincodes: {pins}.</p>
 <h2>Popular bikes we service in {name}</h2>
 <p class="areas">{POPULAR}</p>
 <h2>Other areas we serve</h2>
@@ -346,7 +346,7 @@ for brand, name, t, big in load_bikes():
     desc = f'Doorstep {full} {"problem check" if t == "e" else "service"} in Bengaluru, from {{{{text:{first}}}}}. Mechanix Pro certified mechanics, OEM and aftermarket parts, {{{{days}}}}-day warranty. Quote on WhatsApp first.'
     book = f'/book/?brand={urllib.parse.quote(brand, safe="")}&amp;model={urllib.parse.quote(name, safe="")}'
     faq = [
-      (f'How much does a {full} {"problem check" if t == "e" else "service"} cost in Bengaluru?', ('A problem check starts from {{text:repair}}.' if t == 'e' else 'Basic service from {{text:basic}}, General from {{text:general}} and Full from {{text:full}}.') + (' This bike is usually 150cc or more, so its 150 to 250cc or 251 to 500cc prices on the Services page apply.' if big and t != 'e' else '') + ' GST included. Your exact quote comes on WhatsApp before any work starts.'),
+      (f'How much does a {full} {"problem check" if t == "e" else "service"} cost in Bengaluru?', ('A problem check starts from {{text:repair}}.' if t == 'e' else 'Basic service from {{text:basic}}, General from {{text:general}} and Full from {{text:full}}.') + (' This bike is usually 150cc or more, so its 150 to 250cc or 251 to 500cc prices on the Services page apply.' if big and t != 'e' else '') + ' excluding GST. Your exact quote comes on WhatsApp before any work starts.'),
       (f'Can you service my {full} at home?', f'Yes. A Mechanix Pro certified mechanic comes to your home or office in Bengaluru. {timing}'),
       ('Is there a warranty on the work?', 'Yes, {{days}} days on the work, with OEM and aftermarket parts.'),
       ('Do I pay before the work starts?', 'You approve the quote first. A {{feetext:advance}} checkup and quote fee ({{feetext:newfee}} for new customers) holds your slot and is adjusted in your final bill if you go ahead.'),
@@ -369,7 +369,7 @@ for brand, name, t, big in load_bikes():
 <ul>{''.join(f'<li>{html.escape(x)}</li>' for x in problems)}</ul>
 <h2>Prices for your {html.escape(name)}</h2>
 <div class="card">{price_rows}</div>
-<p class="tiny muted" style="margin-top:8px">Starting from {{{{text:{first}}}}} for the {first_name}. GST included.{surcharge} Your exact quote comes on WhatsApp.</p>
+<p class="tiny muted" style="margin-top:8px">Starting from {{{{text:{first}}}}} for the {first_name}. excluding GST.{surcharge} Your exact quote comes on WhatsApp.</p>
 <h2>How it works</h2>
 <ol><li>Build your service and send it on WhatsApp.</li><li>Our expert checks what is needed and sends your quote.</li><li>You approve, we confirm your slot, and the mechanic arrives. The {{{{fee:advance}}}} checkup and quote fee ({{{{fee:newfee}}}} for new customers) is adjusted in your bill if you go ahead.</li></ol>
 <h2>Questions about servicing a {html.escape(full)}</h2>
@@ -453,7 +453,7 @@ for slug, (title, desc, h1, lead, points, msg, cta) in GROUP.items():
 <ul>{''.join(f'<li>{p}</li>' for p in points)}</ul>
 <h2>Prices</h2>
 <div class="card">{''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES if k in ('basic', 'general', 'full', 'repair'))}</div>
-<p class="tiny muted" style="margin-top:8px">Per bike, up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices. GST included. Group quotes are confirmed on WhatsApp.</p>
+<p class="tiny muted" style="margin-top:8px">Per bike, up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices. excluding GST. Group quotes are confirmed on WhatsApp.</p>
 <h2>How it works</h2>
 <ol><li>Message us the number of bikes and your location.</li><li>We reply with a group quote and a service day.</li><li>Each owner approves, and the mechanics arrive on the day.</li></ol>
 '''
@@ -672,6 +672,33 @@ write('track/index.html', _tr + '''<h1 style="font-size:40px">Track your booking
 <p class="tiny muted">Can't find it? Message us on WhatsApp with your name and number and we will tell you where it stands.</p>''' + foot(FLOAT))
 
 
+# Rate card: every price in one place, before GST and with 18% GST, built from src/site.json so it always matches the Services page.
+def rate_card_page():
+    sv, ad = SITE_DATA['services'], SITE_DATA['addons']
+    inr = lambda n: '₹' + f'{n:,.2f}'.rstrip('0').rstrip('.') if n != int(n) else '₹' + f'{int(n):,}'
+    gst = lambda n: round(n * 0.18, 2)
+    def row(name, price, note=''):
+        g = gst(price)
+        return f'<tr><td><b>{name}</b>{("<br><span class=tiny>" + note + "</span>") if note else ""}</td><td class="num">{inr(price)}</td><td class="num">{inr(g)}</td><td class="num"><b>{inr(round(price + g, 2))}</b></td></tr>'
+    head = '<thead><tr><th>Service</th><th class="num">Price, excluding GST</th><th class="num">GST 18%</th><th class="num">Total on the final invoice</th></tr></thead>'
+    pk = [('basic', 'Basic service'), ('general', 'Standard service'), ('full', 'Full service')]
+    tiers = [('', 'Bikes and scooters up to 149cc'), ('250', 'Bikes of 150 to 250cc'), ('500', 'Bikes of 251 to 500cc')]
+    body = ''
+    for suf, label in tiers:
+        rows = ''.join(row(n, sv[k + suf]['price']) for k, n in pk if (k + suf) in sv)
+        if rows: body += f'<h3>{label}</h3><div class="scroll"><table class="rate-table">{head}<tbody>{rows}</tbody></table></div>'
+    other = ''.join(row(sv[k]['name'], sv[k]['price'], note) for k, note in (('puncture', 'At your doorstep or anywhere in our service area'), ('repair', 'Inspection and a clear repair estimate before any work'), ('sos', 'Mechanic dispatched to your location now')) if k in sv)
+    adds = ''.join(row(n, ad[k]) for k, n in (('wash', 'Foam wash'), ('chain', 'Chain clean and lube'), ('brake', 'Brake tuning'), ('tyre', 'Tyre and puncture check'), ('battery', 'Battery health test')) if k in ad and ad[k])
+    page = HEAD.format(title='Bangalore Bike Service Rate Card | Mechanix Pro', desc='Mechanix Pro rate card for bike and scooter service at home in Bangalore. Every price before GST and with 18% GST. Quote first, pay after you say yes.', url=f'{SITE}/rate-card/', site=SITE, schema='', scripts=LEGAL_JS, body='page-rate-card', nav=NAV, main='')
+    write('rate-card/index.html', page + f'''<section class="page-head"><div class="wrap"><p class="breadcrumb"><a href="/">Home</a> &rsaquo; Rate card</p><h1>Bangalore bike rate card.</h1><p class="lead">Every price is shown <b>excluding GST</b>. GST at 18% is added on your final invoice, and your mechanic or our team will tell you the total before any work starts.</p></div></section>
+<section><div class="wrap">{body}<h3>Other services</h3><div class="scroll"><table class="rate-table">{head}<tbody>{other}</tbody></table></div>
+<h3>Add-ons</h3><div class="scroll"><table class="rate-table">{head}<tbody>{adds}</tbody></table></div>
+<p class="tiny muted" style="margin-top:14px">Parts and consumables are charged separately after you approve them, and are OEM or aftermarket as labelled in your quote. Pickup and drop is free in our serviceable area. The checkup and quote fee is adjusted in your final bill if you go ahead.</p>
+<div class="row" style="margin-top:14px"><a class="btn btn-primary" href="/book/">Build your service</a><a class="btn btn-wa" href="#" data-wa="general">Get a quote on WhatsApp</a></div></div></section>''' + foot(FLOAT))
+    urls.append(('/rate-card/', '0.8'))
+rate_card_page()
+
+
 # Warranty page: the card a customer opens from WhatsApp or by scanning its QR. The details come from the public warranty-verify function.
 _wr = HEAD.format(title='Your Warranty Card | Mechanix Pro', desc='Open and verify your Mechanix Pro service warranty card.', url=f'{SITE}/warranty/', site=SITE, schema='', scripts=LEGAL_JS + '<script src="/assets/js/warranty.js" defer></script>', body='page-warranty', nav=NAV, main='')
 _wr = _wr.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
@@ -746,7 +773,7 @@ def offer_page(o):
     body = f'''<section class="hero"><div class="wrap"><div class="hero-copy">
   <h1>{html.escape(o['headline'])}</h1>
   <p class="lead">{html.escape(o['lead'])}</p>
-  <p class="offer-price"><b>{{{{text:{sid}}}}}</b> <span>starting price, GST included. Your exact quote comes on WhatsApp.</span></p>
+  <p class="offer-price"><b>{{{{text:{sid}}}}}</b> <span>starting price, excluding GST. Your exact quote comes on WhatsApp.</span></p>
   {chat_block(slug)}
   <div class="row chat-alt"><a class="btn btn-ghost" href="{book}">Build your service</a><a class="btn btn-ghost" href="#" data-call>Call us</a></div>
 </div></div></section>
@@ -765,7 +792,7 @@ _road_wa = html.escape('Hi Mechanix Pro, my bike has broken down. I am sharing m
 write('roadside/index.html', _road + f'''<section class="hero"><div class="wrap"><div class="hero-copy">
   <h1>Bike broken down in Bengaluru? We send the nearest mechanic.</h1>
   <p class="lead">Share your live location on WhatsApp and tell us what happened. A Mechanix Pro mechanic comes to you, and you approve any extra work before it starts.</p>
-  <p class="offer-price"><b>{{{{text:sos}}}}</b> <span>roadside emergency visit, GST included.</span></p>
+  <p class="offer-price"><b>{{{{text:sos}}}}</b> <span>roadside emergency visit, excluding GST.</span></p>
   <div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{_road_wa}">Send my location on WhatsApp</a><a class="btn btn-primary" href="#" data-call>Call us now</a></div>
 </div></div></section>
 {PROMISES}
@@ -780,7 +807,7 @@ urls.append(('/roadside/', '0.8'))
 MAIN = [
   ('', 'home', 'Two Wheeler Doorstep Service in Bangalore | Mechanix Pro', 'Two wheeler service at home in Bangalore (Bengaluru) from {{text:basic}}. Servicing in as fast as 2 hours, scooty repair, EV and petrol bike care. Quote first.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n' + CHAT_JS, '1.0'),
   ('book', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.9'),
-  ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}}. GST included. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
+  ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}}. excluding GST. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
   ('help', 'help', 'How Doorstep Bike Service Works and FAQ | Mechanix Pro', 'How Mechanix Pro works: build your service, get a WhatsApp quote, approve, and we service your bike at your door in Bengaluru. Answers to common questions.', 'help.jsonld', 'page-help', APP_JS, '0.8'),
 ]
 for slug, src, title, desc, ld, body, scripts, prio in MAIN:

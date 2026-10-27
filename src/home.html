@@ -31,7 +31,7 @@
           <div class="pv-opt" data-id="full"><b>Full service</b><span data-price="full">{{text:full}}</span><span hidden data-price="wash">{{text:wash}}</span></div>
         </div>
         <div class="pv-pack"><small>Your package for</small><b id="pvPack">Your bike</b><span id="pvAdd">Choose a service</span></div>
-        <div class="pv-total tear"><span>Estimate, GST included</span><b id="pvPrice">₹0</b></div>
+        <div class="pv-total tear"><span>Estimate, excluding GST</span><b id="pvPrice">₹0</b></div>
       </div>
     </div>
     <figure class="hero-cut hero-rain"><img src="/assets/img/hero-rain-p.webp" width="760" height="974" decoding="async" fetchpriority="high" alt="A Mechanix Pro mechanic in a high-visibility vest fixes a scooter by the roadside while the rider looks on, from our Instagram"><span class="hc-chip hc-a">Roadside help, 24/7</span><span class="hc-chip hc-c">Free pickup and drop</span></figure>
@@ -85,7 +85,7 @@
     <div class="rsa-in">
       <div class="rsa-copy"><p class="rsa-kicker">Roadside help, 24/7</p><h2 id="rsa-h">Broken down? Help comes to you.</h2>
         <p>Puncture, a bike that will not start, a dead battery or a stopped scooter. Share your location and we send the nearest mechanic. You approve any extra work before it starts.</p>
-        <p class="rsa-price"><b>{{text:sos}}</b> roadside emergency visit for bikes and scooters, GST included.</p>
+        <p class="rsa-price"><b>{{text:sos}}</b> roadside emergency visit for bikes and scooters, excluding GST.</p>
         <div class="row"><a class="btn btn-primary" href="/roadside/">Get roadside help</a><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, my bike has broken down and I need roadside help.&#10;My location: &#10;What happened: ">Send my location on WhatsApp</a><a class="btn btn-ghost-light" href="#" data-call>Call us now</a></div></div>
       <ol class="rsa-steps"><li><b>Get safe</b><span>Move off the road if you can, switch on the hazard lights, and stand away from traffic.</span></li><li><b>Send your location</b><span>Share your live location on WhatsApp so the mechanic can find you.</span></li><li><b>Approve, then we fix</b><span>The mechanic checks and quotes first. Nothing extra starts until you say yes.</span></li></ol>
     </div>
@@ -108,7 +108,7 @@
 </section>
 <section id="prices" class="reveal">
   <div class="wrap">
-    <div class="sec-head"><h2>Prices, up front.</h2><p>Starting prices for bikes and scooters up to 149cc, GST included. Your exact quote comes on WhatsApp, and parts are fitted only after you approve.</p></div>
+    <div class="sec-head"><h2>Prices, up front.</h2><p>Starting prices for bikes and scooters up to 149cc, excluding GST. GST at 18% is added on your final invoice. Your exact quote comes on WhatsApp, and parts are fitted only after you approve.</p></div>
     <ul class="price-cards">
       <li><h3>Basic service</h3><span class="pr">{{price:basic}}</span><p>15 checkpoints: engine oil level, air filter, spark plug, brakes, chain, tyres, battery and lights.</p><a href="/book/?service=basic">Build it</a> <a class="wa-link" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I would like a quote for a Basic service for my bike in Bengaluru.&#10;Bike model: &#10;Area: ">Ask on WhatsApp</a></li>
       <li class="pop"><h3>Standard service</h3><span class="pr">{{price:general}}</span><p>24 checkpoints: oil level and condition, air and oil filter, brakes, clutch, chain, tyres, fork, battery and lights.</p><a href="/book/?service=general">Build it</a> <a class="wa-link" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I would like a quote for a Standard service for my bike in Bengaluru.&#10;Bike model: &#10;Area: ">Ask on WhatsApp</a></li>
@@ -130,7 +130,7 @@
 </section>
 <section id="addons-home" class="reveal" aria-labelledby="addons-home-h">
   <div class="wrap">
-    <div class="sec-head"><h2 id="addons-home-h">Add extras to any service.</h2><p>Pick them while you build your package, or ask for one on its own. GST included.</p></div>
+    <div class="sec-head"><h2 id="addons-home-h">Add extras to any service.</h2><p>Pick them while you build your package, or ask for one on its own. excluding GST.</p></div>
     <ul class="addon-grid">
       <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3s6 6.2 6 10.5a6 6 0 0 1-12 0C6 9.2 12 3 12 3z"/></svg><h3>Foam wash</h3><span class="pr">{{price:wash}}</span><p>Foam wash for a clean bike, no water wasted at your door.</p><a class="wa-link" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I would like a quote for a foam wash for my bike in Bengaluru.&#10;Bike model: &#10;Area: ">Ask on WhatsApp</a></li>
       <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7a3 3 0 1 0 0 6 3 3 0 0 1 0-6zM16 11a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM10.5 12.5l3 1"/></svg><h3>Chain clean and lube</h3><span class="pr">{{price:chain}}</span><p>Chain cleaned, lubed and tension checked.</p><a class="wa-link" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I would like a quote for a chain clean and lube for my bike in Bengaluru.&#10;Bike model: &#10;Area: ">Ask on WhatsApp</a></li>
@@ -264,7 +264,7 @@
   <div class="wrap">
     <div class="sec-head"><h2 id="hfaq-h">Quick answers.</h2></div>
     <details><summary>How does it work?</summary><p>Tell us your bike and what it needs. Our expert sends an itemised quote on WhatsApp. Work starts only after you say yes.</p></details>
-    <details><summary>What does it cost?</summary><p>Basic from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}}, GST included, for bikes up to 149cc. Bikes of 150 to 250cc and 251 to 500cc have their own prices. Pickup and drop is free in our serviceable area. Your exact quote comes on WhatsApp. New customers pay only {{fee:newfee}} to lock a slot after approving the quote, returning customers pay {{fee:advance}}. It is adjusted in your final bill.</p></details>
+    <details><summary>What does it cost?</summary><p>Basic from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}}, excluding GST, for bikes up to 149cc. Bikes of 150 to 250cc and 251 to 500cc have their own prices. Pickup and drop is free in our serviceable area. Your exact quote comes on WhatsApp. New customers pay only {{fee:newfee}} to lock a slot after approving the quote, returning customers pay {{fee:advance}}. It is adjusted in your final bill.</p></details>
     <details><summary>Can I cancel?</summary><p>Yes. Cancel more than 2 hours before your slot and the slot fee is refunded in full.</p></details>
     <details><summary>Which parts do you use?</summary><p>OEM and aftermarket parts, sourced from our partner Axlio and labelled in your quote so you can choose. They are fitted only after you approve the quote.</p></details>
     <details><summary>How fast can you service my two wheeler in Bangalore?</summary><p>A basic service can be done in as fast as 2 hours once the mechanic arrives. The time depends on the package and on what the mechanic finds, and we tell you before any extra work starts.</p></details>

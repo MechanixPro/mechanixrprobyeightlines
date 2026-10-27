@@ -177,9 +177,10 @@ function card(l) {
 }
 
 /* ---------- lead sheet ---------- */
+const rupee2 = (n) => '₹' + (Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: Number.isInteger(Number(n) || 0) ? 0 : 2, maximumFractionDigits: 2 });
 async function openLead(id, kind) {
   S.open = id; S.busy = true;
-  try { S.detail = await rpc('crm_lead', { p_id: id }); S.rating = await rpc('crm_lead_rating', { p_lead: id }).catch(() => null); if (can('assign_leads')) S.users = await ctx.users(); } catch (e) { toast(clean(e), true); S.busy = false; return; }
+  try { S.detail = await rpc('crm_lead', { p_id: id }); S.rating = await rpc('crm_lead_rating', { p_lead: id }).catch(() => null); S.money = await rpc('crm_lead_money', { p_lead: id }).catch(() => null); if (can('assign_leads')) S.users = await ctx.users(); } catch (e) { toast(clean(e), true); S.busy = false; return; }
   S.busy = false; S.kind = kind || 'note'; renderSheet();
 }
 function renderSheet() {
@@ -194,7 +195,8 @@ function renderSheet() {
     <div class="facts">
       <div><span>Phone</span><b>${esc(l.phone)}</b></div><div><span>Area</span><b>${esc([l.area, l.pincode].filter(Boolean).join(' · ') || '—')}</b></div>
       <div><span>Bike</span><b>${esc(l.bike || '—')}</b></div><div><span>Service</span><b>${esc(l.service_name || '—')}</b></div>
-      <div><span>Preferred</span><b>${esc([l.preferred_date, l.preferred_slot].filter(Boolean).join(' · ') || '—')}</b></div><div><span>Quote</span><b>${l.est_total ? rupee(l.est_total) : '—'}${l.coupon_code ? ` <small>(${esc(l.coupon_code)} −${rupee(l.coupon_discount)})</small>` : ''}</b></div>
+      <div><span>Preferred</span><b>${esc([l.preferred_date, l.preferred_slot].filter(Boolean).join(' · ') || '—')}</b></div><div><span>Quote, excluding GST</span><b>${l.est_total ? rupee(l.est_total) : '—'}${l.coupon_code ? ` <small>(${esc(l.coupon_code)} −${rupee(l.coupon_discount)})</small>` : ''}</b></div>
+      ${S.money ? `<div><span>Vehicle number</span><b>${esc(S.money.vehicle_reg || 'Not added yet')}</b></div><div><span>Customer paid</span><b>${rupee2(S.money.paid || 0)}</b></div>${S.money.invoice_total != null ? `<div><span>Invoice total · balance</span><b>${rupee2(S.money.invoice_total)} · ${rupee2(S.money.balance || 0)} left</b></div>` : '<div><span>Invoice</span><b>Made when the job is done, with GST added</b></div>'}` : ''}
       <div><span>With</span><b>${esc(l.owner_name || 'Nobody yet')}</b></div><div><span>Stage</span><b>${STATUS_LABEL[l.status]}</b></div>
       ${S.rating && S.rating.rating ? `<div><span>Customer rating</span><b>${'★'.repeat(S.rating.rating)}${'☆'.repeat(5 - S.rating.rating)} ${S.rating.rating}/5${S.rating.comment ? ` <small>“${esc(S.rating.comment)}”</small>` : ''}</b></div>` : S.rating && S.rating.requested_at ? `<div><span>Customer rating</span><b>Asked ${when(S.rating.requested_at)}</b></div>` : ''}
       ${l.disposition ? `<div><span>Disposition</span><b>${esc(l.disposition)}${l.sub_disposition ? ' · ' + esc(l.sub_disposition) : ''}</b></div>` : ''}${l.address ? `<div class="wide"><span>Address</span><b>${esc(l.address)}</b></div>` : ''}</div>
