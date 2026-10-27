@@ -35,7 +35,7 @@ if (!C.supabaseUrl || !C.supabaseAnonKey) {
   throw new Error('Supabase not configured');
 }
 const sb = createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
-const S = { imode: false, isel: new Set(), me: null, tab: 'dash', lastTab: {}, invoices: [], invoicesAll: [], cb: { q: '', id: null }, ledger: [], sf: { period: 'month', mechanic: '', status: '', q: '', channel: '', gst: '', from: '', to: '' }, finJob: null, finKind: 'payment', mlOpen: null, ifl: { gst: '', rate: '', mechanic: '', period: 'month', q: '' }, leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', waitlist: [], wi: '', wq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
+const S = { icsel: new Set(), imode: false, isel: new Set(), me: null, tab: 'dash', lastTab: {}, invoices: [], invoicesAll: [], cb: { q: '', id: null }, ledger: [], sf: { period: 'month', mechanic: '', status: '', q: '', channel: '', gst: '', from: '', to: '' }, finJob: null, finKind: 'payment', mlOpen: null, ifl: { gst: '', rate: '', mechanic: '', period: 'month', q: '' }, leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', waitlist: [], wi: '', wq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
 
 function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
@@ -159,6 +159,7 @@ document.addEventListener('input', (e) => {
 document.addEventListener('change', (e) => { if (e.target.id === 'il') { const l = S.leads.find((x) => x.id === e.target.value), w = warrantyInfo(l, WARRANTY_DAYS); $('#iw').textContent = l ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''; } if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'ifs') { S.ifilter = e.target.value; render(); } if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
 document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-board-mech]')) { ACT.boardMech(e.target); return; } const m = { 'if-period': 'period', 'if-gst': 'gst', 'if-rate': 'rate', 'if-mech': 'mechanic' }[e.target.id]; if (m) { S.ifl[m] = e.target.value; render(); } });
 document.addEventListener('input', (e) => { if (e.target.id === 'if-q') { S.ifl.q = e.target.value; const pos = e.target.selectionStart; render(); const q = $('#if-q'); if (q) { q.focus(); q.setSelectionRange(pos, pos); } } });
+document.addEventListener('change', (e) => { const c = e.target.closest && e.target.closest('[data-icsel]'); if (c) { if (c.checked) S.icsel.add(c.dataset.icsel); else S.icsel.delete(c.dataset.icsel); if (S.open) openLead(S.open, true); } });
 document.addEventListener('click', (e) => { const r = e.target.closest('.inv-tr, .inv-row'); if (r && e.target.closest('[data-isel]')) { const id = r.dataset.lead; if (S.isel.has(id)) S.isel.delete(id); else S.isel.add(id); render(); return; } if (r && S.tab === 'invoices') { const l = S.leads.find((x) => x.id === r.dataset.lead); if (l) { if (S.imode) { if (S.isel.has(l.id)) S.isel.delete(l.id); else S.isel.add(l.id); render(); } else openInvoice(withBike(l), { quick: true, edit: true }); } return; } if (r) openLead(r.dataset.lead); const f = e.target.closest('.fin-tr'); if (f) ACT.finOpen(f); });
 document.addEventListener('change', (e) => { const id = e.target.id; if (id === 'fin-by') { const p = $('#fin-portal'); if (p) p.hidden = e.target.value !== 'company_portal'; return; } if (id === 'fin-kind') { S.finKind = e.target.value; render(); return; } const m = { 'sf-period': 'period', 'sf-mech': 'mechanic', 'sf-status': 'status', 'sf-channel': 'channel', 'sf-gst': 'gst', 'sf-from': 'from', 'sf-to': 'to' }[id]; if (m) { S.sf[m] = e.target.value; render(); } });
 document.addEventListener('input', (e) => { if (e.target.id === 'sf-q') { S.sf.q = e.target.value; clearTimeout(S.sfT); S.sfT = setTimeout(() => { render(); const q = $('#sf-q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250); } });
@@ -454,7 +455,7 @@ function payoutCardBody(l, m) {
   return `<div class="card" style="margin-top:12px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><h3 style="margin:0">Payout for this job</h3><span class="pill ${rate.place === 'garage' ? 'p-info' : 'p-ok'}">${place}</span></div>
     <div class="split-bar" role="img" aria-label="Mechanic ${earnPct} percent, company ${100 - earnPct} percent" style="margin-top:10px"><span class="sb-mech" style="width:${earnPct}%">${earnPct >= 14 ? earnPct + '%' : ''}</span><span class="sb-co" style="width:${100 - earnPct}%">${100 - earnPct >= 14 ? (100 - earnPct) + '%' : ''}</span></div>
     <dl class="kv" style="margin-top:10px">${row('Service amount (before GST)', rupee2(sp.base))}${sp.gst ? row('GST, kept aside', rupee2(sp.gst)) : row('GST', 'None on this invoice')}${row('Invoice total', rupee2(inv.total))}${row(esc(m.name) + "'s share", sp.pct + '% <span class="tiny muted">(' + SRC[rate.source] + ')</span> = ' + rupee2(sp.byPct))}${sp.adjust ? row('Adjustment', (sp.adjust > 0 ? '+' : '−') + rupee2(Math.abs(sp.adjust)) + (l.commission_note ? ' <span class="tiny muted">' + esc(l.commission_note) + '</span>' : '')) : ''}${row(esc(m.name) + ' earns', '<b>' + rupee2(sp.earnings) + '</b>')}${row('Mechanix Pro keeps', '<b>' + rupee2(sp.company) + '</b>')}${money}</dl>
-    <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${m.phone ? `<a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="${esc(waLink(m.phone, text))}">Share on WhatsApp</a>` : '<span class="tiny muted">Add the mechanic\'s mobile number to share on WhatsApp.</span>'}<button class="btn btn-ghost btn-sm" type="button" data-act="copyText" data-text="${esc(text)}">Copy message</button></div>${edit}</div>`;
+    <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${m.phone ? `<a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="${esc(waLink(m.phone, text))}">Share payout on WhatsApp</a><button class="btn btn-wa btn-sm" type="button" data-act="mechPayLink" data-amt="${a && a.remitDue > 0.005 ? a.remitDue : 0}" data-id="${l.id}">${a && a.remitDue > 0.005 ? 'Send job details and payment link' : 'Send job details'}</button>` : '<span class="tiny muted">Add the mechanic\'s mobile number to share on WhatsApp.</span>'}<button class="btn btn-ghost btn-sm" type="button" data-act="copyText" data-text="${esc(text)}">Copy message</button></div>${edit}</div>`;
 }
 
 const todayIST = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
@@ -492,10 +493,10 @@ function invoiceCard(l) {
   let made = null;
   if (!mine.length) { try { const inv = buildInvoice(withBike(l), S.services, { customer: S.customers.find((c) => c.id === l.customer_id) || null }); if (inv.lines.length) made = inv; } catch (e) { made = null; } }
   if (!mine.length && !made) return '';
-  const row = (r) => `<tr${r.voided_at ? ' style="opacity:.6"' : ''}><td><b>${esc(r.number)}</b>${r.voided_at ? ' <span class="pill p-bad">Deleted</span>' : ''}</td><td>${esc(when(r.issued_at))}</td><td class="num">${rupee2(r.total)}</td><td class="tiny muted">${r.has_gst ? 'GST ' + r.gst_rate + '%' : 'No GST'}${r.voided_at && r.void_reason ? ' · ' + esc(r.void_reason) : ''}</td></tr>`;
-  const table = mine.length ? `<div class="scroll"><table style="min-width:420px"><thead><tr><th>Number</th><th>Saved</th><th class="num">Total</th><th></th></tr></thead><tbody>${mine.map(row).join('')}</tbody></table></div>` : `<p class="small" style="margin:0"><b>${esc(made.number)}</b> · ${rupee2(made.total)} <span class="muted">· made from the booking, saved when printed or emailed</span></p>`;
+  const row = (r) => `<tr${r.voided_at ? ' style="opacity:.6"' : ''}>${isOwner() ? `<td><input type="checkbox" data-icsel="${r.id}" aria-label="Select ${esc(r.number)}"${S.icsel.has(r.id) ? ' checked' : ''}></td>` : ''}<td><b>${esc(r.number)}</b>${r.voided_at ? ' <span class="pill p-bad">Deleted</span>' : ''}</td><td>${esc(when(r.issued_at))}</td><td class="num">${rupee2(r.total)}</td><td class="tiny muted">${r.has_gst ? 'GST ' + r.gst_rate + '%' : 'No GST'}${r.voided_at && r.void_reason ? ' · ' + esc(r.void_reason) : ''}</td></tr>`;
+  const table = mine.length ? `<div class="scroll"><table style="min-width:420px"><thead><tr>${isOwner() ? '<th></th>' : ''}<th>Number</th><th>Saved</th><th class="num">Total</th><th></th></tr></thead><tbody>${mine.map(row).join('')}</tbody></table></div>` : `<p class="small" style="margin:0"><b>${esc(made.number)}</b> · ${rupee2(made.total)} <span class="muted">· made from the booking, saved when printed or emailed</span></p>`;
   return `<div class="card" style="margin-top:12px"><h3>Invoice</h3>${table}
-    ${isOwner() ? `<div class="row-btns" style="margin-top:10px">${live.length || made ? '<button class="btn btn-ghost btn-sm" type="button" data-act="voidInvoice">Delete invoice</button>' : '<button class="btn btn-ghost btn-sm" type="button" data-act="restoreInvoice">Restore invoice</button>'}</div><p class="tiny muted" style="margin:8px 0 0">Deleting hides the invoice from the register and the sales figures. The booking and its payments stay. You can restore it.</p>` : '<p class="tiny muted" style="margin:8px 0 0">Only the owner can delete an invoice.</p>'}</div>`;
+    ${isOwner() ? `<div class="row-btns" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">${mine.length ? `<button class="btn btn-ghost btn-sm" type="button" data-act="icselAll">Select all</button><button class="btn btn-primary btn-sm" type="button" data-act="icselDelete"${[...S.icsel].some((id) => live.some((r) => r.id === id)) ? '' : ' disabled'}>Delete selected</button><button class="btn btn-ghost btn-sm" type="button" data-act="icselRestore"${[...S.icsel].some((id) => mine.some((r) => r.id === id && r.voided_at)) ? '' : ' disabled'}>Restore selected</button>` : ''}${live.length || made ? '<button class="btn btn-ghost btn-sm" type="button" data-act="voidInvoice">Delete the whole invoice</button>' : '<button class="btn btn-ghost btn-sm" type="button" data-act="restoreInvoice">Restore invoice</button>'}</div><p class="tiny muted" style="margin:8px 0 0">Deleting hides the invoice from the register and the sales figures. The booking and its payments stay. You can restore it.</p>` : '<p class="tiny muted" style="margin:8px 0 0">Only the owner can delete an invoice.</p>'}</div>`;
 }
 // Where the booking came from, and a way to link it to a Google ad click with the Ref code from the customer's WhatsApp message.
 function adCard(l) {
@@ -527,6 +528,7 @@ function moneyCardBody(l) {
   const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
   return `<div class="card" style="margin-top:12px">${head}<p style="margin:0 0 6px">${a.statusLabels.map(statusPill).join(' ')}</p>
     <dl class="kv">${row('Invoice total', '<b>' + rupee2(a.total) + '</b>')}${row('Collected by the company, manual', rupee2(a.byChannel.company_manual))}${row('Collected online (Razorpay)', rupee2(a.byChannel.company_portal))}${row('Collected by the mechanic', rupee2(a.byChannel.mechanic))}${row('Customer still owes', '<b>' + rupee2(a.outstanding) + '</b>')}${a.mechanicId ? row('Mechanic must pay the company', rupee2(a.remitDue)) + row('Company must pay the mechanic', rupee2(a.payoutDue)) : ''}</dl>
+    ${l.mechanic_id && !(a.remitDue > 0.005) ? `<div class="remit-box"><b>Mechanic</b><span class="tiny muted">Send ${esc(S.mechanics.find((m) => m.id === l.mechanic_id)?.name || 'the mechanic')} the job details on WhatsApp.</span><button class="btn btn-wa btn-sm" type="button" data-act="mechPayLink" data-amt="0" data-id="${l.id}">Send job details to the mechanic</button></div>` : ''}
     ${a.remitDue > 0.005 && l.mechanic_id ? `<div class="remit-box"><b>${esc(S.mechanics.find((m) => m.id === l.mechanic_id)?.name || 'The mechanic')} owes the company ${rupee2(a.remitDue)}</b><span class="tiny muted">Collected at the door. Send a payment link on WhatsApp for the company share only. When it is paid it is recorded here automatically.</span><button class="btn btn-wa btn-sm" type="button" data-act="mechPayLink" data-amt="${a.remitDue}" data-id="${l.id}">Send payment link to the mechanic</button></div>` : ''}
     ${l.status === 'completed' && a.outstanding <= 0.005 && a.collected > 0.005 ? `<div class="remit-box"><b>Fully paid. Warranty card ready to send.</b><span class="tiny muted">A card with the vehicle, dates, terms and a QR code. It is also sent automatically on WhatsApp once the message template is approved.</span><button class="btn btn-wa btn-sm" type="button" data-act="warrantyCard" data-id="${l.id}">Send warranty card on WhatsApp</button></div>` : ''}
     ${entryRows(entries, true)}${btn}</div>`;
@@ -998,22 +1000,38 @@ const ACT = {
   async invPrint() { const l = S.leads.find((x) => x.id === S.open); if (!l || !detailsOk(l)) return; await saveInvoiceCopy(l, 'print'); window.print(); },
   invEdit() { const b = $('#invEditBox'); if (!b) return; b.hidden = !b.hidden; if (!b.hidden) b.scrollIntoView({ block: 'nearest' }); },
   invAddRow() { $('#ie-rows').insertAdjacentHTML('beforeend', invEditRow('', '')); $('#ie-rows').lastElementChild.querySelector('input').focus(); },
+  icselAll() { S.invoicesAll.filter((r) => r.lead_id === S.open).forEach((r) => S.icsel.add(r.id)); openLead(S.open, true); },
+  async icselDelete() {
+    const l = S.leads.find((x) => x.id === S.open); const ids = [...S.icsel].filter((id) => S.invoicesAll.some((r) => r.id === id && r.lead_id === S.open && !r.voided_at)); if (!l || !ids.length) return;
+    const reason = await askReason(`Delete ${ids.length} invoice cop${ids.length === 1 ? 'y' : 'ies'} of ${l.ref}?`, 'Why? They are hidden from the register and sales figures, and you can restore them.', 'Delete');
+    if (!reason) return; const { data, error } = await sb.rpc('void_invoice_ids', { p_ids: ids, p_reason: reason });
+    if (error) return toast('Could not delete: ' + error.message);
+    await audit('invoice_deleted', { ref: l.ref, copies: data, reason }); S.icsel.clear(); toast('Deleted'); await loadInvoices(); openLead(l.id, true); if (['sales', 'invoices', 'custbook'].includes(S.tab)) render();
+  },
+  async icselRestore() {
+    const l = S.leads.find((x) => x.id === S.open); const ids = [...S.icsel].filter((id) => S.invoicesAll.some((r) => r.id === id && r.lead_id === S.open && r.voided_at)); if (!l || !ids.length) return;
+    const { data, error } = await sb.rpc('restore_invoice_ids', { p_ids: ids }); if (error) return toast('Could not restore: ' + error.message);
+    await audit('invoice_restored', { ref: l.ref, copies: data }); S.icsel.clear(); toast('Restored'); await loadInvoices(); openLead(l.id, true); if (['sales', 'invoices', 'custbook'].includes(S.tab)) render();
+  },
   async mechPayLink(btn) {
     const l = S.leads.find((x) => x.id === btn.dataset.id); if (!l) return;
-    const m = S.mechanics.find((x) => x.id === l.mechanic_id); if (!m || !m.phone) return toast('Add the mechanic\'s phone number first');
-    const amt = Math.round(Number(btn.dataset.amt) * 100) / 100; if (!(amt >= 1)) return toast('Nothing is due');
-    btn.disabled = true; const old = btn.textContent; btn.textContent = 'Making link…';
-    const { data, error } = await sb.functions.invoke('mechanic-pay-link', { body: { lead_id: l.id, amount: amt } });
-    btn.disabled = false; btn.textContent = old;
-    if (error || !data || data.error) return toast('Could not make the link: ' + ((data && data.error) || (error && error.message) || 'try again'));
+    const m = S.mechanics.find((x) => x.id === l.mechanic_id); if (!m || !m.phone) return toast('Assign a mechanic with a phone number first');
+    const amt = Math.round(Number(btn.dataset.amt || 0) * 100) / 100; let url = '';
+    if (amt >= 1) {
+      btn.disabled = true; const old = btn.textContent; btn.textContent = 'Making link…';
+      const { data, error } = await sb.functions.invoke('mechanic-pay-link', { body: { lead_id: l.id, amount: amt } });
+      btn.disabled = false; btn.textContent = old;
+      if (error || !data || data.error) return toast('Could not make the link: ' + ((data && data.error) || (error && error.message) || 'try again'));
+      url = data.url;
+    }
     const first = String(m.name).split(' ')[0];
     const b = bikeOf(l), a = salesModel().accounts.find((x) => x.lead_id === l.id), when = [l.preferred_date ? new Date(l.preferred_date + 'T12:00:00+05:30').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '', l.preferred_slot && l.preferred_slot !== 'asap' ? l.preferred_slot : ''].filter(Boolean).join(' ');
     const line = (k, v) => (v ? `${k}: ${v}\n` : '');
-    const text = `Hi ${first}, booking ${l.ref} is complete.\n\n` + line('Customer', `${l.name} (${l.phone})`) + line('Vehicle', [b && b.reg_no ? String(b.reg_no).toUpperCase() : '', b ? [b.brand && b.brand !== 'Other' ? b.brand : '', b.model].filter(Boolean).join(' ') : ''].filter(Boolean).join(' · '))
+    const text = `Hi ${first}, booking ${l.ref}${l.status === 'completed' ? ' is complete' : ' details'}.\n\n` + line('Customer', `${l.name} (${l.phone})`) + line('Vehicle', [b && b.reg_no ? String(b.reg_no).toUpperCase() : '', b ? [b.brand && b.brand !== 'Other' ? b.brand : '', b.model].filter(Boolean).join(' ') : ''].filter(Boolean).join(' · '))
       + line('Service', [svcName(l.service_id), ...(l.addons || []).map((x) => svcName(x))].filter(Boolean).join(' + ')) + line('Place', [l.area, l.address].filter(Boolean).join(', ')) + line('When', when)
-      + line('Bill total', a ? rupee2(a.total) : '') + line('Collected by you', a ? rupee2(a.byChannel.mechanic) : '')
-      + `\nPlease pay the company share ${rupee2(amt)} here:\n${data.url}`;
-    window.open(waLink(m.phone, text), '_blank', 'noopener'); toast('Link made. WhatsApp is open with the message ready.');
+      + line('Bill total', a ? rupee2(a.total) : '') + line('Customer paid', a ? rupee2(a.collected) : '') + line('Collected by you', a && a.byChannel.mechanic ? rupee2(a.byChannel.mechanic) : '')
+      + (url ? `\nPlease pay the company share ${rupee2(amt)} here:\n${url}` : '');
+    window.open(waLink(m.phone, text), '_blank', 'noopener'); toast(url ? 'Link made. WhatsApp is open with the message ready.' : 'WhatsApp is open with the job details.');
   },
   async warrantyCard(btn) {
     const l = S.leads.find((x) => x.id === btn.dataset.id); if (!l) return;

@@ -18,3 +18,10 @@ test('the booking money card offers the link only when the mechanic owes the com
   const a = read('admin/admin.js');
   assert.match(a, /a\.remitDue > 0\.005 && l\.mechanic_id/); assert.match(a, /data-act="mechPayLink"/); assert.match(a, /mechanic-pay-link/); assert.ok(a.includes("line('Vehicle'")); assert.ok(a.includes("line('Customer'"));
 });
+
+test('the booking and job card can send the mechanic the job details, and the invoice card can select and delete copies', () => {
+  const a = read('admin/admin.js');
+  assert.match(a, /Send job details and payment link/); assert.match(a, /Send job details to the mechanic/);
+  assert.match(a, /data-icsel/); assert.match(a, /void_invoice_ids/); assert.match(a, /restore_invoice_ids/);
+  assert.match(read('supabase/migrations/20261204000000_void_invoice_ids.sql'), /is_owner\(\)/);
+});
