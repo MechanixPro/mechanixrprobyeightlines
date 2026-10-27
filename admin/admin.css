@@ -171,3 +171,11 @@ details.card>summary::after{content:"  ▾";color:var(--muted,#5a6678)}
 details.card[open]>summary::after{content:"  ▴"}
 .inv-need{margin:12px 0;padding:12px;border-radius:14px}.inv-need.warn{border-color:#E8A33D;background:#FFF8EC}
 @media print{.inv-need{display:none!important}}
+
+.sum-strip{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:8px;margin:10px 0 12px}
+.sum-strip>div{border:1px solid var(--line,#dfe4ef);border-radius:12px;padding:8px 10px;background:#fff;display:flex;flex-direction:column;gap:1px}
+.sum-strip span{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#5b6785}.sum-strip b{font-size:16px;color:#14295A}.sum-strip small{font-size:12px;color:#5b6785}
+.sum-strip em{font-style:normal;font-weight:600;color:#9a4c05;font-size:13px}.sum-strip .due b{color:#B4540A}.sum-strip .ok b{color:#14703f}
+@media(max-width:560px){.sum-strip{grid-template-columns:1fr 1fr}}
+
+.inv-tr.picked,.inv-row.picked{background:#FFF4E6}.inv-tr{cursor:pointer}

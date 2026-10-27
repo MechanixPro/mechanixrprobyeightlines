@@ -1,6 +1,6 @@
 import { splitJob } from './split.js';
 // admin/people.js — pure helpers for the Customers and Mechanics tabs (no DOM, no Supabase), so they can be tested in Node.
-const bikeLabel = (b) => [b.brand && b.brand !== 'Other' ? b.brand : '', b.model].filter(Boolean).join(' ') + (b.nickname ? ` "${b.nickname}"` : '');
+const bikeLabel = (b) => [b.brand && b.brand !== 'Other' ? b.brand : '', b.model].filter(Boolean).join(' ') + (b.nickname ? ` "${b.nickname}"` : '') + (b.reg_no ? ` · ${String(b.reg_no).toUpperCase()}` : '');
 
 export function customerRows(customers, bikes, leads) {
   const rows = customers.map((c) => {
