@@ -45,6 +45,16 @@ Deno.serve(async (req) => {
       for (const t of DESK_TEMPLATES) {
         if (ready[t.campaign]) continue;
         const tpl = list.find((x) => x.name === t.name);
+        if (!tpl && Array.isArray(tr?.template)) {
+          // A template we need that was never submitted (for example a new one added to the code): submit it once, then wait for Meta.
+          const done = await getSetting<Record<string, string>>(db, 'desk_templates_submitted', {});
+          if (!done[t.name]) {
+            const sr = await fetch(`${base}/wa_template`, { method: 'POST', headers: h, body: JSON.stringify({ label: t.label, category: t.category, type: 'TEXT', language: 'English', name: t.name, text: t.text, sample_text: t.sample }) });
+            const sb = await sr.text().catch(() => ''); await log('template_submit', sr.ok, { name: t.name, status: sr.status, body: sb.slice(0, 200) });
+            if (sr.ok) { done[t.name] = new Date().toISOString(); await db.from('settings').upsert({ key: 'desk_templates_submitted', value: done }, { onConflict: 'key' }); }
+            waiting.push(t.name + (sr.ok ? ':submitted' : ':submit failed ' + sr.status)); continue;
+          }
+        }
         if (!tpl || String(tpl.status).toUpperCase() !== 'APPROVED') { waiting.push(t.name + ':' + (tpl?.status ?? 'missing')); continue; }
         const r = await fetch(`${base}/campaign/api`, { method: 'POST', headers: h, body: JSON.stringify({ template_name: t.name, campaign_name: t.campaign }) });
         const body = await r.text().catch(() => '');

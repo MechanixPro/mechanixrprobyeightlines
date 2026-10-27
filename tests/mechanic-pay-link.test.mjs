@@ -16,5 +16,5 @@ test('the webhook records a mechanic payment as a remittance and leaves the book
 });
 test('the booking money card offers the link only when the mechanic owes the company', () => {
   const a = read('admin/admin.js');
-  assert.match(a, /a\.remitDue > 0\.005 && l\.mechanic_id/); assert.match(a, /data-act="mechPayLink"/); assert.match(a, /mechanic-pay-link/);
+  assert.match(a, /a\.remitDue > 0\.005 && l\.mechanic_id/); assert.match(a, /data-act="mechPayLink"/); assert.match(a, /mechanic-pay-link/); assert.ok(a.includes("line('Vehicle'")); assert.ok(a.includes("line('Customer'"));
 });

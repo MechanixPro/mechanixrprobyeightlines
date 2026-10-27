@@ -25,3 +25,8 @@ test('the desk lead sheet shows the same money figures as the admin', () => {
   const sql = readFileSync(new URL('../supabase/migrations/20261203000000_desk_lead_money.sql', import.meta.url), 'utf8');
   assert.match(sql, /crm_can_see/); assert.match(sql, /voided_at is null/); assert.match(sql, /reverses_id/);
 });
+
+test('the automation submits a desk template that was never submitted, once', () => {
+  const a = readFileSync(new URL('../supabase/functions/desk-automation/index.ts', import.meta.url), 'utf8');
+  assert.match(a, /desk_templates_submitted/); assert.match(a, /`\$\{base\}\/wa_template`/); assert.match(a, /if \(!done\[t\.name\]\)/);
+});

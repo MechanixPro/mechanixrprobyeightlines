@@ -1007,7 +1007,12 @@ const ACT = {
     btn.disabled = false; btn.textContent = old;
     if (error || !data || data.error) return toast('Could not make the link: ' + ((data && data.error) || (error && error.message) || 'try again'));
     const first = String(m.name).split(' ')[0];
-    const text = `Hi ${first}, booking ${l.ref} is complete. Please pay the company share ${rupee2(amt)} here: ${data.url}`;
+    const b = bikeOf(l), a = salesModel().accounts.find((x) => x.lead_id === l.id), when = [l.preferred_date ? new Date(l.preferred_date + 'T12:00:00+05:30').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '', l.preferred_slot && l.preferred_slot !== 'asap' ? l.preferred_slot : ''].filter(Boolean).join(' ');
+    const line = (k, v) => (v ? `${k}: ${v}\n` : '');
+    const text = `Hi ${first}, booking ${l.ref} is complete.\n\n` + line('Customer', `${l.name} (${l.phone})`) + line('Vehicle', [b && b.reg_no ? String(b.reg_no).toUpperCase() : '', b ? [b.brand && b.brand !== 'Other' ? b.brand : '', b.model].filter(Boolean).join(' ') : ''].filter(Boolean).join(' · '))
+      + line('Service', [svcName(l.service_id), ...(l.addons || []).map((x) => svcName(x))].filter(Boolean).join(' + ')) + line('Place', [l.area, l.address].filter(Boolean).join(', ')) + line('When', when)
+      + line('Bill total', a ? rupee2(a.total) : '') + line('Collected by you', a ? rupee2(a.byChannel.mechanic) : '')
+      + `\nPlease pay the company share ${rupee2(amt)} here:\n${data.url}`;
     window.open(waLink(m.phone, text), '_blank', 'noopener'); toast('Link made. WhatsApp is open with the message ready.');
   },
   async warrantyCard(btn) {
