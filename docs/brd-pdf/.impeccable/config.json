@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "oversized-h1",
+        "value": "*",
+        "files": [
+          "docs/brd-pdf/brd.html"
+        ],
+        "createdAt": "2026-10-27T02:01:49.848Z",
+        "reason": "print PDF cover title, 34pt is normal for a document cover; assistant judgement, not a screen UI"
+      }
+    ]
+  }
+}

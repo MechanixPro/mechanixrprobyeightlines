@@ -22,8 +22,8 @@ table{border-collapse:collapse;width:100%;margin:8px 0;font-size:10pt}
 th{background:var(--navy);color:#fff;text-align:left;padding:7px 9px;font-weight:600}
 td{padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top}
 tr:nth-child(even) td{background:#fafbfe}
-.note{background:#FFF4E6;border-left:4px solid var(--ember);padding:9px 12px;border-radius:6px;margin:10px 0;font-size:10pt}
-.ok{background:#EAF7EF;border-left-color:#1e9e57}
+.note{background:#FFF4E6;border:1px solid #F5D3A8;padding:9px 12px;border-radius:8px;margin:10px 0;font-size:10pt}
+.ok{background:#EAF7EF;border-color:#b9e3c9}
 .tag2{display:inline-block;font-size:8.5pt;font-weight:700;border-radius:99px;padding:2px 9px;background:#E7ECF8;color:var(--navy);white-space:nowrap}
 .tag2.live{background:#DFF5E8;color:#14703f}.tag2.build{background:#FFEBD2;color:#9a4c05}
 .fig{margin:10px 0;break-inside:avoid}
@@ -37,7 +37,7 @@ ul{margin:6px 0 6px 18px;padding:0}li{margin:2px 0}
 /* mock screens */
 .mock{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px;margin:10px 0;break-inside:avoid;box-shadow:0 2px 8px rgba(20,41,90,.08)}
 .mock .bar{display:flex;gap:6px;margin:-4px 0 10px}.mock .bar i{width:9px;height:9px;border-radius:50%;background:#d6dcea}
-.mock h4{margin:0 0 6px;font-size:11pt;color:var(--navy)}
+.mock .h4{margin:0 0 6px;font-size:11pt;color:var(--navy)}
 .field{border:1px solid #cfd6e6;border-radius:8px;padding:6px 9px;font-size:9.5pt;background:#fff;color:#222}
 .field.need{border-color:#E8A33D;background:#FFF8EC}
 .field small{display:block;color:var(--muted);font-size:7.5pt}
@@ -53,7 +53,7 @@ ul{margin:6px 0 6px 18px;padding:0}li{margin:2px 0}
 .wabg{background:#EFE7DD;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
 .wcard{width:86mm;border-radius:16px;background:linear-gradient(150deg,#14295A,#0B1220);color:#fff;padding:14px;position:relative;overflow:hidden}
 .wcard .top{display:flex;justify-content:space-between;align-items:center}.wcard .brand{display:flex;gap:6px;align-items:center;font-weight:800;font-size:10pt}.wcard .brand img{width:20px}
-.wcard h5{margin:10px 0 2px;font-size:13pt;color:#fff}.wcard .sm{font-size:8pt;color:rgba(255,255,255,.9)}
+.wcard .h5{margin:10px 0 2px;font-size:13pt;color:#fff}.wcard .sm{font-size:8pt;color:rgba(255,255,255,.9)}
 .wcard .qr{position:absolute;right:12px;bottom:12px;background:#fff;border-radius:8px;padding:5px;width:25mm}.wcard .qr img{width:100%;display:block}
 .wcard .kvs{margin-top:10px;font-size:8.5pt;display:grid;grid-template-columns:auto 1fr;gap:2px 10px;max-width:52mm}.wcard .kvs span{color:rgba(255,255,255,.85)}
 .flow{display:flex;align-items:stretch;gap:6px;margin:10px 0}.flow .s{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px;font-size:9pt;background:#fff}.flow .s b{display:block;color:var(--navy);margin-bottom:2px}.flow .a{align-self:center;color:var(--ember);font-weight:900}
@@ -117,7 +117,7 @@ ul{margin:6px 0 6px 18px;padding:0}li{margin:2px 0}
 <h3>3.1 Required details, shown at the top of every invoice <span class="tag2">Mock-up</span></h3>
 <p>An invoice cannot be saved, printed or emailed until the customer name, mobile number and vehicle number are filled. The screen tells you exactly which one is missing. Email is optional. These details also print on the PDF and appear in the emailed invoice.</p>
 <div class="mock"><div class="bar"><i></i><i></i><i></i></div>
-<h4>Customer details <span style="font-weight:400;font-size:9pt;color:#5b6785">Add the vehicle number before you save, print or email.</span></h4>
+<div class="h4">Customer details <span style="font-weight:400;font-size:9pt;color:#5b6785">Add the vehicle number before you save, print or email.</span></div>
 <div class="row"><div class="field">Asha Rao<small>Customer name</small></div><div class="field">98765 43210<small>Mobile number</small></div></div>
 <div class="row"><div class="field need">&nbsp;<small>Vehicle number, for example KA05MQ1234 (required)</small></div><div class="field">asha@example.com<small>Email (optional)</small></div><div style="flex:0"><span class="btn">Save details</span></div></div>
 <div class="row" style="margin-top:10px"><span class="btn navy" style="opacity:.45">Print or save as PDF</span><span class="btn ghost" style="opacity:.45">Email to customer</span><span class="btn ghost" style="opacity:.45">Save invoice</span></div>
@@ -125,8 +125,8 @@ ul{margin:6px 0 6px 18px;padding:0}li{margin:2px 0}
 <h3>3.2 Changing an invoice: same invoice or a new one <span class="tag2">Mock-up</span></h3>
 <p>When something changes after an invoice is issued, you choose one of two clear paths:</p>
 <div class="two">
-<div class="mock"><h4>Update this invoice</h4><p style="font-size:9.5pt">Use for a correction (wrong amount, missing item, wrong vehicle number). The invoice keeps its number and gets a revision mark, for example <b>INV-MP-53020C-R2</b>. The old version stays in the register but is marked "replaced".</p></div>
-<div class="mock"><h4>Create a separate invoice</h4><p style="font-size:9.5pt">Use for extra work done later, or when part of the bill is for a different customer or company. It gets its own number, for example <b>INV-MP-53020C-B</b>, and its own total. The booking shows all of its invoices together with one overall paid and balance figure.</p></div></div>
+<div class="mock"><div class="h4">Update this invoice</div><p style="font-size:9.5pt">Use for a correction (wrong amount, missing item, wrong vehicle number). The invoice keeps its number and gets a revision mark, for example <b>INV-MP-53020C-R2</b>. The old version stays in the register but is marked "replaced".</p></div>
+<div class="mock"><div class="h4">Create a separate invoice</div><p style="font-size:9.5pt">Use for extra work done later, or when part of the bill is for a different customer or company. It gets its own number, for example <b>INV-MP-53020C-B</b>, and its own total. The booking shows all of its invoices together with one overall paid and balance figure.</p></div></div>
 <p>Every change asks for a short reason and is recorded, so nothing is ever lost. Deleted invoices are hidden, not erased, and can be restored.</p>
 <h3>3.3 Open invoices to edit; select and delete several <span class="tag2">Mock-up</span></h3>
 <div class="mock"><div class="bar"><i></i><i></i><i></i></div>
@@ -143,7 +143,7 @@ ul{margin:6px 0 6px 18px;padding:0}li{margin:2px 0}
 <h2>4. Payments, bookings and customers</h2>
 <h3>4.1 Booking shows what the customer paid <span class="tag2">Mock-up</span></h3>
 <div class="mock"><div class="bar"><i></i><i></i><i></i></div>
-<h4>Booking MP-53020C &middot; Asha Rao &middot; <span style="color:#14295A">KA05MQ1234 (Honda Activa)</span></h4>
+<div class="h4">Booking MP-53020C &middot; Asha Rao &middot; <span style="color:#14295A">KA05MQ1234 (Honda Activa)</span></div>
 <div class="stats"><div class="stat"><b>&#8377;942.82</b><span>Total incl. GST</span></div><div class="stat"><b>&#8377;500.00</b><span>Paid by customer</span></div><div class="stat"><b>&#8377;442.82</b><span>Balance</span></div><div class="stat"><b>12 Oct</b><span>Last payment</span></div></div>
 <p class="cap" style="margin-top:8px">Payments list: &#8377;500 UPI on 12 Oct 2026. The customer's page shows each vehicle with its number and the customer's total spend across all bookings.</p></div>
 <h3>4.2 Payment link on WhatsApp for the mechanic <span class="tag2">Mock-up</span></h3>
@@ -161,7 +161,7 @@ ul{margin:6px 0 6px 18px;padding:0}li{margin:2px 0}
 <h3>5.1 The card <span class="tag2">Mock-up</span></h3>
 <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
 <div class="wcard"><div class="top"><div class="brand"><img src="img/logo.svg" alt="">MECHANIX PRO</div><span class="sm">Service warranty</span></div>
-<h5>Asha Rao</h5><div class="sm">Honda Activa &middot; KA05MQ1234</div>
+<div class="h5">Asha Rao</div><div class="sm">Honda Activa &middot; KA05MQ1234</div>
 <div class="kvs"><span>Booking</span><b>MP-53020C</b><span>Service</span><b>Standard service</b><span>Done on</span><b>12 Oct 2026</b><span>Valid until</span><b>11 Nov 2026</b><span>Card no.</span><b>MPW-24Q9X7</b></div>
 <div class="qr"><img src="img/qr-sample.svg" alt="QR"></div><div style="height:48px"></div></div>
 <div style="flex:1;min-width:60mm"><div class="wabg"><div class="wamsg">Thank you, Asha. Your booking <b>MP-53020C</b> is fully paid. Here is your Mechanix Pro warranty card, valid until <b>11 Nov 2026</b>. Scan the QR to verify it any time.<div class="t">6:40 PM &#10003;&#10003;</div></div></div></div></div>
@@ -188,14 +188,14 @@ ul{margin:6px 0 6px 18px;padding:0}li{margin:2px 0}
 <div class="note"><b>Please note:</b> today the site and the payment amounts treat these numbers as already including GST. Moving to "excluding GST" means customers will pay about 18% more than they do now for the same service, unless you choose to lower the numbers. We have followed your instruction (numbers stay, GST added on top). Tell us if you want any price adjusted before release.</div>
 <h3>6.1 Prices screen in the admin <span class="tag2">Mock-up</span></h3>
 <div class="mock"><div class="bar"><i></i><i></i><i></i></div>
-<div style="display:flex;justify-content:space-between;align-items:center"><h4>Money &rsaquo; Prices</h4><span class="btn">+ Add an option</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><div class="h4">Money &rsaquo; Prices</div><span class="btn">+ Add an option</span></div>
 <table style="margin:4px 0 0"><tr><th>Option</th><th>Type</th><th style="text-align:right">Before GST</th><th style="text-align:right">GST</th><th style="text-align:right">Total</th><th>Warranty</th><th></th></tr>
 <tr><td>Basic service</td><td>Package</td><td align="right">&#8377;499</td><td align="right">&#8377;89.82</td><td align="right">&#8377;588.82</td><td>30 days</td><td>Edit</td></tr>
 <tr><td>Standard service</td><td>Package</td><td align="right">&#8377;799</td><td align="right">&#8377;143.82</td><td align="right">&#8377;942.82</td><td>30 days</td><td>Edit</td></tr>
 <tr><td>Full service</td><td>Package</td><td align="right">&#8377;1,299</td><td align="right">&#8377;233.82</td><td align="right">&#8377;1,532.82</td><td>30 days</td><td>Edit</td></tr>
 <tr><td>Puncture sorted, doorstep or anywhere</td><td>New package</td><td align="right">&#8377;599</td><td align="right">&#8377;107.82</td><td align="right">&#8377;706.82</td><td>7 days</td><td>Edit</td></tr></table></div>
 <h3>6.2 Website rate card <span class="tag2">Mock-up</span></h3>
-<div class="mock" style="background:#0B1220;color:#fff"><h4 style="color:#fff">Bangalore bike rate card</h4><p style="font-size:9pt;color:#cfd6e6;margin:0 0 6px">Prices are before GST. 18% GST is added at checkout. Quote first, pay after you say yes.</p>
+<div class="mock" style="background:#0B1220;color:#fff"><div class="h4" style="color:#fff">Bangalore bike rate card</div><p style="font-size:9pt;color:#cfd6e6;margin:0 0 6px">Prices are before GST. 18% GST is added at checkout. Quote first, pay after you say yes.</p>
 <div class="row"><div class="field" style="background:#fff"><b>Basic service</b><br>&#8377;499 <small>+ GST</small></div><div class="field" style="background:#fff"><b>Standard service</b><br>&#8377;799 <small>+ GST</small></div><div class="field" style="background:#fff"><b>Full service</b><br>&#8377;1,299 <small>+ GST</small></div><div class="field" style="background:#fff;border-color:#F2801F"><b>Puncture sorted</b><br>&#8377;599 <small>+ GST &middot; doorstep or anywhere</small></div></div></div>
 </section>
 
@@ -205,7 +205,7 @@ ul{margin:6px 0 6px 18px;padding:0}li{margin:2px 0}
 <p>We will bring the admin panel in line with the website: the same navy and orange, larger type, roomier spacing, clear status colours and bigger tap targets so it works well on a phone. The structure you already know stays the same.</p>
 <h3>Proposed look <span class="tag2">Mock-up</span></h3>
 <div class="mock"><div class="bar"><i></i><i></i><i></i></div>
-<div style="display:flex;justify-content:space-between;align-items:center"><h4>Today</h4><span class="pill n">27 Oct 2026</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><div class="h4">Today</div><span class="pill n">27 Oct 2026</span></div>
 <div class="stats"><div class="stat"><b>12</b><span>Bookings today</span></div><div class="stat"><b>&#8377;9,420</b><span>Collected</span></div><div class="stat"><b>&#8377;2,160</b><span>Balance due</span></div><div class="stat"><b>3</b><span>Mechanic payments due</span></div></div>
 <table style="margin-top:10px"><tr><th>Booking</th><th>Customer</th><th>Vehicle</th><th>Status</th><th></th></tr>
 <tr><td>MP-53020C</td><td>Asha Rao</td><td>KA05MQ1234</td><td><span class="pill g">Paid</span></td><td>Open</td></tr>
