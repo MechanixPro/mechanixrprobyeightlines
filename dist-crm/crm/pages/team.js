@@ -10,6 +10,7 @@ const GROUPS = [['Leads and bookings', ['view_all_leads', 'take_leads', 'add_lea
 
 export async function render(root, ctx) {
   const auto = ctx.can('manage_users') ? await rpc('crm_automation_status').catch(() => null) : null;
+  const roster = canRoster(ctx) ? await rpc('crm_roster_get', { p_from: rosterFrom || null, p_days: 7 }).catch(() => null) : null;
   const [users, dash] = await Promise.all([rpc('crm_users_list'), ctx.can('view_team_performance') || ctx.page('dashboard') ? rpc('crm_dashboard', {}).catch(() => null) : null]);
   const team = dash?.targets?.team;
   const canUsers = ctx.can('manage_users'), canTargets = ctx.can('edit_targets');
@@ -21,8 +22,14 @@ export async function render(root, ctx) {
       <td>${canTargets ? `<input class="tgt" type="number" min="0" max="5000" value="${u.monthly_target}" data-user="${u.user_id}" data-k="m" aria-label="Monthly target for ${esc(u.name)}">` : u.monthly_target}</td>
       <td>${u.custom_permissions ? tag('Custom', 'soft') : 'Preset'}</td><td>${canUsers ? `<button class="btn sm" type="button" data-perm="${u.user_id}">Permissions</button> <button class="btn ghost sm" type="button" data-active="${u.user_id}" data-on="${u.active ? 0 : 1}">${u.active ? 'Switch off' : 'Switch on'}</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">No team members yet.</td></tr>'}</tbody></table></div>
     ${auto ? automationPanel(auto) : ''}
+    ${roster ? rosterPanel(roster) : ''}
     ${ctx.me.role === 'supervisor' ? `<h3>WhatsApp (AiSensy)</h3><div class="card"><p class="small muted">The desk's own WhatsApp number. Check the connection, see whether the message templates are approved, then create the campaigns that send them.</p><div class="row wrap"><button class="btn" type="button" data-wa="status">Check connection</button><button class="btn" type="button" data-wa="templates">Template status</button><button class="btn primary" type="button" data-wa="create_campaigns">Create campaigns</button></div><pre class="wa-out" id="waOut" hidden></pre></div>` : ''}
     ${canUsers ? `<h3>Add a Care Buddy</h3><form id="userForm" class="user-form" novalidate><input name="name" placeholder="Full name" autocomplete="off" aria-label="Full name"><input name="email" type="email" placeholder="Work email" autocomplete="off" aria-label="Email"><select name="role" aria-label="Starting permissions"><option value="sales">Sales (starting permissions)</option><option value="support">Support (starting permissions)</option><option value="supervisor">Supervisor (everything)</option></select><button class="btn primary" type="submit">Add</button></form><p class="small muted">They sign in with a 6-digit code sent to that email. You can change any box afterwards.</p><p class="err" id="userErr" role="alert"></p>` : ''}`;
+  root.querySelectorAll('[data-roster]').forEach((c) => c.addEventListener('click', async () => {
+    const [uid, day, cur] = c.dataset.roster.split('|'), next = { working: 'off', off: 'leave', leave: 'working' }[cur];
+    try { await rpc('crm_roster_set', { p_user: uid, p_day: day, p_status: next }); ctx.reload(); } catch (x) { toast(clean(x), true); }
+  }));
+  root.querySelectorAll('[data-rweek]').forEach((b) => b.addEventListener('click', () => { const d = new Date((rosterFrom || roster.from) + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + Number(b.dataset.rweek) * 7); rosterFrom = d.toISOString().slice(0, 10); ctx.reload(); }));
   root.querySelectorAll('[data-wa]').forEach((b) => b.addEventListener('click', async () => {
     const out = root.querySelector('#waOut'); out.hidden = false; out.textContent = 'Working…'; b.disabled = true;
     try {
@@ -83,6 +90,18 @@ function waSummary(kind, d) {
 }
 
 const ago = (iso) => { if (!iso) return 'never'; const m = Math.round((Date.now() - new Date(iso).getTime()) / 60e3); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.floor(m / 60) + ' h ago' : Math.floor(m / 1440) + ' d ago'; };
+let rosterFrom = '';
+const canRoster = (ctx) => ctx.can('manage_users');
+const RS = { working: ['Working', 'ok'], off: ['Off', 'soft'], leave: ['Leave', 'late'] };
+function rosterPanel(r) {
+  const days = [...Array(r.days)].map((_, i) => { const d = new Date(r.from + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + i); return d.toISOString().slice(0, 10); });
+  const got = new Map(r.entries.map((e) => [e.user_id + '|' + e.day, e.status]));
+  const lab = (d) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  return `<h3>Duty roster</h3><div class="card"><p class="small muted">Tap a day to switch a person between Working, Off and Leave. Today's roster shows on the dashboard. The desk does not assign leads automatically yet, so this shows who is on duty; it does not block assignment.</p>
+    <div class="row wrap"><button class="btn ghost sm" type="button" data-rweek="-1">&larr; Earlier</button><button class="btn ghost sm" type="button" data-rweek="1">Later &rarr;</button></div>
+    <div class="table-wrap"><table class="roster"><thead><tr><th>Care Buddy</th>${days.map((d) => `<th>${esc(lab(d))}</th>`).join('')}</tr></thead><tbody>
+    ${r.users.map((u) => `<tr><td><b>${esc(u.name)}</b></td>${days.map((d) => { const st = got.get(u.user_id + '|' + d) || 'working'; return `<td><button type="button" class="btn sm ${st === 'working' ? 'ghost' : ''}" data-roster="${u.user_id}|${d}|${st}" aria-label="${esc(u.name)} ${esc(lab(d))}: ${RS[st][0]}. Tap to change.">${RS[st][0]}</button></td>`; }).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+}
 function automationPanel(a) {
   const sw = a.switches, hb = a.heartbeat || {}, auto = hb.automation, poll = hb.poll, cron = a.cron || [];
   const live = (iso, minutes) => iso && Date.now() - new Date(iso).getTime() < minutes * 60e3;

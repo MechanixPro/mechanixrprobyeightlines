@@ -57,3 +57,12 @@ test('the database functions are guarded and audited', () => {
   assert.match(m, /crm_require\('export'\)/); assert.match(m, /crm_require\('assign_leads'\)/); assert.match(m, /'crm_export'/); assert.match(m, /'crm_import'/);
   assert.match(m, /at most 500 rows/); assert.match(m, /interval '30 days'/);
 });
+
+test('garage operating state, mechanic performance and the roster are wired and guarded', () => {
+  const m = rd('supabase/migrations/20261206000000_desk_ops_roster.sql');
+  assert.match(m, /crm_require\('manage_garages'\)/); assert.match(m, /crm_require\('manage_users'\)/); assert.match(m, /say why in the note/); assert.match(m, /enable row level security/);
+  const g = rd('crm/pages/garages.js'), mc = rd('crm/pages/mechanics.js'), t = rd('crm/pages/team.js'), d = rd('crm/pages/dashboard.js');
+  assert.ok(g.includes('crm_garage_ops_set') && g.includes('crm_garage_load') && g.includes('Taking jobs'));
+  assert.ok(mc.includes('crm_mechanic_performance') && mc.includes('Customer rating'));
+  assert.ok(t.includes('crm_roster_set') && t.includes('Duty roster')); assert.ok(d.includes('crm_on_duty') && d.includes('On duty today'));
+});

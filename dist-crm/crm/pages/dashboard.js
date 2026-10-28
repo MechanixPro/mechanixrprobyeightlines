@@ -7,7 +7,7 @@ const iso = (d) => d.toISOString().slice(0, 10);
 const range = { from: null, to: null };
 
 export async function render(root, ctx) {
-  const [d, rt, fc] = await Promise.all([rpc('crm_dashboard', { p_from: range.from, p_to: range.to }), rpc('crm_rating_summary', { p_from: range.from, p_to: range.to }).catch(() => null), rpc('crm_followup_capacity', { p_from: range.from, p_to: range.to }).catch(() => null)]);
+  const [d, rt, fc, duty] = await Promise.all([rpc('crm_dashboard', { p_from: range.from, p_to: range.to }), rpc('crm_rating_summary', { p_from: range.from, p_to: range.to }).catch(() => null), rpc('crm_followup_capacity', { p_from: range.from, p_to: range.to }).catch(() => null), rpc('crm_on_duty').catch(() => null)]);
   const L = d.leads, T = d.targets, from = range.from || iso(new Date(d.range.from));
   const card = (n, t, tone = '') => `<div class="stat ${tone}"><b>${n}</b><span>${t}</span></div>`;
   const target = (title, x) => `<div class="stat wide"><span>${title}</span><div class="two-num"><b>${x.daily_done}</b><small>of ${x.daily_target} today</small></div>${bar(x.daily_done, x.daily_target)}
@@ -19,6 +19,7 @@ export async function render(root, ctx) {
       ${rt && rt.count ? card(`${rt.avg}/5`, `Average rating (${rt.count} ${rt.count === 1 ? 'rating' : 'ratings'}${rt.low ? ', ' + rt.low + ' low' : ''})`, rt.avg >= 4 ? 'good' : rt.avg < 3.5 ? 'bad' : '') : ''}
       ${ctx.page('inbox') ? card(d.chats.unreplied, `Chats waiting of ${d.chats.total}`, d.chats.unreplied ? 'bad' : '') : ''}
     </div>
+    ${duty ? `<p class="small"><b>On duty today:</b> ${duty.on.length ? duty.on.map(esc).join(', ') : 'nobody listed'}${duty.off.length ? ` <span class="muted">· Not working: ${duty.off.map((x) => esc(x.name) + ' (' + (x.status === 'leave' ? 'leave' : 'off') + ')').join(', ')}</span>` : ''}</p>` : ''}
     ${fc ? `<h3>Follow-ups</h3><div class="stat-row">${card(fc.overdue, 'Overdue', fc.overdue ? 'bad' : '')}${card(fc.today, 'Due today')}${card(fc.upcoming, 'Scheduled later')}${card(fc.none, 'Owned, no follow-up set', fc.none ? 'bad' : '')}${card(fc.contacts, 'Calls and WhatsApp logged')}</div>` : ''}
     <div class="stat-row">${target('Team targets', T.team)}${target('Your targets', T.me)}</div>
     ${d.agents ? `<h3>Care Buddies <span class="small muted">${exportButtons('team')}</span></h3>${agents(d.agents, fc && fc.agents)}` : ''}
