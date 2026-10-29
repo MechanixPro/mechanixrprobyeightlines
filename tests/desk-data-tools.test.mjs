@@ -66,3 +66,9 @@ test('garage operating state, mechanic performance and the roster are wired and 
   assert.ok(mc.includes('crm_mechanic_performance') && mc.includes('Customer rating'));
   assert.ok(t.includes('crm_roster_set') && t.includes('Duty roster')); assert.ok(d.includes('crm_on_duty') && d.includes('On duty today'));
 });
+
+test('the desk and the admin load the brutalist theme and the builds ship it', () => {
+  assert.match(rd('crm/index.html'), /assets\/css\/brutal\.css/); assert.match(rd('admin/index.html'), /assets\/css\/brutal\.css/);
+  assert.match(rd('scripts/build_crm.sh'), /brutal\.css/); assert.match(rd('scripts/build_admin.sh'), /brutal\.css/);
+  assert.match(rd('assets/css/brutal.css'), /@media print/);
+});
