@@ -22,7 +22,7 @@ export function snapshotRow({ invoice, lead, customer, mechanic, via, basis, rev
   const c = mechanicCut(invoice, mechanic ? mechanic.payout_rate : 0, basis), rate = SLOTS_RATES.includes(invoice.gstRate) ? invoice.gstRate : 18;
   const clean = (v, n) => (String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n) || null);
   return {
-    lead_id: lead.id, ref: invoice.ref, number: invoice.number + (revision > 1 ? '-R' + revision : ''), revision, issued_at: now, via: ['print', 'email', 'rebuilt'].includes(via) ? via : 'print',
+    doc_key: invoice.docKey || 'A', note: invoice.note || null, lead_id: lead.id, ref: invoice.ref, number: invoice.number + (revision > 1 ? '-R' + revision : ''), revision, issued_at: now, via: ['print', 'email', 'rebuilt'].includes(via) ? via : 'print',
     customer_id: lead.customer_id || (customer && customer.id) || null, customer_name: clean(invoice.customer.name, 80) || 'Customer', customer_phone: clean(invoice.customer.phone, 15), customer_email: clean(invoice.customer.email, 120), vehicle_reg: clean(invoice.vehicle && invoice.vehicle.reg, 14),
     customer_company: clean((customer && customer.company_name) || invoice.customer.company, 80), customer_gstin: clean((customer && customer.gstin) || invoice.customer.gstin, 15),
     mechanic_id: mechanic ? mechanic.id : null, mechanic_name: mechanic ? clean(mechanic.name, 80) : null,
@@ -93,4 +93,14 @@ export function registerCsv(rows) {
   const lines = rows.map((r) => [r.number, r.revision, istDay(r.issued_at), r.ref, r.customer_name, r.customer_company || '', r.customer_gstin || '', r.has_gst ? 'GST' : 'No GST', r.gst_rate + '%', r.taxable, r.cgst, r.sgst, r.total, r.paid, r.balance,
     r.mechanic_name || '', r.mechanic_rate, r.mechanic_cut, r.company_share, r.payable_now, r.via].map(cell).join(','));
   return [HEAD.join(','), ...lines].join('\n');
+}
+
+// A booking can carry several invoice documents. Sales and payments treat them as one bill: the amounts add up, the lines are listed together.
+export const docKey = (r) => r.doc_key || 'A';
+export const latestDocs = (rows) => { const best = new Map(); for (const r of rows) { const k = docKey(r), cur = best.get(k); if (!cur || r.revision > cur.revision) best.set(k, r); } return [...best.values()].sort((a, b) => docKey(a).localeCompare(docKey(b))); };
+export const nextDocKey = (rows) => { const used = new Set(rows.map(docKey)); for (let c = 66; c <= 90; c++) { const k = String.fromCharCode(c); if (!used.has(k)) return k; } return null; };
+export function combineDocs(main, extras) {
+  if (!extras || !extras.length) return main;
+  const sum = (k) => r2([main, ...extras].reduce((s, d) => s + (Number(d[k]) || 0), 0));
+  return { ...main, taxable: sum('taxable'), cgst: sum('cgst'), sgst: sum('sgst'), discount: sum('discount'), total: sum('total'), has_gst: [main, ...extras].some((d) => d.has_gst), lines: [...(main.lines || []), ...extras.flatMap((d) => d.lines || [])], docs: 1 + extras.length };
 }

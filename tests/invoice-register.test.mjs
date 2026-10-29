@@ -100,3 +100,13 @@ test('the admin has an Invoices tab, saves a copy when printing or emailing, and
   assert.match(h, /data-tab="invoices"/); assert.match(a, /invoices,/); assert.match(a, /from\('invoices'\)\.insert/); assert.match(a, /Mechanic cut/);
   assert.match(a, /data-act="invRegisterCsv"/); assert.match(a, /data-act="backfillInvoices"/);
 });
+
+import { docKey, latestDocs, nextDocKey, combineDocs } from '../admin/invoice-register.js';
+test('a booking can hold a main invoice and separate extra-work invoices that add up for sales', () => {
+  const rows = [{ id: 1, revision: 1 }, { id: 2, revision: 2 }, { id: 3, revision: 1, doc_key: 'B' }];
+  assert.equal(docKey(rows[0]), 'A'); assert.deepEqual(latestDocs(rows).map((r) => r.id), [2, 3]); assert.equal(nextDocKey(rows), 'C'); assert.equal(nextDocKey([{}]), 'B');
+  const main = { taxable: 1000, cgst: 90, sgst: 90, discount: 0, total: 1180, has_gst: true, lines: [{ name: 'Service', amount: 1000 }] };
+  const extra = { taxable: 500, cgst: 45, sgst: 45, discount: 0, total: 590, has_gst: true, lines: [{ name: 'Brake pads', amount: 500 }], doc_key: 'B' };
+  const c = combineDocs(main, [extra]); assert.equal(c.total, 1770); assert.equal(c.taxable, 1500); assert.equal(c.cgst + c.sgst, 270); assert.equal(c.lines.length, 2); assert.equal(c.docs, 2);
+  assert.equal(combineDocs(main, []), main);
+});

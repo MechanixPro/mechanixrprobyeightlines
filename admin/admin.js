@@ -12,7 +12,7 @@ import { buildNewBooking } from './new-booking.js';
 import { buildServiceEdit } from './booking-edit.js';
 import { groupOf, firstTab, navBadges } from './nav.js';
 import { boardGroups, nextStep } from './board.js';
-import { mechanicCut, snapshotRow, sameFigures, filterRegister, registerTotals, byMechanic, gstSummary, registerCsv } from './invoice-register.js';
+import { docKey, latestDocs, nextDocKey, combineDocs, mechanicCut, snapshotRow, sameFigures, filterRegister, registerTotals, byMechanic, gstSummary, registerCsv } from './invoice-register.js';
 import { jobAccount, mechanicAccount, summaryCards } from './ledger.js';
 import { buildEntry } from './ledger-forms.js';
 import { filterAccounts, salesCsv, ledgerCsv, entryLabel } from './sales-view.js';
@@ -493,7 +493,7 @@ function invoiceCard(l) {
   let made = null;
   if (!mine.length) { try { const inv = buildInvoice(withBike(l), S.services, { customer: S.customers.find((c) => c.id === l.customer_id) || null }); if (inv.lines.length) made = inv; } catch (e) { made = null; } }
   if (!mine.length && !made) return '';
-  const row = (r) => `<tr${r.voided_at ? ' style="opacity:.6"' : ''}>${isOwner() ? `<td><input type="checkbox" data-icsel="${r.id}" aria-label="Select ${esc(r.number)}"${S.icsel.has(r.id) ? ' checked' : ''}></td>` : ''}<td><b>${esc(r.number)}</b>${r.voided_at ? ' <span class="pill p-bad">Deleted</span>' : ''}</td><td>${esc(when(r.issued_at))}</td><td class="num">${rupee2(r.total)}</td><td class="tiny muted">${r.has_gst ? 'GST ' + r.gst_rate + '%' : 'No GST'}${r.voided_at && r.void_reason ? ' · ' + esc(r.void_reason) : ''}</td></tr>`;
+  const row = (r) => `<tr${r.voided_at ? ' style="opacity:.6"' : ''}>${isOwner() ? `<td><input type="checkbox" data-icsel="${r.id}" aria-label="Select ${esc(r.number)}"${S.icsel.has(r.id) ? ' checked' : ''}></td>` : ''}<td><b>${esc(r.number)}</b>${r.voided_at ? ' <span class="pill p-bad">Deleted</span>' : ''}</td><td>${esc(when(r.issued_at))}</td><td class="num">${rupee2(r.total)}</td><td class="tiny muted">${docKey(r) !== 'A' ? '<b>Extra work</b> · ' : ''}${r.has_gst ? 'GST ' + r.gst_rate + '%' : 'No GST'}${r.voided_at && r.void_reason ? ' · ' + esc(r.void_reason) : ''}${docKey(r) !== 'A' && !r.voided_at ? ` <button class="btn btn-ghost btn-sm" type="button" data-act="openExtra" data-id="${r.id}">Open</button>` : ''}</td></tr>`;
   const table = mine.length ? `<div class="scroll"><table style="min-width:420px"><thead><tr>${isOwner() ? '<th></th>' : ''}<th>Number</th><th>Saved</th><th class="num">Total</th><th></th></tr></thead><tbody>${mine.map(row).join('')}</tbody></table></div>` : `<p class="small" style="margin:0"><b>${esc(made.number)}</b> · ${rupee2(made.total)} <span class="muted">· made from the booking, saved when printed or emailed</span></p>`;
   return `<div class="card" style="margin-top:12px"><h3>Invoice</h3>${table}
     ${isOwner() ? `<div class="row-btns" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">${mine.length ? `<button class="btn btn-ghost btn-sm" type="button" data-act="icselAll">Select all</button><button class="btn btn-primary btn-sm" type="button" data-act="icselDelete"${[...S.icsel].some((id) => live.some((r) => r.id === id)) ? '' : ' disabled'}>Delete selected</button><button class="btn btn-ghost btn-sm" type="button" data-act="icselRestore"${[...S.icsel].some((id) => mine.some((r) => r.id === id && r.voided_at)) ? '' : ' disabled'}>Restore selected</button>` : ''}${live.length || made ? '<button class="btn btn-ghost btn-sm" type="button" data-act="voidInvoice">Delete the whole invoice</button>' : '<button class="btn btn-ghost btn-sm" type="button" data-act="restoreInvoice">Restore invoice</button>'}</div><p class="tiny muted" style="margin:8px 0 0">Deleting hides the invoice from the register and the sales figures. The booking and its payments stay. You can restore it.</p>` : '<p class="tiny muted" style="margin:8px 0 0">Only the owner can delete an invoice.</p>'}</div>`;
@@ -1053,6 +1053,26 @@ const ACT = {
     await audit('invoices_deleted', { count: done, failed, reason }); S.isel.clear(); S.imode = false; await loadInvoices();
     toast(failed ? `${done} deleted, ${failed} could not be deleted` : `${done} invoice${done === 1 ? '' : 's'} deleted`); render();
   },
+  invxOpen() { const b = $('#invxBox'); if (!b) return; b.hidden = !b.hidden; if (!b.hidden) b.scrollIntoView({ block: 'nearest' }); },
+  invxAddRow() { $('#ix-rows').insertAdjacentHTML('beforeend', invEditRow('', '')); $('#ix-rows').lastElementChild.querySelector('input').focus(); },
+  async invxSave() {
+    const l = S.leads.find((x) => x.id === S.open); if (!l || !detailsOk(l)) return;
+    const lines = [...document.querySelectorAll('#ix-rows .ie-row')].map((r) => ({ name: r.querySelector('[data-ie=name]').value.trim(), amount: parseFloat(r.querySelector('[data-ie=amount]').value) })).filter((x) => x.name || x.amount);
+    if (!lines.length) return toast('Add at least one item');
+    if (lines.some((x) => !x.name)) return toast('Give every amount an item name');
+    if (lines.some((x) => !(x.amount >= 0) || x.amount > 1000000)) return toast('Check the amounts');
+    const key = nextDocKey(S.invoicesAll.filter((r) => r.lead_id === l.id)); if (!key) return toast('This booking has the most invoices it can hold');
+    const rate = [0, 5, 12, 18].includes(+$('#ix-rate').value) ? +$('#ix-rate').value : 18, bs = $('#ix-basis').value === 'incl' ? 'incl' : 'excl';
+    const customer = S.customers.find((c) => c.id === l.customer_id) || null;
+    const inv = buildInvoice({ ...withBike(l), service_id: null, addons: [], big_bike: false, coupon_discount: 0, extra_discount: 0, paid_amount: 0, invoice_override: { basis: bs, rate, lines } }, S.services, { customer, bike: bikeOf(l) });
+    if (!inv.lines.length) return toast('Add at least one item');
+    inv.number = inv.number + '-' + key; inv.docKey = key; inv.note = ($('#ix-note').value || '').trim().slice(0, 200);
+    const row = snapshotRow({ invoice: inv, lead: l, customer, mechanic: mechFor(l), via: 'print', basis: basis(), revision: 1, now: new Date().toISOString() });
+    const { error } = await sb.from('invoices').insert(row); if (error) return toast('Could not save the invoice: ' + error.message);
+    await audit('invoice_extra_created', { ref: l.ref, number: inv.number, total: inv.total }); toast('Invoice ' + inv.number + ' created'); await loadInvoices();
+    $('#inv')?.remove(); openLead(l.id, true); if (['sales', 'invoices', 'custbook'].includes(S.tab)) render();
+  },
+  async openExtra(btn) { const r = S.invoicesAll.find((x) => x.id === btn.dataset.id); if (r) await openExtraInvoice(r); },
   async invSaveDetails() {
     const l = S.leads.find((x) => x.id === S.open); if (!l) return;
     const name = $('#cdn-name').value.trim(), phone = $('#cdn-phone').value.replace(/\D/g, '').slice(-10), reg = $('#cdn-reg').value.replace(/[^A-Za-z0-9 -]/g, '').trim().toUpperCase(), email = $('#cdn-email').value.trim().toLowerCase();
@@ -1111,6 +1131,7 @@ const ACT = {
     toast(error || !data || data.error ? 'Could not send: ' + ((data && data.error) || (error && error.message) || 'try again') : 'Invoice emailed to the customer and saved in Invoices');
   },
   invClose() { $('#inv')?.remove(); },
+  invExtraPrint() { window.print(); },
   async confirmBooking() {
     const l = S.leads.find((x) => x.id === S.open);
     if (!l.mechanic_id && !confirm('No mechanic is assigned yet. Confirm without one?')) return;
@@ -1343,7 +1364,7 @@ async function saveInvoiceCopy(lead, via) {
     const inv = buildInvoice(lead, S.services, { customer, bike: bikeOf(lead) });
     if (!inv.lines.length) return null;
     if (missingDetails(inv).length) return null;
-    const mine = S.invoicesAll.filter((r) => r.lead_id === lead.id).sort((a, b) => b.revision - a.revision), live = S.invoices.filter((r) => r.lead_id === lead.id).sort((a, b) => b.revision - a.revision);
+    const mine = S.invoicesAll.filter((r) => r.lead_id === lead.id && docKey(r) === 'A').sort((a, b) => b.revision - a.revision), live = S.invoices.filter((r) => r.lead_id === lead.id && docKey(r) === 'A').sort((a, b) => b.revision - a.revision);
     const row = snapshotRow({ invoice: inv, lead, customer, mechanic: mechFor(lead), via, basis: basis(), revision: (mine[0]?.revision || 0) + 1, now: new Date().toISOString() });
     if (live[0] && sameFigures(live[0], row)) return live[0];
     const { error } = await sb.from('invoices').insert(row);
@@ -1351,6 +1372,23 @@ async function saveInvoiceCopy(lead, via) {
     await loadInvoices(); if (S.tab === 'invoices') render();
     return row;
   } catch (e) { toast('Could not save the invoice copy'); return null; }
+}
+// An extra-work invoice, shown from its saved copy. It can be printed or saved as a PDF; payments are tracked on the booking.
+async function openExtraInvoice(r) {
+  const co = await loadCompany(); $('#inv')?.remove();
+  const addr = [...(co.addressLines || []), [co.city, co.state, co.pincode].filter(Boolean).join(' ')].filter(Boolean).map(esc).join('<br>');
+  const el = document.createElement('div'); el.id = 'inv'; el.className = 'inv-wrap'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'Invoice ' + r.number);
+  const date = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date(r.issued_at));
+  el.innerHTML = `<div class="inv-paper in">
+    <div class="inv-head"><div><img src="/assets/img/logo.svg" alt="" width="40" height="42"><b class="inv-co">${esc(co.legalName)}</b><span class="inv-sub">Trading as ${esc(co.brand)}<br>${addr}${co.gstin ? '<br>GSTIN ' + esc(co.gstin) : ''}</span></div>
+      <div class="inv-meta"><h2>${r.has_gst ? 'TAX INVOICE' : 'INVOICE'}</h2><span>${esc(r.number)}</span><span>${esc(date)}</span><span class="tiny">Extra work on booking ${esc(r.ref)}</span></div></div>
+    <p class="inv-to"><span>Billed to</span><b>${esc(r.customer_company || r.customer_name)}</b>${r.customer_company ? ' (' + esc(r.customer_name) + ')' : ''} · ${esc(r.customer_phone || '')}${r.customer_email ? '<br>' + esc(r.customer_email) : ''}${r.vehicle_reg ? '<br>Vehicle <b>' + esc(r.vehicle_reg) + '</b>' : ''}${r.customer_gstin ? '<br>GSTIN ' + esc(r.customer_gstin) : ''}</p>
+    <table class="inv-table"><thead><tr><th>Item</th><th class="num">Amount (${r.basis === 'excl' ? 'excl.' : 'incl.'} GST)</th></tr></thead><tbody>${(r.lines || []).map((l) => `<tr class="inv-line"><td>${esc(l.name)}</td><td class="num">${inr(l.amount)}</td></tr>`).join('')}</tbody></table>
+    <dl class="inv-tot"><dt>Taxable value</dt><dd>${inr(r.taxable)}</dd>${r.has_gst ? `<dt>CGST @ ${r.gst_rate / 2}%</dt><dd>${inr(r.cgst)}</dd><dt>SGST @ ${r.gst_rate / 2}%</dt><dd>${inr(r.sgst)}</dd>` : ''}<dt class="grand">Total</dt><dd class="grand">${inr(r.total)}</dd></dl>
+    ${r.note ? `<p class="small">${esc(r.note)}</p>` : ''}
+    <p class="inv-foot">${!r.has_gst ? 'No GST is charged on this invoice.' : r.basis === 'excl' ? `Amounts are before GST. GST is added at ${r.gst_rate}% and shown in the totals.` : `Prices include ${r.gst_rate}% GST.`} Parts are OEM or aftermarket, as labelled on the invoice, and carry a limited warranty on the terms of the part's manufacturer or supplier. Computer-generated invoice.</p>
+    <div class="inv-actions"><button class="btn btn-primary btn-sm" type="button" data-act="invExtraPrint">Print or save as PDF</button><button class="btn btn-ghost btn-sm" type="button" data-act="invClose">Close</button></div></div>`;
+  document.body.appendChild(el); el.querySelector('[data-act="invExtraPrint"]').focus();
 }
 async function openInvoice(lead, opts = {}) {
   const co = await loadCompany(), v = buildInvoice(lead, S.services, { customer: S.customers.find((c) => c.id === lead.customer_id), bike: bikeOf(lead) }), need = missingDetails(v), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || opts.quick;
@@ -1389,7 +1427,13 @@ async function openInvoice(lead, opts = {}) {
       <label class="label" for="ie-basis">The amounts below are</label><select id="ie-basis"><option value="excl"${v.basis === 'excl' ? ' selected' : ''}>Before GST (GST is added on top)</option><option value="incl"${v.basis === 'incl' ? ' selected' : ''}>Including GST (GST is worked out from the amount)</option></select>
       <div id="ie-rows">${v.lines.map((l) => invEditRow(l.name, l.amount)).join('')}</div>
       <div class="inv-adjust-row"><button class="btn btn-ghost btn-sm" type="button" data-act="invAddRow">Add an item</button><button class="btn btn-primary btn-sm" type="button" data-act="invSaveEdit">Save invoice</button>${lead.invoice_override ? '<button class="btn btn-ghost btn-sm" type="button" data-act="invResetEdit">Back to package prices</button>' : ''}</div></div>
-    <div class="inv-actions"><button class="btn btn-primary btn-sm" type="button" data-act="invPrint">Print or save as PDF</button><button class="btn btn-ghost btn-sm" type="button" data-act="invEdit">Edit invoice</button><button class="btn btn-dark btn-sm" type="button" data-act="invEmail">Email to customer</button><button class="btn btn-ghost btn-sm" type="button" data-act="invClose">Close</button></div>
+    <div class="inv-edit card" id="invxBox" hidden><b>Separate invoice for extra work</b> <span class="tiny muted">Use this for work added later. It gets its own number (${esc(v.number)}-${nextDocKey(S.invoicesAll.filter((r) => r.lead_id === lead.id)) || '?'}) and its own total. This invoice stays as it is. Sales and payments for the booking add the two together. To fix a mistake on this invoice instead, use "Correct this invoice".</span>
+      <label class="label" for="ix-rate">GST rate on the new invoice</label><select id="ix-rate"><option value="18">18% GST</option><option value="12">12% GST</option><option value="5">5% GST</option><option value="0">No GST</option></select>
+      <label class="label" for="ix-basis">The amounts below are</label><select id="ix-basis"><option value="excl" selected>Before GST (GST is added on top)</option><option value="incl">Including GST</option></select>
+      <div id="ix-rows">${invEditRow('', '')}</div>
+      <label class="label" for="ix-note">Note (optional)</label><input id="ix-note" maxlength="120" placeholder="For example: brake pads added after inspection">
+      <div class="inv-adjust-row"><button class="btn btn-ghost btn-sm" type="button" data-act="invxAddRow">Add an item</button><button class="btn btn-primary btn-sm" type="button" data-act="invxSave">Create invoice</button></div></div>
+    <div class="inv-actions"><button class="btn btn-primary btn-sm" type="button" data-act="invPrint">Print or save as PDF</button><button class="btn btn-ghost btn-sm" type="button" data-act="invEdit">Correct this invoice</button><button class="btn btn-ghost btn-sm" type="button" data-act="invxOpen">Separate invoice for extra work</button><button class="btn btn-dark btn-sm" type="button" data-act="invEmail">Email to customer</button><button class="btn btn-ghost btn-sm" type="button" data-act="invClose">Close</button></div>
   </div>`;
   document.body.appendChild(el);
   const reveal = () => { const g = el.querySelector('.inv-gen'); if (g) g.remove(); const paper = el.querySelector('.inv-paper'); paper.hidden = false; paper.classList.add('in'); el.querySelectorAll('.inv-tot [data-to]').forEach((d) => countUp(d, +d.dataset.to, 900)); el.querySelector('[data-act="invPrint"]').focus(); if (opts.edit) { const box = el.querySelector('#invEditBox'); if (box) { box.hidden = false; box.scrollIntoView({ block: 'center' }); } } };
@@ -1452,12 +1496,14 @@ const FIN_KINDS = { payment: 'Customer payment', refund: 'Refund to customer', w
 // The invoice a job is judged on: the latest saved copy, or one built from the booking as it stands (not saved until it is printed or emailed).
 function invoiceFor(l) {
   const mech = S.mechanics.find((m) => m.id === l.mechanic_id) || null;
-  let row = S.invoices.filter((r) => r.lead_id === l.id).sort((a, b) => b.revision - a.revision)[0];
+  let row = S.invoices.filter((r) => r.lead_id === l.id && docKey(r) === 'A').sort((a, b) => b.revision - a.revision)[0];
+  const extras = latestDocs(S.invoices.filter((r) => r.lead_id === l.id && docKey(r) !== 'A'));
   if (!row) {
     const customer = S.customers.find((c) => c.id === l.customer_id) || null, inv = buildInvoice(l, S.services, { customer });
     if (!inv.lines.length) return null;
     row = snapshotRow({ invoice: inv, lead: l, customer, mechanic: mechFor(l), via: 'print', basis: basis(), revision: 1, now: l.completed_at || l.paid_at || l.created_at });
   }
+  row = combineDocs(row, extras);
   const rate = jobRate(l);
   row = { ...row, mechanic_id: l.mechanic_id || null, mechanic_name: mech ? mech.name : null, mechanic_rate: mech ? rate.pct : 0, commission_adjust: Number(l.commission_adjust) || 0, commission_note: l.commission_note || '', job_place: rate.place };
   return row;
