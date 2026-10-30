@@ -47,11 +47,11 @@
 .inv-paper{position:relative;background:#fff;color:#14295A;width:min(720px,100%);border-radius:20px;padding:28px 28px 22px;box-shadow:0 20px 60px rgba(0,0,0,.28)}
 .inv-paper.in{animation:invPaper .5s cubic-bezier(.2,.8,.2,1) both}
 .inv-head{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:3px solid var(--ember);padding-bottom:14px}
-.inv-head img{display:block;margin-bottom:6px}.inv-co{display:block;font-size:20px}.inv-sub{display:block;font-size:13px;color:#51607F;line-height:1.5}
+.inv-head img{display:block;margin-bottom:6px}.inv-co{display:block;font-size:26px;font-weight:800;letter-spacing:-.01em;color:#14295A;line-height:1.1}.inv-tag{display:block;font-size:12.5px;font-weight:600;color:#F2801F;margin:3px 0 6px}.inv-sub{display:block;font-size:13px;color:#51607F;line-height:1.5}
 .inv-meta{text-align:right;display:grid;gap:2px;font-size:14px;align-content:start}.inv-meta h2{margin:0;font-size:22px;letter-spacing:.04em}
 .inv-to{margin:14px 0}.inv-to span{display:block;font-size:12px;color:#51607F;text-transform:uppercase;letter-spacing:.06em}
 .inv-table{width:100%;border-collapse:collapse;font-size:15px}.inv-table th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#51607F;border-bottom:1px solid #DDE2EC;padding:8px 0}
-.inv-table td{padding:10px 0;border-bottom:1px solid #EEF1F6}.num{text-align:right;font-variant-numeric:tabular-nums}
+.inv-table td{padding:10px 0;border-bottom:1px solid #EEF1F6}.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.inv-table{table-layout:auto}.inv-table .sno{width:44px;text-align:left;font-variant-numeric:tabular-nums;color:#51607F}.inv-table .code{width:120px;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:#51607F;white-space:nowrap}.inv-table td,.inv-table th{vertical-align:top;padding-right:10px}.inv-table th.num,.inv-table td.num{padding-right:0}.inv-meta span{font-variant-numeric:tabular-nums}
 .inv-line{opacity:0;animation:invRow .45s ease calc(.15s + var(--i) * .18s) forwards}
 .inv-tot{display:grid;grid-template-columns:1fr auto;gap:6px 24px;max-width:340px;margin:16px 0 0 auto;font-size:15px}.inv-tot dt{color:#51607F}.inv-tot dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
 .inv-tot .grand{font-size:18px;font-weight:700;color:#14295A;border-top:1px solid #DDE2EC;padding-top:8px}

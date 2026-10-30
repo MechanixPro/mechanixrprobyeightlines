@@ -7,6 +7,8 @@ const RATES = [0, 5, 12, 18]; // GST rates the admin can choose per invoice; any
 const clean80 = (v: unknown, n = 80): string | null => String(v || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n) || null;
 const paise = (n: unknown) => Math.round(Number(n || 0) * 100);
 const rupees = (p: number) => p / 100;
+// Item code printed beside each line: the service or add-on id in capitals, so the same item always has the same code.
+const itemCode = (id: string) => 'MXP-' + String(id || 'ITEM').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
 type Svc = { id: string; kind: string; name: string; price: number };
 type LeadLike = { ref: string; name: string; phone: string; service_id?: string | null; addons?: string[] | null; big_bike?: boolean | null; coupon_discount?: number | null; extra_discount?: number | null; extra_discount_note?: string | null; paid_amount?: number | null };
 
@@ -35,22 +37,22 @@ export function missingDetails(inv: { customer: { name?: string | null; phone?: 
   return out;
 }
 
-export function buildInvoice(lead: LeadLike, services: Svc[], opts: { date?: string | number | Date; bike?: { reg_no?: string | null; brand?: string | null; model?: string | null } | null; customer?: { email?: string | null; company_name?: string | null; gstin?: string | null; address?: string | null } | null } = {}) {
+export function buildInvoice(lead: LeadLike, services: Svc[], opts: { number?: string | null; date?: string | number | Date; bike?: { reg_no?: string | null; brand?: string | null; model?: string | null } | null; customer?: { email?: string | null; company_name?: string | null; gstin?: string | null; address?: string | null } | null } = {}) {
   const byId = new Map((services || []).map((s) => [s.id, s]));
   const ov = cleanOverride((lead as any).invoice_override);
-  const lines: Array<{ name: string; amount: number }> = [];
+  const lines: Array<{ name: string; amount: number; code: string }> = [];
   const svc = ov ? undefined : byId.get(String(lead.service_id));
   // Bikes of 150 to 250cc and of 251 to 500cc are billed at their own price of the package, when that row exists.
   const eng = (lead as any).engine_class as string | null | undefined;
   const isPkg = !!svc && SERVICE_PACKAGES.includes(String(lead.service_id));
   const tier = isPkg && (eng === 'mid' || eng === 'big') ? (eng === 'big' ? (byId.get(String(lead.service_id) + '500') ?? byId.get(String(lead.service_id) + '250')) : byId.get(String(lead.service_id) + '250')) : null;
   const no500 = !byId.get(String(lead.service_id) + '500');
-  if (svc && svc.kind === 'service') lines.push(tier && tier.kind === 'service' ? { name: tier.name, amount: tier.price } : { name: svc.name, amount: svc.price });
+  if (svc && svc.kind === 'service') lines.push(tier && tier.kind === 'service' ? { name: tier.name, amount: tier.price, code: itemCode(tier.id) } : { name: svc.name, amount: svc.price, code: itemCode(svc.id) });
   const big = byId.get('bigbike');
   // The old surcharge is for bookings made before engine classes, and for the large class when it has no 251-500cc price of its own.
-  if (isPkg && (eng ? eng === 'big' && no500 : lead.big_bike)) lines.push({ name: big ? big.name : 'Big bike surcharge', amount: big ? big.price : 300 });
-  if (ov) lines.push(...ov.lines);
-  for (const id of ov ? [] : lead.addons || []) { const a = byId.get(id); if (a && a.kind === 'addon') lines.push({ name: a.name, amount: a.price }); }
+  if (isPkg && (eng ? eng === 'big' && no500 : lead.big_bike)) lines.push({ name: big ? big.name : 'Big bike surcharge', amount: big ? big.price : 300, code: itemCode('bigbike') });
+  if (ov) lines.push(...ov.lines.map((l) => ({ ...l, code: itemCode('custom') })));
+  for (const id of ov ? [] : lead.addons || []) { const a = byId.get(id); if (a && a.kind === 'addon') lines.push({ name: a.name, amount: a.price, code: itemCode(a.id) }); }
 
   const subtotal = lines.reduce((s, l) => s + paise(l.amount), 0);
   const couponDiscount = Math.min(subtotal, paise(lead.coupon_discount));
@@ -66,7 +68,7 @@ export function buildInvoice(lead: LeadLike, services: Svc[], opts: { date?: str
   const when = new Date(opts.date || Date.now());
   const dateLabel = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(when);
   return {
-    number: 'INV-' + lead.ref, ref: lead.ref, dateLabel, customer: { name: lead.name, phone: lead.phone, company: clean80(opts.customer && opts.customer.company_name), gstin: clean80(opts.customer && opts.customer.gstin), address: clean80(opts.customer && opts.customer.address, 160), email: clean80((opts.customer && (opts.customer as any).email) || (lead as any).email, 120) },
+    number: clean80(opts.number, 24) || 'INV-' + lead.ref, ref: lead.ref, dateLabel, customer: { name: lead.name, phone: lead.phone, company: clean80(opts.customer && opts.customer.company_name), gstin: clean80(opts.customer && opts.customer.gstin), address: clean80(opts.customer && opts.customer.address, 160), email: clean80((opts.customer && (opts.customer as any).email) || (lead as any).email, 120) },
     vehicle: vehicleOf(opts.bike),
     lines, subtotal: rupees(subtotal), discount: rupees(discount), couponDiscount: rupees(couponDiscount), extraDiscount: rupees(extraDiscount), extraNote: String(lead.extra_discount_note || '').slice(0, 80), total: rupees(total),
     basis, taxable: rupees(taxable), cgst: rupees(cgst), sgst: rupees(sgst), gstRate: rate,

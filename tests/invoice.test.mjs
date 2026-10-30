@@ -153,3 +153,37 @@ test('bookings made after the cutover are billed before GST with GST added on to
     assert.equal(build({ ...lead, addons: [], service_id: 'general' }, services).basis, 'incl');
   }
 });
+test('an allocated invoice number replaces the booking-reference fallback, in both builders', () => {
+  for (const b of [buildInvoice, buildInvoiceFn]) {
+    assert.equal(b(lead, services, { number: 'MP/26-27/0007' }).number, 'MP/26-27/0007');
+    assert.equal(b(lead, services, { number: '   ' }).number, 'INV-' + lead.ref);
+  }
+});
+test('every line carries a steady item code made from its service id', () => {
+  const v = buildInvoice(lead, services), w = buildInvoiceFn(lead, services);
+  assert.ok(v.lines.length > 0); assert.ok(v.lines.every((l) => /^MXP-[A-Z0-9]+$/.test(l.code)));
+  assert.deepEqual(v.lines.map((l) => l.code), w.lines.map((l) => l.code));
+  assert.equal(v.lines[0].code, 'MXP-' + lead.service_id.toUpperCase());
+});
+test('the invoice numbers are one series per financial year and the save-details form has no stray characters', () => {
+  const sql = readFileSync(new URL('../supabase/migrations/20261208000000_invoice_numbers.sql', import.meta.url), 'utf8');
+  assert.match(sql, /'MP\/' \|\| f \|\| '\/' \|\| lpad\(s::text, 4, '0'\)/); assert.match(sql, /interval '3 months'/);
+  const admin = readFileSync(new URL('../admin/admin.js', import.meta.url), 'utf8');
+  assert.match(admin, /replace\(\/\[\^A-Za-z0-9\]\/g, ''\)\.toUpperCase\(\), email/);
+});
+test('invoice actions use the booking whose invoice is on screen, not the last booking sheet', () => {
+  const admin = readFileSync(new URL('../admin/admin.js', import.meta.url), 'utf8');
+  for (const act of ['invPrint', 'invxSave', 'invSaveDetails', 'invSaveEdit', 'invResetEdit', 'invDiscount', 'invEmail']) {
+    const body = admin.slice(admin.indexOf('  ' + (act === 'invPrint' || act === 'invEmail' ? 'async ' : 'async ') + act + '('), admin.indexOf('  ' + 'async ' + act + '(') + 400);
+    assert.match(body, /invLead\(\)/, act); assert.doesNotMatch(body, /x\.id === S\.open/, act);
+  }
+  assert.match(admin, /S\.invLead = lead\.id/);
+});
+test('the invoice head shows Mechanix Pro in bold with the tagline, and the legal name under it', () => {
+  const admin = readFileSync(new URL('../admin/admin.js', import.meta.url), 'utf8'), co = JSON.parse(readFileSync(new URL('../src/company.json', import.meta.url), 'utf8'));
+  assert.ok(co.tagline && co.tagline.length > 10); assert.match(admin, /<b class="inv-co">\$\{esc\(co\.brand\)\}<\/b>/); assert.match(admin, /inv-tag/);
+});
+test('typing items on the invoice then saving the customer details does not lose the items', () => {
+  const admin = readFileSync(new URL('../admin/admin.js', import.meta.url), 'utf8');
+  assert.match(admin, /const kept = keepInvoiceEdits\(\)[\s\S]{0,200}restoreInvoiceEdits\(kept\)/);
+});
