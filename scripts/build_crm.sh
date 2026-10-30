@@ -6,7 +6,7 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 out="$root/dist-crm"
 rm -rf "$out"; mkdir -p "$out/assets/js" "$out/assets/img"
 cp -R "$root/crm" "$out/crm"
-mkdir -p "$out/assets/css"; cp "$root/assets/css/brutal.css" "$out/assets/css/"
+mkdir -p "$out/assets/css"; cp "$root/assets/css/minimal.css" "$out/assets/css/"
 cp "$root/assets/js/config.js" "$out/assets/js/"
 cp "$root/assets/img/logo.svg" "$root/assets/img/favicon-32.png" "$root/assets/img/apple-touch-icon.png" "$out/assets/img/"
 cat > "$out/index.html" <<'I'
