@@ -51,7 +51,7 @@ export function filterRegister(rows, f = {}) {
     const d = istDay(r.issued_at);
     if (f.from && d < f.from) return false;
     if (f.to && d > f.to) return false;
-    if (q && ![r.number, r.ref, r.customer_name, r.customer_company, r.customer_gstin, r.mechanic_name].some((v) => String(v ?? '').toLowerCase().includes(q))) return false;
+    if (q && ![r.number, r.old_number, r.ref, r.customer_name, r.customer_company, r.customer_gstin, r.mechanic_name].some((v) => String(v ?? '').toLowerCase().includes(q))) return false;
     return true;
   });
 }

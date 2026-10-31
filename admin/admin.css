@@ -190,3 +190,6 @@ details.card[open]>summary::after{content:"  ▴"}
 .btn-sm{min-height:40px}
 .sheet-panel{background:#F6F8FC}
 @media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.sheet-panel{padding-inline:14px}}
+
+.item-picker{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}.item-picker .chip{min-height:36px;cursor:pointer}
+.inv-meta span:first-of-type{font-weight:600;letter-spacing:.02em}

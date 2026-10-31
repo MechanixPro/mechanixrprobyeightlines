@@ -187,3 +187,13 @@ test('typing items on the invoice then saving the customer details does not lose
   const admin = readFileSync(new URL('../admin/admin.js', import.meta.url), 'utf8');
   assert.match(admin, /const kept = keepInvoiceEdits\(\)[\s\S]{0,200}restoreInvoiceEdits\(kept\)/);
 });
+test('earlier invoices are renumbered into the series once, keeping the old number', () => {
+  const sql = readFileSync(new URL('../supabase/migrations/20261209000000_invoice_renumber.sql', import.meta.url), 'utf8');
+  assert.match(sql, /old_number = i\.number/); assert.match(sql, /where old_number is null and number like 'INV-%'/); assert.match(sql, /'-R' \|\| i\.revision/);
+});
+test('common invoice items come from past invoices, are one tap to add, and new ones are remembered', () => {
+  const sql = readFileSync(new URL('../supabase/migrations/20261209000100_invoice_items.sql', import.meta.url), 'utf8');
+  assert.match(sql, /\('Air filter', 'MXP-AIRFILTER', 320, 21\)/); assert.match(sql, /\('Clutch roller', 'MXP-CLUTCHROLLER'/);
+  const admin = readFileSync(new URL('../admin/admin.js', import.meta.url), 'utf8');
+  assert.match(admin, /data-act="invAddItem"/); assert.match(admin, /list="itemList"/); assert.match(admin, /await learnItems\(override\.lines\)/);
+});
