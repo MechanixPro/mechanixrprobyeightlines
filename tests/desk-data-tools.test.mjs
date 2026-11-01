@@ -82,3 +82,14 @@ test('desk, admin and site load the maximalist bento layers and the builds ship 
 test('site, desk and admin share one theme file', () => {
   for (const f of ['crm/index.html', 'admin/index.html', 'scripts/build_pages.py', 'scripts/build_crm.sh', 'scripts/build_admin.sh']) assert.match(rd(f), /theme\.css/);
 });
+
+test('the desk date range has an All time option that reads back as All time', async () => {
+  const dt = await import('../crm/data-tools.js');
+  assert.ok(dt.PRESETS.some(([k, t]) => k === 'all' && t === 'All time'));
+  const r = dt.presetRange('all'); assert.equal(r.from, '2025-01-01'); assert.equal(dt.presetOf(r.from, r.to), 'all');
+});
+test('the desk has a separate won and lost action and the requested dispositions', () => {
+  const sql = rd('supabase/migrations/20261212000000_desk_dispositions_outcome.sql');
+  assert.match(sql, /crm_set_outcome/); assert.match(sql, /'RNR'/); assert.match(sql, /Awaiting confirmation/);
+  assert.match(rd('crm/crm.js'), /data-act="won"/);
+});

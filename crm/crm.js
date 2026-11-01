@@ -2,7 +2,7 @@
 // Every other screen lives in ./pages/. Every read and write goes through database functions that check the person's permissions.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import { hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent } from './crm-rules.js';
-import { setClient, rpc, $, $$, esc, rupee, when, toast, clean, debounce, modal, field } from './ui.js';
+import { setClient, rpc, $, $$, esc, rupee, when, toast, clean, debounce, modal, field, confirmBox } from './ui.js';
 import * as dashboard from './pages/dashboard.js';
 import * as leads from './pages/leads.js';
 import * as rsa from './pages/rsa.js';
@@ -209,6 +209,7 @@ function renderSheet() {
       ${can('create_tickets') ? '<button class="btn ghost" type="button" data-act="ticket">Raise a ticket</button>' : ''}</div>
     ${!l.crm_owner && !can('assign_leads') ? '<p class="alert">Take this lead first. Then you can log what happened.</p>' : ''}
     ${canAct && l.crm_owner && (moves.length || OPEN.includes(l.status)) ? logForm(l, moves) : (BOOKED.includes(l.status) ? '<p class="alert good">This booking is confirmed.</p>' : '')}
+    ${canAct && (l.crm_owner || can('assign_leads')) && !BOOKED.includes(l.status) && l.status !== 'lost' ? outcomeBox() : ''}
     ${can('assign_leads') ? assignBox(l) : ''}
     <h3>History</h3><ul class="timeline">${d.activities.length ? d.activities.map((a) => `<li><b>${esc(KIND_LABEL[a.kind] || a.kind)}</b> <span class="muted small">${esc(a.actor || 'System')} · ${when(a.created_at)}</span>${a.body ? '<p>' + mask(a.body) + '</p>' : ''}</li>`).join('') : '<li class="muted">Nothing logged yet.</li>'}</ul>
     <h3>WhatsApp chat</h3><div id="chat" class="chat-box"><p class="muted small">Loading chat…</p></div>`;
@@ -278,6 +279,19 @@ function logForm(l, moves) {
     <div id="nextBox"><span class="label">Next follow-up (required)</span><div class="presets">${presets.map((p) => `<button class="chip pick" type="button" data-act="preset" data-iso="${localInputValue(p.date)}">${p.label}</button>`).join('')}</div>
       <input id="next" name="next" type="datetime-local" value="${localInputValue(def)}" aria-label="Follow-up date and time"></div>
     <p class="err" id="logErr" role="alert"></p><button class="btn primary wide" type="submit" id="logSave">Save</button></form>`;
+}
+function outcomeBox() {
+  return `<div class="card" id="outcomeBox"><h3>Lead status</h3><p class="small muted">Close this lead as won or lost. This is separate from the note above.</p>
+    <div class="row wrap"><button class="btn primary" type="button" data-act="won">Won</button><button class="btn" type="button" data-act="lostOpen">Lost</button></div>
+    <div id="lostPick" hidden><label class="label" for="oLost">Why was it lost?</label><select id="oLost"><option value="">Choose a reason</option>${LOST_REASONS.map((r) => `<option>${r}</option>`).join('')}</select>
+      <label class="label" for="oNote">Note (needed for Other)</label><input id="oNote" maxlength="200"><div class="row wrap" style="margin-top:8px"><button class="btn" type="button" data-act="lostSave">Save as lost</button></div></div></div>`;
+}
+async function saveOutcome(kind) {
+  const note = ($('#oNote') || {}).value || '', reason = ($('#oLost') || {}).value || '';
+  if (kind === 'won' && !(await confirmBox('Mark this lead as won? It counts as booked.', 'Mark won'))) return;
+  if (kind === 'lost' && !reason) return toast('Choose why the lead was lost.', true);
+  await rpc('crm_set_outcome', { p_id: S.open, p_outcome: kind, p_lost_reason: kind === 'lost' ? reason : null, p_note: note.trim() || null });
+  toast(kind === 'won' ? 'Marked as won.' : 'Saved. Lead closed as lost.'); await afterChange(kind === 'lost');
 }
 function syncSub() {
   const d = $('#disp'), s = $('#sub'); if (!d || !s) return;
@@ -349,6 +363,9 @@ document.addEventListener('click', async (e) => {
     if (act === 'tplRating') return await sendTemplate('rating');
     if (act === 'payLink') return sendPaymentLink(ctx, S.detail.lead, () => afterChange(false));
     if (act === 'ticket') { const l = S.detail.lead; const { newTicket } = tickets; return newTicket(ctx, { lead: l.id, title: 'Issue with ' + l.name + ' (' + l.ref + ')' }); }
+    if (act === 'won') return await saveOutcome('won');
+    if (act === 'lostOpen') { $('#lostPick').hidden = false; return; }
+    if (act === 'lostSave') return await saveOutcome('lost');
     if (act === 'preset') { $('#next').value = b.dataset.iso; return; }
     if (act === 'assign') { await rpc('crm_assign', { p_id: S.open, p_user: $('#assignTo').value || null }); toast('Assignment saved.'); return await afterChange(false); }
   } catch (err) { toast(clean(err), true); }

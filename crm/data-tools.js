@@ -1,6 +1,6 @@
 // crm/data-tools.js — pure helpers for the desk's date ranges, exports and file import (no DOM, no network), so Node can test them.
 
-export const PRESETS = [['today', 'Today'], ['month', 'This month'], ['last_month', 'Last month'], ['d30', 'Last 30 days'], ['m3', 'Last 3 months'], ['custom', 'Custom dates']];
+export const PRESETS = [['today', 'Today'], ['month', 'This month'], ['last_month', 'Last month'], ['d30', 'Last 30 days'], ['m3', 'Last 3 months'], ['all', 'All time'], ['custom', 'Custom dates']];
 const pad = (n) => String(n).padStart(2, '0');
 const ymd = (y, m, d) => `${y}-${pad(m)}-${pad(d)}`;
 const istParts = (now) => { const d = new Date(new Date(now).getTime() + 330 * 60_000); return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() }; };
@@ -14,6 +14,7 @@ export function presetRange(key, now = Date.now()) {
   if (key === 'last_month') { const py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1; return { from: ymd(py, pm, 1), to: addDays(ymd(y, m, 1), -1) }; }
   if (key === 'd30') return { from: addDays(today, -29), to: today };
   if (key === 'm3') { let pm = m - 2, py = y; if (pm < 1) { pm += 12; py -= 1; } return { from: ymd(py, pm, 1), to: today }; }
+  if (key === 'all') return { from: '2025-01-01', to: today };
   return null;
 }
 /** Which quick range matches these dates, so the picker shows the right option after a reload. */
