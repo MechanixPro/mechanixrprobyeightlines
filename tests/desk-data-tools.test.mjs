@@ -93,3 +93,7 @@ test('the desk has a separate won and lost action and the requested dispositions
   assert.match(sql, /crm_set_outcome/); assert.match(sql, /'RNR'/); assert.match(sql, /Awaiting confirmation/);
   assert.match(rd('crm/crm.js'), /data-act="won"/);
 });
+
+test('a desk page keeps its root in the page, so buttons that look things up later still find them', () => {
+  assert.match(rd('crm/crm.js'), /root\.style\.display = 'contents'; await sc\.mod\.render\(root, ctx\); \$\('#view'\)\.replaceChildren\(root\)/);
+});

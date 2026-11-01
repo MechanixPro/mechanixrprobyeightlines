@@ -167,7 +167,7 @@ async function go(view, keepScroll) {
   if (!keepScroll) $('#view').innerHTML = '<p class="muted pad">Loading…</p>';
   try {
     S.me = await rpc('crm_me'); renderHeader(); loadWaiting();
-    if (sc.mod) { const root = document.createElement('div'); await sc.mod.render(root, ctx); $('#view').replaceChildren(...root.childNodes); }
+    if (sc.mod) { const root = document.createElement('div'); root.style.display = 'contents'; await sc.mod.render(root, ctx); $('#view').replaceChildren(root); }  // root stays in the page, so a page can look things up in it when a button is pressed later
     else { await loadList(); renderBody(); }
   } catch (e) { $('#view').innerHTML = '<p class="err pad">' + esc(clean(e)) + '</p>'; }
   S.busy = false; if (y) window.scrollTo(0, y);
