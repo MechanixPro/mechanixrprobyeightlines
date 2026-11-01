@@ -4,17 +4,22 @@ import { newBooking } from './booking.js';
 import { PRESETS, presetRange, presetOf, parseCsv, toImportRows } from '../data-tools.js';
 import { exportButtons, bindExports } from '../exports.js';
 
-const FILTERS = [['all', 'All'], ['mine', 'Mine'], ['unassigned', 'Unassigned'], ['new', 'New'], ['followups', 'Follow-ups'], ['converted', 'Converted'], ['won', 'Won'], ['lost', 'Lost']];
+const FILTERS = [['all', 'All'], ['mine', 'Mine'], ['unassigned', 'Unassigned'], ['new', 'New'], ['followups', 'Follow-ups'], ['converted', 'Converted'], ['won', 'Won'], ['lost', 'Lost'], ['unassigned_open', 'Unassigned and open'], ['overdue', 'Overdue']];
 const st = { filter: 'mine', q: '', from: '', to: '', owner: '', picked: new Set() };
+const OPEN_STAGES = ['new', 'contacted', 'quoted', 'payment_sent'];
+/** Set what the Leads page shows before opening it (the dashboard cards use this). */
+export function showLeads(opts) { Object.assign(st, { filter: 'all', q: '', from: '', to: '', owner: '', picked: new Set() }, opts); }
 
 export async function render(root, ctx) {
   const all = ctx.can('view_all_leads');
   if (!all && st.filter === 'all') st.filter = 'mine';
-  const filters = FILTERS.filter(([k]) => all || k !== 'new');
-  const args = { p_filter: st.filter, p_search: st.q || null };
-  const [rows, sum] = await Promise.all([
+  const filters = FILTERS.filter(([k]) => all || !['new', 'unassigned_open'].includes(k));
+  const serverFilter = { overdue: 'followups', unassigned_open: 'unassigned' }[st.filter] || st.filter;
+  const args = { p_filter: serverFilter, p_search: st.q || null };
+  const [rowsAll, sum] = await Promise.all([
     all ? rpc('crm_leads_list', { ...args, p_owner: st.owner || null, p_from: st.from || null, p_to: st.to || null }) : rpc('crm_my_leads', args),
     rpc('crm_leads_summary', { p_from: st.from || null, p_to: st.to || null, p_owner: st.owner || null })]);
+  const rows = st.filter === 'overdue' ? rowsAll.filter((r) => r.overdue) : st.filter === 'unassigned_open' ? rowsAll.filter((r) => OPEN_STAGES.includes(r.stage)) : rowsAll;
   const users = all && ctx.can('assign_leads') ? await ctx.users() : [];
   const count = (k) => (k === 'all' ? sum.all : sum[k]);
   const tools = `<input id="q" type="search" placeholder="Search name, mobile or ref" value="${esc(st.q)}" aria-label="Search leads">

@@ -105,3 +105,5 @@ ol,ul.steps{margin:6px 0}
 .auto-status{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px;font-size:15px}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;background:var(--line)}.dot.ok{background:var(--good)}.dot.bad{background:var(--bad)}
 .exp{display:inline-flex;gap:6px;flex-wrap:wrap;vertical-align:middle}.exp .btn{min-height:40px;padding-inline:14px}
 .roster td .btn{min-width:72px}.roster th{white-space:nowrap}
+button.stat.clickable{font:inherit;text-align:left;cursor:pointer;width:100%;color:inherit}
+button.stat.clickable:hover{box-shadow:0 10px 26px rgba(15,29,69,.16)}

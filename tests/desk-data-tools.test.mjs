@@ -97,3 +97,9 @@ test('the desk has a separate won and lost action and the requested dispositions
 test('a desk page keeps its root in the page, so buttons that look things up later still find them', () => {
   assert.match(rd('crm/crm.js'), /root\.style\.display = 'contents'; await sc\.mod\.render\(root, ctx\); \$\('#view'\)\.replaceChildren\(root\)/);
 });
+
+test('the dashboard cards open the matching lists when clicked', () => {
+  const d = rd('crm/pages/dashboard.js'), l = rd('crm/pages/leads.js');
+  for (const g of ['range', 'unassigned', 'chats', 'overdue']) assert.match(d, new RegExp(`'${g}'\\)`));
+  assert.match(d, /ctx\.go\('inbox'\)/); assert.match(l, /export function showLeads/); assert.match(l, /unassigned_open/); assert.match(rd('crm/crm.js'), /go: \(view\) => go\(view\)/);
+});
