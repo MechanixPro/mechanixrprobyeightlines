@@ -44,3 +44,10 @@ Start both at 6:00 AM tomorrow. First 3 days are the learning phase, so do not e
 
 ## Readiness at launch
 Live: site, Google tag and Meta pixel, instant lead email to numer@, rehman@, zoya@, desk with dispositions and Won/Lost, Web leads tab, IVR key press receiver, AiSensy templates submitted. Still needs a person: add funds on Google; Agentive call menu and AiSensy welcome flow built from `docs/IVR-FLOW.md`; Care Buddies signed in.
+
+## PIN code targeting (Bengaluru, all 106 live PIN codes)
+All 106 in-use Bengaluru PIN codes (560001 to 560110; 560031, 560044, 560101, 560106 are not in use) are already served on the site and active in the admin PIN codes tab. Lists are in `~/Downloads/Mechanix-Ads-Week1/`: `bengaluru-pincodes-*.txt` (all 106), `tier1-pincodes-*.txt` (20 high-demand PINs: HSR, Koramangala, BTM, Bellandur, Electronic City, Indiranagar, Whitefield, JP Nagar, Jayanagar, Marathahalli, Yelahanka, Hebbal), `tier2-pincodes-*.txt` (the other 86). `-google.txt` files are in Google's "Add locations in bulk" format, `-meta.txt` files are one PIN per line.
+- **Two location sets per platform.** Tier 1 gets about 60% of the budget, Tier 2 about 40%. For max reach, add city-wide "Bangalore" as a third set at a low budget, because PIN targeting narrows reach.
+- **Google:** Locations, Advanced search, Enter locations in bulk, paste the Google list, Add as Targeted. Keep "Presence". Import `google-area-keywords.csv` in Google Ads Editor (27 area ad groups, each pointing to its own area page).
+- **Meta:** ad set, Locations, "Add locations in bulk", paste the Meta list. If Meta rejects bare PIN codes, use `560001, India` per line or fall back to city-wide Bangalore.
+- Review Search terms and the area report on day 3 and move budget to the PIN codes and areas giving real leads.
