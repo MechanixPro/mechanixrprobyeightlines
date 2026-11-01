@@ -101,7 +101,50 @@ async function boot() {
   if (!list.length) { $('#view').innerHTML = '<p class="alert pad">Your login has no pages yet. Ask your supervisor to turn some on.</p>'; return; }
   const start = location.hash.slice(1);
   await go(list.find((s) => s.id === start)?.id || (pageOk('leads') ? 'mine' : list[0].id));
-  setInterval(refresh, 60e3);
+  setInterval(refresh, 20e3);
+  startAlerts();
+}
+/* ---------- fast alerts: a new lead or a customer reply makes a sound, a pop-up, a vibration and a number in the tab title ---------- */
+let audioCtx = null, titleBase = document.title; const seen = { leads: null, replies: null };
+function beep() {
+  try {
+    audioCtx ||= new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume();
+    const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.type = 'sine'; o.frequency.value = 880;
+    g.gain.setValueAtTime(0.001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+    o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + 0.6);
+  } catch (e) { /* no sound on this device */ }
+}
+function alertUser(title, body) {
+  beep(); try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) { /* ignore */ }
+  toast(title + (body ? ': ' + body : ''));
+  try { if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body, tag: 'mxp-desk' }); } catch (e) { /* ignore */ }
+}
+async function pulse() {
+  if (!S.me) return;
+  let unassigned = null, replies = null;
+  if (pageOk('leads')) { try { unassigned = await rpc('crm_queue', { p_view: 'unassigned', p_search: null }); } catch (e) { /* next time */ } }
+  if (pageOk('inbox')) { try { replies = await rpc('crm_replies_waiting'); } catch (e) { /* next time */ } }
+  if (unassigned) {
+    const ids = new Set(unassigned.map((l) => l.id)); S.counts.unassigned = unassigned.length;
+    if (seen.leads) { const fresh = unassigned.filter((l) => !seen.leads.has(l.id)); if (fresh.length) alertUser(fresh.length === 1 ? 'New lead' : fresh.length + ' new leads', fresh.slice(0, 2).map((l) => l.name).join(', ')); }
+    seen.leads = ids; renderHeader();
+  }
+  if (replies) {
+    const key = (r) => r.id + '|' + r.wrote_at, ids = new Set(replies.map(key)); S.waiting = replies;
+    if (seen.replies) { const fresh = replies.filter((r) => !seen.replies.has(key(r))); if (fresh.length) alertUser('Customer replied', fresh.slice(0, 2).map((r) => r.name).join(', ')); }
+    seen.replies = ids; const b = $('#inBadge'); if (b) { b.textContent = replies.length; b.hidden = !replies.length; }
+  }
+  const n = (unassigned ? unassigned.length : 0) + (replies ? replies.length : 0); document.title = (n ? '(' + n + ') ' : '') + titleBase;
+}
+function startAlerts() {
+  const who = $('#who');
+  if (who && 'Notification' in window && Notification.permission === 'default' && !$('#alertBtn')) {
+    who.insertAdjacentHTML('afterend', ' <button class="btn ghost sm" type="button" id="alertBtn">Turn on alerts</button>');
+    $('#alertBtn').addEventListener('click', async () => { try { await Notification.requestPermission(); } catch (e) { /* ignore */ } beep(); $('#alertBtn').remove(); });
+  }
+  document.addEventListener('click', () => { try { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) { /* ignore */ } }, { once: true });
+  pulse(); let t = null; const loop = () => { clearTimeout(t); t = setTimeout(async () => { await pulse(); loop(); }, document.hidden ? 20e3 : 8e3); }; loop();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) pulse(); });
 }
 async function refresh() {
   if (S.busy || document.hidden || !S.me || !$('#sheet').hidden || $('.modal-back')) return;

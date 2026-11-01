@@ -15,17 +15,17 @@ The IVR is set up in the telephony provider's dashboard (the provider that owns 
 |---|---|---|---|
 | Greeting | "Welcome to Mechanix Pro, your roadside first responders. This call may be recorded." | none | Main menu |
 | Main menu | "For a breakdown or puncture, press 1. To book a bike service or a problem check, press 2. For your booking, payment or invoice, press 3. For car service or spare parts, press 4. For fleet, society or garage partnership, press 5. To speak to a Care Buddy, press 0." | 1 to 5, 0 | below |
-| 1 Breakdown | "Stay safe. Move off the road and switch on your hazard lights. We are sending a WhatsApp message to share your location. Connecting you to our roadside team." | none | Ring group **Roadside** (duty Care Buddies), 25 seconds. No answer: second group, then voicemail "Leave your name and area, we call back within 10 minutes." Always send WhatsApp template **ivr_roadside** |
-| 2 Service | "We are sending you a WhatsApp message to build your service and get a quote. Press 1 to talk to a Care Buddy now." | 1 | WhatsApp template **ivr_book** to the caller. If 1: ring group **Care Buddies** |
-| 3 Booking | "Send us your booking reference on WhatsApp and we reply right away. Press 1 to talk to a Care Buddy." | 1 | WhatsApp template **ivr_track** (track link). If 1: ring group **Care Buddies** |
-| 4 Car service | "For car service, periodic service, brakes, jump start or towing, we are sending you a WhatsApp message. Parts come through our partner Axlio. Press 1 to talk to a Care Buddy." | none | WhatsApp template **ivr_car**, then ring group **Care Buddies** |
-| 5 Business | "For fleets, societies and garages, press 1 for fleet and society, press 2 for garage partnership." | 1, 2 | 1: ring group **Fleet and society**. 2: ring group **Partners**. No answer: voicemail and WhatsApp template **ivr_business** |
+| 1 Breakdown | "Stay safe. Move off the road and switch on your hazard lights. We are sending a WhatsApp message to share your location. Connecting you to our roadside team." | none | Ring group **Roadside** (duty Care Buddies), 25 seconds. No answer: second group, then voicemail "Leave your name and area, we call back within 10 minutes." Always send WhatsApp template **mxp_ivr_roadside** |
+| 2 Service | "We are sending you a WhatsApp message to build your service and get a quote. Press 1 to talk to a Care Buddy now." | 1 | WhatsApp template **mxp_ivr_book** to the caller. If 1: ring group **Care Buddies** |
+| 3 Booking | "Send us your booking reference on WhatsApp and we reply right away. Press 1 to talk to a Care Buddy." | 1 | WhatsApp template **mxp_ivr_track** (track link). If 1: ring group **Care Buddies** |
+| 4 Car service | "For car service, periodic service, brakes, jump start or towing, we are sending you a WhatsApp message. Parts come through our partner Axlio. Press 1 to talk to a Care Buddy." | none | WhatsApp template **mxp_ivr_car**, then ring group **Care Buddies** |
+| 5 Business | "For fleets, societies and garages, press 1 for fleet and society, press 2 for garage partnership." | 1, 2 | 1: ring group **Fleet and society**. 2: ring group **Partners**. No answer: voicemail and WhatsApp template **mxp_ivr_business** |
 | 0 | "Connecting you to a Care Buddy." | none | Ring group **Care Buddies** |
 | No key or wrong key | "Sorry, I did not get that." Repeat the menu twice | any | After 2 repeats, ring **Care Buddies** |
 
 ## Rules to set in the provider
 - **Hours:** 24/7 for option 1. For options 0, 2 to 5 use the same hours the Care Buddies work. Outside them, play "Our team will call you back" and send the WhatsApp template.
-- **Missed or abandoned calls:** the caller gets a WhatsApp template **ivr_missed** within 1 minute ("Sorry we missed you. Reply here or tell us your bike and area and we will call back.") and a call-back task is created.
+- **Missed or abandoned calls:** the caller gets a WhatsApp template **mxp_ivr_missed** within 1 minute ("Sorry we missed you. Reply here or tell us your bike and area and we will call back.") and a call-back task is created.
 - **Caller ID:** pass the caller number to the WhatsApp message and to the desk, so the lead is created with the phone number filled in. Source: **ivr**.
 - **Languages:** English first. Add Kannada (press 2) and Hindi (press 3) on the greeting only when the recordings exist.
 - **Voicemail:** 60 seconds, then the call-back task with the caller number.
@@ -47,12 +47,13 @@ Use a **List message** for the welcome (WhatsApp quick-reply buttons allow only 
 ## Message templates to create (AiSensy, utility)
 | Template | Text |
 |---|---|
-| ivr_roadside | Hi, this is Mechanix Pro. Please share your live location here and tell us what happened to your bike. Our roadside team is on it. |
-| ivr_book | Hi, thanks for calling Mechanix Pro. Build your service and get your quote here: https://mechanixpro.in/book/ . Nothing starts until you say yes. |
-| ivr_track | Hi, track your Mechanix Pro booking here: https://mechanixpro.in/track/ . Send your booking reference if you need help. |
-| ivr_car | Hi, thanks for calling Mechanix Pro. Tell us your car make and model, your area and what it needs (periodic service, brakes, jump start or towing). We confirm the price before any work. |
-| ivr_business | Hi, thanks for calling Mechanix Pro. Please tell us your company or society name, how many vehicles, and the best time to call. |
-| ivr_missed | Hi, sorry we missed your call to Mechanix Pro. Tell us your bike and area and we will call you back. |
+| mxp_lead_ack | Hi {{1}}, thanks for contacting Mechanix Pro. We have your enquiry and a Care Buddy will reach you shortly. Quote first, pay after you say yes. |
+| mxp_ivr_roadside | Hi, this is Mechanix Pro. Please share your live location here and tell us what happened to your bike. Our roadside team is on it. |
+| mxp_ivr_book | Hi, thanks for calling Mechanix Pro. Build your service and get your quote here: https://mechanixpro.in/book/ . Nothing starts until you say yes. |
+| mxp_ivr_track | Hi, track your Mechanix Pro booking here: https://mechanixpro.in/track/ . Send your booking reference if you need help. |
+| mxp_ivr_car | Hi, thanks for calling Mechanix Pro. Tell us your car make and model, your area and what it needs (periodic service, brakes, jump start or towing). We confirm the price before any work. |
+| mxp_ivr_business | Hi, thanks for calling Mechanix Pro. Please tell us your company or society name, how many vehicles, and the best time to call. |
+| mxp_ivr_missed | Hi, sorry we missed your call to Mechanix Pro. Tell us your bike and area and we will call you back. |
 
 ## Test before going live
 1. Call from a spare phone: check each key, the repeat on a wrong key, and the voicemail.
