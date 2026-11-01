@@ -103,3 +103,9 @@ test('the dashboard cards open the matching lists when clicked', () => {
   for (const g of ['range', 'unassigned', 'chats', 'overdue']) assert.match(d, new RegExp(`'${g}'\\)`));
   assert.match(d, /ctx\.go\('inbox'\)/); assert.match(l, /export function showLeads/); assert.match(l, /unassigned_open/); assert.match(rd('crm/crm.js'), /go: \(view\) => go\(view\)/);
 });
+
+test('website bookings are kept out of the desk numbers and have their own Web leads tab', () => {
+  const sql = rd('supabase/migrations/20261214000000_desk_web_leads_tab.sql');
+  assert.match(sql, /crm_desk_leads/); assert.match(sql, /source is distinct from 'website'/); assert.match(sql, /crm_web_leads/);
+  assert.match(rd('crm/crm.js'), /id: 'web', title: 'Web leads'/); assert.match(rd('crm/pages/webleads.js'), /crm_web_leads/);
+});

@@ -5,6 +5,7 @@ import { hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LA
 import { setClient, rpc, $, $$, esc, rupee, when, toast, clean, debounce, modal, field, confirmBox } from './ui.js';
 import * as dashboard from './pages/dashboard.js';
 import * as leads from './pages/leads.js';
+import * as webleads from './pages/webleads.js';
 import * as rsa from './pages/rsa.js';
 import * as tickets from './pages/tickets.js';
 import * as visits from './pages/visits.js';
@@ -34,6 +35,7 @@ const SCREENS = [
   { id: 'mine', title: 'My day', page: 'leads' },
   { id: 'unassigned', title: 'Unassigned', page: 'leads', action: 'take_leads' },
   { id: 'leads', title: 'Leads', page: 'leads', mod: leads },
+  { id: 'web', title: 'Web leads', page: 'leads', mod: webleads },
   { id: 'rsa', title: 'RSA Cases', page: 'rsa', mod: rsa },
   { id: 'tickets', title: 'Tickets', page: 'tickets', mod: tickets },
   { id: 'visits', title: 'Garage Visits', page: 'garage_visits', mod: visits },
