@@ -3,16 +3,16 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 
-test('the car service page goes through Axlio, claims no price or warranty of its own, and is in the sitemap and the menu', () => {
+test('the car service page is live, claims no price or warranty, and is in the sitemap and the menu', () => {
   const page = read('car-service-bangalore/index.html');
-  assert.match(page, /<h1>Car service in Bangalore, quote first\.<\/h1>/); assert.match(page, /partner Axlio/); assert.match(page, /run separately from Mechanix Pro/);
+  assert.match(page, /<h1>Car service in Bangalore, quote first\.<\/h1>/); assert.match(page, /Car service is now live/); assert.match(page, /Axlio/); assert.ok(!existsSync(new URL('../coming-soon/car-service/index.html', import.meta.url)), 'the coming-soon car page is gone'); assert.match(read('_redirects'), /\/coming-soon\/car-service\/ \/car-service-bangalore\//);
   assert.ok(!/₹\s?\d/.test(page.replace(/<script[\s\S]*?<\/script>/g, '')), 'no rupee amount on the car page');
   assert.match(page, /"@type":\s?"FAQPage"/); assert.match(read('sitemap.xml'), /car-service-bangalore/); assert.match(read('index.html'), /href="\/car-service-bangalore\/"/);
 });
 test('llms.txt carries the same prices as the site and robots.txt lets AI assistants read the public pages', () => {
   const site = JSON.parse(read('src/site.json')), llms = read('llms.txt');
   for (const k of ['basic', 'general', 'full']) assert.ok(llms.includes('₹' + site.services[k].price.toLocaleString('en-IN')), k);
-  assert.match(llms, /30-day service warranty/); assert.match(llms, /Axlio/);
+  assert.match(llms, /30-day service warranty/); assert.match(llms, /Car service is live/); assert.match(llms, /Axlio/);
   const robots = read('robots.txt'); for (const bot of ['GPTBot', 'ClaudeBot', 'PerplexityBot', 'Google-Extended']) assert.match(robots, new RegExp('User-agent: ' + bot)); assert.match(robots, /Disallow: \/admin\//);
   assert.match(read('scripts/build_site.sh'), /llms\.txt/);
 });

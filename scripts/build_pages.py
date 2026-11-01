@@ -552,6 +552,7 @@ SOON = [
   steps=['Tell us your city and your interest.', 'We share how the model will work.', 'We talk about getting started.'],
   icon='M4 10l1.5-5h13L20 10M4 10v10h16V10M4 10h16M9 20v-5h6v5'),
 ]
+SOON = [x for x in SOON if x['id'] != 'car']  # car service is live: /car-service-bangalore/
 def soon_icon(path, cls='soon-ico-svg'):
     return f'<svg class="{cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" d="{path}"/></svg>'
 def soon_cards(skip=None):
@@ -908,22 +909,22 @@ axlio_page()
 def car_page():
     kicker, slug = 'Car service in Bengaluru', 'car-service-bangalore'
     title = 'Car Service in Bangalore, Quote First | Mechanix Pro'
-    desc = 'Car service and roadside help in Bangalore with our partner Axlio: periodic and brake service, jump start, flat tyre, towing and fuel delivery. Message us for a quote first.'
-    tiles = (('Periodic service', 'Routine car service at your car\'s interval, with the right parts for your make, model, year and fuel type.'), ('Brake service', 'For thin or noisy pads, or a soft pedal. The kit is matched to your car.'), ('Jump start and flat tyre', 'Dead battery or a flat tyre on the road. Share your location and we pass it on.'), ('Towing and fuel delivery', 'Stuck with a breakdown or an empty tank. Help is arranged for you, with the price confirmed first.'))
-    steps = ('Message us on WhatsApp with your car make, model, area and what you need.', 'We connect you with our partner Axlio, which confirms the work, the price and the time.', 'Work starts only after you say yes.')
-    faq = (('Do you service cars in Bangalore?', 'Mechanix Pro is bike-first. For cars we work with our partner Axlio, which lists periodic service, brake service, jump start, flat tyre help, towing and fuel delivery. Message us and we connect you.'),
+    desc = 'Car service and car help in Bangalore from Mechanix Pro: periodic and brake service, jump start, flat tyre, towing and fuel delivery. Message us for a quote first.'
+    tiles = (('Periodic service', 'Routine car service at your car\'s interval, with the right parts for your make, model, year and fuel type.'), ('Brake service', 'For thin or noisy pads, or a soft pedal. The kit is matched to your car.'), ('Jump start and flat tyre', 'Dead battery or a flat tyre on the road. Share your location and we send help.'), ('Towing and fuel delivery', 'Stuck with a breakdown or an empty tank. Help is arranged for you, with the price confirmed first.'))
+    steps = ('Message us on WhatsApp with your car make, model, area and what you need.', 'We confirm the work, the price and the time, with the right parts from Axlio.', 'Work starts only after you say yes.')
+    faq = (('Do you service cars in Bangalore?', 'Yes. Car service is live at Mechanix Pro: periodic service, brake service, jump start, flat tyre help, towing and fuel delivery. Message us with your car and what it needs and you get a quote first.'),
            ('How much does a car service cost?', 'The price depends on your car and what it needs, so it is confirmed before any work starts. Send your car make, model and area on WhatsApp and you will be told the price first.'),
-           ('Is there a warranty on car service?', 'Axlio confirms the terms for each job when it confirms the price. Our 30-day service warranty applies to Mechanix Pro work on two-wheelers.'),
-           ('Who runs Axlio?', 'Axlio is a partner and is run separately from Mechanix Pro. Prices, stock and delivery for car work are set by Axlio. You can read more on the Axlio partner page.'))
+           ('Do I pay before the work?', 'No. You see the work and the price first, and work starts only after you say yes.'),
+           ('Where do the parts come from?', 'Parts come through Axlio, our partner for car and bike spare parts in Bengaluru. You can read about Axlio on its partner page.'))
     ti = ''.join(f'<li class="reveal" style="--i:{i}"><h3>{html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for i, (t, d) in enumerate(tiles))
     st = ''.join(f'<li class="soon-step reveal" style="--i:{i}"><span class="soon-n">{i + 1}</span><span>{html.escape(t)}</span></li>' for i, t in enumerate(steps))
     fq = ''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in faq)
     ld = crumbs((kicker, f'/{slug}/')) + ld_tag({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]}) + ld_tag({"@context": "https://schema.org", "@type": "Service", "name": "Car service in Bengaluru", "serviceType": "Car service and roadside help", "areaServed": {"@type": "City", "name": "Bengaluru"}, "provider": {"@type": "AutoRepair", "name": "Mechanix Pro", "url": SITE + "/"}, "description": desc})
-    body = f'''<section class="page-head"><div class="wrap"><p class="breadcrumb soon-crumb"><a href="/">Home</a> &rsaquo; {html.escape(kicker)}</p><h1>Car service in Bangalore, quote first.</h1><p>Mechanix Pro looks after your bike at your door. For your car we work with our partner Axlio. Message us, and you are told the work, the price and the time before anything starts.</p>
+    body = f'''<section class="page-head"><div class="wrap"><p class="breadcrumb soon-crumb"><a href="/">Home</a> &rsaquo; {html.escape(kicker)}</p><h1>Car service in Bangalore, quote first.</h1><p>Car service is now live at Mechanix Pro. Message us with your car and what it needs, and you are told the work, the price and the time before anything starts.</p>
   <div class="row" style="margin-top:22px"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a car service in Bangalore.&#10;Car make and model: &#10;Fuel (petrol, diesel, EV): &#10;What it needs: &#10;Area: ">Get a car quote on WhatsApp</a><a class="btn btn-ghost-light" href="/partners/axlio/">About our partner Axlio</a></div></div></section>
 <section><div class="wrap"><div class="sec-head"><h2>What we can help with.</h2></div><ul class="job-grid">{ti}</ul></div></section>
 <section class="band"><div class="wrap"><div class="sec-head"><h2>How it works.</h2></div><ol class="soon-steps steps-2">{st}</ol></div></section>
-<section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Questions we get asked.</h2></div>{fq}<p class="tiny muted" style="margin-top:18px">Axlio is run separately from Mechanix Pro. Prices, stock and delivery for car work are set by Axlio.</p></div></section>
+<section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Questions we get asked.</h2></div>{fq}</div></section>
 <section><div class="wrap"><div class="final"><h2>Car or bike, we start with a quote.</h2><p>Nothing starts until you say yes.</p><div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a car service in Bangalore.&#10;Car make and model: &#10;Area: ">Get a car quote</a><a class="btn btn-ghost" href="/book/">Book a bike service</a></div></div></div></section>'''
     write(f'{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=f'{SITE}/{slug}/', site=SITE, schema=ld, scripts=LEGAL_JS, body='', nav=NAV, main='') + body + foot())
     urls.append((f'/{slug}/', '0.8'))
@@ -992,7 +993,7 @@ def llms_txt():
       f"- Prices (before GST; 18% GST is added): {sv['basic']['name']} {_inr(_price('basic'))}, {sv['general']['name']} {_inr(_price('general'))}, {sv['full']['name']} {_inr(_price('full'))}." + (f" Puncture {_inr(_price('puncture'))}." if 'puncture' in sv else ''),
       f"- Warranty: {SITE_DATA['warrantyDays']}-day service warranty on the work.",
       '- Roadside help: puncture, battery jump start, towing and breakdown help.',
-      '- Cars and spare parts: handled by our partner Axlio, which is run separately from Mechanix Pro.',
+      '- Car service is live: periodic and brake service, jump start, flat tyre help, towing and fuel delivery, quote first. Spare parts come through our partner Axlio.',
       f"- Legal entity: {COMPANY['legalName']}, {COMPANY['city']}, {COMPANY['state']}.", '',
       '## Pages', f'- [Services and prices]({SITE}/services/)', f'- [Rate card]({SITE}/rate-card/)', f'- [How it works]({SITE}/help/)', f'- [Roadside help]({SITE}/roadside/)', f'- [Car service]({SITE}/car-service-bangalore/)', f'- [Areas we serve]({SITE}/areas/)', f'- [Guides]({SITE}/guides/how-often-to-service-your-bike/)', f'- [Blog]({SITE}/blog/)', f'- [Book a service]({SITE}/book/)', '']
     open(os.path.join(ROOT, 'llms.txt'), 'w', encoding='utf-8').write('\n'.join(lines))
