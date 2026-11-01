@@ -50,10 +50,10 @@ const screens = () => SCREENS.filter((s) => pageOk(s.page) && (!s.action || can(
 
 const ctx = {
   get me() { return S.me; }, can, page: pageOk,
-  reload: () => go(S.view, true),
+  reload: () => { S.users = null; return go(S.view, true); },
   openLead: (id, kind) => openLead(id, kind),
   addLead: () => addDialog(),
-  users: async () => (S.users ||= await rpc('crm_users_list').catch(() => [])),
+  users: async () => { if (!S.users || Date.now() - (S.usersAt || 0) > 20000) { try { S.users = await rpc('crm_users_list'); S.usersAt = Date.now(); } catch (e) { S.users ||= []; } } return S.users; },
   showPlaybook: (id) => knowledge.showPlaybook(id),
 };
 
