@@ -1,5 +1,6 @@
 // POST /functions/v1/aisensy-lead — called by an AiSensy chatbot flow (its "API / webhook" step) when a customer has given booking details on WhatsApp.
 // Secured by a shared secret in the x-aisensy-secret header (secret AISENSY_WEBHOOK_SECRET). Saves the booking into the admin like the website form does.
+import { alertNewLead } from '../_shared/new-lead-alert.ts';
 import { adminDb, env, json, safeEqual, last10, priceBooking } from '../_shared/util.ts';
 import { cleanAisensyLead } from '../_shared/aisensy.ts';
 
@@ -31,5 +32,6 @@ Deno.serve(async (req) => {
     note: x.note, campaign: x.campaign, ref_code: x.ref_code, page: 'whatsapp-chatbot',
   }).select('ref').single();
   if (error) { console.error(error); return json(req, { error: 'Could not save' }, 500); }
+  await alertNewLead(db, { ref: lead.ref, name: x.name, phone: last10(x.phone), source: 'whatsapp', area: x.area ?? null, note: x.note ?? null });
   return json(req, { ok: true, ref: lead.ref, estimate: est });
 });

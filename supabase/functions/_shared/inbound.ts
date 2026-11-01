@@ -1,5 +1,6 @@
 // Saves one customer message from the desk's WhatsApp number on their lead. Shared by the AiSensy flow endpoint and the AiSensy webhook.
 // It never replies by itself. STOP-type words opt the customer out of automated messages.
+import { alertNewLead } from './new-lead-alert.ts';
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
 export const STOP_WORDS = /^\s*(stop|unsubscribe|cancel messages|band karo)\s*$/i;
 
@@ -12,10 +13,12 @@ export async function ingestInbound(db: any, x: { phone: string; name: string; t
   const { data: cust } = await db.from('customers').upsert({ phone: x.phone, ...(x.name ? { name: x.name } : {}) }, { onConflict: 'phone', ignoreDuplicates: !x.name }).select('id,blocked').maybeSingle();
   if (cust?.blocked) return { ok: true };
   let lead: any = (await db.from('leads').select('*').eq('phone', x.phone).is('deleted_at', null).order('created_at', { ascending: false }).limit(1).maybeSingle()).data;
+  let isNew = false;
   if (!lead || ['completed', 'lost'].includes(lead.status)) {
-    lead = (await db.from('leads').insert({ customer_id: cust?.id ?? null, name: (x.name || 'WhatsApp customer').slice(0, 60), phone: x.phone, source: 'whatsapp', consent_whatsapp: true, page: 'whatsapp-desk' }).select('*').single()).data;
+    lead = (await db.from('leads').insert({ customer_id: cust?.id ?? null, name: (x.name || 'WhatsApp customer').slice(0, 60), phone: x.phone, source: 'whatsapp', consent_whatsapp: true, page: 'whatsapp-desk' }).select('*').single()).data; isNew = !!lead;
   }
   if (!lead) return { ok: false, error: 'Could not save' };
+  if (isNew) await alertNewLead(db, { ref: lead.ref, name: lead.name, phone: x.phone, source: 'whatsapp', note: x.text.slice(0, 120) });
 
   const { error: dup } = await db.from('messages').insert({ lead_id: lead.id, phone: x.phone, direction: 'in', sender: 'customer', body: x.text, wa_message_id: x.id });
   if (dup?.code === '23505') return { ok: true, duplicate: true };

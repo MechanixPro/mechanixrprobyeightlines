@@ -5,6 +5,7 @@
 import { adminDb, env, hmacSha256Hex, safeEqual } from '../_shared/util.ts';
 import { verifyAgentive, cleanKeypress, MENU } from '../_shared/agentive.ts';
 import { sendCampaign } from '../_shared/aisensy-send.ts';
+import { alertNewLead } from '../_shared/new-lead-alert.ts';
 
 const reply = (b: unknown = { ok: true }, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
@@ -35,6 +36,7 @@ Deno.serve(async (req) => {
       if (cust?.blocked) return reply({ ok: true });
       const id = cust?.id ?? (await db.from('customers').select('id').eq('phone', k.phone).maybeSingle()).data?.id ?? null;
       lead = (await db.from('leads').insert({ customer_id: id, name: 'Caller ' + k.phone.slice(-4), phone: k.phone, source: 'phone', page: 'ivr', notes: line }).select('id,ref,notes,status,name').single()).data;
+      if (lead) await alertNewLead(db, { ref: lead.ref, name: lead.name, phone: k.phone, source: 'phone', note: line });
     } else {
       await db.from('leads').update({ notes: [lead.notes, line].filter(Boolean).join('\n').slice(0, 1500) }).eq('id', lead.id);
     }

@@ -5,6 +5,7 @@ import { whatsappReady, sendTemplate, TPL } from '../_shared/whatsapp.ts';
 import { cleanLeadFields } from '../_shared/lead-fields.ts';
 import { applyCoupon, normalizeCode } from '../_shared/coupons.ts';
 import { sendEmail, FROM_BOOKING } from '../_shared/resend.ts';
+import { alertNewLead } from '../_shared/new-lead-alert.ts';
 import { bookingReceived } from '../_shared/email-templates.ts';
 import { slotFee } from '../_shared/checkout.ts';
 import { isReturningCustomer } from '../_shared/customer.ts';
@@ -93,6 +94,8 @@ Deno.serve(async (req) => {
     next_followup_at: consent ? respectQuietHours(new Date(now + 15 * 60_000)).toISOString() : null,
   }).select('id, ref').single();
   if (error) { console.error(error); return json(req, { error: 'Could not save. Please message us on WhatsApp.' }, 500); }
+
+  await alertNewLead(db, { ref: lead.ref, name, phone, source: 'website', area: clean(b.area, 40) || null, service: priced.service.name });
 
   // Confirmation email (optional, only when the customer gave an address). It can never block or fail the booking.
   if (extra.email) {

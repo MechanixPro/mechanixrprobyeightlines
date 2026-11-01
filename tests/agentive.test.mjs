@@ -22,3 +22,10 @@ test('a key press is read, a bad one refused, and the menu matches the IVR doc',
   assert.equal(cleanKeypress({ event: 'other' }).ok, false);
   assert.equal(MENU['1'].campaign, 'mxp_ivr_roadside'); assert.equal(MENU['5-2'].campaign, 'mxp_ivr_business'); assert.equal(MENU['3'].lead, false);
 });
+
+test('every new-lead path alerts the desk by email at once', async () => {
+  const { readFileSync } = await import('node:fs');
+  const rd = (f) => readFileSync(new URL('../' + f, import.meta.url), 'utf8');
+  for (const f of ['supabase/functions/submit-lead/index.ts', 'supabase/functions/aisensy-lead/index.ts', 'supabase/functions/_shared/inbound.ts', 'supabase/functions/agentive-ivr/index.ts']) assert.match(rd(f), /alertNewLead\(/, f);
+  assert.match(rd('supabase/functions/_shared/new-lead-alert.ts'), /lead_alert_emails/);
+});
