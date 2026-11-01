@@ -6,7 +6,7 @@
   var C = window.MXP || {}, form = document.getElementById('payForm'), msg = document.getElementById('payMsg'), out = document.getElementById('payResult'), go = document.getElementById('payGo');
   if (!form) return;
   var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
-  var q = new URLSearchParams(location.search), pre = (q.get('ref') || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 9);
+  var q = new URLSearchParams(location.search), pre = (q.get('ref') || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 13);
   if (pre) document.getElementById('pay-ref').value = pre;
   function call(fn, body) {
     return fetch(C.supabaseUrl + '/functions/v1/' + fn, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey }, body: JSON.stringify(body) })

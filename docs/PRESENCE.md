@@ -19,7 +19,7 @@ Cars with partner Axlio 👇
 **Primary category:** Motorcycle repair shop. **Additional:** Motorcycle mechanic, Roadside assistance service, Scooter repair shop.
 **Service area:** Bengaluru (all PIN codes 560001 to 560110). Hide the address if it is not a walk-in shop.
 **Hours:** Open 24 hours, all days.
-**Phone:** +91 83106 21498. **Website:** https://mechanixpro.in. **Booking link:** https://mechanixpro.in/book/
+**Phone:** +91 79652 95649. **Website:** https://mechanixpro.in. **Booking link:** https://mechanixpro.in/book/
 **Description (under 750):**
 Mechanix Pro is a doorstep bike and scooter service in Bengaluru. A Mechanix Pro-certified mechanic comes to your home or office, sends a quote on WhatsApp first, and starts only after you say yes. Basic, General and Full service, repairs and problem checks, washes and add-ons, and roadside help when your bike breaks down or gets a puncture. OEM and aftermarket parts are fitted only after your approval, with a 30-day service warranty on our work. We are open 24/7. For cars and spare parts, our partner Axlio is at axlio.in.
 **Services to add (name and price from the Prices tab):** Basic service, General service, Full service, Repair or problem check, Roadside emergency visit, Foam wash, Chain clean and lube, Brake tuning, Tyre and puncture check, Battery health test.

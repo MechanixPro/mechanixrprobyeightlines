@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   const x = v.value;
   if (!(await ratingTokenOk(env('RATING_SECRET'), x.ref, x.k))) return json(req, { error: 'This rating link is not valid.' }, 403);
   const db = adminDb();
-  const { data: lead } = await db.from('leads').select('id,ref,name,crm_owner,status').eq('ref', x.ref).is('deleted_at', null).maybeSingle();
+  const { data: lead } = await db.from('leads').select('id,ref,name,crm_owner,status').or(`ref.eq.${x.ref},old_ref.eq.${x.ref}`).is('deleted_at', null).maybeSingle();
   if (!lead || lead.status !== 'completed') return json(req, { error: 'You can rate a booking after the job is done.' }, 400);
 
   const { data: old } = await db.from('lead_ratings').select('rating,created_at').eq('lead_id', lead.id).maybeSingle();

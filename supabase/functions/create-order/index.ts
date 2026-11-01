@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
   if ((count ?? 0) >= 20) return json(req, { error: 'Too many tries. Please wait a few minutes.' }, 429);
   await db.from('track_attempts').insert({ ip_hash: ipHash });
 
-  const { data: lead } = await db.from('leads').select('id,ref,name,phone,status,amount_due,paid_amount').eq('ref', v.ref).eq('phone', v.phone).maybeSingle();
+  const { data: lead } = await db.from('leads').select('id,ref,name,phone,status,amount_due,paid_amount').or(`ref.eq.${v.ref},old_ref.eq.${v.ref}`).eq('phone', v.phone).maybeSingle();
   if (!lead) return json(req, { error: 'We could not find that booking. Check the reference and the number you booked with.' }, 404);
   if (lead.status === 'paid' || lead.status === 'completed') return json(req, { error: 'This booking is already paid. Thank you!' }, 409);
   if (lead.status === 'lost') return json(req, { error: 'This booking is closed. Message us on WhatsApp to start again.' }, 409);

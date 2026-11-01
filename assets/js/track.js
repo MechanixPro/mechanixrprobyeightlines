@@ -4,7 +4,7 @@
   var C = window.MXP || {}, form = document.getElementById('trackForm'), msg = document.getElementById('trMsg'), out = document.getElementById('trResult'), go = document.getElementById('trGo');
   if (!form) return;
   var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
-  var q = new URLSearchParams(location.search), preRef = (q.get('ref') || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 9);
+  var q = new URLSearchParams(location.search), preRef = (q.get('ref') || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 13);
   if (preRef) document.getElementById('tr-ref').value = preRef;
   function draw(v) {
     var steps = v.stages.map(function (s, i) {

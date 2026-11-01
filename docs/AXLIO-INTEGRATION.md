@@ -16,7 +16,7 @@
 {
   "brand": "Mechanix Pro", "city": "Bengaluru", "hours": "Open 24/7", "currency": "INR",
   "quote_policy": "A quote is sent on WhatsApp first. Work starts only after the customer approves it.",
-  "contact": { "website": "https://mechanixpro.in", "whatsapp_url": "https://wa.me/918042303061", "call": "+918310621498" },
+  "contact": { "website": "https://mechanixpro.in", "whatsapp_url": "https://wa.me/918042303061", "call": "+917965295649" },
   "roadside_url": "https://mechanixpro.in/roadside/?campaign=axlio",
   "items": [
     { "id": "basic", "kind": "service", "name": "Basic service", "description": "...", "price_inr": 599,

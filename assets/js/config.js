@@ -3,8 +3,8 @@
    it is downloaded by every visitor. Secrets live in Supabase Edge Function secrets. */
 window.MXP = {
   whatsapp: '918042303061',        // Business WhatsApp number (the desk number on AiSensy): 91 + 10 digits, no spaces or +
-  callNumber: '918310621498',      // Number customers call (91 + 10 digits). Leave as is to reuse the WhatsApp number
-  phoneDisplay: '+91 83106 21498', // Shown on the site
+  callNumber: '917965295649',      // Number customers call (91 + 10 digits). Calls go to the IVR; WhatsApp is the AiSensy number above
+  phoneDisplay: '+91 79652 95649', // Shown on the site
   email: 'hello@mechanixpro.in',
 
   supabaseUrl: 'https://mejdxsbpyscujpvbwvmg.supabase.co', // Supabase project URL (public). Booking saves leads only once supabaseAnonKey is also set

@@ -59,6 +59,7 @@ A hand-off for anyone (or any future Claude session) who continues this work. It
 ## 6. Open items
 
 - **Phone number:** changed on 2026-10-10 to **+91 83106 21498** for both WhatsApp and calls (`assets/js/config.js`, email defaults in the Supabase functions, JSON-LD, `scripts/build_email_templates.mjs`). The owner still plans a separate dedicated WhatsApp number for the chatbot and a separate call/support number later (see `docs/WHATSAPP-BOT.md`); they are separate settings (`whatsapp` and `callNumber`).
+- **Numbers (updated 2026-11-02):** calls go to **+91 79652 95649** (the IVR, see `docs/IVR-FLOW.md`); every WhatsApp button, email link and API contact uses the AiSensy number **+91 80423 03061**. The old +91 83106 21498 is no longer shown anywhere in the code. The Supabase secret `WHATSAPP_URL` must also point to `https://wa.me/918042303061`.
 - **Address search** (Google Places) is built but switched off (`googleAddressSearch: false`) until Places API (New) works for the Maps key. The Find us map works.
 - **Service-due reminder emails:** function deployed; the daily pg_cron job still needs creating (`docs/SERVICE-REMINDER.md`, needs `CRON_SECRET`).
 - **Admin "Email to customer"** has not been tested by the owner with a real booking. The test lead `MP-C509DA` and older tests (`MP-0CBEAC`, `MP-A77ACB`, `MP-0379BE`) should be deleted in the admin.

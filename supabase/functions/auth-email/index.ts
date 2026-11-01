@@ -18,8 +18,8 @@ Deno.serve(async (req) => {
   const uid = String(payload?.user?.id ?? '');
   const isAdmin = uid ? !!(await adminDb().from('admins').select('user_id').eq('user_id', uid).maybeSingle()).data : false;
   const mail = authMailFor(payload, {
-    siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 83106 21498'), phoneTel: env('PHONE_TEL', '+918310621498'),
-    whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918310621498'), email: 'hello@mechanixpro.in',
+    siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 79652 95649'), phoneTel: env('PHONE_TEL', '+917965295649'),
+    whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918042303061'), email: 'hello@mechanixpro.in',
   }, env('SUPABASE_URL'), { isAdmin });
   if (!mail) return reply(400, { error: { http_code: 400, message: 'Nothing to send' } });
 

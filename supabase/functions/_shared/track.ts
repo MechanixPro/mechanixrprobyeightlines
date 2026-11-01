@@ -16,7 +16,7 @@ export function stageFor(status: string) { const s = BY_STATUS[status] ?? BY_STA
 export function cleanLookup(b: Record<string, unknown>): { ok: true; ref: string; phone: string } | { ok: false } {
   const ref = String(b?.ref ?? '').trim().toUpperCase();
   const phone = String(b?.phone ?? '').replace(/\D/g, '').slice(-10);
-  if (!/^MP-[A-Z0-9]{6}$/.test(ref) || !/^[6-9]\d{9}$/.test(phone)) return { ok: false };
+  if (!/^MP-(?:\d{2}-\d{2}-\d{4}|[A-Z0-9]{6})$/.test(ref) || !/^[6-9]\d{9}$/.test(phone)) return { ok: false };
   return { ok: true, ref, phone };
 }
 

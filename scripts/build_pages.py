@@ -209,7 +209,7 @@ for slug, name, pins, locs, why in AREAS:
     ]
     schema = '<script type="application/ld+json">' + json.dumps({
       "@context": "https://schema.org", "@type": "AutoRepair", "name": f"Mechanix Pro — {name}", "url": url,
-      "image": f"{SITE}/assets/img/og.png", "telephone": "+91-8310621498", "priceRange": "{{text:repair}}–{{text:full}}",
+      "image": f"{SITE}/assets/img/og.png", "telephone": "+91-7965295649", "priceRange": "{{text:repair}}–{{text:full}}",
       "areaServed": {"@type": "Place", "name": f"{name}, Bengaluru"},
       "address": {"@type": "PostalAddress", "addressLocality": "Bengaluru", "addressRegion": "Karnataka", "addressCountry": "IN"}}, ensure_ascii=False) + '</script>\n<script type="application/ld+json">' + json.dumps({
       "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]}, ensure_ascii=False) + '</script>'
@@ -356,7 +356,7 @@ for brand, name, t, big in load_bikes():
     schema = '<script type="application/ld+json">' + json.dumps({
       "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]}, ensure_ascii=False) + '</script>\n<script type="application/ld+json">' + json.dumps({
       "@context": "https://schema.org", "@type": "AutoRepair", "name": f"Mechanix Pro: {full} service", "url": url,
-      "image": f"{SITE}/assets/img/models/{slug}.webp", "telephone": "+91-8310621498", "priceRange": "{{text:repair}}–{{text:full}}",
+      "image": f"{SITE}/assets/img/models/{slug}.webp", "telephone": "+91-7965295649", "priceRange": "{{text:repair}}–{{text:full}}",
       "areaServed": {"@type": "City", "name": "Bengaluru"},
       "address": {"@type": "PostalAddress", "addressLocality": "Bengaluru", "addressRegion": "Karnataka", "addressCountry": "IN"}}, ensure_ascii=False) + '</script>'
     price_rows = ''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES if k in ('basic', 'general', 'full', 'repair'))
@@ -652,7 +652,7 @@ _pay = _pay.replace('</title>', '</title><meta name="robots" content="noindex,no
 write('pay/index.html', _pay + '''<h1 style="font-size:40px">Pay for your booking.</h1>
 <p class="muted" style="font-size:18px">Enter your booking reference (like MP-AB12CD) and the mobile number you booked with. You pay securely with Razorpay: UPI, cards, wallets or net banking.</p>
 <form class="card track-form" id="payForm" novalidate>
-  <label class="label" for="pay-ref">Booking reference</label><input id="pay-ref" name="ref" autocapitalize="characters" autocomplete="off" maxlength="9" placeholder="MP-AB12CD">
+  <label class="label" for="pay-ref">Booking reference</label><input id="pay-ref" name="ref" autocapitalize="characters" autocomplete="off" maxlength="13" placeholder="MP-26-27-0001">
   <label class="label" for="pay-phone">Mobile number</label><input id="pay-phone" name="phone" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="10-digit number">
   <button class="btn btn-primary" type="submit" id="payGo" style="margin-top:14px">Pay now</button>
   <p class="small" id="payMsg" role="status" aria-live="polite"></p>
@@ -666,7 +666,7 @@ _tr = _tr.replace('</title>', '</title><meta name="robots" content="noindex,nofo
 write('track/index.html', _tr + '''<h1 style="font-size:40px">Track your booking.</h1>
 <p class="muted" style="font-size:18px">Enter the reference from your confirmation (it looks like MP-AB12CD) and the mobile number you booked with.</p>
 <form class="card track-form" id="trackForm" novalidate>
-  <label class="label" for="tr-ref">Booking reference</label><input id="tr-ref" name="ref" autocapitalize="characters" autocomplete="off" maxlength="9" placeholder="MP-AB12CD">
+  <label class="label" for="tr-ref">Booking reference</label><input id="tr-ref" name="ref" autocapitalize="characters" autocomplete="off" maxlength="13" placeholder="MP-26-27-0001">
   <label class="label" for="tr-phone">Mobile number</label><input id="tr-phone" name="phone" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="10-digit number">
   <button class="btn btn-primary" type="submit" id="trGo" style="margin-top:14px">Check progress</button>
   <p class="small" id="trMsg" role="status" aria-live="polite"></p>
