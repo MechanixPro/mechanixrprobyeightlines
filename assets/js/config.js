@@ -20,5 +20,5 @@ window.MXP = {
   helperStyle: 'ab',               // The helper character: 'pro' (mechanic), 'sphere', or 'ab' (half the visitors see each, so you can compare)
   apolloAppId: '6ac9ea0d24cdaa0014db50b0', // Apollo website tracker. Loads only on the Fleets and Apartments pages
   diwaliOffer: '',                 // Optional line shown in the Diwali banner and card, e.g. 'Use code DIWALI at booking.' Leave empty for no offer line. Only write an offer that is live.
-  metaPixelId: '',                 // Meta (Instagram and Facebook) Pixel ID, digits only
+  metaPixelId: '1107879225558082',               // Meta (Instagram and Facebook) Pixel ID, digits only
 };
