@@ -1,6 +1,7 @@
 // Saves one customer message from the desk's WhatsApp number on their lead. Shared by the AiSensy flow endpoint and the AiSensy webhook.
 // It never replies by itself. STOP-type words opt the customer out of automated messages.
 import { alertNewLead } from './new-lead-alert.ts';
+import { getSetting } from './util.ts';
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
 export const STOP_WORDS = /^\s*(stop|unsubscribe|cancel messages|band karo)\s*$/i;
 
@@ -14,6 +15,9 @@ export async function ingestInbound(db: any, x: { phone: string; name: string; t
   if (cust?.blocked) return { ok: true };
   let lead: any = (await db.from('leads').select('*').eq('phone', x.phone).is('deleted_at', null).order('created_at', { ascending: false }).limit(1).maybeSingle()).data;
   let isNew = false;
+  const needsLead = !lead || ['completed', 'lost'].includes(lead.status);
+  // WhatsApp enquiries are added to the desk by hand: a message from a number with no open lead is not turned into one (setting desk_auto_whatsapp_leads switches it back on).
+  if (needsLead && !(await getSetting<boolean>(db, 'desk_auto_whatsapp_leads', false))) return { ok: true, manual: true };
   if (!lead || ['completed', 'lost'].includes(lead.status)) {
     lead = (await db.from('leads').insert({ customer_id: cust?.id ?? null, name: (x.name || 'WhatsApp customer').slice(0, 60), phone: x.phone, source: 'whatsapp', consent_whatsapp: true, page: 'whatsapp-desk' }).select('*').single()).data; isNew = !!lead;
   }

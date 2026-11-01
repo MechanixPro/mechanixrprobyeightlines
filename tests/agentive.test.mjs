@@ -29,3 +29,13 @@ test('every new-lead path alerts the desk by email at once', async () => {
   for (const f of ['supabase/functions/submit-lead/index.ts', 'supabase/functions/aisensy-lead/index.ts', 'supabase/functions/_shared/inbound.ts', 'supabase/functions/agentive-ivr/index.ts']) assert.match(rd(f), /alertNewLead\(/, f);
   assert.match(rd('supabase/functions/_shared/new-lead-alert.ts'), /lead_alert_emails/);
 });
+
+test('the desk follows the team rules: WhatsApp leads by hand, a call makes a mobile-only lead, dispositions as asked', async () => {
+  const { readFileSync } = await import('node:fs');
+  const rd = (f) => readFileSync(new URL('../' + f, import.meta.url), 'utf8');
+  assert.match(rd('supabase/functions/_shared/inbound.ts'), /desk_auto_whatsapp_leads/);
+  assert.match(rd('supabase/functions/agentive-ivr/index.ts'), /name: k\.phone, phone: k\.phone/);
+  const sql = rd('supabase/migrations/20261213000000_dispositions_v2.sql');
+  for (const t of ['Will book later', 'No mechanic available', 'Was just checking', 'Service dislike', 'Sw off', 'Requested call back']) assert.match(sql, new RegExp(t));
+  assert.match(rd('crm/crm.js'), /Call back date and time \(required\)/);
+});

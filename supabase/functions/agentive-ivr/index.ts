@@ -28,19 +28,19 @@ Deno.serve(async (req) => {
 
     const item = MENU[k.keyPath];
     const line = `Called the IVR and pressed ${k.keyPath}${item ? ': ' + item.label : k.keyLabel ? ': ' + k.keyLabel : ''}.`;
-    if (!k.phone || !item || !item.lead) return reply({ ok: true, noted: !!k.phone });
+    if (!k.phone || (item && !item.lead)) return reply({ ok: true, noted: !!k.phone });
 
     let lead: any = (await db.from('leads').select('id,ref,notes,status,name').eq('phone', k.phone).is('deleted_at', null).order('created_at', { ascending: false }).limit(1).maybeSingle()).data;
     if (!lead || !OPEN.includes(lead.status)) {
       const { data: cust } = await db.from('customers').upsert({ phone: k.phone }, { onConflict: 'phone', ignoreDuplicates: true }).select('id,blocked').maybeSingle();
       if (cust?.blocked) return reply({ ok: true });
       const id = cust?.id ?? (await db.from('customers').select('id').eq('phone', k.phone).maybeSingle()).data?.id ?? null;
-      lead = (await db.from('leads').insert({ customer_id: id, name: 'Caller ' + k.phone.slice(-4), phone: k.phone, source: 'phone', page: 'ivr', notes: line }).select('id,ref,notes,status,name').single()).data;
+      lead = (await db.from('leads').insert({ customer_id: id, name: k.phone, phone: k.phone, source: 'phone', page: 'ivr', notes: line }).select('id,ref,notes,status,name').single()).data;
       if (lead) await alertNewLead(db, { ref: lead.ref, name: lead.name, phone: k.phone, source: 'phone', note: line });
     } else {
       await db.from('leads').update({ notes: [lead.notes, line].filter(Boolean).join('\n').slice(0, 1500) }).eq('id', lead.id);
     }
-    if (item.campaign) {
+    if (item?.campaign) {
       const r = await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: item.campaign, phone: k.phone, name: lead?.name ?? 'Customer', params: [], source: 'mechanix-ivr' });
       if (!r.ok) console.error('agentive-ivr follow-up', item.campaign, r.error);
     }

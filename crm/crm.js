@@ -347,7 +347,9 @@ function syncLogForm() {
   const status = f.status.value, kind = (f.querySelector('[name=kind]:checked') || {}).value || 'note';
   const to = status || S.detail.lead.status;
   $('#lostBox').hidden = status !== 'lost';
-  $('#nextBox').hidden = !(OPEN.includes(to) && !(kind === 'note' && !status));
+  const callback = f.disp && f.disp.value === 'Call backs';
+  $('#nextBox').hidden = !callback && !(OPEN.includes(to) && !(kind === 'note' && !status));
+  const lab = $('#nextBox .label'); if (lab) lab.textContent = callback ? 'Call back date and time (required)' : 'Next follow-up (required)';
 }
 async function saveLog() {
   const f = $('#logForm');
@@ -356,6 +358,7 @@ async function saveLog() {
   const kind = v.kind === 'note' && v.status ? 'status' : v.kind;
   const check = validateLog({ ...v, kind, nextAction: $('#nextBox').hidden ? '' : v.nextAction });
   if (!check.ok) { $('#logErr').textContent = check.error; return; }
+  if (f.disp && f.disp.value === 'Call backs' && !f.next.value) { $('#logErr').textContent = 'Pick the date and time the customer asked to be called back.'; return; }
   if (f.sub && f.sub.value && !f.disp.value) { $('#logErr').textContent = 'Choose the disposition for that sub disposition.'; return; }
   $('#logErr').textContent = ''; $('#logSave').disabled = true;
   try {
