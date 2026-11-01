@@ -51,3 +51,8 @@ All 106 in-use Bengaluru PIN codes (560001 to 560110; 560031, 560044, 560101, 56
 - **Google:** Locations, Advanced search, Enter locations in bulk, paste the Google list, Add as Targeted. Keep "Presence". Import `google-area-keywords.csv` in Google Ads Editor (27 area ad groups, each pointing to its own area page).
 - **Meta:** ad set, Locations, "Add locations in bulk", paste the Meta list. If Meta rejects bare PIN codes, use `560001, India` per line or fall back to city-wide Bangalore.
 - Review Search terms and the area report on day 3 and move budget to the PIN codes and areas giving real leads.
+
+### Priority PIN codes (owner choice): 560102, 560066, 560068, 560100, 560061
+Three tiers now. **Tier 0 (priority, 5 PINs: 560102, 560066, 560068, 560100, 560061) gets about 50% of each platform's budget**, Tier 1 (the other 15 high-demand PINs) about 30%, Tier 2 (the remaining 86) about 20%. Files: `tier0-priority-pincodes-*.txt`, `tier1-pincodes-*.txt`, `tier2-pincodes-*.txt`.
+- Make Tier 0 its own ad set (Meta) and its own campaign or location group with a higher bid or budget (Google), so the spend per PIN is visible.
+- Check on day 2 and day 4: cost per lead per tier. Promote any Tier 1 PIN with a lead into Tier 0, and demote a Tier 0 PIN with no lead after ₹800 spend.
