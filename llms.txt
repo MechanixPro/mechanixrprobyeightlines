@@ -1,0 +1,23 @@
+# Mechanix Pro
+
+> Mechanix Pro is a doorstep bike and scooter service and roadside help in Bengaluru (Bangalore), India. Certified mechanics come to your home or office. You get an itemised quote on WhatsApp first and pay only after you approve.
+
+## Key facts
+- Service area: Bengaluru, across the city (see the areas page for PIN codes).
+- How it works: message on WhatsApp or build a service on the website, receive an itemised quote, approve it, the mechanic comes to your door.
+- Prices (before GST; 18% GST is added): Basic service ₹499, Standard service ₹799, Full service ₹1,299. Puncture ₹599.
+- Warranty: 30-day service warranty on the work.
+- Roadside help: puncture, battery jump start, towing and breakdown help.
+- Cars and spare parts: handled by our partner Axlio, which is run separately from Mechanix Pro.
+- Legal entity: NOVA VENTURES, Bengaluru, Karnataka.
+
+## Pages
+- [Services and prices](https://mechanixpro.in/services/)
+- [Rate card](https://mechanixpro.in/rate-card/)
+- [How it works](https://mechanixpro.in/help/)
+- [Roadside help](https://mechanixpro.in/roadside/)
+- [Car service](https://mechanixpro.in/car-service-bangalore/)
+- [Areas we serve](https://mechanixpro.in/areas/)
+- [Guides](https://mechanixpro.in/guides/how-often-to-service-your-bike/)
+- [Blog](https://mechanixpro.in/blog/)
+- [Book a service](https://mechanixpro.in/book/)

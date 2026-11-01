@@ -7,7 +7,7 @@ test('the home page leads with what we offer, then the entry points, in a clear 
   const home = read('../index.html');
   const ids = [...home.matchAll(/<section[^>]*id="([^"]+)"/g)].map((m) => m[1]);
   const at = (id) => ids.indexOf(id);
-  assert.deepEqual(['diwali', 'why', 'needs', 'rsa', 'prices', 'addons-home', 'brief', 'rider-tools', 'every-job', 'trust', 'experience', 'home-faq', 'areas', 'partners'].map(at).every((v, i, a) => v > -1 && (i === 0 || v > a[i - 1])), true, ids.join(','));
+  assert.deepEqual(['diwali', 'why', 'needs', 'rsa', 'prices', 'brief', 'rider-tools', 'trust', 'home-faq', 'areas', 'partners'].map(at).every((v, i, a) => v > -1 && (i === 0 || v > a[i - 1])), true, ids.join(','));
   const why = home.match(/<div class="promo-grid">[\s\S]*?<\/section>/)[0];
   for (const href of ['/two-wheeler-service-at-home-bangalore/', '/scooty-repair-at-home-bangalore/', '/ev-and-petrol-bike-care-bangalore/', '/verified-bike-garages-bangalore/', '/digital-service-records/', '/doorstep-bike-and-car-repair-near-me/']) assert.ok(why.includes(`href="${href}"`), href);
   assert.ok(!ids.includes('services-all'), 'the duplicate services tiles are gone');
@@ -26,14 +26,6 @@ test('the phone bar has fixed-height buttons so it never stretches', () => {
 test('the phone bar is toggled with its own class, not the .show class of the image showcase', () => {
   assert.match(read('../assets/js/app.js'), /mb\.classList\.toggle\('on'/);
   assert.match(read('../assets/css/style.css'), /\.mbar\.on\{transform:none\}/);
-});
-test('the experience cards use only our own Instagram creatives, with no prices baked in, and say what they are', () => {
-  const home = read('../index.html');
-  const sec = home.match(/<section id="experience"[\s\S]*?<\/section>/)[0];
-  assert.equal((sec.match(/<img /g) || []).length, 6);
-  for (const img of sec.match(/<img [^>]*>/g)) { assert.match(img, /width="480" height="640"/); assert.match(img, /alt="Scene from our Instagram:/); }
-  assert.match(sec, /not a specific customer or job/);
-  assert.match(sec, /rel="me noopener"/);
 });
 test('key pages have a link-preview card of their own, and the files exist', () => {
   for (const [page, card] of [['services', 'services'], ['roadside', 'roadside'], ['join', 'join'], ['partners/axlio', 'axlio'], ['help', 'how'], ['areas', 'areas'], ['offers/diwali-ready', 'diwali']]) {

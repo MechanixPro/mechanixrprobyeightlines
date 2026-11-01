@@ -6,10 +6,10 @@ const home = read('index.html');
 const body = home.slice(home.indexOf('<main'), home.indexOf('</main>'));
 const section = (id) => { const i = body.indexOf(`id="${id}"`); return i < 0 ? '' : body.slice(i, body.indexOf('</section>', i)); };
 
-test('a "What do you need?" row of four tiles sits right after the promises strip', () => {
+test('a "What do you need?" row of five tiles sits right after the promises strip', () => {
   const needs = section('needs'); assert.ok(needs, 'needs section');
   assert.match(needs, /What do you need\?/);
-  assert.equal((needs.match(/class="need-tile"/g) || []).length, 4);
+  assert.equal((needs.match(/class="need-tile"/g) || []).length, 5);
   assert.ok(body.indexOf('id="needs"') > body.indexOf('class="strip"') && body.indexOf('id="needs"') < body.indexOf('id="prices"'));
 });
 test('the tiles use the real prices, open ready WhatsApp messages, and send breakdowns and fleets to their own pages', () => {
