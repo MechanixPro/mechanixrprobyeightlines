@@ -72,3 +72,13 @@ test('the desk and the admin load the minimal theme and the builds ship it', () 
   assert.match(rd('scripts/build_crm.sh'), /minimal\.css/); assert.match(rd('scripts/build_admin.sh'), /minimal\.css/);
   assert.match(rd('assets/css/minimal.css'), /@media print/);
 });
+
+test('desk, admin and site load the maximalist bento layers and the builds ship them', () => {
+  assert.match(rd('crm/index.html'), /assets\/css\/maxi\.css/); assert.match(rd('admin/index.html'), /assets\/css\/maxi\.css/);
+  assert.match(rd('scripts/build_crm.sh'), /maxi\.css/); assert.match(rd('scripts/build_admin.sh'), /maxi\.css/);
+  assert.match(rd('scripts/build_pages.py'), /assets\/css\/bento\.css/); assert.match(rd('assets/css/maxi.css'), /@media print/);
+});
+
+test('site, desk and admin share one theme file', () => {
+  for (const f of ['crm/index.html', 'admin/index.html', 'scripts/build_pages.py', 'scripts/build_crm.sh', 'scripts/build_admin.sh']) assert.match(rd(f), /theme\.css/);
+});

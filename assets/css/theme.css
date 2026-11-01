@@ -1,0 +1,20 @@
+/* One theme for the website, the desk and the admin panel. Shared tokens, page background, headings, buttons and glass navigation.
+   bento.css (site) and maxi.css (desk, admin) load after this and only add layout. Change a value here and all three follow. */
+:root{
+  --bn-navy:#14295A;--bn-ink:#0B1220;--bn-ember:#F2801F;--bn-ember-d:#C2540A;--bn-gold:#FFC857;
+  --bn-cream:#FFF4E6;--bn-sky:#E8EEFC;--bn-lav:#EEE9FF;--bn-mint:#E3F6EA;
+  --t-ember-tint:linear-gradient(150deg,#FFF1DD,#FFE0BC);--t-sky-tint:linear-gradient(150deg,#E8EEFC,#D2DFFA);--t-mint-tint:linear-gradient(150deg,#E3F6EA,#CBEED7);--t-lav-tint:linear-gradient(150deg,#EEE9FF,#DCD2FF);
+  --t-hero:radial-gradient(120% 140% at 100% 0%,rgba(242,128,31,.55),transparent 55%),linear-gradient(150deg,#0B1220,#14295A);
+  --t-btn:linear-gradient(135deg,#FF9A3D,#F2801F 55%,#E56A0B);--t-btn-hover:linear-gradient(135deg,#FFA64F,#F58A2B 55%,#EE7414);
+  --t-r:24px;--t-gap:14px;
+  --t-glow:0 0 0 1px rgba(255,255,255,.55) inset,0 1px 2px rgba(15,29,69,.06),0 16px 40px rgba(15,29,69,.11);
+  --t-glow-hover:0 0 0 1px rgba(255,255,255,.7) inset,0 4px 10px rgba(15,29,69,.1),0 28px 60px rgba(242,128,31,.22);
+  --t-bg:radial-gradient(900px 520px at 100% 0%,rgba(242,128,31,.10),transparent 60%),radial-gradient(800px 520px at 0% 38%,rgba(20,41,90,.08),transparent 62%),radial-gradient(700px 480px at 100% 78%,rgba(242,128,31,.08),transparent 60%),#F6F4F0;
+  --t-glass:rgba(255,255,255,.64);
+}
+body{background:var(--t-bg)}
+h1,h2,h3{font-weight:800;letter-spacing:-.04em}
+.btn-primary,.btn.primary{background:var(--t-btn)!important;border-color:transparent!important;color:#1F1206!important;box-shadow:0 10px 24px rgba(242,128,31,.36)!important}
+.btn-primary:hover,.btn.primary:hover{background:var(--t-btn-hover)!important}
+.btn,button.btn{border-radius:999px!important}
+.nav,.top,header.nav{background:var(--t-glass)!important;border-bottom:1px solid rgba(20,41,90,.08)!important;box-shadow:0 8px 28px rgba(20,41,90,.06);-webkit-backdrop-filter:saturate(200%) blur(26px)!important;backdrop-filter:saturate(200%) blur(26px)!important}

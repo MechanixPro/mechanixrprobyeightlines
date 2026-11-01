@@ -1,0 +1,41 @@
+/* Maximalist + bento layer for the desk (crm) and the admin panel. Loaded after minimal.css, so it only overrides.
+   KPI blocks become a bento grid of colour tiles, cards get depth and larger radii, navigation gets glass and an ember accent.
+   Tables, forms, invoices and print stay plain for readability. */
+:root{--x-r:var(--t-r);--x-navy:var(--bn-navy);--x-ember:var(--bn-ember);--x-glow:var(--t-glow)}
+
+/* navigation: shared glass comes from theme.css; active tab is filled navy */
+.tabs button,.groups button,.subtabs button{border-radius:999px!important;font-weight:600!important}
+.tabs button[aria-current="page"],.tabs button.on,.groups button[aria-current="page"],.subtabs button[aria-current="page"],.nav .groups button[aria-current="page"]{background:linear-gradient(135deg,#1F3F86,var(--x-navy))!important;color:#fff!important;box-shadow:0 6px 16px rgba(20,41,90,.3)!important}
+
+
+/* surfaces */
+.card,.list,.table-wrap,.lead-card,.panel,.modal,.modal-box,details.card,.split-card,.sum-strip>div,.facts>div{border-radius:var(--x-r)!important;border-color:transparent!important;box-shadow:var(--x-glow)!important}
+.sheet-panel{border-radius:var(--x-r) 0 0 var(--x-r)!important;background:rgba(246,244,240,.92)!important;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.lead-card{transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s}.lead-card:hover{transform:translateY(-3px);box-shadow:0 22px 48px rgba(15,29,69,.18)!important}
+.lead-card.tone-late{border-left:6px solid var(--m-red)!important}.lead-card.tone-new{border-left:6px solid var(--m-blue)!important}.lead-card.tone-next{border-left:6px solid var(--x-ember)!important}
+.cards{gap:14px}
+
+/* KPI bento: first tile is the hero, the rest are colour blocks */
+.kpis,.stat-row{display:grid!important;grid-template-columns:repeat(4,1fr)!important;grid-auto-flow:dense;gap:12px!important}
+.kpi,.stat{border:0!important;border-radius:var(--x-r)!important;padding:18px 18px 16px!important;box-shadow:var(--x-glow)!important;background:#fff!important;min-height:96px}
+.kpi b,.stat b{font-size:clamp(24px,3.2vw,36px)!important;font-weight:800!important;letter-spacing:-.04em!important}
+.kpis>*:nth-child(1),.stat-row>*:nth-child(1){grid-column:span 2;background:var(--t-hero)!important;color:#fff}
+.kpis>*:nth-child(1) b,.stat-row>*:nth-child(1) b{color:#FFC857!important;font-size:clamp(32px,5vw,52px)!important}
+.kpis>*:nth-child(1) span,.stat-row>*:nth-child(1) span{color:rgba(255,255,255,.85)!important}
+.kpis>*:nth-child(4n+2),.stat-row>*:nth-child(4n+2){background:var(--t-ember-tint)!important}
+.kpis>*:nth-child(4n+3),.stat-row>*:nth-child(4n+3){background:var(--t-sky-tint)!important}
+.kpis>*:nth-child(4n+4),.stat-row>*:nth-child(4n+4){background:var(--t-mint-tint)!important}
+.stat.bad,.stat-row>.stat.bad{background:linear-gradient(150deg,#FEE2E2,#FBC9C9)!important}
+.stat.good,.stat-row>.stat.good{background:linear-gradient(150deg,#DCFCE7,#BDF0CE)!important}
+@media(max-width:700px){.kpis,.stat-row{grid-template-columns:1fr 1fr!important}}
+
+/* chips and pills stay quiet but a touch bolder */
+.chip,.pill,.tag{font-weight:600}
+
+/* login hero */
+.signin{border-radius:28px;box-shadow:0 30px 70px rgba(20,41,90,.22);border-color:transparent}
+
+@media(prefers-reduced-motion:reduce){.lead-card{transition:none}.lead-card:hover{transform:none}}
+/* invoices and print stay plain */
+.inv-wrap .card,.inv-wrap .inv-paper{box-shadow:none!important;border-radius:0!important}
+@media print{body{background:#fff!important}.card,.table-wrap,.kpi{box-shadow:none!important}}

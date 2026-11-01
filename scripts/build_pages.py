@@ -48,6 +48,8 @@ HEAD = '''<!doctype html>
 <meta property="og:title" content="{title}"><meta property="og:description" content="{desc}"><meta property="og:url" content="{url}"><meta property="og:image" content="{site}/assets/img/og.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Mechanix Pro: doorstep bike service in Bengaluru. Quote first, pay after you say yes. Open 24/7."><meta property="og:type" content="website"><meta property="og:site_name" content="Mechanix Pro"><meta property="og:locale" content="en_IN"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="{site}/assets/img/og.png">
 <link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32"><link rel="icon" href="/assets/img/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="/assets/css/style.css">
+<link rel="stylesheet" href="/assets/css/theme.css">
+<link rel="stylesheet" href="/assets/css/bento.css">
 {schema}
 <script src="/assets/js/loader.js"></script>
 <script src="/assets/js/config.js" defer></script>
