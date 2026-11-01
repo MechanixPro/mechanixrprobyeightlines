@@ -35,7 +35,7 @@ if (!C.supabaseUrl || !C.supabaseAnonKey) {
   throw new Error('Supabase not configured');
 }
 const sb = createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
-const S = { catalog: [], invNo: {}, icsel: new Set(), imode: false, isel: new Set(), me: null, tab: 'dash', lastTab: {}, invoices: [], invoicesAll: [], cb: { q: '', id: null }, ledger: [], sf: { period: 'month', mechanic: '', status: '', q: '', channel: '', gst: '', from: '', to: '' }, finJob: null, finKind: 'payment', mlOpen: null, ifl: { gst: '', rate: '', mechanic: '', period: 'month', q: '' }, leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', waitlist: [], wi: '', wq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
+const S = { catalog: [], invNo: {}, icsel: new Set(), imode: false, isel: new Set(), me: null, tab: 'dash', lastTab: {}, invoices: [], invoicesAll: [], cb: { q: '', id: null }, ledger: [], sf: { period: 'month', mechanic: '', status: '', q: '', channel: '', gst: '', from: '', to: '' }, finJob: null, finKind: 'payment', mlOpen: null, ifl: { gst: '', rate: '', mechanic: '', period: 'month', q: '' }, leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', waitlist: [], wi: '', wq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', df: { range: '7d', from: '', to: '', src: '', area: '', svc: '' }, cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
 
 function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
@@ -169,6 +169,8 @@ document.addEventListener('click', (e) => {
 document.addEventListener('input', (e) => {
   if (e.target.id === 'cb-q') { S.cb.q = e.target.value; clearTimeout(S.cbT); S.cbT = setTimeout(() => { render(); const q = $('#cb-q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250); return; }
   if (e.target.id === 'cc-q') { const n = e.target.value.trim().toLowerCase(), res = $('#cc-res'); if (!res) return; const lead = S.leads.find((x) => x.id === S.open); res.innerHTML = n.length < 2 ? '' : S.customers.filter((c) => (!lead || c.id !== lead.customer_id) && (String(c.name).toLowerCase().includes(n) || String(c.phone).includes(n))).slice(0, 6).map((c) => `<button class="row" type="button" data-act="moveBooking" data-id="${c.id}" style="border-radius:10px;width:100%;margin-bottom:6px"><span>${esc(c.name)}</span><span class="meta">+91 ${esc(c.phone)}</span></button>`).join('') || '<p class="tiny muted">No customer found. Add them under Customers first.</p>'; return; } if (e.target.id === 'mr-range' || e.target.id === 'mr') { const v = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)); if (e.target.id === 'mr-range') $('#mr').value = v; else $('#mr-range').value = v; updateSplitPreview(); }  if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'wq') { S.wq = e.target.value; render(); const again = $('#wq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } if (e.target.id === 'pq') { S.pq = e.target.value; const l = $('#pinlist'); if (l) { const keep = e.target; render(); const again = $('#pq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
+document.addEventListener('change', (e) => { const m = { 'df-range': 'range', 'df-from': 'from', 'df-to': 'to', 'df-src': 'src', 'df-area': 'area', 'df-svc': 'svc' }[e.target.id]; if (m) { S.df[m] = e.target.value; render(); } });
+document.addEventListener('click', (e) => { if (e.target.id === 'df-reset') { S.df = { range: '7d', from: '', to: '', src: '', area: '', svc: '' }; render(); } });
 document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-ie=name]')) { const c = catItem(e.target.value), a = e.target.closest('.ie-row').querySelector('[data-ie=amount]'); if (c && a && !a.value.trim()) a.value = c.price; } });
 document.addEventListener('change', (e) => { if (e.target.id === 'il') { const l = S.leads.find((x) => x.id === e.target.value), w = warrantyInfo(l, WARRANTY_DAYS); $('#iw').textContent = l ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''; } if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'ifs') { S.ifilter = e.target.value; render(); } if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
 document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-board-mech]')) { ACT.boardMech(e.target); return; } const m = { 'if-period': 'period', 'if-gst': 'gst', 'if-rate': 'rate', 'if-mech': 'mechanic' }[e.target.id]; if (m) { S.ifl[m] = e.target.value; render(); } });
@@ -195,30 +197,39 @@ function render() { syncNav(); const v = $('#view'); v.innerHTML = ({ dash, boar
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
   const today = L.filter((l) => new Date(l.created_at) > new Date(new Date().setHours(0, 0, 0, 0)));
-  const week = L.filter((l) => new Date(l.created_at) > weekAgo);
-  const paidWeek = L.filter((l) => l.paid_at && new Date(l.paid_at) > weekAgo);
+  const df = S.df, now = new Date(), startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const fromT = df.range === 'custom' ? (df.from ? new Date(df.from + 'T00:00:00').getTime() : 0) : ({ today: startToday, '7d': Date.now() - 7 * 864e5, '30d': Date.now() - 30 * 864e5, month: new Date(now.getFullYear(), now.getMonth(), 1).getTime(), all: 0 })[df.range] ?? 0;
+  const toT = df.range === 'custom' && df.to ? new Date(df.to + 'T23:59:59').getTime() : Infinity;
+  const srcOf = (l) => l.utm?.utm_source || 'direct';
+  const week = L.filter((l) => { const t = new Date(l.created_at).getTime(); return t >= fromT && t <= toT && (!df.src || srcOf(l) === df.src) && (!df.area || l.area === df.area) && (!df.svc || l.service_id === df.svc); });
+  const paidWeek = week.filter((l) => l.paid_at);
+  const rl = { today: 'Today', '7d': 'Last 7 days', '30d': 'Last 30 days', month: 'This month', all: 'All time', custom: 'Selected dates' }[df.range] || 'Last 7 days';
+  const uniq = (f) => [...new Set(L.map(f).filter(Boolean))].sort();
+  const opt = (v, cur, t) => `<option value="${esc(v)}"${v === cur ? ' selected' : ''}>${esc(t ?? v)}</option>`;
+  const filterBar = `<div class="toolbar" id="dfBar" role="group" aria-label="Dashboard filters"><select id="df-range" aria-label="Date range">${[['today', 'Today'], ['7d', 'Last 7 days'], ['30d', 'Last 30 days'], ['month', 'This month'], ['all', 'All time'], ['custom', 'Pick dates']].map(([v, t]) => opt(v, df.range, t)).join('')}</select>${df.range === 'custom' ? `<input id="df-from" type="date" value="${esc(df.from)}" aria-label="From date"><input id="df-to" type="date" value="${esc(df.to)}" aria-label="To date">` : ''}<select id="df-src" aria-label="Source"><option value="">All sources</option>${uniq(srcOf).map((v) => opt(v, df.src)).join('')}</select><select id="df-area" aria-label="Area"><option value="">All areas</option>${uniq((l) => l.area).map((v) => opt(v, df.area)).join('')}</select><select id="df-svc" aria-label="Service"><option value="">All services</option>${uniq((l) => l.service_id).map((v) => opt(v, df.svc, svcName(v))).join('')}</select><button class="btn btn-ghost btn-sm" type="button" id="df-reset">Reset</button><span class="tiny muted">${week.length} of ${L.length} bookings</span></div>`;
   const conv = week.length ? Math.round((week.filter((l) => ['paid', 'scheduled', 'completed'].includes(l.status)).length / week.length) * 100) : 0;
   const waiting = L.filter((l) => l.status === 'new' && Date.now() - new Date(l.created_at) > 30 * 6e4 && new Date(l.created_at) > dayAgo);
   const by = (k) => { const m = {}; week.forEach((l) => { const v = (k === 'utm' ? l.utm?.utm_source : l[k]) || (k === 'utm' ? 'direct' : '—'); m[v] = (m[v] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 8); };
   const bars = (rows) => { const mx = Math.max(1, ...rows.map((r) => r[1])); return '<div class="bars">' + rows.map(([k, v]) => `<div class="b"><span>${esc(LABEL[k] ?? k)}</span><span class="t"><i style="width:${Math.round((v / mx) * 100)}%"></i></span><b>${v}</b></div>`).join('') + '</div>'; };
   const funnel = STATUSES.map((s) => [s, week.filter((l) => l.status === s).length]);
   return `<h1 style="font-size:34px">Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, ${esc(S.me.name)}</h1>
+  ${filterBar}
   <div class="kpis">
     <div class="kpi"><b>${today.length}</b><span>Bookings today</span></div>
     <div class="kpi"><b>${openIssueCount(S.issues)}</b><span>Open issues</span></div>
-    <div class="kpi"><b>${week.length}</b><span>Last 7 days</span></div>
-    <div class="kpi"><b>${conv}%</b><span>Paid conversion (7 days)</span></div>
-    <div class="kpi"><b>${rupee(paidWeek.reduce((s, l) => s + (l.paid_amount || 0), 0))}</b><span>Collected online (7 days)</span></div>
+    <div class="kpi"><b>${week.length}</b><span>Bookings: ${rl}</span></div>
+    <div class="kpi"><b>${conv}%</b><span>Paid conversion (${rl})</span></div>
+    <div class="kpi"><b>${rupee(paidWeek.reduce((s, l) => s + (l.paid_amount || 0), 0))}</b><span>Collected online (${rl})</span></div>
     <div class="kpi"><b>${L.filter((l) => l.status === 'payment_sent').length}</b><span>Waiting for payment</span></div>
   </div>
   ${waiting.length ? `<div class="card" style="margin-bottom:16px;border:1.5px solid var(--ember)"><h3>Needs a reply (${waiting.length})</h3>${waiting.slice(0, 6).map((l) => `<button class="row" data-lead="${l.id}"><span class="ref">${esc(l.ref)}</span><span>${esc(l.name)}<br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')}</span></span><span class="meta">${when(l.created_at)}</span></button>`).join('')}</div>` : ''}
-  <div class="split2"><div class="card"><h3>Pipeline (7 days)</h3>${bars(funnel)}</div><div class="card"><h3>Where bookings come from</h3>${bars(by('utm'))}<h3 style="margin-top:14px">Top areas</h3>${bars(by('area'))}</div></div>
-  ${sourcesCard(week)}`;
+  <div class="split2"><div class="card"><h3>Pipeline (${rl})</h3>${bars(funnel)}</div><div class="card"><h3>Where bookings come from</h3>${bars(by('utm'))}<h3 style="margin-top:14px">Top areas</h3>${bars(by('area'))}</div></div>
+  ${sourcesCard(week, rl)}`;
 }
-function sourcesCard(week) {
+function sourcesCard(week, rl = 'Last 7 days') {
   const r = sourceReport(week);
   const rows = (a) => (a.length ? a.map(([k, v]) => `<div class="b"><span>${esc(k)}</span><b>${v}</b></div>`).join('') : '<p class="small muted">None yet</p>');
-  return `<div class="card" style="margin-top:16px"><h3>Sources (7 days)</h3><div class="split2"><div><h4>Source</h4>${rows(r.source)}</div><div><h4>Campaign</h4>${rows(r.campaign)}</div><div><h4>Referrer</h4>${rows(r.referrer)}</div></div></div>`;
+  return `<div class="card" style="margin-top:16px"><h3>Sources (${esc(rl)})</h3><div class="split2"><div><h4>Source</h4>${rows(r.source)}</div><div><h4>Campaign</h4>${rows(r.campaign)}</div><div><h4>Referrer</h4>${rows(r.referrer)}</div></div></div>`;
 }
 
 function leads() {

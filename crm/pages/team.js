@@ -35,7 +35,7 @@ export async function render(root, ctx) {
     try {
       const fn = b.dataset.wa === 'status' ? 'aisensy-status' : 'aisensy-setup';
       const { data, error } = await supabase().functions.invoke(fn, { body: { action: b.dataset.wa } });
-      if (error || data?.error) { let msg = data?.error; if (!msg && error?.context?.json) { try { msg = (await error.context.json()).error; } catch (x) { /* ignore */ } } throw new Error(msg || 'Could not reach the desk service.'); }
+      if (error || data?.error) { let msg = data?.error; if (!msg && error?.context?.json) { try { const j = await error.context.json(); msg = j.error || j.message; } catch (x) { /* ignore */ } } throw new Error(msg || 'Could not reach the desk service.'); }
       out.textContent = waSummary(b.dataset.wa, data);
     } catch (x) { out.textContent = clean(x); } finally { b.disabled = false; }
   }));
@@ -56,7 +56,7 @@ export async function render(root, ctx) {
   if (uf) uf.addEventListener('submit', async (e) => {
     e.preventDefault(); const err = root.querySelector('#userErr'); err.textContent = '';
     const { data, error } = await supabase().functions.invoke('crm-user', { body: { name: uf.name.value, email: uf.email.value, role: uf.role.value } });
-    if (error || data?.error) { let msg = data?.error; if (!msg && error?.context?.json) { try { msg = (await error.context.json()).error; } catch (x) { /* ignore */ } } err.textContent = msg || 'Could not add that person.'; return; }
+    if (error || data?.error) { let msg = data?.error; if (!msg && error?.context?.json) { try { const j = await error.context.json(); msg = j.error || j.message; } catch (x) { /* ignore */ } } err.textContent = msg || 'Could not add that person.'; return; }
     toast('Added. They can sign in with a code sent to their email.'); ctx.reload();
   });
 }
