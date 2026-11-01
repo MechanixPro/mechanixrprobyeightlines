@@ -130,7 +130,7 @@ async function loadInvoices() {
   const { data, error } = await sb.from('invoices').select('*').order('issued_at', { ascending: false }).limit(3000);
   if (error) toast('Could not load invoices: ' + error.message); else { S.invoicesAll = data ?? []; S.invoices = S.invoicesAll.filter((r) => !r.voided_at); }
   const { data: nos } = await sb.from('invoice_numbers').select('lead_id,number'); for (const r of nos ?? []) S.invNo[r.lead_id] = r.number;
-  const { data: cat } = await sb.from('invoice_items').select('*').eq('active', true).order('uses', { ascending: false }).order('name'); S.catalog = cat ?? [];
+  const { data: cat } = await sb.from('invoice_items').select('*').order('uses', { ascending: false }).order('name'); S.itemsAll = cat ?? []; S.catalog = S.itemsAll.filter((r) => r.active);
 }
 async function loadLedger() {
   const { data, error } = await sb.from('ledger_entries').select('*').order('created_at', { ascending: false }).limit(5000);
@@ -1269,7 +1269,8 @@ const ACT = {
 };
 
 const gstOf = (price) => { const p = Number(price) || 0, g = Math.round(p * 18) / 100; return { gst: rupee2(g), total: rupee2(p + g) }; };
-function prices() {
+function prices() { return pricesBase() + itemsCard(); }
+function pricesBase() {
   return `<h1 style="font-size:34px">Prices</h1><p class="muted">Prices are shown <b>before GST</b>. GST at 18% is added on the final invoice. Changes go live on the website and in AI replies immediately.${isOwner() ? '' : ' Only the owner can edit.'}</p>
   <div class="card tbl"><table class="ptable"><thead><tr><th>Item</th><th>Type</th><th>Price ₹ (before GST)</th><th>GST 18%</th><th>With GST</th><th>Live</th><th></th></tr></thead><tbody>${S.services.map((s) => `<tr><td><input data-k="name" value="${esc(s.name)}" aria-label="Name"${isOwner() ? '' : ' disabled'}></td><td>${({ service: 'Service', addon: 'Add-on', fee: 'Fee' })[s.kind] ?? s.kind}</td><td><input data-k="price" inputmode="numeric" value="${s.price}" style="width:100px" aria-label="Price"${isOwner() ? '' : ' disabled'}></td><td class="gstc">${gstOf(s.price).gst}</td><td class="totc"><b>${gstOf(s.price).total}</b></td><td><input type="checkbox" data-k="active"${s.active ? ' checked' : ''} aria-label="Live"${isOwner() ? '' : ' disabled'}></td><td>${isOwner() ? `<button class="btn btn-ghost btn-sm" type="button" data-act="savePrice" data-id="${esc(s.id)}">Save</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
   ${isOwner() ? `<div class="card" style="margin-top:14px"><h3>Add an option</h3><p class="tiny muted" style="margin:0 0 8px">A new service or add-on. It appears in the booking choices and on the website after the next site update. The price is before GST.</p>
@@ -1347,6 +1348,13 @@ function openWaitlist(id) {
   S.open = null; S.openCust = null; S.openMech = null; S.openCoupon = null; S.openIssue = null; S.openPin = null; S.openWl = id;
   $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${esc(r.name || 'Waitlist signup')}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
   <div class="card" style="margin-top:12px"><dl class="kv"><dt>Mobile</dt><dd>${r.phone ? `<a href="tel:+91${esc(r.phone)}">+91 ${esc(r.phone)}</a> · <a href="https://wa.me/91${esc(r.phone)}" target="_blank" rel="noopener">WhatsApp</a>` : '—'}</dd><dt>Email</dt><dd>${esc(r.email || '—')}</dd><dt>City</dt><dd>${esc(r.city || '—')}</dd><dt>Interested in</dt><dd>${esc((r.interests || []).map(interestLabel).join(', '))}</dd><dt>Note</dt><dd>${esc(r.note || '—')}</dd><dt>Joined</dt><dd>${when(r.created_at)}</dd></dl>
+  <div class="card" style="margin-top:12px"><h3>Edit details</h3>
+    <label class="label" for="wl-name">Name</label><input id="wl-name" maxlength="60" value="${esc(r.name || '')}">
+    <label class="label" for="wl-phone">Mobile number</label><input id="wl-phone" inputmode="numeric" maxlength="10" value="${esc(r.phone || '')}">
+    <label class="label" for="wl-email">Email</label><input id="wl-email" type="email" maxlength="120" value="${esc(r.email || '')}">
+    <label class="label" for="wl-city">City</label><input id="wl-city" maxlength="40" value="${esc(r.city || '')}">
+    <label class="label" for="wl-note">Note</label><textarea id="wl-note" rows="2" maxlength="200">${esc(r.note || '')}</textarea>
+    <button class="btn btn-primary" style="margin-top:12px" type="button" id="wl-save">Save details</button></div>
   ${isOwner() ? '<button class="btn btn-ghost" style="margin-top:14px" type="button" data-act="wlDelete">Delete this signup</button>' : ''}</div>`;
   $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
 }
@@ -1374,8 +1382,54 @@ function homeimgs() {
   return `<h1 style="font-size:34px">Home images</h1><p class="muted">These pictures shuffle on the home page. Add up to 12. JPG, PNG or WebP, under 2 MB, wide pictures look best. With none added, the built-in bike pictures show.</p>
   <div class="card"><label class="label" for="hc">Caption (optional, shown on the picture)</label><input id="hc" maxlength="80" placeholder="For example: Doorstep service in HSR Layout">
   <label class="label" for="hf">Choose a picture to upload</label><input id="hf" type="file" accept="image/jpeg,image/png,image/webp"${rows.length >= 12 ? ' disabled' : ''}></div>
-  <div class="list" style="margin-top:12px">${rows.length ? rows.map((r, i) => `<div class="row"><img src="${esc(r.url)}" alt="" width="96" height="54" style="object-fit:cover;border-radius:10px;background:#eee"><span>${esc(r.caption || 'No caption')}<br><span class="meta">${r.active ? 'Showing' : 'Hidden'} · position ${i + 1}</span></span><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" type="button" data-act="homeUp" data-id="${r.id}"${i === 0 ? ' disabled' : ''} aria-label="Move earlier">Up</button><button class="btn btn-ghost btn-sm" type="button" data-act="homeDown" data-id="${r.id}"${i === rows.length - 1 ? ' disabled' : ''} aria-label="Move later">Down</button><button class="btn btn-ghost btn-sm" type="button" data-act="homeToggle" data-id="${r.id}">${r.active ? 'Hide' : 'Show'}</button><button class="btn btn-ghost btn-sm" type="button" data-act="homeDelete" data-id="${r.id}">Delete</button></span></div>`).join('') : '<p class="muted" style="padding:16px">No pictures added yet. The built-in bike pictures are showing.</p>'}</div>`;
+  <div class="list" style="margin-top:12px">${rows.length ? rows.map((r, i) => `<div class="row"><img src="${esc(r.url)}" alt="" width="96" height="54" style="object-fit:cover;border-radius:10px;background:#eee"><span><input data-hi-cap="${r.id}" maxlength="80" value="${esc(r.caption || '')}" placeholder="No caption" aria-label="Caption for picture ${i + 1}" style="min-width:180px"><br><span class="meta">${r.active ? 'Showing' : 'Hidden'} · position ${i + 1}</span></span><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" type="button" data-act="homeUp" data-id="${r.id}"${i === 0 ? ' disabled' : ''} aria-label="Move earlier">Up</button><button class="btn btn-ghost btn-sm" type="button" data-act="homeDown" data-id="${r.id}"${i === rows.length - 1 ? ' disabled' : ''} aria-label="Move later">Down</button><button class="btn btn-ghost btn-sm" type="button" data-act="homeToggle" data-id="${r.id}">${r.active ? 'Hide' : 'Show'}</button><button class="btn btn-ghost btn-sm" type="button" data-act="homeDelete" data-id="${r.id}">Delete</button></span></div>`).join('') : '<p class="muted" style="padding:16px">No pictures added yet. The built-in bike pictures are showing.</p>'}</div>`;
 }
+
+/* ---------- editable invoice items, waitlist signups and home image captions ---------- */
+function itemsCard() {
+  const rows = S.itemsAll || [];
+  return `<h2 style="font-size:24px;margin:28px 0 6px">Invoice items</h2><p class="muted">The quick-add list on invoices. Change a name, code or price, hide an item, or add your own. New items are also learned when an invoice is saved. Prices are before GST.</p>
+  <div class="card tbl"><table class="ptable"><thead><tr><th>Item</th><th>Code</th><th>Price ₹</th><th>Used</th><th>Show</th><th></th></tr></thead><tbody>${rows.map((r) => `<tr data-it="${r.id}"><td><input data-itk="name" maxlength="80" value="${esc(r.name)}" aria-label="Item name"></td><td><input data-itk="code" maxlength="20" value="${esc(r.code)}" aria-label="Item code"></td><td><input data-itk="price" inputmode="decimal" maxlength="9" value="${esc(r.price)}" aria-label="Price"></td><td>${r.uses || 0}</td><td><input data-itk="active" type="checkbox"${r.active ? ' checked' : ''} aria-label="Show on invoices"></td><td><button class="btn btn-ghost btn-sm" type="button" data-it-save="${r.id}">Save</button> <button class="btn btn-ghost btn-sm" type="button" data-it-del="${r.id}">Delete</button></td></tr>`).join('') || '<tr><td colspan="6" class="muted">No items yet.</td></tr>'}</tbody></table></div>
+  <div class="card" style="margin-top:12px"><h3>Add an item</h3><div class="inv-adjust-row"><input id="ni-name" maxlength="80" placeholder="Item name, for example Chain set" aria-label="New item name"><input id="ni-price" inputmode="decimal" maxlength="9" placeholder="Price ₹" aria-label="New item price"><button class="btn btn-primary" type="button" id="ni-add">Add item</button></div></div>`;
+}
+async function reloadItems() { const { data } = await sb.from('invoice_items').select('*').order('uses', { ascending: false }).order('name'); S.itemsAll = data ?? []; S.catalog = S.itemsAll.filter((r) => r.active); render(); }
+document.addEventListener('click', async (e) => {
+  const t = e.target; if (!t || !t.closest) return;
+  const sv = t.closest('[data-it-save]'), dl = t.closest('[data-it-del]');
+  if (sv) {
+    const tr = sv.closest('tr'), g = (k) => tr.querySelector(`[data-itk=${k}]`), name = g('name').value.trim().replace(/\s+/g, ' '), price = Number(g('price').value), code = g('code').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 20);
+    if (name.length < 2) return toast('Enter the item name'); if (!(price >= 0 && price <= 1000000)) return toast('Check the price'); if (!code) return toast('Enter a code, for example MXP-CHAINSET');
+    const { error } = await sb.from('invoice_items').update({ name, code, price, active: g('active').checked }).eq('id', sv.dataset.itSave);
+    if (error) return toast(/duplicate|unique/i.test(error.message) ? 'Another item already has that name' : 'Could not save: ' + error.message);
+    await audit('invoice_item_updated', { name }); toast('Saved'); return reloadItems();
+  }
+  if (dl) {
+    const r = (S.itemsAll || []).find((x) => x.id === dl.dataset.itDel); if (!r || !confirm(`Delete "${r.name}" from the item list? Invoices already made keep their lines.`)) return;
+    const { error } = await sb.from('invoice_items').delete().eq('id', r.id); if (error) return toast('Could not delete: ' + error.message);
+    await audit('invoice_item_deleted', { name: r.name }); toast('Deleted'); return reloadItems();
+  }
+  if (t.id === 'ni-add') {
+    const name = $('#ni-name').value.trim().replace(/\s+/g, ' '), price = Number($('#ni-price').value || 0);
+    if (name.length < 2) return toast('Enter the item name'); if (!(price >= 0 && price <= 1000000)) return toast('Check the price');
+    const { error } = await sb.from('invoice_items').insert({ name, code: 'MXP-' + name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12), price });
+    if (error) return toast(/duplicate|unique/i.test(error.message) ? 'That item is already in the list' : 'Could not add: ' + error.message);
+    await audit('invoice_item_added', { name }); toast('Added'); return reloadItems();
+  }
+  if (t.id === 'wl-save') {
+    const r = S.waitlist.find((x) => x.id === S.openWl); if (!r) return;
+    const v = (id) => $('#' + id).value.trim() || null, phone = v('wl-phone'), email = v('wl-email');
+    if (phone && !/^[6-9]\d{9}$/.test(phone)) return toast('Enter a 10 digit mobile number'); if (!phone && !email) return toast('Keep a mobile number or an email');
+    const { error } = await sb.from('waitlist').update({ name: v('wl-name'), phone, email, city: v('wl-city'), note: v('wl-note') }).eq('id', r.id);
+    if (error) return toast('Could not save: ' + error.message);
+    await audit('waitlist_updated', {}); toast('Saved'); await loadWaitlist(); render(); return openWaitlist(r.id);
+  }
+});
+document.addEventListener('change', async (e) => {
+  const c = e.target && e.target.dataset && e.target.dataset.hiCap; if (!c) return;
+  const { error } = await sb.from('home_images').update({ caption: e.target.value.trim() || null }).eq('id', c);
+  if (error) return toast('Could not save the caption: ' + error.message); toast('Caption saved');
+  const r = S.homeimgs.find((x) => x.id === c); if (r) r.caption = e.target.value.trim() || null;
+});
 /* ---------- invoice (with a short "generating" animation) ---------- */
 const inr = (n) => '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 let companyCache = null;
