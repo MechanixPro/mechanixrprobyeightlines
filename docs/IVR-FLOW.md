@@ -60,3 +60,12 @@ Use a **List message** for the welcome (WhatsApp quick-reply buttons allow only 
 2. Check the WhatsApp message arrives within a minute from +91 80423 03061 for every option.
 3. Place a call outside hours and confirm the call-back message.
 4. Confirm the number on mechanixpro.in (header, footer, floating call button) shows +91 79652 95649.
+
+## Agentive key press webhook (built)
+Function `agentive-ivr` receives every key a caller presses on the call menu (event `ivr.keypress`, https://agentive.co.in/docs/voice-broadcast-api#ivr-keypress-webhook).
+- **Webhook URL:** `https://mejdxsbpyscujpvbwvmg.supabase.co/functions/v1/agentive-ivr`
+- **Where to set it:** Agentive Voice, **Call menu**, **Advanced**, **Key press webhook**. Press Test: a signed sample arrives and the function answers 200.
+- **Secret:** the account's webhook signing secret, shown on that same call menu page, stored as `AGENTIVE_WEBHOOK_SECRET`. The function checks `X-Agentive-Signature-V2` (HMAC-SHA256 of `t.body`, within 5 minutes) and answers 401 for anything else.
+- **What it does:** keys 1, 2, 4, 5-1, 5-2 and 0 create a lead in the desk (source Phone, name "Caller" plus the last 4 digits) or add a line to the caller's open lead, and send the matching WhatsApp follow-up from the AiSensy number (`mxp_ivr_*` campaigns, once approved). Key 3 (booking, payment, invoice) only sends the track link. A repeated delivery is ignored (the event id is stored).
+- **Menu keys must match:** 1 breakdown, 2 book a service, 3 booking help, 4 car service, 5 then 1 fleet or society, 5 then 2 garage partnership, 0 Care Buddy. Name the keys the same way in the Agentive call menu.
+- The webhook is a notification only: Agentive routes the call by the call menu itself.
