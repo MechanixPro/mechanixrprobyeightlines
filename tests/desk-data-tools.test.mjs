@@ -109,3 +109,10 @@ test('website bookings are kept out of the desk numbers and have their own Web l
   assert.match(sql, /crm_desk_leads/); assert.match(sql, /source is distinct from 'website'/); assert.match(sql, /crm_web_leads/);
   assert.match(rd('crm/crm.js'), /id: 'web', title: 'Web leads'/); assert.match(rd('crm/pages/webleads.js'), /crm_web_leads/);
 });
+
+import { parseContacts } from '../crm/crm-rules.js';
+test('import from AiSensy: one lead per mobile number, name in any order, duplicates and junk skipped', () => {
+  assert.deepEqual(parseContacts('Ravi Kumar, 98450 12345\n"Anita",+91 9741012345\n9741012345 again\nno number\nSam;7000011111'), [
+    { name: 'Ravi Kumar', phone: '9845012345' }, { name: 'Anita', phone: '9741012345' }, { name: 'Sam', phone: '7000011111' }]);
+  assert.deepEqual(parseContacts('08042303061 landline\n5123456789'), []);
+});

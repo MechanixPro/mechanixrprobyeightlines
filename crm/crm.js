@@ -1,7 +1,7 @@
 // Mechanix Desk for Care Buddies. The shell: sign in, navigation by permission, "My day" and the lead sheet.
 // Every other screen lives in ./pages/. Every read and write goes through database functions that check the person's permissions.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
-import { hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent } from './crm-rules.js';
+import { hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent, parseContacts } from './crm-rules.js';
 import { setClient, rpc, $, $$, esc, rupee, when, toast, clean, debounce, modal, field, confirmBox } from './ui.js';
 import * as dashboard from './pages/dashboard.js';
 import * as leads from './pages/leads.js';
@@ -210,7 +210,7 @@ function renderBody() {
   const hints = { mine: 'Late and overdue leads come first. Every open lead needs a dated next step.', unassigned: 'Take a lead and contact it within ' + S.me.sla_minutes + ' minutes.' };
   const late = S.leads.filter((l) => l.is_late || l.overdue).length;
   $('#view').innerHTML = `<div class="view-head"><div><h1>${titles[S.view]}</h1><p class="muted">${hints[S.view]}</p></div>
-    <div class="view-tools"><input id="q" type="search" placeholder="Search name, phone or ref" value="${esc(S.q)}" aria-label="Search leads">${can('create_bookings') ? '<button class="btn primary" type="button" data-act="booking">+ Booking</button>' : ''}${can('add_leads') ? '<button class="btn" type="button" data-act="add">+ Lead</button>' : ''}</div></div>
+    <div class="view-tools"><input id="q" type="search" placeholder="Search name, phone or ref" value="${esc(S.q)}" aria-label="Search leads">${can('create_bookings') ? '<button class="btn primary" type="button" data-act="booking">+ Booking</button>' : ''}${can('add_leads') ? '<button class="btn" type="button" data-act="add">+ Lead</button>' : ''}${can('add_leads') ? '<button class="btn ghost" type="button" data-act="import">Import from AiSensy</button>' : ''}</div></div>
     ${S.waiting.length && pageOk('inbox') ? `<div class="alert" role="status"><b>${S.waiting.length}</b> ${S.waiting.length === 1 ? 'customer wrote' : 'customers wrote'} on WhatsApp and ${S.waiting.length === 1 ? 'is' : 'are'} waiting. <button class="btn sm" type="button" data-act="gotoInbox">Open the Inbox</button></div>` : ''}
     ${late ? `<div class="alert" role="status"><b>${late}</b> ${late === 1 ? 'lead needs' : 'leads need'} you right now.</div>` : ''}
     <div class="cards">${S.leads.length ? S.leads.map(card).join('') : `<div class="empty">${S.view === 'mine' ? 'Nothing open. Take a lead from <b>Unassigned</b>, or add one you got by phone.' : 'No unassigned leads right now.'}</div>`}</div>`;
@@ -402,6 +402,18 @@ function addDialog() {
     } });
 }
 
+/* ---------- import WhatsApp contacts from an AiSensy export ---------- */
+// AiSensy gives no webhook on this plan, so new WhatsApp chats are exported from AiSensy and pasted here: one customer per line, name and mobile number in any order.
+function importDialog() {
+  modal({ title: 'Import from AiSensy', intro: 'In AiSensy, open Contacts, export the new contacts, and paste the rows here: one customer per line, with the name and the 10 digit mobile number. A customer who already has an open lead is skipped, so it is safe to paste the same list twice.',
+    body: field('Contacts', 'rows', { type: 'textarea', rows: 8, max: 20000, placeholder: 'Ravi Kumar, 98450 12345\nAnita, 9741012345' }),
+    submit: 'Import', onSubmit: async (f, d, close) => {
+      const rows = parseContacts(d.rows); if (!rows.length) throw new Error('No mobile numbers found. Each line needs a 10 digit mobile number.');
+      const r = await rpc('crm_import_leads', { p_rows: rows.slice(0, 300), p_source: 'whatsapp' });
+      close(); toast(`${r.created} lead${r.created === 1 ? '' : 's'} added${r.duplicates ? ', ' + r.duplicates + ' already open' : ''}${r.invalid ? ', ' + r.invalid + ' skipped (not a mobile number)' : ''}.`); await go(S.view, true);
+    } });
+}
+
 /* ---------- clicks ---------- */
 document.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-act]'); if (!b) return;
@@ -412,6 +424,7 @@ document.addEventListener('click', async (e) => {
     if (act === 'take') { e.preventDefault(); await rpc('crm_claim', { p_id: id }); toast('It is yours. Contact the customer now.'); await go(S.view, true); return await openLead(id); }
     if (act === 'close') return closeSheet();
     if (act === 'add') return addDialog();
+    if (act === 'import') return importDialog();
     if (act === 'booking') return newBooking(ctx);
     if (act === 'editBooking') return editBooking(ctx, S.detail.lead);
     if (act === 'gotoInbox') return go('inbox');

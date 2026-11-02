@@ -103,3 +103,14 @@ export function timerInfo(lead, now = new Date(), slaMinutes = 15) {
 
 export const targetPercent = (booked, target) => (target > 0 ? Math.min(100, Math.round((booked / target) * 100)) : 0);
 export const conversion = (booked, total) => (total > 0 ? Math.round((booked / total) * 100) : 0);
+
+export function parseContacts(text) {
+  const rows = [], seen = new Set();
+  for (const line of String(text || '').split(/\r?\n/)) {
+    const m = line.match(/(?<!\d)(?:\+?91[\s-]?)?([6-9]\d{4}[\s-]?\d{5})(?!\d)/); if (!m) continue;
+    const phone = m[1].replace(/\D/g, ''); if (seen.has(phone)) continue; seen.add(phone);
+    const name = line.replace(m[0], ' ').replace(/[",;\t|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+    rows.push({ name, phone });
+  }
+  return rows;
+}
