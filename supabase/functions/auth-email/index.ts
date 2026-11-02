@@ -23,8 +23,14 @@ Deno.serve(async (req) => {
   }, env('SUPABASE_URL'), { isAdmin });
   if (!mail) return reply(400, { error: { http_code: 400, message: 'Nothing to send' } });
 
-  const r = await sendEmail({ to: mail.to, subject: mail.subject, html: mail.html, text: mail.text, tags: { template: mail.template } });
-  try { await adminDb().from('email_log').insert({ to_email: mail.to, template: mail.template, status: r.ok ? 'sent' : r.skipped ? 'skipped' : 'failed', provider_id: r.id ?? null, error: r.error ?? null }); } catch { /* the log must never block a login */ }
-  if (!r.ok) { console.error('login mail failed'); return reply(500, { error: { http_code: 500, message: 'Could not send the login email' } }); }
+  // Supabase Auth gives the hook 5 seconds. If the mail provider is slow, answer in time and let the send finish in the background (the result is still written to email_log).
+  const job = (async () => {
+    const r = await sendEmail({ to: mail.to, subject: mail.subject, html: mail.html, text: mail.text, tags: { template: mail.template } });
+    try { await adminDb().from('email_log').insert({ to_email: mail.to, template: mail.template, status: r.ok ? 'sent' : r.skipped ? 'skipped' : 'failed', provider_id: r.id ?? null, error: r.error ?? null }); } catch { /* the log must never block a login */ }
+    return r;
+  })();
+  const first = await Promise.race([job, new Promise<null>((res) => setTimeout(() => res(null), 3500))]);
+  if (first === null) { try { (globalThis as any).EdgeRuntime?.waitUntil(job); } catch { /* the send carries on without it */ } return reply(200, {}); }
+  if (!first.ok) { console.error('login mail failed'); return reply(500, { error: { http_code: 500, message: 'Could not send the login email' } }); }
   return reply(200, {});
 });
