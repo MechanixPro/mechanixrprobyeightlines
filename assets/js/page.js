@@ -14,8 +14,21 @@
   });
   function callHref() { var d = String(C.callNumber || C.whatsapp || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return /^91[6-9]\d{9}$/.test(d) ? 'tel:+' + d : null; }
   document.addEventListener('click', function (e) { var c = e.target.closest('[data-call]'); if (!c) return; var t = callHref(); if (!t) { e.preventDefault(); return alert('Phone number is not set yet.'); } c.setAttribute('href', t); });
+
+  // Call buttons open a WhatsApp chat instead of a phone call while MXP.callViaWhatsApp is on (config.js).
+  function callsToWhatsApp() {
+    if (!C.callViaWhatsApp) return;
+    var n = String(C.whatsapp || '').replace(/\D/g, ''); if (!/^\d{12}$/.test(n)) return;
+    document.querySelectorAll('[data-call]').forEach(function (a) {
+      a.removeAttribute('data-call'); a.setAttribute('data-wa', 'Contact'); a.setAttribute('data-wa-text', 'Hi Mechanix Pro, I need help with my bike or car.'); a.setAttribute('href', 'https://wa.me/' + n);
+      if (a.getAttribute('aria-label')) a.setAttribute('aria-label', a.getAttribute('aria-label').replace(/\bCall\b/, 'WhatsApp'));
+      a.childNodes.forEach(function (c) { if (c.nodeType === 3) c.textContent = c.textContent.replace(/\bCall\b/, 'WhatsApp'); });
+    });
+    document.querySelectorAll('[data-phone]').forEach(function (el) { el.textContent = '+91 ' + n.slice(2, 7) + ' ' + n.slice(7); });
+  }
   document.addEventListener('DOMContentLoaded', function () {
     var t0 = callHref(); if (t0) document.querySelectorAll('[data-call]').forEach(function (a) { a.setAttribute('href', t0); });
     if (C.phoneDisplay) document.querySelectorAll('[data-phone]').forEach(function (el) { el.textContent = C.phoneDisplay; });
+    callsToWhatsApp();
   });
 })();

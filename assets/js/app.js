@@ -601,6 +601,17 @@
       .catch(function () {});
   }
 
+  // Call buttons open a WhatsApp chat instead of a phone call while MXP.callViaWhatsApp is on (config.js).
+  function callsToWhatsApp() {
+    if (!C.callViaWhatsApp) return;
+    var n = String(C.whatsapp || '').replace(/\D/g, ''); if (!/^\d{12}$/.test(n)) return;
+    document.querySelectorAll('[data-call]').forEach(function (a) {
+      a.removeAttribute('data-call'); a.setAttribute('data-wa', 'Contact'); a.setAttribute('data-wa-text', 'Hi Mechanix Pro, I need help with my bike or car.'); a.setAttribute('href', 'https://wa.me/' + n);
+      if (a.getAttribute('aria-label')) a.setAttribute('aria-label', a.getAttribute('aria-label').replace(/\bCall\b/, 'WhatsApp'));
+      a.childNodes.forEach(function (c) { if (c.nodeType === 3) c.textContent = c.textContent.replace(/\bCall\b/, 'WhatsApp'); });
+    });
+    document.querySelectorAll('[data-phone]').forEach(function (el) { el.textContent = '+91 ' + n.slice(2, 7) + ' ' + n.slice(7); });
+  }
   function init() {
     utm();
     var attr = L.captureAttribution(location.search, (function () { try { return sessionStorage; } catch (e) { return { getItem: function () { return null; }, setItem: function () {} }; } })());
@@ -631,6 +642,7 @@
     render(); renderPrices(); loadPrices(); armIdle(); welcomeBack();
     var phoneEls = document.querySelectorAll('[data-phone]'); for (var i = 0; i < phoneEls.length; i++) if (C.phoneDisplay) phoneEls[i].textContent = C.phoneDisplay;
     var tel0 = L.callLink(C.callNumber) || L.callLink(C.whatsapp); if (tel0) document.querySelectorAll('[data-call]').forEach(function (a) { a.setAttribute('href', tel0); });
+    callsToWhatsApp();
     var sb = $('#sosBtn'); if (sb) sb.addEventListener('click', sos);
     var mb = $('#mbar'); if (mb) { var onS = function () { mb.classList.toggle('on', window.scrollY > 480); }; window.addEventListener('scroll', onS, { passive: true }); onS(); }
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/sw.js').catch(function () {});
