@@ -5,7 +5,7 @@ window.MXP = {
   whatsapp: '918042303061',        // Business WhatsApp number (the desk number on AiSensy): 91 + 10 digits, no spaces or +
   callNumber: '917965295649',      // Number customers call (91 + 10 digits). Calls go to the IVR; WhatsApp is the AiSensy number above
   phoneDisplay: '+91 79652 95649', // Shown on the site
-  callViaWhatsApp: true,           // true: every Call button and phone link on the site opens a WhatsApp chat instead. Set false to bring phone calls back
+  callViaWhatsApp: false,          // true: every Call button and phone link on the site opens a WhatsApp chat instead. Set false to bring phone calls back
   email: 'hello@mechanixpro.in',
 
   supabaseUrl: 'https://mejdxsbpyscujpvbwvmg.supabase.co', // Supabase project URL (public). Booking saves leads only once supabaseAnonKey is also set
