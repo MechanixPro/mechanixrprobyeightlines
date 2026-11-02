@@ -21,8 +21,10 @@
     if (adsId) window.gtag('config', adsId);
   }
   if (C.metaPixelId) {
-    window.fbq = function () { (window.fbq.q = window.fbq.q || []).push(arguments); };
-    window._fbq = window.fbq; window.fbq.loaded = true; window.fbq.version = '2.0'; window.fbq.queue = [];
+    // Same queue stub as Meta's own snippet: events wait in fbq.queue until fbevents.js loads and takes them.
+    var n = window.fbq = function () { if (n.callMethod) n.callMethod.apply(n, arguments); else n.queue.push(arguments); };
+    if (!window._fbq) window._fbq = n;
+    n.push = n; n.loaded = true; n.version = '2.0'; n.queue = [];
     load('https://connect.facebook.net/en_US/fbevents.js');
     window.fbq('init', C.metaPixelId); window.fbq('track', 'PageView');
   }
