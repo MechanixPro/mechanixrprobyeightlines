@@ -36,3 +36,16 @@ export function cleanKeypress(b: any): { ok: true; value: Keypress } | { ok: fal
   if (!keyPath) return { ok: false, error: 'key_path' };
   return { ok: true, value: { id, test: b.test === true, callUuid: String(d.call_uuid ?? '').slice(0, 60), phone: /^[6-9]\d{9}$/.test(phone) ? phone : '', keyPath, keyLabel: String(d.key_label ?? '').replace(/[\u0000-\u001f<>]/g, ' ').trim().slice(0, 60) } };
 }
+
+/** Telephony webhooks: one event for every inbound call, answered or missed (docs: agentive.co.in/docs/telephony-webhooks). */
+export type CallEvent = { id: string; event: string; callId: string; phone: string; status: string; missed: boolean; seconds: number };
+export const CALL_EVENTS = ['call.answered', 'call.completed', 'call.no_answer', 'call.busy', 'call.failed'];
+export function cleanCall(b: any): { ok: true; value: CallEvent } | { ok: false; error: string } {
+  const ev = String(b?.event ?? b?.type ?? ''); if (!CALL_EVENTS.includes(ev)) return { ok: false, error: 'event' };
+  const d = b.data ?? {}; if (String(d.direction ?? 'inbound') !== 'inbound') return { ok: false, error: 'direction' };
+  const id = String(b.id ?? b.event_id ?? '').slice(0, 80); if (!/^[a-z0-9_.-]{8,80}$/i.test(id)) return { ok: false, error: 'id' };
+  const digits = String(d.from_number ?? d.customer_number ?? '').replace(/\D/g, '');
+  const phone = digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits.length === 10 ? digits : '';
+  if (!/^[6-9]\d{9}$/.test(phone)) return { ok: false, error: 'phone' }; // mobile numbers only: a 0-prefixed landline or a withheld number is skipped
+  return { ok: true, value: { id, event: ev, callId: String(d.call_id ?? d.unique_id ?? '').slice(0, 60), phone, status: String(d.status ?? ''), missed: ev === 'call.no_answer' || ev === 'call.busy', seconds: Number(d.duration_sec) || 0 } };
+}
