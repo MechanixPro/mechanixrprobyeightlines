@@ -108,7 +108,7 @@ async function boot() {
   startAlerts();
 }
 /* ---------- fast alerts: a new lead or a customer reply makes a sound, a pop-up, a vibration and a number in the tab title ---------- */
-let audioCtx = null, titleBase = document.title; const seen = { leads: null, replies: null };
+let audioCtx = null, titleBase = document.title; const seen = { leads: null, replies: null, due: null };
 function beep() {
   try {
     audioCtx ||= new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -124,8 +124,9 @@ function alertUser(title, body) {
 }
 async function pulse() {
   if (!S.me) return;
-  let unassigned = null, replies = null;
+  let unassigned = null, replies = null, mine = null;
   if (pageOk('leads')) { try { unassigned = await rpc('crm_queue', { p_view: 'unassigned', p_search: null }); } catch (e) { /* next time */ } }
+  if (pageOk('leads')) { try { mine = await rpc('crm_queue', { p_view: 'mine', p_search: null }); } catch (e) { /* next time */ } }
   if (pageOk('inbox')) { try { replies = await rpc('crm_replies_waiting'); } catch (e) { /* next time */ } }
   if (unassigned) {
     const ids = new Set(unassigned.map((l) => l.id)); S.counts.unassigned = unassigned.length;
@@ -137,7 +138,14 @@ async function pulse() {
     if (seen.replies) { const fresh = replies.filter((r) => !seen.replies.has(key(r))); if (fresh.length) alertUser('Customer replied', fresh.slice(0, 2).map((r) => r.name).join(', ')); }
     seen.replies = ids; const b = $('#inBadge'); if (b) { b.textContent = replies.length; b.hidden = !replies.length; }
   }
-  const n = (unassigned ? unassigned.length : 0) + (replies ? replies.length : 0); document.title = (n ? '(' + n + ') ' : '') + titleBase;
+  let dueNow = 0;
+  if (mine) {
+    // A follow-up the agent set has come due: sound and pop-up once for each follow-up time, and it counts in the tab title until it is done.
+    const due = mine.filter((l) => l.overdue && l.crm_next_action_at), key = (l) => l.id + '|' + l.crm_next_action_at; dueNow = due.length;
+    if (seen.due) { const fresh = due.filter((l) => !seen.due.has(key(l))); if (fresh.length) alertUser(fresh.length === 1 ? 'Follow-up due' : fresh.length + ' follow-ups due', fresh.slice(0, 2).map((l) => l.name).join(', ')); }
+    seen.due = new Set(due.map(key));
+  }
+  const n = (unassigned ? unassigned.length : 0) + (replies ? replies.length : 0) + dueNow; document.title = (n ? '(' + n + ') ' : '') + titleBase;
 }
 function startAlerts() {
   const who = $('#who');

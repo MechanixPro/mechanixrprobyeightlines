@@ -50,13 +50,16 @@ export async function newBooking(ctx, pre = {}) {
 export async function editBooking(ctx, lead) {
   const confirmed = ['paid', 'scheduled', 'completed'].includes(lead.status);
   let cat = null; if (!confirmed) { try { cat = await getCatalog(); } catch (e) { cat = null; } }
-  const body = `${cat && Object.keys((cat.tiers || {}).mid || {}).length ? field('Engine size', 'engine_class', { type: 'select', blank: 'Keep the bike\'s engine size', options: ENGINES }) : ''}${cat ? field('Service', 'service_id', { type: 'select', blank: false, value: lead.service_id, options: cat.services.map((s) => [s.id, `${s.name} from ${rupee(s.price)}`]) }) + (cat.addons.length ? field('Add-ons', 'addons', { type: 'checks', value: lead.addons || [], options: cat.addons.map((a) => [a.id, `${a.name} · ${rupee(a.price)}`]) }) : '') : '<p class="small muted">The service of a confirmed booking is changed in the admin.</p>'}
+  const body = `${field('Bike (brand and model)', 'bike_name', { value: lead.bike || '', max: 80 })}
+    ${cat && Object.keys((cat.tiers || {}).mid || {}).length ? field('Engine size', 'engine_class', { type: 'select', blank: 'Keep the bike\'s engine size', options: ENGINES }) : ''}${cat ? field('Service', 'service_id', { type: 'select', blank: false, value: lead.service_id, options: cat.services.map((s) => [s.id, `${s.name} from ${rupee(s.price)}`]) }) + (cat.addons.length ? field('Add-ons', 'addons', { type: 'checks', value: lead.addons || [], options: cat.addons.map((a) => [a.id, `${a.name} · ${rupee(a.price)}`]) }) : '') : '<p class="small muted">The service of a confirmed booking is changed in the admin.</p>'}
     <div class="grid2">${field('Preferred date', 'preferred_date', { type: 'date', value: lead.preferred_date || '', half: true })}${field('Time slot', 'preferred_slot', { type: 'select', options: SLOTS, value: lead.preferred_slot, half: true })}
     ${field('PIN code', 'pincode', { inputmode: 'numeric', value: lead.pincode, half: true })}${field('Area', 'area', { value: lead.area, half: true })}</div>
     ${field('Address', 'address', { type: 'textarea', rows: 2, max: 200, value: lead.address })}${field('Requirements and notes', 'notes', { type: 'textarea', rows: 3, value: lead.notes })}`;
   modal({ title: `Edit booking ${lead.ref}`, intro: 'Changes show in the admin straight away and are written to the history.', body, submit: 'Save changes', wide: true,
     onSubmit: async (form, d, close) => {
       const p = { preferred_date: d.preferred_date, preferred_slot: d.preferred_slot, pincode: d.pincode, area: d.area, address: d.address, notes: d.notes };
+      const bikeNew = (d.bike_name || '').trim().replace(/\s+/g, ' ');
+      if (bikeNew && bikeNew !== (lead.bike || '').trim()) { const i = bikeNew.indexOf(' '); p.brand = i < 0 ? bikeNew : bikeNew.slice(0, i); p.model = i < 0 ? null : bikeNew.slice(i + 1); }
       if (cat) { p.service_id = d.service_id; p.addons = d.addons || []; if (d.engine_class) p.engine_class = d.engine_class; }
       const r = await rpc('crm_update_booking', { p_id: lead.id, p: p, p_expected: lead.updated_at });
       close(); toast(r.changes.length ? 'Saved: ' + r.changes.join(', ') : 'Nothing changed.'); ctx.reload(); ctx.openLead(lead.id);
