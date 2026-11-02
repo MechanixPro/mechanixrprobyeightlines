@@ -104,7 +104,7 @@ async function boot() {
   if (!list.length) { $('#view').innerHTML = '<p class="alert pad">Your login has no pages yet. Ask your supervisor to turn some on.</p>'; return; }
   const start = location.hash.slice(1);
   await go(list.find((s) => s.id === start)?.id || (pageOk('leads') ? 'mine' : list[0].id));
-  setInterval(refresh, 20e3);
+  setInterval(refresh, 45e3); // light on the database: the alert loop below already watches for new leads and replies
   startAlerts();
 }
 /* ---------- fast alerts: a new lead or a customer reply makes a sound, a pop-up, a vibration and a number in the tab title ---------- */
@@ -154,7 +154,7 @@ function startAlerts() {
     $('#alertBtn').addEventListener('click', async () => { try { await Notification.requestPermission(); } catch (e) { /* ignore */ } beep(); $('#alertBtn').remove(); });
   }
   document.addEventListener('click', () => { try { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) { /* ignore */ } }, { once: true });
-  pulse(); let t = null; const loop = () => { clearTimeout(t); t = setTimeout(async () => { await pulse(); loop(); }, document.hidden ? 20e3 : 8e3); }; loop();
+  pulse(); let t = null; const loop = () => { clearTimeout(t); t = setTimeout(async () => { await pulse(); loop(); }, document.hidden ? 120e3 : 20e3); }; loop();
   document.addEventListener('visibilitychange', () => { if (!document.hidden) pulse(); });
 }
 async function refresh() {
