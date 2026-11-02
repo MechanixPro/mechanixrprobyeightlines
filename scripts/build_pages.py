@@ -100,6 +100,13 @@ AREAS = [
   ('banaswadi', 'Banaswadi', '560043', 'Banaswadi, Kacharakanahalli and the Outer Ring Road and Hennur Road side', 'Daily rides along the Outer Ring Road and Hennur Road mean long jams, so brakes and clutches wear faster.'),
   ('vijayanagar', 'Vijayanagar', '560040', 'Vijayanagar, Hosahalli, Attiguppe and the Magadi Road side', 'Busy Magadi Road and Chord Road mean heavy braking and slow riding.'),
   ('nagarbhavi', 'Nagarbhavi', '560072', 'Nagarbhavi, Chandra Layout, Mudalapalya and Jnanabharathi', 'Rides along Nagarbhavi Main Road and Mysore Road towards the Outer Ring Road mean heavy traffic through the day.'),
+  ('carmelaram', 'Carmelaram', '560035', 'Carmelaram, Doddakannelli, Kasavanahalli and the Sarjapur Road side', 'Long jams on Sarjapur Road and the Outer Ring Road mean a lot of idling and hard braking, so brakes, clutch and oil wear out sooner.'),
+  ('jp-nagar-8th-9th-phase', 'JP Nagar 8th and 9th Phase', '560062', 'JP Nagar 8th and 9th Phase, Konanakunte, Doddakallasandra and the Kanakapura Road side', 'Daily rides along Kanakapura Road and the Bannerghatta Road link mean steady stop-start traffic, which is hard on brakes, clutch and chains.'),
+  ('wilson-garden', 'Wilson Garden', '560027', 'Wilson Garden, Shanthinagar, Sampangiramnagar and the Lalbagh Road side', 'Crowded old-city streets and the traffic around Lalbagh Road and the Shanthinagar bus stand mean slow riding and constant braking.'),
+  ('hal-kodihalli', 'HAL and Kodihalli', '560017', 'HAL, Kodihalli, Vimanapura and the Old Airport Road side', 'Heavy flow on Old Airport Road and around the HAL gates keeps engines idling, which is hard on brakes, clutch and oil.'),
+  ('varthur', 'Varthur and Gunjur', '560087', 'Varthur, Gunjur, Muthusandra and the Varthur Road side', 'Daily rides on Varthur Road and towards the Outer Ring Road mean long jams, so brakes, chains and tyres need attention sooner.'),
+  ('rayasandra', 'Rayasandra and Bommasandra', '560099', 'Rayasandra, Bommasandra, Chandapura, Huskur and Muthanallur', 'Long commutes on Hosur Road and the Chandapura stretch add kilometres quickly, so oil changes and chain care come round sooner.'),
+  ('jigani', 'Jigani', '560105', 'Jigani, Hulimangala, Haragadde, Hennagara and the Anekal Road side', 'Longer rides along Bannerghatta Road and Hosur Road add kilometres quickly, so chain, tyre and oil care come round sooner.'),
 ]
 PRICES = [(k, v['name']) for k, v in json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src', 'site.json'), encoding='utf-8'))['services'].items()]
 
