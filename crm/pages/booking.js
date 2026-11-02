@@ -57,10 +57,18 @@ export async function editBooking(ctx, lead) {
     ${field('Address', 'address', { type: 'textarea', rows: 2, max: 200, value: lead.address })}${field('Requirements and notes', 'notes', { type: 'textarea', rows: 3, value: lead.notes })}`;
   modal({ title: `Edit booking ${lead.ref}`, intro: 'Changes show in the admin straight away and are written to the history.', body, submit: 'Save changes', wide: true,
     onSubmit: async (form, d, close) => {
-      const p = { preferred_date: d.preferred_date, preferred_slot: d.preferred_slot, pincode: d.pincode, area: d.area, address: d.address, notes: d.notes };
+      // Send only what the agent changed. The database checks every field it receives (a PIN must be in the service area, a date cannot be in the past),
+      // so sending untouched blanks or an old date made a simple bike edit fail on leads that never had a PIN.
+      const cur = { preferred_date: lead.preferred_date || '', preferred_slot: lead.preferred_slot || '', pincode: lead.pincode || '', area: lead.area || '', address: lead.address || '', notes: lead.notes || '' };
+      const p = {};
+      for (const k of Object.keys(cur)) { const v = String(d[k] ?? '').trim(); if (v !== String(cur[k]).trim() && !(k === 'pincode' && !v)) p[k] = d[k]; }
       const bikeNew = (d.bike_name || '').trim().replace(/\s+/g, ' ');
       if (bikeNew && bikeNew !== (lead.bike || '').trim()) { const i = bikeNew.indexOf(' '); p.brand = i < 0 ? bikeNew : bikeNew.slice(0, i); p.model = i < 0 ? null : bikeNew.slice(i + 1); }
-      if (cat) { p.service_id = d.service_id; p.addons = d.addons || []; if (d.engine_class) p.engine_class = d.engine_class; }
+      if (cat) {
+        const adds = (d.addons || []).slice().sort().join(','), had = (lead.addons || []).slice().sort().join(',');
+        if (d.service_id !== lead.service_id || adds !== had || d.engine_class) { p.service_id = d.service_id; p.addons = d.addons || []; if (d.engine_class) p.engine_class = d.engine_class; }
+      }
+      if (!Object.keys(p).length) { close(); toast('Nothing changed.'); return; }
       const r = await rpc('crm_update_booking', { p_id: lead.id, p: p, p_expected: lead.updated_at });
       close(); toast(r.changes.length ? 'Saved: ' + r.changes.join(', ') : 'Nothing changed.'); ctx.reload(); ctx.openLead(lead.id);
     } });
