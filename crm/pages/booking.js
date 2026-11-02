@@ -69,7 +69,10 @@ export async function editBooking(ctx, lead) {
         if (d.service_id !== lead.service_id || adds !== had || d.engine_class) { p.service_id = d.service_id; p.addons = d.addons || []; if (d.engine_class) p.engine_class = d.engine_class; }
       }
       if (!Object.keys(p).length) { close(); toast('Nothing changed.'); return; }
-      const r = await rpc('crm_update_booking', { p_id: lead.id, p: p, p_expected: lead.updated_at });
+      // The lead's own clock moves on its own while the sheet is open (the WhatsApp chat check stamps the customer's last message every few seconds),
+      // so take the current version just before saving instead of the one loaded when the sheet opened. Only the changed fields are sent.
+      const fresh = await rpc('crm_lead', { p_id: lead.id });
+      const r = await rpc('crm_update_booking', { p_id: lead.id, p: p, p_expected: fresh.lead.updated_at });
       close(); toast(r.changes.length ? 'Saved: ' + r.changes.join(', ') : 'Nothing changed.'); ctx.reload(); ctx.openLead(lead.id);
     } });
 }
