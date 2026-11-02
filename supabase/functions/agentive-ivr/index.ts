@@ -16,11 +16,24 @@ Deno.serve(async (req) => {
   // The call menu key press webhook and the Webhooks tab (call events) each have their own signing secret; either one is accepted.
   const sig = req.headers.get('x-agentive-signature-v2'); let good = false;
   for (const name of ['AGENTIVE_WEBHOOK_SECRET', 'AGENTIVE_EVENTS_SECRET']) { let sec = ''; try { sec = env(name); } catch { sec = ''; } if (sec && !good) good = await verifyAgentive(raw, sig, sec, hmacSha256Hex, safeEqual); }
-  if (!good) return reply({ error: 'Bad signature' }, 401);
+  if (!good) {
+    // Note a rejected call so it can be traced (header facts only, no body, at most one note a minute so strangers cannot fill the log).
+    try {
+      const db = adminDb(); const since = new Date(Date.now() - 60_000).toISOString();
+      const { count } = await db.from('audit_log').select('id', { count: 'exact', head: true }).eq('action', 'ivr_rejected').gt('created_at', since);
+      if ((count ?? 0) === 0) { const m = /^t=(\d+)/.exec(String(sig ?? '')); await db.from('audit_log').insert({ action: 'ivr_rejected', details: { has_sig: !!sig, sig_ok_shape: !!sig && /^t=\d{9,12},v2=[a-f0-9]{64}$/i.test(sig), age_sec: m ? Math.round(Date.now() / 1000 - Number(m[1])) : null, event: String(req.headers.get('x-agentive-event') ?? '').slice(0, 40), secrets_set: ['AGENTIVE_WEBHOOK_SECRET', 'AGENTIVE_EVENTS_SECRET'].filter((n) => !!env(n)) } }); }
+    } catch { /* never break the reply */ }
+    return reply({ error: 'Bad signature' }, 401);
+  }
   let body: any; try { body = JSON.parse(raw); } catch { return reply({ error: 'Bad JSON' }, 400); }
   const call = cleanCall(body);
   if (call.ok) return handleCall(call.value, body);
-  const v = cleanKeypress(body); if (!v.ok) return reply({ ok: true, ignored: v.error });
+  const v = cleanKeypress(body);
+  if (!v.ok) {
+    // Say why an event was skipped, so a call that made no lead can be traced. Event name, reason and field names only: never a phone number.
+    try { await adminDb().from('audit_log').insert({ action: 'ivr_ignored', details: { event: String(body?.event ?? body?.type ?? '').slice(0, 40), why: call.error, test: body?.test === true, keys: Object.keys(body?.data ?? {}).slice(0, 30), direction: String(body?.data?.direction ?? '').slice(0, 12), id_shape: /^[a-z0-9_.-]{8,80}$/i.test(String(body?.id ?? body?.event_id ?? '')) } }); } catch { /* logging must never break the reply */ }
+    return reply({ ok: true, ignored: call.error });
+  }
   const k = v.value;
   if (k.test) return reply({ ok: true, test: true });
   try {
