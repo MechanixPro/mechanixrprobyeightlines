@@ -129,6 +129,18 @@ export function unstaffedSoon(jobs, now = new Date()) {
   });
 }
 
+/** Order the technicians for a booking: free in its slot first, then those who cover its PIN code. Each gets a label for the picker. The booking itself never counts as a clash. */
+export function rankTechs(board, lead) {
+  const slot = lead.preferred_slot && lead.preferred_slot !== 'asap' ? lead.preferred_slot : null, pin = lead.pincode || null;
+  const list = (board || []).map((t, i) => {
+    const jobs = (t.jobs || []).filter((j) => j.id !== lead.id);
+    const covers = !!pin && (t.pincodes || []).includes(pin), busy = !!slot && jobs.some((j) => j.slot === slot);
+    const label = [t.name, t.area, covers ? 'covers ' + pin : '', slot ? (busy ? 'busy in this slot' : 'free') : '', jobs.length ? jobs.length + (jobs.length === 1 ? ' job' : ' jobs') + ' that day' : ''].filter(Boolean).join(' · ');
+    return { id: t.id, name: t.name, covers, busy, jobs: jobs.length, label, i };
+  });
+  return list.sort((a, b) => (a.busy - b.busy) || (b.covers - a.covers) || (a.i - b.i));
+}
+
 export function parseContacts(text) {
   const rows = [], seen = new Set();
   for (const line of String(text || '').split(/\r?\n/)) {

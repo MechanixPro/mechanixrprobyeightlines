@@ -11,6 +11,8 @@ The IVR is set up in the telephony provider's dashboard (the provider that owns 
 - Play a short notice: "This call may be recorded to improve our service."
 
 ## Call flow
+> Live flow on Agentive ("Care Buddy", Nov 2026): key 1 is first service and roadside help (booking link on WhatsApp, rings the team), key 3 is an ongoing booking or customer support (track link, rings the team). The table below is the original full design.
+
 | Step | Caller hears | Keypad | Goes to |
 |---|---|---|---|
 | Greeting | "Welcome to Mechanix Pro, your roadside first responders. This call may be recorded." | none | Main menu |

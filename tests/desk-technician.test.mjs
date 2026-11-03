@@ -47,3 +47,32 @@ test('the desk shows, sets and shares the technician, and alerts on unstaffed jo
   assert.match(c, /<span>Technician<\/span>/); assert.match(c, /techJobMessage\(l\)/); assert.match(c, /crm_unstaffed_jobs/); assert.match(c, /unstaffedSoon\(/);
   assert.match(l, /<th>Technician<\/th>/); assert.match(l, /id="tech"/);
 });
+
+import { rankTechs } from '../crm/crm-rules.js';
+const board = [
+  { id: 'a', name: 'Asha', area: 'Whitefield', pincodes: ['560066'], jobs: [{ id: 'j1', slot: 'morning' }] },
+  { id: 'b', name: 'Bala', area: 'HSR', pincodes: ['560102', '560068'], jobs: [{ id: 'j2', slot: 'morning' }, { id: 'j3', slot: 'evening' }] },
+  { id: 'c', name: 'Chetan', area: 'HSR', pincodes: ['560102'], jobs: [] },
+  { id: 'd', name: 'Dev', area: 'Jayanagar', pincodes: [], jobs: [] },
+];
+test('technicians who cover the PIN and are free in the slot come first, busy ones last', () => {
+  const r = rankTechs(board, { id: 'x', pincode: '560102', preferred_slot: 'morning' });
+  assert.deepEqual(r.map((t) => t.id), ['c', 'd', 'b', 'a']);
+  assert.match(r[0].label, /^Chetan · HSR · covers 560102 · free$/);
+  assert.match(r.find((t) => t.id === 'b').label, /busy in this slot · 2 jobs that day/);
+});
+test('the booking being edited does not count as a clash with its own technician', () => {
+  const r = rankTechs(board, { id: 'j2', pincode: '560102', preferred_slot: 'morning' });
+  assert.equal(r.find((t) => t.id === 'b').busy, false);
+});
+test('with no slot or PIN the list keeps the board order and says how many jobs each has', () => {
+  const r = rankTechs(board, { id: 'x' });
+  assert.deepEqual(r.map((t) => t.id), ['a', 'b', 'c', 'd']);
+  assert.match(r[1].label, /2 jobs that day/);
+});
+test('the technician board: database function, My day panel and ranked picker', () => {
+  const m = read('supabase/migrations/20261219000000_desk_tech_board.sql'), c = read('crm/crm.js'), b = read('crm/pages/booking.js');
+  for (const s of ['crm_tech_board(p_date date', "crm_require('assign_leads')", "'pincodes'", "'unassigned'", 'grant execute on function public.crm_tech_board(date)']) assert.ok(m.includes(s), s);
+  assert.match(c, /crm_tech_board/); assert.match(c, /Technicians today/);
+  assert.match(b, /crm_tech_board/); assert.match(b, /rankTechs\(/);
+});

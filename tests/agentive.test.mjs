@@ -20,7 +20,7 @@ test('a good V2 signature passes and a wrong secret, old time or missing header 
 test('a key press is read, a bad one refused, and the menu matches the IVR doc', () => {
   const v = cleanKeypress(JSON.parse(body)); assert.equal(v.ok, true); assert.equal(v.value.phone, '9812345678'); assert.equal(v.value.keyPath, '2');
   assert.equal(cleanKeypress({ event: 'other' }).ok, false);
-  assert.equal(MENU['1'].campaign, 'mxp_ivr_roadside'); assert.equal(MENU['5-2'].campaign, 'mxp_ivr_business'); assert.equal(MENU['3'].lead, false);
+  assert.equal(MENU['1'].campaign, 'mxp_ivr_book'); assert.match(MENU['1'].label, /first service/i); assert.match(MENU['3'].label, /support/i); assert.equal(MENU['5-2'].campaign, 'mxp_ivr_business'); assert.equal(MENU['3'].lead, false);
 });
 
 test('every new-lead path alerts the desk by email at once', async () => {

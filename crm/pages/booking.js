@@ -1,4 +1,5 @@
 import { rpc, esc, modal, field, toast, rupee, SLOTS, clean } from '../ui.js';
+import { rankTechs } from '../crm-rules.js';
 
 let catalog = null;
 const getCatalog = async () => (catalog ||= await rpc('crm_booking_catalog'));
@@ -51,9 +52,14 @@ export async function editBooking(ctx, lead) {
   const confirmed = ['paid', 'scheduled', 'completed'].includes(lead.status);
   let cat = null; if (!confirmed) { try { cat = await getCatalog(); } catch (e) { cat = null; } }
   // Only people who may assign leads may set the technician; the database checks this too.
-  let techs = []; if (ctx.can('assign_leads')) { try { techs = await rpc('crm_mechanic_picker'); } catch (e) { techs = []; } }
-  if (lead.mechanic_id && !techs.some((t) => t.id === lead.mechanic_id)) techs = [{ id: lead.mechanic_id, name: lead.mechanic_name || 'Current technician' }, ...techs];
-  const body = `${techs.length ? field('Technician', 'mechanic_id', { type: 'select', blank: 'Not assigned', value: lead.mechanic_id || '', options: techs.map((t) => [t.id, t.name + (t.area ? ' · ' + t.area : '')]), hint: 'Who goes to this job. Send them the job on WhatsApp from the booking after saving.' }) : ''}
+  // The board for the booking's day ranks them: free in the slot first, then those who cover the PIN code. Without a date, the plain list is used.
+  let techs = [];
+  if (ctx.can('assign_leads')) {
+    try { techs = rankTechs((await rpc('crm_tech_board', { p_date: lead.preferred_date || null })).techs, lead); }
+    catch (e) { try { techs = (await rpc('crm_mechanic_picker')).map((t) => ({ id: t.id, name: t.name, label: t.name + (t.area ? ' · ' + t.area : '') })); } catch (e2) { techs = []; } }
+  }
+  if (lead.mechanic_id && !techs.some((t) => t.id === lead.mechanic_id)) techs = [{ id: lead.mechanic_id, name: lead.mechanic_name || 'Current technician', label: lead.mechanic_name || 'Current technician' }, ...techs];
+  const body = `${techs.length ? field('Technician', 'mechanic_id', { type: 'select', blank: 'Not assigned', value: lead.mechanic_id || '', options: techs.map((t) => [t.id, t.label]), hint: (lead.preferred_date ? 'Free in this slot and covering this PIN code come first. ' : 'Set the date to see who is free. ') + 'Send them the job on WhatsApp from the booking after saving.' }) : ''}
     ${field('Bike (brand and model)', 'bike_name', { value: lead.bike || '', max: 80 })}
     ${cat && Object.keys((cat.tiers || {}).mid || {}).length ? field('Engine size', 'engine_class', { type: 'select', blank: 'Keep the bike\'s engine size', options: ENGINES }) : ''}${cat ? field('Service', 'service_id', { type: 'select', blank: false, value: lead.service_id, options: cat.services.map((s) => [s.id, `${s.name} from ${rupee(s.price)}`]) }) + (cat.addons.length ? field('Add-ons', 'addons', { type: 'checks', value: lead.addons || [], options: cat.addons.map((a) => [a.id, `${a.name} · ${rupee(a.price)}`]) }) : '') : '<p class="small muted">The service of a confirmed booking is changed in the admin.</p>'}
     <div class="grid2">${field('Preferred date', 'preferred_date', { type: 'date', value: lead.preferred_date || '', half: true })}${field('Time slot', 'preferred_slot', { type: 'select', options: SLOTS, value: lead.preferred_slot, half: true })}

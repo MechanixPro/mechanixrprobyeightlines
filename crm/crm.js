@@ -45,7 +45,7 @@ const SCREENS = [
   { id: 'team', title: 'Team', page: 'team', mod: team },
 ];
 
-const S = { waiting: [], me: null, view: null, leads: [], q: '', open: null, detail: null, users: null, dispositions: [], counts: { unassigned: 0 }, unstaffed: [], busy: false, kind: 'note' };
+const S = { waiting: [], me: null, view: null, leads: [], q: '', open: null, detail: null, users: null, dispositions: [], counts: { unassigned: 0 }, unstaffed: [], board: null, busy: false, kind: 'note' };
 const can = (a) => !!S.me?.permissions?.actions?.[a];
 const pageOk = (p) => !!S.me?.permissions?.pages?.[p];
 const screens = () => SCREENS.filter((s) => pageOk(s.page) && (!s.action || can(s.action) || can('assign_leads')));
@@ -209,6 +209,8 @@ function renderHeader() {
 async function loadList() {
   const view = S.view;
   S.leads = await rpc('crm_queue', { p_view: view, p_search: S.q || null });
+  // People who assign technicians see today's board on My day.
+  S.board = null; if (view === 'mine' && can('assign_leads')) { try { S.board = await rpc('crm_tech_board', { p_date: null }); } catch (e) { S.board = null; } }
   if (view !== 'unassigned') { try { S.counts.unassigned = (await rpc('crm_queue', { p_view: 'unassigned', p_search: null })).length; } catch (e) { /* badge only */ } }
   else S.counts.unassigned = S.leads.length;
   renderHeader();
@@ -222,8 +224,18 @@ function renderBody() {
     ${S.waiting.length && pageOk('inbox') ? `<div class="alert" role="status"><b>${S.waiting.length}</b> ${S.waiting.length === 1 ? 'customer wrote' : 'customers wrote'} on WhatsApp and ${S.waiting.length === 1 ? 'is' : 'are'} waiting. <button class="btn sm" type="button" data-act="gotoInbox">Open the Inbox</button></div>` : ''}
     ${S.unstaffed.length ? `<div class="alert" role="status"><b>${S.unstaffed.length}</b> booked ${S.unstaffed.length === 1 ? 'job has' : 'jobs have'} no technician yet: ${S.unstaffed.slice(0, 4).map((j) => `<button class="btn sm" type="button" data-act="open" data-id="${j.id}">${esc(j.ref)} ${esc(j.name)}</button>`).join(' ')}</div>` : ''}
     ${late ? `<div class="alert" role="status"><b>${late}</b> ${late === 1 ? 'lead needs' : 'leads need'} you right now.</div>` : ''}
+    ${S.board ? techBoard(S.board) : ''}
     <div class="cards">${S.leads.length ? S.leads.map(card).join('') : `<div class="empty">${S.view === 'mine' ? 'Nothing open. Take a lead from <b>Unassigned</b>, or add one you got by phone.' : 'No unassigned leads right now.'}</div>`}</div>`;
   const q = $('#q'); if (q) q.addEventListener('input', debounce(async () => { S.q = q.value.trim(); await loadList(); renderBody(); const n = $('#q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 350));
+}
+
+const SLOT_SHORT = { morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening', asap: 'ASAP' };
+function techBoard(b) {
+  const job = (j) => `<button class="chip pick" type="button" data-act="open" data-id="${j.id}">${esc(j.ref)} · ${esc(SLOT_SHORT[j.slot] || 'No slot')}${j.area ? ' · ' + esc(j.area) : ''}${j.status === 'completed' ? ' · done' : ''}</button>`;
+  const busy = b.techs.filter((t) => t.jobs.length).length;
+  return `<details class="board" open><summary><b>Technicians today</b> <span class="small muted">${busy} of ${b.techs.length} have jobs${b.unassigned.length ? ` · <span class="badtxt">${b.unassigned.length} booked with no technician</span>` : ''}</span></summary>
+    <div class="table-wrap"><table><tbody>${b.unassigned.length ? `<tr><td class="badtxt"><b>No technician</b></td><td>${b.unassigned.map(job).join(' ')}</td></tr>` : ''}
+    ${b.techs.map((t) => `<tr><td><b>${esc(t.name)}</b><br><small class="muted">${esc(t.area || '')}</small></td><td>${t.jobs.length ? t.jobs.map(job).join(' ') : '<span class="muted small">Free all day</span>'}</td></tr>`).join('')}</tbody></table></div></details>`;
 }
 
 function card(l) {
