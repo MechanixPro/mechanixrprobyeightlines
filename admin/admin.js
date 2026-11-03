@@ -505,6 +505,57 @@ function serviceEditCard(l) {
   </details>`;
 }
 // The customer on this booking: edit their details, or move the booking to a different customer.
+// Customer and vehicle details, editable on every booking (also on bookings that came in by phone or WhatsApp with no customer record yet).
+// Saved with "Save changes". Also: tell the customer the vehicle was picked up, and share the confirmation or pickup message on WhatsApp.
+async function saveCustomerVehicle(l, upd) {
+  const v = (id) => { const e = $('#' + id); return e ? e.value.trim() : null; }, changed = (id) => { const e = $('#' + id); return e && e.value.trim() !== (e.dataset.init || ''); };
+  const ids = ['cv-name', 'cv-email', 'cv-brand', 'cv-model', 'cv-reg']; if (!ids.some(changed)) return true;
+  const name = v('cv-name'), email = v('cv-email').toLowerCase(), brand = v('cv-brand'), model = v('cv-model'), reg = v('cv-reg').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { toast('Check the customer email'); return false; }
+  if (!name || name.length < 2) { toast('Enter the customer name'); return false; }
+  let c = S.customers.find((x) => x.id === l.customer_id) || S.customers.find((x) => x.phone === l.phone) || null;
+  if (!c) {
+    const { data, error } = await sb.from('customers').insert({ phone: l.phone, name, email: email || null }).select('*').single();
+    if (error) { toast('Could not save the customer: ' + error.message); return false; }
+    c = data; S.customers.unshift(c);
+  } else if (changed('cv-name') || changed('cv-email')) {
+    const { error } = await sb.from('customers').update({ name, email: email || null }).eq('id', c.id);
+    if (error) { toast('Could not save the customer: ' + error.message); return false; }
+  }
+  if (l.customer_id !== c.id) upd.customer_id = c.id;
+  if (changed('cv-name')) upd.name = name;
+  if (changed('cv-email')) upd.email = email || null;
+  if (changed('cv-reg')) upd.reg_no = reg || null;
+  if (changed('cv-brand') || changed('cv-model') || changed('cv-reg')) {
+    const bikeUpd = { brand: brand || null, model: model || null, reg_no: reg || null };
+    if (l.bike_id) { const { error } = await sb.from('bikes').update(bikeUpd).eq('id', l.bike_id); if (error) { toast('Could not save the vehicle: ' + error.message); return false; } }
+    else if (brand || model || reg) {
+      const { data, error } = await sb.from('bikes').insert({ customer_id: c.id, ...bikeUpd }).select('id').single();
+      if (error) { toast('Could not save the vehicle: ' + error.message); return false; }
+      upd.bike_id = data.id;
+    }
+  }
+  return true;
+}
+function bikeLabel(b) { return b ? [b.brand && b.brand !== 'Other' ? b.brand : '', b.model].filter(Boolean).join(' ') : ''; }
+function customerVehicleCard(l) {
+  const c = S.customers.find((x) => x.id === l.customer_id) || S.customers.find((x) => x.phone === l.phone) || null;
+  const b = S.bikes.find((x) => x.id === l.bike_id) || null;
+  const name = (c && c.name) || l.name || '', bike = bikeLabel(b) || 'vehicle', reg = (b && b.reg_no) || l.reg_no || '';
+  const when = [l.preferred_date, l.preferred_slot].filter(Boolean).join(' ');
+  const confirmText = `Hi ${name.split(' ')[0] || ''}, your Mechanix Pro booking ${l.ref} is confirmed${when ? ' for ' + when : ''}. ${bike !== 'vehicle' ? 'Vehicle: ' + bike + (reg ? ' (' + reg + ')' : '') + '. ' : ''}Any extra work is shown to you first and done only after your approval. Reply here for any help.`;
+  const pickText = `Hi ${name.split(' ')[0] || ''}, your ${bike}${reg ? ' (' + reg + ')' : ''} has been picked up by the Mechanix Pro team for service (booking ${l.ref}). We will update you and share the quote for any extra work before we start it.`;
+  const wa = (t) => 'https://wa.me/91' + encodeURIComponent(l.phone) + '?text=' + encodeURIComponent(t);
+  return `<div class="card" style="margin-top:12px"><h3>Customer and vehicle</h3>
+    <label class="label" for="cv-name">Customer name</label><input id="cv-name" maxlength="60" value="${esc(name)}" data-init="${esc(name)}">
+    <label class="label" for="cv-email">Customer email <span class="muted" style="font-weight:400">(confirmation and pickup emails go here)</span></label><input id="cv-email" type="email" inputmode="email" autocomplete="off" maxlength="254" placeholder="name@example.com" value="${esc((c && c.email) || '')}" data-init="${esc((c && c.email) || '')}">
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><div style="flex:1;min-width:140px"><label class="label" for="cv-brand">Vehicle brand</label><input id="cv-brand" maxlength="40" placeholder="Honda" value="${esc((b && b.brand) || '')}" data-init="${esc((b && b.brand) || '')}"></div>
+      <div style="flex:1;min-width:140px"><label class="label" for="cv-model">Vehicle model</label><input id="cv-model" maxlength="60" placeholder="Activa 6G" value="${esc((b && b.model) || '')}" data-init="${esc((b && b.model) || '')}"></div>
+      <div style="flex:1;min-width:140px"><label class="label" for="cv-reg">Registration number</label><input id="cv-reg" maxlength="16" placeholder="KA01AB1234" value="${esc(reg)}" data-init="${esc(reg)}"></div></div>
+    <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-ghost btn-sm" type="button" data-act="pickedUp">Vehicle picked up: email customer</button>
+      <a class="btn btn-wa btn-sm" href="${wa(confirmText)}" target="_blank" rel="noopener">Share confirmation on WhatsApp</a><a class="btn btn-wa btn-sm" href="${wa(pickText)}" target="_blank" rel="noopener">Share pickup on WhatsApp</a></div>
+    <p class="tiny muted" style="margin:8px 0 0">Setting the status to Scheduled emails the customer a booking confirmation automatically when an email is saved.</p></div>`;
+}
 function customerCard(l) {
   const c = S.customers.find((x) => x.id === l.customer_id) || S.customers.find((x) => x.phone === l.phone) || null;
   return `<div class="card" style="margin-top:12px"><h3>Customer</h3><p style="margin:0">${esc(c ? c.name : l.name)} · +91 ${esc(c ? c.phone : l.phone)}${c && c.email ? ' · ' + esc(c.email) : ''}</p>
@@ -576,6 +627,7 @@ async function openLead(id, silent) {
   <div class="qa"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button><button class="btn btn-ghost btn-sm" type="button" data-act="confirmBooking">Confirm and email customer</button><button class="btn btn-ghost btn-sm" type="button" data-act="issueFromLead">Log an issue</button></div>
   <div class="dtabs" role="tablist" aria-label="Booking sections">${dtab('booking', 'Booking')}${dtab('money', 'Money')}${dtab('customer', 'Customer')}${dtab('messages', 'Messages')}</div>
   ${panel('booking', `${DETAILS}
+    ${customerVehicleCard(l)}
     <div class="card" style="margin-top:12px"><h3>Update</h3>
       <label class="label" for="ls">Status</label><select id="ls">${STATUSES.map((s) => `<option value="${s}"${s === l.status ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
       <label class="label" for="lm">Mechanic</label><select id="lm"><option value="">Not assigned</option>${MECH}</select>
@@ -779,8 +831,13 @@ const ACT = {
     }
     const pa = $('#pa');
     if (pa && pa.value !== pa.dataset.init) { const n = parseInt(pa.value, 10); if (!(n >= 0 && n <= 100000)) return toast('Check the amount (0 to 1,00,000)'); upd.amount_due = n; }
+    const cv = await saveCustomerVehicle(l, upd); if (cv === false) return;
     const { error } = await sb.from('leads').update(upd).eq('id', l.id);
     if (error) return toast('Could not save: ' + error.message);
+    if (upd.status === 'scheduled' && l.status !== 'scheduled') {
+      const { data: cf, error: ce } = await sb.functions.invoke('confirm-booking', { body: { lead_id: l.id } });
+      toast(ce || !cf || cf.error ? 'Saved. Confirmation email could not be sent.' : cf.emailed ? 'Saved. Booking confirmation emailed to the customer.' : 'Saved. No customer email, so no confirmation email was sent.');
+    }
     if (svc && svc.bike && l.bike_id) await sb.from('bikes').update(svc.bike).eq('id', l.bike_id);
     await audit('lead_updated', { ref: l.ref, status: upd.status, mechanic_id: upd.mechanic_id, service_changed: !!svc, amount_due: upd.amount_due });
     toast(svc && svc.lead.est_total != null ? 'Saved. New estimate ' + rupee(svc.lead.est_total) : 'Saved'); await Promise.all([loadLeads(), loadPeople()]); renderList(); openLead(l.id, true);
@@ -1172,6 +1229,13 @@ const ACT = {
   },
   invClose() { $('#inv')?.remove(); S.invLead = null; },
   invExtraPrint() { window.print(); },
+  async pickedUp() {
+    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    if (!confirm('Tell the customer their vehicle has been picked up? An email is sent if the customer has an email saved.')) return;
+    const { data, error } = await sb.functions.invoke('booking-notice', { body: { lead_id: l.id, kind: 'picked_up' } });
+    if (error || !data || data.error) return toast('Could not send: ' + ((data && data.error) || (error && error.message) || 'try again'));
+    toast(data.emailed ? 'Pickup email sent to the customer.' : data.has_email ? 'Pickup noted. The email could not be sent.' : 'Pickup noted. No customer email saved, so use Share pickup on WhatsApp.');
+  },
   async confirmBooking() {
     const l = S.leads.find((x) => x.id === S.open);
     if (!l.mechanic_id && !confirm('No mechanic is assigned yet. Confirm without one?')) return;

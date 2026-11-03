@@ -191,3 +191,17 @@ ${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}${button('Call us', '
   const text = `Your invoice ${v.number} (${v.dateLabel}) for booking ${v.ref}\n\n${v.lines.map((l, i) => `${i + 1}. ${l.name}${l.code ? ` (${l.code})` : ''}: ${inr2(l.amount)}`).join('\n')}${v.couponDiscount ? `\nCoupon discount: -${inr2(v.couponDiscount)}` : ''}${v.extraDiscount ? `\nSpecial discount${v.extraNote ? ` (${v.extraNote})` : ''}: -${inr2(v.extraDiscount)}` : ''}\n\nTaxable value: ${inr2(v.taxable)}${v.gstRate ? `\nCGST @ ${v.gstRate / 2}%: ${inr2(v.cgst)}\nSGST @ ${v.gstRate / 2}%: ${inr2(v.sgst)}` : ''}\nTotal: ${inr2(v.total)}${v.paid ? `\nPaid so far: ${inr2(v.paid)}\nBalance due: ${inr2(v.balance)}` : ''}${v.refund ? `\nRefund due to you: ${inr2(v.refund)}` : ''}\n\nIssued by ${c.legalName} (Mechanix Pro), ${addr}. GSTIN ${c.gstin}. ${!v.gstRate ? 'No GST is charged on this invoice.' : v.basis === 'excl' ? `Amounts are before GST. GST is added at ${v.gstRate}% and shown in the totals.` : `Prices include ${v.gstRate}% GST.`}\n\nWhatsApp: ${d.whatsappUrl}\nCall: ${d.phoneDisplay}`;
   return { subject, html: layout({ preheader: `Invoice ${v.number}: total ${inr2(v.total)}`, title: subject, body, site: d }), text };
 }
+
+export type PickupData = Site & { name: string; ref: string; bike: string; reg?: string | null; service: string; mechanicName?: string | null };
+/** Sent when the team collects the customer's vehicle for service. */
+export function vehiclePickedUp(d: PickupData): Mail {
+  const subject = `Your ${d.bike} has been picked up ${d.ref}`;
+  const pairs: Array<[string, string]> = [['Reference', d.ref], ['Vehicle', d.bike + (d.reg ? ` (${d.reg})` : '')], ['Service', d.service]];
+  if (d.mechanicName) pairs.push(['Your mechanic', d.mechanicName]);
+  const body = `${h1(`We have your ${escapeHtml(d.bike)}, ${firstText(d.name)}.`)}
+${p('Your vehicle has been picked up by the Mechanix Pro team and is on its way for service. We will share an update and the quote for any extra work before we start it. Nothing extra is done without your approval.')}
+${rows(pairs)}
+${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}${button('Call us', 'tel:' + d.phoneTel, NAVY, '#ffffff')}`;
+  const text = `We have your ${d.bike}, ${firstText(d.name)}.\n\nYour vehicle has been picked up by the Mechanix Pro team and is on its way for service. We will share an update and the quote for any extra work before we start it.\n\nReference: ${d.ref}\nVehicle: ${d.bike}${d.reg ? ' (' + d.reg + ')' : ''}\nService: ${d.service}${d.mechanicName ? '\nYour mechanic: ' + d.mechanicName : ''}\n\nWhatsApp: ${d.whatsappUrl}\nCall: ${d.phoneDisplay}`;
+  return { subject, html: layout({ preheader: `Picked up for service: ${d.ref}`, title: subject, body, site: d }), text };
+}
