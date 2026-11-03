@@ -1,7 +1,7 @@
 // Mechanix Desk for Care Buddies. The shell: sign in, navigation by permission, "My day" and the lead sheet.
 // Every other screen lives in ./pages/. Every read and write goes through database functions that check the person's permissions.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
-import { hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent, parseContacts, techJobMessage, unstaffedSoon, rankTechs, moveCheck } from './crm-rules.js';
+import { hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent, parseContacts, techJobMessage, unstaffedSoon, rankTechs, moveCheck, handoverStatus, canSendHandoverCode, handoverMessage, HANDOVER_KIND_LABEL } from './crm-rules.js';
 import { setClient, rpc, $, $$, esc, rupee, when, toast, clean, debounce, modal, field, confirmBox, SLOTS } from './ui.js';
 import * as dashboard from './pages/dashboard.js';
 import * as leads from './pages/leads.js';
@@ -258,7 +258,7 @@ function card(l) {
 const rupee2 = (n) => '₹' + (Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: Number.isInteger(Number(n) || 0) ? 0 : 2, maximumFractionDigits: 2 });
 async function openLead(id, kind) {
   S.open = id; S.busy = true;
-  try { S.detail = await rpc('crm_lead', { p_id: id }); S.rating = await rpc('crm_lead_rating', { p_lead: id }).catch(() => null); S.money = await rpc('crm_lead_money', { p_lead: id }).catch(() => null); if (can('assign_leads')) S.users = await ctx.users(); } catch (e) { toast(clean(e), true); S.busy = false; return; }
+  try { S.detail = await rpc('crm_lead', { p_id: id }); S.rating = await rpc('crm_lead_rating', { p_lead: id }).catch(() => null); S.money = await rpc('crm_lead_money', { p_lead: id }).catch(() => null); S.handover = await rpc('crm_handovers', { p_lead: id }).catch(() => null); if (can('assign_leads')) S.users = await ctx.users(); } catch (e) { toast(clean(e), true); S.busy = false; return; }
   S.busy = false; S.kind = kind || 'note'; renderSheet();
 }
 function renderSheet() {
@@ -287,6 +287,7 @@ function renderSheet() {
       ${l.mechanic_phone && canAct && l.status !== 'lost' ? `<button class="btn wa" type="button" data-act="sendJob">Send job to ${esc(String(l.mechanic_name || 'technician').split(' ')[0])}</button>` : ''}
       ${can('send_payment_link') && l.crm_owner && !BOOKED.includes(l.status) && l.status !== 'lost' ? '<button class="btn" type="button" data-act="payLink">Send payment link</button>' : ''}
       ${can('create_tickets') ? '<button class="btn ghost" type="button" data-act="ticket">Raise a ticket</button>' : ''}</div>
+    ${handoverCard(l, canAct)}
     ${!l.crm_owner && !can('assign_leads') ? '<p class="alert">Take this lead first. Then you can log what happened.</p>' : ''}
     ${canAct && l.crm_owner && (moves.length || OPEN.includes(l.status)) ? logForm(l, moves) : (BOOKED.includes(l.status) ? '<p class="alert good">This booking is confirmed.</p>' : '')}
     ${canAct && (l.crm_owner || can('assign_leads')) && !BOOKED.includes(l.status) && l.status !== 'lost' ? outcomeBox() : ''}
@@ -462,6 +463,41 @@ async function sendJob() {
   if (win) { win.opener = null; win.location.href = wa; } else window.open(wa, '_blank', 'noopener');
 }
 
+/* ---------- OTP handover for pickup jobs: status, send the code to the customer, see the photos ---------- */
+function handoverCard(l, canAct) {
+  const h = S.handover; if (!h || !h.is_pickup || l.status === 'lost') return '';
+  const row = (kind) => {
+    const st = handoverStatus(h.items, kind), ok = st.state === 'verified', last = (h.items || []).find((x) => x.kind === kind && x.verified_at);
+    const text = ok ? `Verified ${when(st.verifiedAt)}${st.by ? ' by ' + esc(st.by) : ''} · ${st.photos} ${st.photos === 1 ? 'photo' : 'photos'}` : esc(st.label);
+    const name = HANDOVER_KIND_LABEL[kind];
+    return `<div class="ho-row"><div><b>${name}</b><p class="small ${ok ? 'goodtxt' : st.state === 'locked' ? 'badtxt' : 'muted'}">${text}</p></div><div class="row wrap">
+      ${canAct && l.mechanic_name && canSendHandoverCode(h.items, kind) ? `<button class="btn sm wa" type="button" data-act="hoSend" data-kind="${kind}">${st.state === 'none' ? 'Send' : 'Resend'} ${name.toLowerCase()} code</button>` : ''}
+      ${last && st.photos ? `<button class="btn sm" type="button" data-act="hoPhotos" data-kind="${kind}">See photos</button>` : ''}</div></div>`;
+  };
+  return `<div class="card ho-card"><h3>Handover</h3>${l.mechanic_name ? '' : '<p class="muted small">Assign a technician to start the handover.</p>'}${row('pickup')}${row('return')}</div>`;
+}
+// The code is made by the database and shown once: it goes straight into the customer's WhatsApp message, never on screen or in the history.
+async function sendHandoverCode(kind) {
+  const l = S.detail && S.detail.lead; if (!l) return;
+  const name = HANDOVER_KIND_LABEL[kind].toLowerCase();
+  if (!(await confirmBox(`Send the ${name} code to ${l.name} on WhatsApp now? Any older ${name} code stops working.`, 'Send ' + name + ' code'))) return;
+  const win = window.open('about:blank', '_blank');  // open now, while the tap still counts, then point it at WhatsApp
+  let r = null; try { r = await rpc('crm_handover_code', { p_lead: l.id, p_kind: kind }); } catch (e) { if (win) win.close(); toast('The code could not be made: ' + clean(e), true); return; }
+  const wa = waUrl(l.phone, handoverMessage(l, kind, r.code));
+  if (win) { win.opener = null; win.location.href = wa; } else window.open(wa, '_blank', 'noopener');
+  toast('The ' + name + ' code is in WhatsApp. Press send to deliver it.');
+  S.handover = await rpc('crm_handovers', { p_lead: l.id }).catch(() => S.handover); renderSheet();
+}
+const HANDOVER_BUCKET = 'handover';  // private bucket; a Storage bucket, not a table
+// Photos are private: ask Storage for links that stop working after 10 minutes (the database lets only desk users who may see the lead do this).
+async function showHandoverPhotos(kind) {
+  const row = ((S.handover && S.handover.items) || []).find((x) => x.kind === kind && x.verified_at); if (!row) return;
+  const { data, error } = await sb.storage.from(HANDOVER_BUCKET).createSignedUrls(row.photo_paths || [], 600);
+  if (error) { toast('The photos could not be opened: ' + clean(error), true); return; }
+  const imgs = (data || []).filter((x) => x.signedUrl).map((x, i) => `<a href="${esc(x.signedUrl)}" target="_blank" rel="noopener"><img src="${esc(x.signedUrl)}" alt="${HANDOVER_KIND_LABEL[kind]} photo ${i + 1}" loading="lazy"></a>`).join('');
+  modal({ title: HANDOVER_KIND_LABEL[kind] + ' photos', intro: 'Private links that stop working after 10 minutes. Do not share them.', body: `<div class="ho-photos">${imgs || '<p class="muted">No photos found.</p>'}</div>`, cancel: 'Close', wide: true });
+}
+
 function assignBox(l) {
   return `<div class="assign"><h3>Assign</h3><div class="row"><select id="assignTo" aria-label="Assign to"><option value="">Unassigned queue</option>${(S.users || []).filter((u) => u.active).map((u) => `<option value="${u.user_id}" ${u.user_id === l.crm_owner ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select>
     <button class="btn ghost" type="button" data-act="assign">Save assignment</button></div></div>`;
@@ -506,6 +542,8 @@ document.addEventListener('click', async (e) => {
     if (act === 'call' || act === 'wa') { await openLead(id, act === 'call' ? 'call' : 'whatsapp'); return; }
     if (act === 'take') { e.preventDefault(); await rpc('crm_claim', { p_id: id }); toast('It is yours. Contact the customer now.'); await go(S.view, true); return await openLead(id); }
     if (act === 'close') return closeSheet();
+    if (act === 'hoSend') return await sendHandoverCode(b.dataset.kind);
+    if (act === 'hoPhotos') return await showHandoverPhotos(b.dataset.kind);
     if (act === 'add') return addDialog();
     if (act === 'import') return importDialog();
     if (act === 'booking') return newBooking(ctx);

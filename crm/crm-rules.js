@@ -182,3 +182,33 @@ export function parseContacts(text) {
   }
   return rows;
 }
+
+/* ---------- OTP handover (pickup jobs). Same rules as supabase/functions/_shared/handover.ts and the crm_handover_code RPC. ---------- */
+export const HANDOVER_MAX_ATTEMPTS = 5;
+export const HANDOVER_MIN_PHOTOS = 4;
+export const HANDOVER_KIND_LABEL = { pickup: 'Pickup', return: 'Return' };
+
+/** The Handover card's line for one step. items are the lead's handovers from crm_handovers, newest first. */
+export function handoverStatus(items, kind, now = new Date()) {
+  const mine = (items || []).filter((h) => h.kind === kind);
+  const done = mine.find((h) => h.verified_at);
+  if (done) return { state: 'verified', label: 'Verified', verifiedAt: done.verified_at, by: done.mechanic_name || '', photos: (done.photo_paths || []).length };
+  const h = mine[0];
+  if (!h) return { state: 'none', label: 'Not started' };
+  if (h.locked_at || Number(h.attempts) >= HANDOVER_MAX_ATTEMPTS) return { state: 'locked', label: 'Locked after 5 wrong codes. Send a new code.' };
+  if (Date.parse(h.code_expires_at) <= new Date(now).getTime()) return { state: 'expired', label: 'Code expired. Send a new code.' };
+  return { state: 'sent', label: 'Code sent, waiting for the technician' };
+}
+
+/** Whether the desk may make a code for this step now: the return waits for a verified pickup, and a verified step is done. */
+export function canSendHandoverCode(items, kind) {
+  if ((items || []).some((h) => h.kind === kind && h.verified_at)) return false;
+  return kind === 'pickup' || (items || []).some((h) => h.kind === 'pickup' && h.verified_at);
+}
+
+/** The WhatsApp message to the customer with the one-time code. The code goes only to the customer; the technician asks for it at handover. */
+export function handoverMessage(l, kind, code) {
+  const first = String(l.name || '').trim().split(' ')[0], tech = String(l.mechanic_name || '').trim().split(' ')[0];
+  const what = kind === 'pickup' ? `before ${tech || 'our technician'} takes your bike` : `when ${tech || 'our technician'} brings your bike back`;
+  return `Hi${first ? ' ' + first : ''}, your Mechanix Pro ${kind} code for booking ${l.ref} is ${code}.\n\nShare it with ${tech || 'the technician'} only ${what}, after they have photographed the bike. It works for 24 hours. Do not share it with anyone else.`;
+}

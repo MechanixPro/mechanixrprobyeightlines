@@ -1,13 +1,16 @@
 // POST /functions/v1/tech-job  { action: 'get' | 'report', t, amount?, note? }
 // Public, for the /job/ page the desk sends a technician. The token (t) is the only key: only its SHA-256 hash is stored, it is for one booking, expires and takes one report.
 // get: the job (no prices). report: the amount the technician collected; records it in the ledger, works out the company's share and makes its Razorpay link.
+// Pickup jobs also take handover_state (which steps are open: no prices, no customer details), handover_upload_url (signed upload URLs for the photos) and handover_verify (photos + the code the customer gave).
 import { adminDb, env, json, corsHeaders, sha256Hex as ipHashOf, getSetting } from '../_shared/util.ts';
 import { createPaymentLink } from '../_shared/razorpay.ts';
 import { sha256Hex, techPct, companyShare, cleanReport } from '../_shared/tech-job.ts';
 import { formatWhen } from '../_shared/when.ts';
 import { buildInvoice } from '../_shared/invoice.ts';
+import { isKind, isCode, isPickupJob, handoverHash, sameHash, stepState, afterWrongTry, cleanPhotos, cleanUploadRequest, HANDOVER_KINDS, MAX_ATTEMPTS } from '../_shared/handover.ts';
 
 const NOT_VALID = 'This link is not valid.', EXPIRED = 'This link has expired. Ask the desk for a new one.', DONE = 'This job is already reported.';
+const HANDOVER_ACTIONS = ['handover_state', 'handover_upload_url', 'handover_verify'];
 const hidesIds = (t: string) => !(/[A-Z]{5}[0-9]{4}[A-Z]/i.test(t) || /[0-9]{12,}/.test(t.replace(/[ -]/g, '')));
 
 Deno.serve(async (req) => {
@@ -21,7 +24,7 @@ Deno.serve(async (req) => {
   if ((count ?? 0) >= 20) return json(req, { error: 'Too many tries. Wait a few minutes.' }, 429);
 
   const body = await req.json().catch(() => ({}));
-  const action = body?.action === 'report' ? 'report' : 'get';
+  const action = body?.action === 'report' ? 'report' : HANDOVER_ACTIONS.includes(body?.action) ? String(body.action) : 'get';
   const t = String(body?.t ?? '');
   if (!/^[0-9a-f]{64}$/.test(t)) { await db.from('audit_log').insert({ action: 'tech_job_hit', details: { ip: ipHash, action } }); return json(req, { error: NOT_VALID }, 404); }
   const tokHash = await sha256Hex(t), tok16 = tokHash.slice(0, 16);
@@ -33,6 +36,11 @@ Deno.serve(async (req) => {
   if (!link) return json(req, { error: NOT_VALID }, 404);
   const { data: lead } = await db.from('leads').select('*').eq('id', link.lead_id).maybeSingle();
   if (!lead || lead.deleted_at || lead.status === 'lost' || lead.mechanic_id !== link.mechanic_id) return json(req, { error: EXPIRED }, 410);
+  // The handover steps work on the same link, and the return step comes after the job is reported, so they look at the link's own life (7 days, or 30 after the report) instead of the report.
+  if (HANDOVER_ACTIONS.includes(action)) {
+    if (Date.parse(link.reported_at ?? link.expires_at) + (link.reported_at ? 30 * 864e5 : 0) <= Date.now()) return json(req, { error: EXPIRED }, 410);
+    return await handover(req, db, link, lead, action, body);
+  }
   // Once reported, the link shows only the payment (for 30 more days), never the customer's details.
   if (link.reported_at) {
     if (Date.parse(link.reported_at) + 30 * 864e5 <= Date.now()) return json(req, { error: EXPIRED }, 410);
@@ -108,3 +116,70 @@ Deno.serve(async (req) => {
   }
   return json(req, { error: NOT_VALID }, 400);
 });
+
+// ---------- OTP handover and photos (pickup jobs) ----------
+const HANDOVER_ERR = 'Could not save. Please try again.';
+async function handover(req: Request, db: ReturnType<typeof adminDb>, link: any, lead: any, action: string, body: any): Promise<Response> {
+  if (!isPickupJob(lead)) return json(req, { pickup: false, steps: [] }, action === 'handover_state' ? 200 : 400);
+  const { data: rows } = await db.from('handovers').select('id,kind,code_hash,code_expires_at,attempts,locked_at,verified_at,photo_paths,created_at').eq('lead_id', lead.id).order('created_at', { ascending: false });
+  const all = rows ?? [];
+  if (action === 'handover_state') return json(req, { pickup: true, ref: lead.ref, steps: HANDOVER_KINDS.map((k) => stepState(all, k)) });
+
+  const kind = body?.kind;
+  if (!isKind(kind)) return json(req, { error: 'Choose pickup or return.' }, 400);
+  const step = stepState(all, kind);
+  if (step.state === 'verified') return json(req, { error: kind === 'pickup' ? 'The pickup is already verified.' : 'The return is already verified.' }, 409);
+  if (step.state === 'waiting') return json(req, { error: 'Verify the pickup first.' }, 409);
+  if (step.state === 'locked') return json(req, { error: 'Too many wrong codes. The desk will send a new code.' }, 423);
+  if (step.state === 'no_code') return json(req, { error: 'The desk has not sent a code yet. Ask the desk.' }, 409);
+  if (step.state === 'expired') return json(req, { error: 'The code has expired. Ask the desk for a new one.' }, 410);
+  const row = all.find((r) => r.kind === kind)!;
+
+  if (action === 'handover_upload_url') {
+    const v = cleanUploadRequest(body);
+    if (!v.ok) return json(req, { error: v.error }, 400);
+    const uploads: { path: string; url: string }[] = [];
+    for (const ext of v.value) {
+      const path = `${lead.id}/${kind}/${crypto.randomUUID()}.${ext}`;
+      const { data, error } = await db.storage.from('handover').createSignedUploadUrl(path);
+      if (error || !data) { console.error('tech-job upload url', error); return json(req, { error: HANDOVER_ERR }, 500); }
+      uploads.push({ path, url: data.signedUrl });
+    }
+    return json(req, { uploads });
+  }
+
+  // handover_verify: photos first (a photo problem does not use up a try), then the code.
+  if (!isCode(body?.code)) return json(req, { error: 'Enter the 4-digit code.' }, 400);
+  const photos = cleanPhotos(body?.photos, lead.id, kind);
+  if (!photos.ok) return json(req, { error: photos.error }, 400);
+  const { data: files } = await db.storage.from('handover').list(`${lead.id}/${kind}`, { limit: 200 });
+  const there = new Set((files ?? []).map((f: { name: string }) => `${lead.id}/${kind}/${f.name}`));
+  if (!photos.value.every((p) => there.has(p))) return json(req, { error: 'A photo did not upload. Take it again.' }, 400);
+
+  // Count the try before comparing, so two quick requests cannot both get a free guess.
+  const { data: tried } = await db.from('handovers').update({ attempts: row.attempts + 1 }).eq('id', row.id).eq('attempts', row.attempts).is('verified_at', null).is('locked_at', null).select('id').maybeSingle();
+  if (!tried) return json(req, { error: 'Please try again.' }, 409);
+  const ok = sameHash(await handoverHash(row.id, String(body.code)), row.code_hash);
+  if (!ok) {
+    const w = afterWrongTry(row.attempts);
+    if (w.locked) {
+      await db.from('handovers').update({ locked_at: new Date().toISOString() }).eq('id', row.id);
+      await db.from('crm_activities').insert({ lead_id: lead.id, actor: null, kind: 'note', body: `The ${kind} code was entered wrong ${MAX_ATTEMPTS} times and is locked. Send a new code.` }).then(() => {}, () => {});
+      await db.from('audit_log').insert({ action: 'handover_locked', details: { lead: lead.ref, kind } });
+      return json(req, { error: 'Too many wrong codes. The desk will send a new code.', locked: true }, 423);
+    }
+    return json(req, { error: `That code is not right. ${w.left} ${w.left === 1 ? 'try' : 'tries'} left.`, left: w.left }, 400);
+  }
+
+  const now = new Date().toISOString();
+  const { data: done, error: err } = await db.from('handovers').update({ verified_at: now, mechanic_id: link.mechanic_id, photo_paths: photos.value }).eq('id', row.id).is('verified_at', null).select('id').maybeSingle();
+  if (err && err.code === '23505') return json(req, { error: 'This handover is already verified.' }, 409);
+  if (err) { console.error('tech-job handover', err); return json(req, { error: HANDOVER_ERR }, 500); }
+  if (!done) return json(req, { error: 'This handover is already verified.' }, 409);
+  const { data: mech } = await db.from('mechanics').select('name').eq('id', link.mechanic_id).maybeSingle();
+  const name = (mech as { name?: string } | null)?.name ?? 'the technician';
+  const label = kind === 'pickup' ? 'Pickup' : 'Return';
+  await db.from('crm_activities').insert({ lead_id: lead.id, actor: null, kind: 'note', body: `${label} verified by ${name}, ${photos.value.length} photos.` }).then(() => {}, () => {});
+  await db.from('audit_log').insert({ action: 'handover_verified', details: { lead: lead.ref, kind, photos: photos.value.length, mechanic: link.mechanic_id } });
+  return json(req, { ok: true, kind, verified_at: now, photos: photos.value.length });
+}
