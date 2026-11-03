@@ -145,3 +145,23 @@ test('Crew has a Handover card for pickup jobs with send-code buttons and privat
 test('the handover build leaves site wording, terms and prices alone', () => {
   assert.ok(existsSync(new URL('../docs/superpowers/specs/2026-11-04-otp-handover-design.md', import.meta.url)));
 });
+
+test('desk photo read rule uses a definer helper, because desk users cannot read the leads table directly', () => {
+  const m = readFileSync(new URL('../supabase/migrations/20261224000001_handover_photo_policy.sql', import.meta.url), 'utf8');
+  assert.match(m, /function public\.crm_handover_photo_ok\(p_name text\)[\s\S]{0,120}security definer/);
+  assert.match(m, /crm_can_see\(l, public\.crm_role\(\)\)/);
+  assert.match(m, /using \(bucket_id = 'handover' and public\.crm_handover_photo_ok\(name\)\)/);
+  assert.match(m, /revoke all on function public\.crm_handover_photo_ok\(text\) from public, anon/);
+});
+
+test('photo cleanup goes through the Storage API, because Supabase refuses direct deletes from storage tables', () => {
+  const m = read('supabase/migrations/20261224000002_handover_purge_api.sql'), f = read('supabase/functions/handover-purge/index.ts');
+  assert.match(m, /drop function if exists public\.handover_purge_photos\(int\)/);
+  assert.match(m, /function public\.handover_expired_photos\(p_months int default null\)/);
+  assert.match(m, /function public\.handover_orphan_photos\(p_min_age interval/);
+  assert.match(m, /grant execute on function public\.handover_expired_photos\(int\), public\.handover_orphan_photos\(interval\) to service_role/);
+  assert.doesNotMatch(m, /delete from storage\.objects/);
+  assert.match(f, /x-desk-cron/); assert.match(f, /storage\.from\('handover'\)\.remove/);
+  // rows are cleared only after the files are removed
+  assert.ok(f.indexOf(".remove(") < f.indexOf("update({ photo_paths: [] })"));
+});
