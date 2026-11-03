@@ -287,7 +287,7 @@ function renderSheet() {
       <a class="btn wa" href="${waUrl(l.phone, firstMessage(l, S.me.name))}" target="_blank" rel="noopener" data-act="wa" data-id="${l.id}">WhatsApp</a>
       ${!l.crm_owner && can('take_leads') ? `<button class="btn primary" type="button" data-act="take" data-id="${l.id}">Take lead</button>` : ''}
       ${can('edit_leads') && mineOrBoss && !l.crm_won_at && l.status !== 'lost' ? '<button class="btn" type="button" data-act="editBooking">Edit booking</button>' : ''}
-      ${l.mechanic_phone && canAct && l.status !== 'lost' ? `<a class="btn wa" href="${waUrl(l.mechanic_phone, techJobMessage(l))}" target="_blank" rel="noopener">Send job to ${esc(String(l.mechanic_name || 'technician').split(' ')[0])}</a>` : ''}
+      ${l.mechanic_phone && canAct && l.status !== 'lost' ? `<button class="btn wa" type="button" data-act="sendJob">Send job to ${esc(String(l.mechanic_name || 'technician').split(' ')[0])}</button>` : ''}
       ${can('send_payment_link') && l.crm_owner && !BOOKED.includes(l.status) && l.status !== 'lost' ? '<button class="btn" type="button" data-act="payLink">Send payment link</button>' : ''}
       ${can('create_tickets') ? '<button class="btn ghost" type="button" data-act="ticket">Raise a ticket</button>' : ''}</div>
     ${!l.crm_owner && !can('assign_leads') ? '<p class="alert">Take this lead first. Then you can log what happened.</p>' : ''}
@@ -439,7 +439,15 @@ async function moveAction(kind) {
 async function offerJobShare() {
   const l = S.detail && S.detail.lead; if (!l || !l.mechanic_phone) return;
   const first = String(l.mechanic_name || 'the technician').split(' ')[0];
-  if (await confirmBox(`Send the job to ${first} on WhatsApp now?`, 'Send job to ' + first)) window.open(waUrl(l.mechanic_phone, techJobMessage(l)), '_blank', 'noopener');
+  if (await confirmBox(`Send the job to ${first} on WhatsApp now?`, 'Send job to ' + first)) await sendJob();
+}
+// The job message carries the technician's own link to report the amount collected (a new link each time; it expires the old one).
+async function sendJob() {
+  const l = S.detail && S.detail.lead; if (!l || !l.mechanic_phone) return;
+  const win = window.open('about:blank', '_blank');  // open now, while the tap still counts, then point it at WhatsApp
+  let url = null; try { url = await rpc('crm_tech_link', { p_lead: l.id }); } catch (e) { toast('The job link could not be made: ' + clean(e) + ' Sending the job without it.', true); }
+  const wa = waUrl(l.mechanic_phone, techJobMessage(l, url));
+  if (win) { win.opener = null; win.location.href = wa; } else window.open(wa, '_blank', 'noopener');
 }
 
 function assignBox(l) {
@@ -502,6 +510,7 @@ document.addEventListener('click', async (e) => {
     if (act === 'preset') { $('#next').value = b.dataset.iso; return; }
     if (act === 'move') return await moveAction(b.dataset.kind);
     if (act === 'pinSearch') return findByPin();
+    if (act === 'sendJob') return await sendJob();
     if (act === 'assign') { await rpc('crm_assign', { p_id: S.open, p_user: $('#assignTo').value || null }); toast('Assignment saved.'); return await afterChange(false); }
   } catch (err) { toast(clean(err), true); }
 });

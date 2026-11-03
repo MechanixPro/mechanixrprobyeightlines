@@ -44,7 +44,7 @@ test('the database gives the desk the technician and the unstaffed jobs', () => 
 test('the desk shows, sets and shares the technician, and alerts on unstaffed jobs', () => {
   const b = read('crm/pages/booking.js'), c = read('crm/crm.js'), l = read('crm/pages/leads.js');
   assert.match(b, /crm_mechanic_picker/); assert.match(b, /'Technician', 'mechanic_id'/); assert.match(b, /p\.mechanic_id =/);
-  assert.match(c, /<span>Technician<\/span>/); assert.match(c, /techJobMessage\(l\)/); assert.match(c, /crm_unstaffed_jobs/); assert.match(c, /unstaffedSoon\(/);
+  assert.match(c, /<span>Technician<\/span>/); assert.match(c, /techJobMessage\(l[,)]/); assert.match(c, /crm_unstaffed_jobs/); assert.match(c, /unstaffedSoon\(/);
   assert.match(l, /<th>Technician<\/th>/); assert.match(l, /id="tech"/);
 });
 
@@ -75,4 +75,10 @@ test('the technician board: database function, My day panel and ranked picker', 
   for (const s of ['crm_tech_board(p_date date', "crm_require('assign_leads')", "'pincodes'", "'unassigned'", 'grant execute on function public.crm_tech_board(date)']) assert.ok(m.includes(s), s);
   assert.match(c, /crm_tech_board/); assert.match(c, /Technicians today/);
   assert.match(b, /crm_tech_board/); assert.match(b, /rankTechs\(/);
+});
+
+test('the job message carries the technician\'s link when there is one', () => {
+  assert.ok(techJobMessage(lead, 'https://mechanixpro.in/job/?t=ab').endsWith('After the job, update the amount collected here: https://mechanixpro.in/job/?t=ab'));
+  assert.doesNotMatch(techJobMessage(lead), /update the amount/);
+  assert.match(read('crm/crm.js'), /rpc\('crm_tech_link'/);
 });

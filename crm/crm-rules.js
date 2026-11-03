@@ -109,13 +109,14 @@ export const SLOT_TEXT = { morning: 'Morning (9 AM – 12 PM)', afternoon: 'Afte
 const SLOT_START = { morning: 9, afternoon: 12, evening: 16 };
 
 /** The WhatsApp message a Care Buddy sends the technician for a job. No prices: the technician gets the bill in the admin. Notes with ID numbers are left out. */
-export function techJobMessage(l) {
+export function techJobMessage(l, url) {
   const first = String(l.mechanic_name || '').trim().split(' ')[0];
   const day = l.preferred_date ? new Date(l.preferred_date + 'T12:00:00+05:30').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' }) : '';
   const line = (k, v) => (v ? `${k}: ${v}\n` : '');
   return `Hi${first ? ' ' + first : ''}, new job ${l.ref}.\n\n` + line('Customer', `${l.name} (${l.phone})`) + line('Bike', l.bike) + line('Service', l.service_name)
     + line('Place', [l.area, l.address].filter(Boolean).join(', ')) + line('When', [day, SLOT_TEXT[l.preferred_slot] || ''].filter(Boolean).join(' · '))
-    + line('Notes', l.notes && !hasPii(l.notes) ? String(l.notes).slice(0, 300) : '') + '\nPlease reply OK to confirm.';
+    + line('Notes', l.notes && !hasPii(l.notes) ? String(l.notes).slice(0, 300) : '') + '\nPlease reply OK to confirm.'
+    + (url ? '\n\nAfter the job, update the amount collected here: ' + url : '');
 }
 
 /** Booked jobs with no technician that need one now: today's jobs from 2 hours before the slot starts, "as soon as possible" jobs at once, and any earlier day still unstaffed. */
