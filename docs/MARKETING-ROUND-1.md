@@ -70,3 +70,54 @@ Balance: 4 Reels, 4 carousels, 2 single images, 4 story sets in 14 days.
 3. Done 4 Nov: the "AI-generated profile" label is switched off and no longer shows on the profile. The category still reads "Automation Service"; change it to something like "Auto repair shop" or "Motorcycle repair shop" so it matches the business.
 4. Check each older post before boosting it. Do not boost the Dussehra ₹499 post, the "20-point check" posts or the Basic post that mentions a wash.
 5. Any increase in ad spend needs a clear yes.
+
+## 5. How Ride N Repair is advertising (public ad libraries, read 4 Nov 2026)
+
+We can see what they run and for how long. We cannot see spend, clicks or leads.
+
+| Where | What is live | Detail |
+|---|---|---|
+| Meta (India) | **2 ads only** | Same copy twice: "Bike service without the workshop hassle!", a bullet list (service, repairs, battery, tyre and brake) and a Book now button to ridenrepair.com. One says Hyderabad, one says Mumbai. Running since 16 and 17 Sep. **None for Bengaluru.** |
+| Google (India) | **about 300 ads** | Text search ads such as "Doorstep Car Repair" with chips "Car Service near Me" and "Car Mechanic at Your Home". Video ads (8 of the first 80 loaded) with "BOOK NOW", a phone number and the website. |
+
+**What this means**
+1. Their paid push is Google and YouTube, car-heavy and call-led. Meta is almost unused, and not at all in Bengaluru, so **WhatsApp-first ads on Meta in Bengaluru face no direct rival from them.**
+2. They compete hard for "car service at home" searches. Our car service page and Axlio's car help sit in that gap, so a car search ad is worth testing.
+3. Their phone number sits in the video. Ours is WhatsApp, so the button should read Send message.
+
+## 6. New ads built (images in `~/Downloads/Mechanix-Marketing-Round1/ads/`)
+
+**Car service (Mechanix Pro, run from our ad account)**
+
+| Headline | Primary text | Image |
+|---|---|---|
+| Car service, quote first | Periodic service, brake service, jump start, flat tyre help, towing and fuel delivery in Bengaluru. We confirm the work, the price and the time before anything starts. | `ad7-car-service-quote-first` feed and story |
+
+The car ad leaves out "10,000+ services done" on purpose: that claim is not about cars.
+
+**Axlio spare parts (drafts for Axlio to approve; Axlio is a separate company)**
+
+| Ad | Headline | Primary text |
+|---|---|---|
+| A1 | The right part, delivered | Car and bike spare parts in Bengaluru, checked against your make, model, year and fuel before packing. Home or garage delivery. GST invoice on request. |
+| A2 | In stock? Same-day delivery | Parts in stock go out the day your order is confirmed. Parts Axlio sources arrive next day, with the date given when you order. |
+| A3 | Service kits in 30 minutes | Ready-packed car and bike service kits for garages and mechanics, delivered within the store delivery radius. Subject to stock. Apply to the garage programme at axlio.in. |
+| A4 | OEM or aftermarket. You choose. | Both options, clearly labelled. Message Axlio with your vehicle details and the part you need. |
+
+All Axlio facts come from axlio.in. Axlio's own account and WhatsApp number should run these; we have no say over their stock or delivery. No prices appear on any image.
+
+**Google search ad for car service (copy only, not created in Google)**
+- Headlines (30 characters or fewer): Car Service at Your Home / Quote First, Then Work / Bengaluru Car Mechanic / Jump Start & Flat Tyre Help / Chat on WhatsApp Now
+- Descriptions (90 or fewer): "Car service in Bengaluru. We confirm work, price and time before anything starts." / "Message us your car and area on WhatsApp. Work starts only after you say yes."
+
+## 7. Issue found: Axlio's site shows old Mechanix Pro prices
+
+axlio.in lists Mechanix Pro bike service "from ₹599, GST included, for bikes up to 180cc" and breakdown help "from ₹1,299". Our site says Basic ₹499 before GST, puncture ₹599 and roadside emergency visit ₹1,299. Ask Axlio to update that text, or customers will see two different prices.
+
+## 8. All creatives built (round 1)
+
+- 6 Mechanix ad images (feed and story): price before work, safe handover OTP, your society's mechanic.
+- 2 car service ad images (feed and story).
+- 8 Axlio draft ad images (feed and story).
+- 4 Instagram carousels, 25 slides: five signs, doorstep steps, chain care, Basic/Standard/Full.
+- Source: `~/Downloads/Mechanix-Marketing-Round1/source/make_social.py` and `make_axlio.py`. Edit the text in the script and re-run to change any image.
