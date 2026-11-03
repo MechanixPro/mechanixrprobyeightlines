@@ -67,6 +67,6 @@ Balance: 4 Reels, 4 carousels, 2 single images, 4 story sets in 14 days.
 
 1. Owner approves the ad copy and the calendar.
 2. Real footage and photos arrive. Still pending.
-3. Check the "AI-generated profile" label on the Instagram profile and remove it if it is ours.
+3. Done 4 Nov: the "AI-generated profile" label is switched off and no longer shows on the profile. The category still reads "Automation Service"; change it to something like "Auto repair shop" or "Motorcycle repair shop" so it matches the business.
 4. Check each older post before boosting it. Do not boost the Dussehra ₹499 post, the "20-point check" posts or the Basic post that mentions a wash.
 5. Any increase in ad spend needs a clear yes.
