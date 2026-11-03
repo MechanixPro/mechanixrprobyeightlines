@@ -280,9 +280,6 @@ function renderSheet() {
       ${S.rating && S.rating.rating ? `<div><span>Customer rating</span><b>${'★'.repeat(S.rating.rating)}${'☆'.repeat(5 - S.rating.rating)} ${S.rating.rating}/5${S.rating.comment ? ` <small>“${esc(S.rating.comment)}”</small>` : ''}</b></div>` : S.rating && S.rating.requested_at ? `<div><span>Customer rating</span><b>Asked ${when(S.rating.requested_at)}</b></div>` : ''}
       ${l.disposition ? `<div><span>Disposition</span><b>${esc(l.disposition)}${l.sub_disposition ? ' · ' + esc(l.sub_disposition) : ''}</b></div>` : ''}${l.address ? `<div class="wide"><span>Address</span><b>${esc(l.address)}</b></div>` : ''}</div>
     ${l.notes ? `<p class="note-box">${mask(l.notes)}</p>` : ''}
-    ${canAct && !['lost', 'completed'].includes(l.status) ? `<div class="move-bar"><span class="label">Move this lead</span><div class="row wrap">
-      <button class="btn" type="button" data-act="move" data-kind="assign">Assign technician</button><button class="btn primary" type="button" data-act="move" data-kind="confirm">Confirm booking</button>
-      ${OPEN.includes(l.status) ? '<button class="btn ghost" type="button" data-act="move" data-kind="callback">Call back later</button><button class="btn ghost" type="button" data-act="move" data-kind="notint">Not interested</button>' : ''}</div></div>` : ''}
     <div class="lc-actions big"><a class="btn call" href="${telUrl(l.phone)}" data-act="call" data-id="${l.id}">Call</a>
       <a class="btn wa" href="${waUrl(l.phone, firstMessage(l, S.me.name))}" target="_blank" rel="noopener" data-act="wa" data-id="${l.id}">WhatsApp</a>
       ${!l.crm_owner && can('take_leads') ? `<button class="btn primary" type="button" data-act="take" data-id="${l.id}">Take lead</button>` : ''}
@@ -357,7 +354,10 @@ function logForm(l, moves) {
     ${disps.length ? `<div class="grid2"><div class="fld half"><label class="label" for="disp">Disposition</label><select id="disp" name="disp"><option value="">None</option>${disps.map((x) => `<option${x === l.disposition ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></div>
       <div class="fld half"><label class="label" for="sub">Sub disposition</label><select id="sub" name="sub"><option value="">None</option></select></div></div>` : ''}
     <label class="label" for="status">Move this lead to</label>
-    <select id="status" name="status"><option value="">Stay at ${STATUS_LABEL[l.status]}</option>${moves.map((s) => `<option value="${s}">${s === 'lost' ? 'Lost (give a reason)' : STATUS_LABEL[s]}</option>`).join('')}</select>
+    <select id="status" name="status"><option value="">Stay at ${STATUS_LABEL[l.status]}</option>${moves.filter((s) => s !== 'lost').map((s) => `<option value="${s}">${STATUS_LABEL[s]}</option>`).join('')}<option value="confirm">Booking confirmed</option>${moves.includes('lost') ? '<option value="lost">Lost (give a reason)</option>' : ''}</select>
+    <div id="techBox" hidden><div class="fld"><label class="label" for="lfTech">Technician</label><select id="lfTech" name="lfTech"><option value="">Choose the technician</option></select><p class="hint">Free in the slot and covering the PIN code come first.</p></div>
+      <div class="grid2" id="lfWhen" hidden><div class="fld half"><label class="label" for="lfDate">Visit date</label><input id="lfDate" name="lfDate" type="date" min="${istToday()}" value="${l.preferred_date && l.preferred_date >= istToday() ? l.preferred_date : ''}"></div>
+        <div class="fld half"><label class="label" for="lfSlot">Time slot</label><select id="lfSlot" name="lfSlot"><option value="">Choose a slot</option>${SLOTS.map(([v, t]) => `<option value="${v}"${v === l.preferred_slot ? ' selected' : ''}>${t}</option>`).join('')}</select></div></div></div>
     <div id="lostBox" hidden><label class="label" for="lost">Why was it lost?</label><select id="lost" name="lost"><option value="">Choose a reason</option>${LOST_REASONS.map((r) => `<option>${r}</option>`).join('')}</select></div>
     <div id="nextBox"><span class="label">Next follow-up (required)</span><div class="presets">${presets.map((p) => `<button class="chip pick" type="button" data-act="preset" data-iso="${localInputValue(p.date)}">${p.label}</button>`).join('')}</div>
       <input id="next" name="next" type="datetime-local" value="${localInputValue(def)}" aria-label="Follow-up date and time"></div>
@@ -378,7 +378,9 @@ async function saveOutcome(kind) {
 }
 function syncSub() {
   const d = $('#disp'), s = $('#sub'); if (!d || !s) return;
-  const cur = S.detail.lead.sub_disposition;
+  if (s.dataset.for === d.value) return;  // only rebuild when the disposition changes, so the agent's pick stays
+  // Start from the lead's saved sub disposition, except the two that act (they would ask for a technician on every note).
+  const saved = S.detail.lead.sub_disposition, cur = s.dataset.for === undefined && !['Technician assigned', 'Booking confirmed'].includes(saved) ? saved : ''; s.dataset.for = d.value;
   s.innerHTML = '<option value="">None</option>' + S.dispositions.filter((x) => x.disposition === d.value).map((x) => `<option${x.sub === cur ? ' selected' : ''}>${esc(x.sub)}</option>`).join('');
 }
 function syncLogForm() {
@@ -390,12 +392,34 @@ function syncLogForm() {
   const callback = f.disp && f.disp.value === 'Call backs';
   $('#nextBox').hidden = !callback && !(OPEN.includes(to) && !(kind === 'note' && !status));
   const lab = $('#nextBox .label'); if (lab) lab.textContent = callback ? 'Call back date and time (required)' : 'Next follow-up (required)';
+  // "Booking confirmed" (in Move this lead to, or as the sub disposition) needs technician, date and slot; "Technician assigned" needs the technician.
+  const mode = moveMode(f);
+  $('#techBox').hidden = !mode; $('#lfWhen').hidden = mode !== 'confirm';
+  if (mode === 'confirm') $('#nextBox').hidden = true;
+  if (mode) loadTechs(f);
+}
+const istToday = () => new Date(Date.now() + 330 * 60e3).toISOString().slice(0, 10);
+function moveMode(f) {
+  if (f.status.value === 'confirm' || (f.sub && f.sub.value === 'Booking confirmed')) return 'confirm';
+  return f.sub && f.sub.value === 'Technician assigned' ? 'assign' : null;
+}
+// The technician list, ranked for the visit date: free in the slot first, then those who cover the PIN code.
+async function loadTechs(f) {
+  const l = S.detail.lead, date = (f.lfDate && f.lfDate.value) || l.preferred_date || null, sel = f.lfTech.value || l.mechanic_id || '';
+  if (f.lfTech.dataset.for === String(date) && f.lfTech.options.length > 1) return;
+  f.lfTech.dataset.for = String(date);
+  let list; try { list = rankTechs((await rpc('crm_tech_board', { p_date: date })).techs, { ...l, preferred_date: date, preferred_slot: (f.lfSlot && f.lfSlot.value) || l.preferred_slot }); }
+  catch (e) { try { list = (await rpc('crm_mechanic_picker')).map((t) => ({ id: t.id, label: t.name + (t.area ? ' · ' + t.area : '') })); } catch (e2) { list = []; } }
+  f.lfTech.innerHTML = '<option value="">Choose the technician</option>' + list.map((t) => `<option value="${t.id}"${t.id === sel ? ' selected' : ''}>${esc(t.label)}</option>`).join('');
 }
 async function saveLog() {
   const f = $('#logForm');
   const kindRaw = (f.querySelector('[name=kind]:checked') || {}).value || 'note';
   const v = { kind: kindRaw, body: f.body.value, status: f.status.value, lostReason: f.lost.value, nextAction: f.next.value ? new Date(f.next.value).toISOString() : '', current: S.detail.lead.status };
+  const mode = moveMode(f);
+  if (mode === 'confirm') return saveConfirm(f, v.body);
   const kind = v.kind === 'note' && v.status ? 'status' : v.kind;
+  if (mode === 'assign') { const c = moveCheck('assign', { mechanic_id: f.lfTech.value }, istToday()); if (!c.ok) { $('#logErr').textContent = c.error; return; } }
   const check = validateLog({ ...v, kind, nextAction: $('#nextBox').hidden ? '' : v.nextAction });
   if (!check.ok) { $('#logErr').textContent = check.error; return; }
   if (f.disp && f.disp.value === 'Call backs' && !f.next.value) { $('#logErr').textContent = 'Pick the date and time the customer asked to be called back.'; return; }
@@ -404,38 +428,26 @@ async function saveLog() {
   try {
     await rpc('crm_log', { p_id: S.open, p_kind: kind, p_body: v.body.trim() || null, p_next_action: $('#nextBox').hidden ? null : v.nextAction, p_status: v.status || null, p_lost_reason: v.status === 'lost' ? v.lostReason : null,
       p_disposition: f.disp && f.disp.value ? f.disp.value : null, p_sub_disposition: f.sub && f.sub.value ? f.sub.value : null });
+    if (mode === 'assign') {
+      const r = await rpc('crm_assign_technician', { p_id: S.open, p_mechanic: f.lfTech.value, p_note: null, p_next_action: null });
+      toast('Saved. Technician assigned: ' + r.mechanic_name + '.'); await afterChange(false); return offerJobShare();
+    }
     toast(v.status === 'lost' ? 'Saved. Lead closed as lost.' : 'Saved.');
     await afterChange(true);
   } catch (e) { $('#logErr').textContent = clean(e); $('#logSave').disabled = false; }
 }
-/* ---------- move the lead: technician assigned, booking confirmed ---------- */
-const MOVE_SUBS = { 'Technician assigned': 'assign', 'Booking confirmed': 'confirm' };
-const istToday = () => new Date(Date.now() + 330 * 60e3).toISOString().slice(0, 10);
-async function moveAction(kind) {
-  if (kind === 'callback' || kind === 'notint') {
-    const f = $('#logForm'); if (!f || !f.disp) return;
-    f.disp.value = kind === 'callback' ? 'Call backs' : 'Not interested'; syncLogForm(); f.scrollIntoView({ behavior: 'smooth', block: 'start' }); (f.sub || f.body).focus(); return;
-  }
-  const l = S.detail.lead, confirm = kind === 'confirm';
-  const techOptions = async (date) => { try { return rankTechs((await rpc('crm_tech_board', { p_date: date || null })).techs, { ...l, preferred_date: date }); } catch (e) { return (await rpc('crm_mechanic_picker')).map((t) => ({ id: t.id, label: t.name + (t.area ? ' · ' + t.area : '') })); } };
-  const opts = (list, sel) => '<option value="">Choose the technician</option>' + list.map((t) => `<option value="${t.id}"${t.id === sel ? ' selected' : ''}>${esc(t.label)}</option>`).join('');
-  const first = await techOptions(l.preferred_date);
-  const body = `<div class="fld"><label class="label" for="mvTech">Technician</label><select id="mvTech" name="mechanic_id">${opts(first, l.mechanic_id)}</select><p class="hint">Free in the slot and covering the PIN code come first.</p></div>
-    ${confirm ? `<div class="grid2">${field('Visit date', 'date', { type: 'date', min: istToday(), value: l.preferred_date && l.preferred_date >= istToday() ? l.preferred_date : '', half: true })}${field('Time slot', 'slot', { type: 'select', options: SLOTS, value: l.preferred_slot, half: true })}</div>` : ''}
-    ${field('Note (optional)', 'note', { type: 'textarea', rows: 2, max: 500, hint: 'Never write Aadhaar, PAN, bank or card numbers.' })}`;
-  modal({ title: confirm ? 'Confirm the booking' : 'Assign a technician', intro: confirm ? 'Moves the booking to Scheduled. The customer gets the confirmation with the technician\'s name.' : 'Sets who goes to this job. The lead stays where it is.', body, submit: confirm ? 'Confirm booking' : 'Assign technician',
-    onOpen: (form) => { if (confirm) form.date.addEventListener('change', async () => { const cur = form.mechanic_id.value; form.mechanic_id.innerHTML = opts(await techOptions(form.date.value), cur); }); },
-    onSubmit: async (form, d, close) => {
-      const v = { mechanic_id: form.mechanic_id.value, date: d.date, slot: d.slot }, chk = moveCheck(kind, v, istToday());
-      if (!chk.ok) throw new Error(chk.error);
-      const r = confirm ? await rpc('crm_confirm_booking', { p_id: l.id, p_mechanic: v.mechanic_id, p_date: v.date, p_slot: v.slot, p_note: d.note || null })
-        : await rpc('crm_assign_technician', { p_id: l.id, p_mechanic: v.mechanic_id, p_note: d.note || null, p_next_action: null });
-      close();
-      if (confirm && !r.already) sb.functions.invoke('confirm-booking', { body: { lead_id: l.id } }).then(({ data, error }) => { if (error || (data && data.error)) toast('Booking confirmed. The confirmation email could not be sent.', true); });
-      toast(confirm ? (r.already ? 'Already confirmed. Nothing changed.' : 'Booking confirmed with ' + r.mechanic_name + '.') : 'Technician assigned: ' + r.mechanic_name + '.');
-      await afterChange(false); offerJobShare();
-    } });
+async function saveConfirm(f, body) {
+  const v = { mechanic_id: f.lfTech.value, date: f.lfDate.value, slot: f.lfSlot.value }, c = moveCheck('confirm', v, istToday());
+  if (!c.ok) { $('#logErr').textContent = c.error; return; }
+  $('#logErr').textContent = ''; $('#logSave').disabled = true;
+  try {
+    const l = S.detail.lead, r = await rpc('crm_confirm_booking', { p_id: l.id, p_mechanic: v.mechanic_id, p_date: v.date, p_slot: v.slot, p_note: body.trim() || null });
+    if (!r.already) sb.functions.invoke('confirm-booking', { body: { lead_id: l.id } }).then(({ data, error }) => { if (error || (data && data.error)) toast('Booking confirmed. The confirmation email could not be sent.', true); });
+    toast(r.already ? 'Already confirmed. Nothing changed.' : 'Booking confirmed with ' + r.mechanic_name + '.');
+    await afterChange(false); await offerJobShare();
+  } catch (e) { $('#logErr').textContent = clean(e); $('#logSave').disabled = false; }
 }
+/* ---------- after a move: send the job to the technician ---------- */
 async function offerJobShare() {
   const l = S.detail && S.detail.lead; if (!l || !l.mechanic_phone) return;
   const first = String(l.mechanic_name || 'the technician').split(' ')[0];
@@ -508,16 +520,14 @@ document.addEventListener('click', async (e) => {
     if (act === 'lostOpen') { $('#lostPick').hidden = false; return; }
     if (act === 'lostSave') return await saveOutcome('lost');
     if (act === 'preset') { $('#next').value = b.dataset.iso; return; }
-    if (act === 'move') return await moveAction(b.dataset.kind);
     if (act === 'pinSearch') return findByPin();
     if (act === 'sendJob') return await sendJob();
     if (act === 'assign') { await rpc('crm_assign', { p_id: S.open, p_user: $('#assignTo').value || null }); toast('Assignment saved.'); return await afterChange(false); }
   } catch (err) { toast(clean(err), true); }
 });
 document.addEventListener('change', (e) => {
-  if (e.target.matches('#status, [name=kind], #disp')) syncLogForm();
-  // These two sub-dispositions do more than log: they set the technician (and confirm the booking), so they open the move form.
-  if (e.target.matches('#sub') && MOVE_SUBS[e.target.value]) { const kind = MOVE_SUBS[e.target.value]; e.target.value = ''; moveAction(kind).catch((err) => toast(clean(err), true)); }
+  if (e.target.matches('#status, [name=kind], #disp, #sub')) syncLogForm();
+  if (e.target.matches('#lfDate, #lfSlot')) { const f = $('#logForm'); if (f) { f.lfTech.dataset.for = ''; loadTechs(f); } }
 });
 document.addEventListener('submit', (e) => { if (e.target.id === 'logForm') { e.preventDefault(); saveLog(); } if (e.target.id === 'replyForm') { e.preventDefault(); sendReply(); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('.modal-back') && !$('#sheet').hidden) closeSheet(); });
