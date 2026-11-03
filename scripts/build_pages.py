@@ -28,7 +28,7 @@ FOOTER = '''<footer>
     <div>
       <a class="brand" href="/" aria-label="Mechanix Pro home" style="margin-bottom:8px"><img src="/assets/img/logo.svg" alt="" width="22" height="23"><img class="wm" src="/assets/img/logo-wordmark.webp" alt="" width="125" height="11"></a>
       <p>Your roadside first responders. Doorstep bike service and breakdown help in Bengaluru.</p>
-      <p><span data-phone>+91 XXXXX XXXXX</span> · <a href="mailto:hello@mechanixpro.in" style="display:inline">hello@mechanixpro.in</a></p>
+      <p><span data-phone>+91 79652 95649</span> · <a href="mailto:hello@mechanixpro.in" style="display:inline">hello@mechanixpro.in</a></p>
     </div>
     <div><b>Areas</b>{area_links}<a href="/areas/">All Bengaluru PIN codes</a></div>
     <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
@@ -126,6 +126,12 @@ def company_fill(s):
              .replace('[GSTIN]', COMPANY['gstin']).replace('[date]', _UPDATED))
 
 SITE_DATA = json.load(open(os.path.join(ROOT, 'src', 'site.json'), encoding='utf-8'))
+# One business entity for every page: the home page defines it in full (src/home.jsonld), every other page points to it by @id.
+BUSINESS_ID = SITE + '/#business'
+PROVIDER = {"@type": "AutoRepair", "@id": BUSINESS_ID, "name": "Mechanix Pro", "url": SITE + "/"}
+def offers(keys):
+    """Offer list for structured data, prices from src/site.json (before GST)."""
+    return [{"@type": "Offer", "name": SITE_DATA['services'][k]['name'], "price": str(int(SITE_DATA['services'][k]['price'])), "priceCurrency": "INR"} for k in keys if k in SITE_DATA['services']]
 def _inr(n): return 'Free' if n == 0 else '₹' + format(int(n), ',')
 def _price(key):
     d = SITE_DATA['services'].get(key)
@@ -203,6 +209,24 @@ GUIDES = [
 ]
 GUIDES_TITLE = dict(GUIDES)
 GUIDE_LINKS = ' · '.join(f'<a href="/guides/{g}/">{html.escape(t)}</a>' for g, t in GUIDES)
+TODAY_NICE = datetime.date.fromisoformat(TODAY).strftime('%-d %B %Y')
+def _std_answer():
+    g = SITE_DATA['services']['general']
+    groups = [re.sub(r'^[A-Z]\.\s*', '', x).replace('&', 'and').lower() for x in g['includes'] if re.match(r'^[A-Z]\.\s', x)]
+    n = sum(1 for x in g['includes'] if re.match(r'^\d+\.', x))
+    return (f"The {g['name']} ({{{{text:general}}}} for bikes up to 149cc, excluding GST) covers {n} checkpoints across " + ', '.join(groups[:-1]) + f' and {groups[-1]}'
+            + '. It includes an engine oil level and condition check, air filter cleaning, spark plug cleaning, brake cleaning and adjustment, clutch and chain adjustment, chain lubrication, and tyre, battery and light checks. Parts and oil above standard grade are quoted first.')
+STD_ANSWER = _std_answer()
+SAFE_ANSWER = ('Yes. Every visit is done by a Mechanix Pro-certified mechanic: before going live, each mechanic is called and visited by our team, has documents and tools checked, is trained on how we work and completes trial jobs. '
+               'You get an itemised quote on WhatsApp before any work, the bike leaves only after you share a one-time code, and every job has a GST invoice and a {{days}}-day service warranty.')
+ROAD_ANSWER = ('Yes. A roadside emergency visit ({{text:sos}}, excluding GST) covers breakdown diagnosis, puncture help, battery jump-start, starting problems, fuel-related help, minor on-the-spot repairs and emergency towing support if required. '
+               'A puncture at your doorstep is {{text:puncture}}. Send your live location on WhatsApp and we send the nearest available mechanic; no major repair starts without your approval.')
+TRUST_LIST = ('<ul class="tick" style="margin:18px 0"><li>10,000+ services done</li><li>1,300+ gated communities trust us</li><li>Quote first, work after your OK</li>'
+              '<li>{{days}}-day service warranty and a GST invoice</li><li>OTP-safe bike handover</li></ul>')
+_ADDON_NAMES = {'wash': 'Foam wash', 'chain': 'Chain clean and lube', 'brake': 'Brake tuning', 'tyre': 'Tyre and puncture check', 'battery': 'Battery health test'}
+FIX_LIST = ('<ul>' + ''.join(f'<li><b>{html.escape(SITE_DATA["services"][k]["name"])}</b> from {{{{text:{k}}}}}</li>' for k in ('basic', 'general', 'full', 'repair', 'puncture', 'sos') if k in SITE_DATA['services'])
+            + ''.join(f'<li>{n}: {_inr(SITE_DATA["addons"][k])}</li>' for k, n in _ADDON_NAMES.items() if k in SITE_DATA['addons'])
+            + '<li>Brakes, clutch, chain, battery and starting problems, engine noise or heating, and electric scooters (problem check)</li></ul><p class="tiny muted">Prices are before GST. Work beyond the package is quoted first.</p>')
 urls = [('/', '1.0')]
 for slug, name, pins, locs, why in AREAS:
     url = f'{SITE}/bike-service-{slug}/'
@@ -210,34 +234,42 @@ for slug, name, pins, locs, why in AREAS:
     desc = f'Doorstep bike and scooter service in {name} ({pins}) from {{{{text:basic}}}}. Mechanix Pro-certified mechanics, OEM and aftermarket parts, {{{{days}}}}-day warranty. Quote on WhatsApp first.'
     book = f'/book/?area={urllib.parse.quote(name)}'
     faq = [
-      (f'Do you come to my home in {name}?', f'Yes. Our mechanics cover {locs}. We service your bike at home, at your office parking or at the roadside.'),
-      (f'How much is a bike service in {name}?', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}} for bikes up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices. excluding GST. Your exact quote comes on WhatsApp, and parts only after your approval.'),
-      ('How fast can a mechanic reach me?', 'Scheduled services are done in your chosen slot. For breakdowns, use the Get help button and we send the nearest available mechanic.'),
+      (f'Do you come to my home in {name}?', f'Yes. Our mechanics cover {locs} (PIN codes {pins}). We service your bike at home, in your office or society parking, or at the roadside. We take requests 24/7, and you get your quote on WhatsApp before any work starts.'),
+      (f'How much is a bike service in {name}?', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}} for bikes up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices, excluding GST. A {{feetext:advance}} checkup and quote fee ({{feetext:newfee}} for new customers) holds your slot and is adjusted in your bill. Your exact quote comes on WhatsApp, and parts only after your approval.'),
+      ('How long does a doorstep service take?', 'Scheduled services are done in the slot you choose, and a basic service can be done in as fast as 2 hours once the mechanic arrives. The time depends on the package and on what the mechanic finds. For a breakdown, send your location on WhatsApp and we send the nearest available mechanic; arrival depends on traffic and location.'),
+      ('What is included in a Standard service?', STD_ANSWER),
+      ('Is doorstep bike service safe?', SAFE_ANSWER),
+      (f'Do you help with breakdowns in {name}?', ROAD_ANSWER),
     ]
-    schema = '<script type="application/ld+json">' + json.dumps({
-      "@context": "https://schema.org", "@type": "AutoRepair", "name": f"Mechanix Pro — {name}", "url": url,
-      "image": f"{SITE}/assets/img/og.png", "telephone": "+91-7965295649", "priceRange": "{{text:repair}}–{{text:full}}",
-      "areaServed": {"@type": "Place", "name": f"{name}, Bengaluru"},
-      "address": {"@type": "PostalAddress", "addressLocality": "Bengaluru", "addressRegion": "Karnataka", "addressCountry": "IN"}}, ensure_ascii=False) + '</script>\n<script type="application/ld+json">' + json.dumps({
-      "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]}, ensure_ascii=False) + '</script>'
+    schema = ld_tag({
+      "@context": "https://schema.org", "@type": "Service", "name": f"Doorstep bike service in {name}, Bengaluru", "serviceType": "Doorstep bike and scooter service", "url": url,
+      "provider": PROVIDER, "areaServed": {"@type": "Place", "name": f"{name}, Bengaluru", "address": {"@type": "PostalAddress", "addressLocality": "Bengaluru", "addressRegion": "Karnataka", "postalCode": pins.split(',')[0].strip(), "addressCountry": "IN"}},
+      "offers": offers(('basic', 'general', 'full', 'repair', 'puncture', 'sos'))}) + '\n' + ld_tag({
+      "@context": "https://schema.org", "@type": "WebPage", "url": url, "name": title, "dateModified": TODAY, "about": {"@id": BUSINESS_ID}}) + '\n' + ld_tag({
+      "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]})
     body = f'''<p class="breadcrumb"><a href="/">Home</a> › Bike service in {name}</p>
 <h1 style="font-size:clamp(34px,6vw,52px)">Doorstep bike service in {name}.</h1>
 <p class="muted" style="font-size:20px">Mechanix Pro-certified mechanics at your home or office across {locs}, with OEM and aftermarket parts. Get a quote on WhatsApp, and nothing starts without your OK.</p>
 <p><a class="btn btn-primary" href="{book}">Build your service</a> <a class="btn btn-wa" href="#" data-wa="{html.escape(name)}">Get a quote on WhatsApp</a></p>
-<h2>Why riders in {name} service at home</h2>
-<p>{why} Instead of losing half a day at a garage, a Mechanix Pro mechanic services your bike where it is parked, usually in 60 to 90 minutes.</p>
-<h2>Starting prices in {name}</h2>
+{TRUST_LIST}
+<h2>How much is a bike service in {name}?</h2>
+<p>A Basic service starts at {{{{text:basic}}}}, Standard at {{{{text:general}}}} and Full at {{{{text:full}}}} for bikes and scooters up to 149cc, excluding GST. A repair or problem check starts at {{{{text:repair}}}}, a puncture at {{{{text:puncture}}}} and a roadside emergency visit at {{{{text:sos}}}}. You see the full quote on WhatsApp before anything starts.</p>
 <div class="card">{''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES)}</div>
-<p class="tiny muted" style="margin-top:8px">Bikes and scooters up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices. excluding GST. Pincodes: {pins}.</p>
+<p class="tiny muted" style="margin-top:8px">Bikes and scooters up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices, excluding GST. Pincodes: {pins}. Prices checked on {TODAY_NICE}.</p>
+<h2>Why riders in {name} service at home</h2>
+<figure style="margin:0 0 16px;max-width:360px"><img src="/assets/img/stories/doorstep-service-p.webp" width="480" height="630" loading="lazy" decoding="async" alt="A Mechanix Pro mechanic servicing a bike at the owner's doorstep" style="width:100%;height:auto;border-radius:16px"></figure>
+<p>{why} Instead of losing half a day at a garage, a Mechanix Pro mechanic services your bike where it is parked, and a basic service can be done in as fast as 2 hours once the mechanic arrives.</p>
+<h2>What we fix in {name}</h2>
+{FIX_LIST}
 <h2>Popular bikes we service in {name}</h2>
 <p class="areas">{POPULAR}</p>
 <h2>Other areas we serve</h2>
 <p class="areas">{''.join(f'<a href="/bike-service-{s2}/">{n2}</a>' for s2, n2, *_ in AREAS if s2 != slug)}</p>
 <h2>How it works</h2>
-<ol><li>Build your service on the website and send it on WhatsApp.</li><li>Our expert checks what is needed, confirms if it can be done at home, and sends your quote.</li><li>You approve, we lock your slot ({{{{fee:advance}}}} checkup and quote fee, adjusted in your bill if you go ahead), and the mechanic arrives.</li></ol>
+<ol><li>Build your service on the website and send it on WhatsApp.</li><li>Our expert checks what is needed, confirms if it can be done at home, and sends your quote.</li><li>You approve, we lock your slot ({{{{fee:advance}}}} checkup and quote fee, {{{{fee:newfee}}}} for new customers, adjusted in your bill if you go ahead), and the mechanic arrives.</li></ol>
 <h2>Questions from {name} riders</h2>
 {''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in faq)}
-<p class="tiny muted" style="margin-top:24px">Helpful reads: {GUIDE_LINKS}. See all <a href="/services/">service prices</a>.</p>
+<p class="tiny muted" style="margin-top:24px">Helpful reads: {GUIDE_LINKS}. See all <a href="/services/">service prices</a> and <a href="/roadside/">roadside help</a>.</p>
 <div class="final" style="margin-top:32px"><h2>Book a service in {name}.</h2><p>Takes under a minute.</p><a class="btn btn-primary" href="{book}">Build your service</a></div>
 '''
     write(f'bike-service-{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=LEGAL_JS, body='', nav=NAV, main='page') + body + foot())
@@ -259,7 +291,7 @@ LEGAL = {
 <p class="muted">Last updated: [date]. Draft — to be reviewed by a lawyer before launch.</p>
 <h2>1. Service</h2><p>Mechanix Pro, operated by [Registered business name] (GSTIN [GSTIN]), provides two-wheeler service and repair at your location in our service areas in Bengaluru, through trained mechanics from our partner workshops.</p>
 <h2>2. Booking</h2><p>You can request a booking on our website or WhatsApp. A booking is confirmed when we confirm your slot and you pay the checkup and quote fee (currently {{fee:advance}}). The fee is adjusted in your final bill if you go ahead with the service. New customers, meaning a mobile number with no earlier completed job, pay a reduced slot fee of {{fee:newfee}} instead, on the same terms.</p>
-<h2>3. Prices and extra work</h2><p>Listed prices include GST and cover the labour and items described for each package. Parts are OEM or aftermarket, sourced from our partner Axlio, and each part is labelled in your quote so you can choose. Parts, oil above standard grade and work outside the package are charged only after you approve an itemised estimate. Packages are priced by engine size (up to 149cc, 150 to 250cc and 251 to 500cc). Engine oil is replaced in Full service for bikes up to 250cc, and in Standard and Full service for 251 to 500cc. Air and oil filters are checked, and replacing them is not included. Minor repairs are limited to basic adjustments and small fixes. Pickup and drop is free in our serviceable area.</p>
+<h2>3. Prices and extra work</h2><p>Listed prices are before GST (18% GST is added on your invoice) and cover the labour and items described for each package. Parts are OEM or aftermarket, sourced from our partner Axlio, and each part is labelled in your quote so you can choose. Parts, oil above standard grade and work outside the package are charged only after you approve an itemised estimate. Packages are priced by engine size (up to 149cc, 150 to 250cc and 251 to 500cc). Engine oil is replaced in Full service for bikes up to 250cc, and in Standard and Full service for 251 to 500cc. Air and oil filters are checked, and replacing them is not included. Minor repairs are limited to basic adjustments and small fixes. Pickup and drop is free in our serviceable area.</p>
 <h2>4. Payment</h2><p>The checkup and quote fee and final payments are made through Razorpay (UPI, cards, wallets, net banking) or as agreed with us. Invoices show GST separately.</p>
 <h2>5. Cancellation</h2><p>See our <a href="/refund-policy/">Refund & Cancellation Policy</a>.</p>
 <h2>6. Vehicle handover</h2><p>If your bike must go to a workshop, it goes to a Mechanix Pro Certified garage, pickup and drop is free in our serviceable area, and the repair is quoted first and starts only after you approve. The bike leaves only after you share a one-time code with the mechanic, and returns the same way. Please remove valuables. Keep your registration and insurance documents valid.</p>
@@ -267,7 +299,7 @@ LEGAL = {
 <h2>7A. Parts and our partner Axlio</h2><p>Spare parts for your job are sourced from our partner Axlio (run separately from Mechanix Pro). Parts are OEM or aftermarket and are labelled as such in your quote. You approve the parts and the price before we fit them. Axlio's own website and car services are Axlio's, with their own prices, terms and policies; we are not responsible for them.</p><h2>7B. Roadside help</h2><p>Roadside help is for bikes and scooters in our service areas in Bengaluru. We send the nearest available mechanic, but arrival times depend on traffic and location and are not guaranteed. The roadside visit charge is shown before the visit. Work beyond the visit is quoted first. We cannot attend if the location is unsafe.</p><h2>7C. Availability and offers</h2><p>We take requests 24/7. Slots, mechanics and roadside response depend on availability. Any festive or promotional offer applies only on the terms and dates shown with that offer, and ends when it says so.</p><h2>8. Your responsibilities</h2><p>Give accurate details, provide safe access to the vehicle, and be reachable during your slot. Abuse towards our staff may lead to cancellation.</p>
 <h2>9. Liability</h2><p>We are liable for loss or damage caused by our negligence during service, up to the invoice value of that booking, except where the law does not allow such a limit. We are not liable for pre-existing defects or normal wear.</p>
 <h2>10. Law</h2><p>These terms are governed by Indian law. Courts in Bengaluru, Karnataka have jurisdiction.</p>
-<h2>11. Contact</h2><p>hello@mechanixpro.in · <span data-phone>+91 XXXXX XXXXX</span></p>'''),
+<h2>11. Contact</h2><p>hello@mechanixpro.in · <span data-phone>+91 79652 95649</span></p>'''),
  'refund-policy': ('Refund & Cancellation Policy', 'How cancellations and refunds work for Mechanix Pro bookings.', '''
 <p class="muted">Last updated: [date].</p>
 <h2>Cancelling a booking</h2><ul><li><b>More than 2 hours before your slot:</b> free. Your {{fee:advance}} checkup and quote fee is refunded in full.</li><li><b>Less than 2 hours before, or after the mechanic has left:</b> the {{fee:advance}} checkup and quote fee covers the visit and is not refunded.</li><li><b>New customers:</b> the {{fee:newfee}} slot fee follows the same rules, so it is refunded in full if you cancel more than 2 hours before your slot.</li><li><b>Emergency (SOS) visits:</b> cancellable free until a mechanic is assigned.</li></ul>
@@ -278,7 +310,7 @@ LEGAL = {
  'contact': ('Contact Mechanix Pro', 'Reach Mechanix Pro for bookings, support and partnerships in Bengaluru.', '''
 <p class="muted" style="font-size:20px">Fastest: message us on WhatsApp. We are open 24/7.</p>
 <p><a class="btn btn-wa" href="#" data-wa="Contact">Chat on WhatsApp</a></p>
-<div class="card" style="margin-top:20px"><div class="price-row"><span>Phone</span><b data-phone>+91 XXXXX XXXXX</b></div><div class="price-row"><span>Email</span><b>hello@mechanixpro.in</b></div><div class="price-row"><span>Areas</span><b>All of Bengaluru (560001 to 560110)</b></div></div>
+<div class="card" style="margin-top:20px"><div class="price-row"><span>Phone</span><b data-phone>+91 79652 95649</b></div><div class="price-row"><span>Email</span><b>hello@mechanixpro.in</b></div><div class="price-row"><span>Areas</span><b>All of Bengaluru (560001 to 560110)</b></div></div>
 <!--FINDUS-->
 <h2>Garage partners</h2><p>Run a two-wheeler workshop in Bengaluru and want more jobs? Email us with your garage name, area and number of mechanics.</p>
 <p class="tiny muted">[Registered business name], [registered address], Bengaluru, Karnataka. GSTIN [GSTIN].</p>'''),
@@ -355,7 +387,7 @@ for brand, name, t, big in load_bikes():
     desc = f'Doorstep {full} {"problem check" if t == "e" else "service"} in Bengaluru, from {{{{text:{first}}}}}. Mechanix Pro certified mechanics, OEM and aftermarket parts, {{{{days}}}}-day warranty. Quote on WhatsApp first.'
     book = f'/book/?brand={urllib.parse.quote(brand, safe="")}&amp;model={urllib.parse.quote(name, safe="")}'
     faq = [
-      (f'How much does a {full} {"problem check" if t == "e" else "service"} cost in Bengaluru?', ('A problem check starts from {{text:repair}}.' if t == 'e' else 'Basic service from {{text:basic}}, General from {{text:general}} and Full from {{text:full}}.') + (' This bike is usually 150cc or more, so its 150 to 250cc or 251 to 500cc prices on the Services page apply.' if big and t != 'e' else '') + ' excluding GST. Your exact quote comes on WhatsApp before any work starts.'),
+      (f'How much does a {full} {"problem check" if t == "e" else "service"} cost in Bengaluru?', ('A problem check starts from {{text:repair}}.' if t == 'e' else 'Basic service from {{text:basic}}, Standard from {{text:general}} and Full from {{text:full}}.') + (' This bike is usually 150cc or more, so its 150 to 250cc or 251 to 500cc prices on the Services page apply.' if big and t != 'e' else '') + ' excluding GST. Your exact quote comes on WhatsApp before any work starts.'),
       (f'Can you service my {full} at home?', f'Yes. A Mechanix Pro certified mechanic comes to your home or office in Bengaluru. {timing}'),
       ('Is there a warranty on the work?', 'Yes, {{days}} days on the work, with OEM and aftermarket parts.'),
       ('Do I pay before the work starts?', 'You approve the quote first. A {{feetext:advance}} checkup and quote fee ({{feetext:newfee}} for new customers) holds your slot and is adjusted in your final bill if you go ahead.'),
@@ -378,7 +410,7 @@ for brand, name, t, big in load_bikes():
 <ul>{''.join(f'<li>{html.escape(x)}</li>' for x in problems)}</ul>
 <h2>Prices for your {html.escape(name)}</h2>
 <div class="card">{price_rows}</div>
-<p class="tiny muted" style="margin-top:8px">Starting from {{{{text:{first}}}}} for the {first_name}. excluding GST.{surcharge} Your exact quote comes on WhatsApp.</p>
+<p class="tiny muted" style="margin-top:8px">Starting from {{{{text:{first}}}}} for the {first_name}, excluding GST.{surcharge} Your exact quote comes on WhatsApp.</p>
 <h2>How it works</h2>
 <ol><li>Build your service and send it on WhatsApp.</li><li>Our expert checks what is needed and sends your quote.</li><li>You approve, we confirm your slot, and the mechanic arrives. The {{{{fee:advance}}}} checkup and quote fee ({{{{fee:newfee}}}} for new customers) is adjusted in your bill if you go ahead.</li></ol>
 <h2>Questions about servicing a {html.escape(full)}</h2>
@@ -462,7 +494,7 @@ for slug, (title, desc, h1, lead, points, msg, cta) in GROUP.items():
 <ul>{''.join(f'<li>{p}</li>' for p in points)}</ul>
 <h2>Prices</h2>
 <div class="card">{''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES if k in ('basic', 'general', 'full', 'repair'))}</div>
-<p class="tiny muted" style="margin-top:8px">Per bike, up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices. excluding GST. Group quotes are confirmed on WhatsApp.</p>
+<p class="tiny muted" style="margin-top:8px">Per bike, up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices, excluding GST. Group quotes are confirmed on WhatsApp.</p>
 <h2>How it works</h2>
 <ol><li>Message us the number of bikes and your location.</li><li>We reply with a group quote and a service day.</li><li>Each owner approves, and the mechanics arrive on the day.</li></ol>
 '''
@@ -797,7 +829,15 @@ def offer_page(o):
     write(f'offers/{slug}/index.html', page + body + foot(FLOAT))
 for _o in _load_json('offers.json'): offer_page(_o)
 
-_road = HEAD.format(title='Bike Breakdown and Puncture Help in Bengaluru | Mechanix Pro', desc='Bike broken down or punctured in Bengaluru? Share your location and Mechanix Pro sends the nearest mechanic. Call or WhatsApp now.', url=f'{SITE}/roadside/', site=SITE, schema=crumbs(('Roadside help', '/roadside/')) + ld_tag({"@context": "https://schema.org", "@type": "Service", "serviceType": "Bike roadside assistance", "name": "Roadside help for bikes and scooters", "url": SITE + "/roadside/", "provider": {"@type": "AutoRepair", "name": "Mechanix Pro", "url": SITE + "/"}, "areaServed": {"@type": "City", "name": "Bengaluru"}, "hoursAvailable": {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], "opens": "00:00", "closes": "23:59"}}), scripts=LEGAL_JS, body='page-offer', nav=NAV, main='')
+# Roadside answers: only what the site already promises (src/site.json "sos" and the terms, section 7B). No arrival time is promised.
+ROAD_FAQ = [
+  ('How much does roadside help cost in Bengaluru?', 'A roadside emergency visit is {{text:sos}} and a puncture is {{text:puncture}}, excluding GST. The visit covers the diagnosis and quick roadside help. Any repair beyond that is quoted first, and no major repair starts without your approval.'),
+  ('What can the mechanic fix at the roadside?', 'Breakdown diagnosis, puncture help, battery jump-start, starting problems, fuel-related help and minor on-the-spot repairs. If the bike cannot be fixed where it is, emergency towing support is arranged if required, and the repair is quoted before any work starts.'),
+  ('How fast can roadside help reach me?', 'We send the nearest available mechanic as soon as you share your live location on WhatsApp. Arrival time depends on traffic and where you are, so it is not guaranteed. We take requests 24/7 across our service areas in Bengaluru.'),
+  ('Is roadside help available 24/7?', 'Yes, we take roadside requests 24/7. Mechanic availability and response depend on the time and your location. We cannot attend if the location is unsafe, so move off the road first if you can.'),
+  ('Do you help with cars too?', 'Roadside help on this page is for bikes and scooters. For cars, our partner Axlio lists jump start, flat tyre help, towing and fuel delivery in Bengaluru, with the price and time confirmed before work starts.'),
+]
+_road = HEAD.format(title='Bike Breakdown and Puncture Help in Bengaluru | Mechanix Pro', desc='Bike broken down or punctured in Bengaluru? Share your location and Mechanix Pro sends the nearest mechanic. Call or WhatsApp now.', url=f'{SITE}/roadside/', site=SITE, schema=crumbs(('Roadside help', '/roadside/')) + ld_tag({"@context": "https://schema.org", "@type": "Service", "serviceType": "Bike roadside assistance", "name": "Roadside help for bikes and scooters", "url": SITE + "/roadside/", "provider": PROVIDER, "areaServed": {"@type": "City", "name": "Bengaluru"}, "offers": offers(("sos", "puncture", "repair")), "hoursAvailable": {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], "opens": "00:00", "closes": "23:59"}}), scripts=LEGAL_JS, body='page-offer', nav=NAV, main='').replace('</head>', ld_tag({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a_}} for q, a_ in ROAD_FAQ]}) + '</head>', 1)
 _road_wa = html.escape('Hi Mechanix Pro, my bike has broken down. I am sharing my live location now.')
 write('roadside/index.html', _road + f'''<section class="hero"><div class="wrap"><div class="hero-copy">
   <h1>Bike broken down in Bengaluru? We send the nearest mechanic.</h1>
@@ -810,6 +850,8 @@ write('roadside/index.html', _road + f'''<section class="hero"><div class="wrap"
 <ul class="tick"><li>Puncture or flat tyre</li><li>Bike will not start</li><li>Battery or self-start problem</li><li>Brakes, chain or clutch trouble</li><li>Engine heating or a strange noise</li><li>Electric scooter that stopped or lost range</li></ul></div></section>
 <section class="band"><div class="wrap"><div class="sec-head"><h2>While you wait.</h2></div>
 <ol class="steps3"><li><b>Get safe</b><span>Move the bike off the road if you can, switch on the hazard lights, and stand well away from traffic.</span></li><li><b>Send your location</b><span>Tap the WhatsApp button and share your live location, so the mechanic can find you.</span></li><li><b>Approve before we start</b><span>The mechanic checks the problem and quotes first. Nothing extra starts until you say yes.</span></li></ol></div></section>
+<section><div class="wrap pricing"><div class="sec-head"><h2>What the roadside visit covers.</h2><p>{{{{text:sos}}}} for the visit, excluding GST. A puncture alone is {{{{text:puncture}}}}.</p></div><ul class="tick">''' + ''.join(f'<li>{html.escape(x.lstrip("• "))}</li>' for x in SITE_DATA['services']['sos']['includes'][1:]) + f'''</ul></div></section>
+<section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Roadside questions.</h2></div>''' + ''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(x)}</p></details>' for q, x in ROAD_FAQ) + f'''<p class="tiny muted" style="margin-top:14px">Areas we cover: ''' + ALL_AREA_LINKS.replace('</a><a', '</a> · <a') + f''' and <a href="/areas/">every Bengaluru PIN code</a>.</p></div></section>
 <section><div class="wrap"><p class="rsa-car"><b>Car broken down?</b> Our partner Axlio lists jump start, flat tyre help, towing and fuel delivery for cars in Bengaluru, with the help, price and time confirmed before work starts. <a href="/partners/axlio/">See Axlio's roadside help</a></p></div></section>
 <section><div class="wrap"><div class="final"><h2>Stuck right now?</h2><p>Message us with your location, or call.</p><div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{_road_wa}">Send my location on WhatsApp</a><a class="btn btn-ghost" href="#" data-call>Call us now</a></div></div></div></section>''' + foot(FLOAT))
 urls.append(('/roadside/', '0.8'))
@@ -817,7 +859,7 @@ urls.append(('/roadside/', '0.8'))
 MAIN = [
   ('', 'home', 'Two Wheeler Doorstep Service in Bangalore | Mechanix Pro', 'Two wheeler service at home in Bangalore (Bengaluru) from {{text:basic}}. Servicing in as fast as 2 hours, scooty repair, EV and petrol bike care. Quote first.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n' + CHAT_JS, '1.0'),
   ('book', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.9'),
-  ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}}. excluding GST. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
+  ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}}, excluding GST. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
   ('help', 'help', 'How Doorstep Bike Service Works and FAQ | Mechanix Pro', 'How Mechanix Pro works: build your service, get a WhatsApp quote, approve, and we service your bike at your door in Bengaluru. Answers to common questions.', 'help.jsonld', 'page-help', APP_JS, '0.8'),
 ]
 for slug, src, title, desc, ld, body, scripts, prio in MAIN:
@@ -928,7 +970,7 @@ def car_page():
     ti = ''.join(f'<li class="reveal" style="--i:{i}"><h3>{html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for i, (t, d) in enumerate(tiles))
     st = ''.join(f'<li class="soon-step reveal" style="--i:{i}"><span class="soon-n">{i + 1}</span><span>{html.escape(t)}</span></li>' for i, t in enumerate(steps))
     fq = ''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in faq)
-    ld = crumbs((kicker, f'/{slug}/')) + ld_tag({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]}) + ld_tag({"@context": "https://schema.org", "@type": "Service", "name": "Car service in Bengaluru", "serviceType": "Car service and roadside help", "areaServed": {"@type": "City", "name": "Bengaluru"}, "provider": {"@type": "AutoRepair", "name": "Mechanix Pro", "url": SITE + "/"}, "description": desc})
+    ld = crumbs((kicker, f'/{slug}/')) + ld_tag({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]}) + ld_tag({"@context": "https://schema.org", "@type": "Service", "name": "Car service in Bengaluru", "serviceType": "Car service and roadside help", "areaServed": {"@type": "City", "name": "Bengaluru"}, "provider": PROVIDER, "description": desc})
     body = f'''<section class="page-head"><div class="wrap"><p class="breadcrumb soon-crumb"><a href="/">Home</a> &rsaquo; {html.escape(kicker)}</p><h1>Car service in Bangalore, quote first.</h1><p>Car service is now live at Mechanix Pro. Message us with your car and what it needs, and you are told the work, the price and the time before anything starts.</p>
   <div class="row" style="margin-top:22px"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a car service in Bangalore.&#10;Car make and model: &#10;Fuel (petrol, diesel, EV): &#10;What it needs: &#10;Area: ">Get a car quote on WhatsApp</a><a class="btn btn-ghost-light" href="/partners/axlio/">About our partner Axlio</a></div></div></section>
 <section><div class="wrap"><div class="sec-head"><h2>What we can help with.</h2></div><ul class="job-grid">{ti}</ul></div></section>
@@ -940,6 +982,7 @@ def car_page():
 car_page()
 
 # ---- Search landing pages (src/landing.json): the things riders actually search for, each with its own useful page, FAQ and structured data ----
+LANDING_PRICES = ''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES if k in ('basic', 'general', 'full', 'repair', 'puncture', 'sos'))
 LANDING = json.load(open(os.path.join(ROOT, 'src', 'landing.json'), encoding='utf-8'))
 def landing_pages():
     by = {x['slug']: x for x in LANDING}
@@ -950,14 +993,15 @@ def landing_pages():
         faq = ''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in x['faq'])
         rel = ''.join(f'<a class="ride-chip rel-chip" href="/{r}/">{html.escape(by[r]["kicker"])}</a>' for r in x.get('related', []) if r in by)
         cta_t, cta_h = x.get('cta', ['Build your service', '/book/'])
-        ld = crumbs((x['kicker'], f"/{x['slug']}/")) + ld_tag({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in x['faq']]}) + ld_tag({"@context": "https://schema.org", "@type": "Service", "name": x['kicker'], "serviceType": x['kicker'], "url": url, "description": x['desc'], "provider": {"@type": "AutoRepair", "name": "Mechanix Pro", "url": SITE + "/"}, "areaServed": [{"@type": "City", "name": "Bengaluru"}, {"@type": "City", "name": "Bangalore"}]})
+        ld = crumbs((x['kicker'], f"/{x['slug']}/")) + ld_tag({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in x['faq']]}) + ld_tag({"@context": "https://schema.org", "@type": "Service", "name": x['kicker'], "serviceType": x['kicker'], "url": url, "description": x['desc'], "provider": PROVIDER, "areaServed": [{"@type": "City", "name": "Bengaluru"}, {"@type": "City", "name": "Bangalore"}]})
         body = f'''<section class="page-head"><div class="wrap pg-grid"><div class="pg-copy"><p class="breadcrumb soon-crumb"><a href="/">Home</a> &rsaquo; {html.escape(x["kicker"])}</p><h1>{html.escape(x["h1"])}</h1><p>{html.escape(x["lead"])}</p>
   <div class="row" style="margin-top:22px"><a class="btn btn-primary" href="{cta_h}">{html.escape(cta_t)}</a><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I am looking for {html.escape(x["kicker"].lower())} in Bangalore.&#10;Bike model: &#10;Area: ">Ask on WhatsApp</a></div></div>
   <figure class="pg-fig"><img src="/assets/img/stories/{x["image"]}.webp" width="480" height="640" decoding="async" fetchpriority="low" alt="{html.escape(x["image_alt"])}"></figure></div></section>
 <section class="strip" aria-label="Our promises"><div class="wrap"><ul><li>Servicing in as fast as 2 hours</li><li>Quote first, work after your OK</li><li>{{{{days}}}}-day service warranty</li><li>Open 24/7</li></ul></div></section>
 <section><div class="wrap"><div class="sec-head"><h2>What you get.</h2></div><ul class="job-grid three">{tiles}</ul></div></section>
+<section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Prices, up front.</h2><p>Starting prices for bikes and scooters up to 149cc, excluding GST. 150 to 250cc and 251 to 500cc bikes have their own prices on the <a href="/services/">services page</a>.</p></div><div class="card">{LANDING_PRICES}</div><p class="tiny muted" style="margin-top:8px">Prices checked on {TODAY_NICE}.</p></div></section>
 <section class="band"><div class="wrap"><div class="sec-head"><h2>How it works.</h2></div><ol class="soon-steps steps-2">{steps}</ol></div></section>
-<section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Questions we get asked.</h2></div>{faq}<p class="tiny muted" style="margin-top:18px">Prices include GST. Your exact quote comes on WhatsApp first.</p><div class="rel-row"><span class="tiny muted">Also see:</span>{rel}</div></div></section>
+<section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Questions we get asked.</h2></div>{faq}<p class="tiny muted" style="margin-top:18px">Prices are before GST; 18% GST is added on your bill. Your exact quote comes on WhatsApp first.</p><div class="rel-row"><span class="tiny muted">Also see:</span>{rel}</div></div></section>
 <section><div class="wrap"><div class="final"><h2>Ready when your bike is.</h2><p>Build your service in under a minute, or just message us.</p><div class="row"><a class="btn btn-primary" href="/book/">Build your service</a><a class="btn btn-ghost" href="#" data-wa="general">Get a quote on WhatsApp</a></div></div></div></section>'''
         write(f"{x['slug']}/index.html", HEAD.format(title=html.escape(x['title']), desc=html.escape(x['desc']), url=url, site=SITE, schema=ld, scripts=LEGAL_JS, body='', nav=NAV, main='') + body + foot())
         urls.append((f"/{x['slug']}/", '0.8'))
@@ -997,13 +1041,19 @@ def llms_txt():
     sv = SITE_DATA['services']
     lines = ['# Mechanix Pro', '', '> Mechanix Pro is a doorstep bike and scooter service and roadside help in Bengaluru (Bangalore), India. Certified mechanics come to your home or office. You get an itemised quote on WhatsApp first and pay only after you approve.', '',
       '## Key facts',
-      '- Service area: Bengaluru, across the city (see the areas page for PIN codes).',
+      '- Service area: all of Bengaluru, every PIN code from 560001 to 560110 (see the areas page).',
       '- How it works: message on WhatsApp or build a service on the website, receive an itemised quote, approve it, the mechanic comes to your door.',
-      f"- Prices (before GST; 18% GST is added): {sv['basic']['name']} {_inr(_price('basic'))}, {sv['general']['name']} {_inr(_price('general'))}, {sv['full']['name']} {_inr(_price('full'))}." + (f" Puncture {_inr(_price('puncture'))}." if 'puncture' in sv else ''),
+      f"- Prices for bikes and scooters up to 149cc (before GST; 18% GST is added): {sv['basic']['name']} {_inr(_price('basic'))}, {sv['general']['name']} {_inr(_price('general'))}, {sv['full']['name']} {_inr(_price('full'))}, {sv['repair']['name']} from {_inr(_price('repair'))}, puncture {_inr(_price('puncture'))}, roadside emergency visit {_inr(_price('sos'))}.",
+      f"- Bikes of 150 to 250cc and 251 to 500cc have their own prices: Basic {_inr(_price('basic250'))} and {_inr(_price('basic500'))}, Standard {_inr(_price('general250'))} and {_inr(_price('general500'))}, Full {_inr(_price('full250'))} and {_inr(_price('full500'))}.",
+      f"- Booking: a {_inr(SITE_DATA['advance'])} checkup and quote fee ({_inr(SITE_DATA['newCustomerFee'])} for new customers) holds the slot and is adjusted in the final bill.",
+      '- Open 24/7 for requests. A basic service can be done in as fast as 2 hours once the mechanic arrives.',
+      '- 10,000+ services done. 1,300+ gated communities trust us.',
+      '- Safety: certified mechanics (visited, document-checked, trained, trial jobs), itemised WhatsApp quote before work, OTP before the bike leaves, GST invoice for every job.',
       f"- Warranty: {SITE_DATA['warrantyDays']}-day service warranty on the work.",
-      '- Roadside help: puncture, battery jump start, towing and breakdown help.',
+      '- Roadside help for bikes and scooters: breakdown diagnosis, puncture, battery jump-start, starting problems, fuel-related help, minor on-the-spot repairs, emergency towing support if required. Arrival time depends on traffic and location.',
       '- Car service is live: periodic and brake service, jump start, flat tyre help, towing and fuel delivery, quote first. Spare parts come through our partner Axlio.',
-      f"- Legal entity: {COMPANY['legalName']}, {COMPANY['city']}, {COMPANY['state']}.", '',
+      f"- Legal entity: {COMPANY['legalName']}, {_ADDR}. GSTIN {COMPANY['gstin']}.",
+      '- Contact: +91 79652 95649 · hello@mechanixpro.in · WhatsApp from the website. Instagram: https://www.instagram.com/themechanixpro/', '',
       '## Pages', f'- [Services and prices]({SITE}/services/)', f'- [Rate card]({SITE}/rate-card/)', f'- [How it works]({SITE}/help/)', f'- [Roadside help]({SITE}/roadside/)', f'- [Car service]({SITE}/car-service-bangalore/)', f'- [Areas we serve]({SITE}/areas/)', f'- [Guides]({SITE}/guides/how-often-to-service-your-bike/)', f'- [Blog]({SITE}/blog/)', f'- [Book a service]({SITE}/book/)', '']
     open(os.path.join(ROOT, 'llms.txt'), 'w', encoding='utf-8').write('\n'.join(lines))
 llms_txt()

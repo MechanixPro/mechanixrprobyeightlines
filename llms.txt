@@ -3,13 +3,19 @@
 > Mechanix Pro is a doorstep bike and scooter service and roadside help in Bengaluru (Bangalore), India. Certified mechanics come to your home or office. You get an itemised quote on WhatsApp first and pay only after you approve.
 
 ## Key facts
-- Service area: Bengaluru, across the city (see the areas page for PIN codes).
+- Service area: all of Bengaluru, every PIN code from 560001 to 560110 (see the areas page).
 - How it works: message on WhatsApp or build a service on the website, receive an itemised quote, approve it, the mechanic comes to your door.
-- Prices (before GST; 18% GST is added): Basic service ₹499, Standard service ₹799, Full service ₹1,299. Puncture ₹599.
+- Prices for bikes and scooters up to 149cc (before GST; 18% GST is added): Basic service ₹499, Standard service ₹799, Full service ₹1,299, Repair or problem check from ₹599, puncture ₹599, roadside emergency visit ₹1,299.
+- Bikes of 150 to 250cc and 251 to 500cc have their own prices: Basic ₹799 and ₹999, Standard ₹999 and ₹1,499, Full ₹1,799 and ₹2,199.
+- Booking: a ₹349 checkup and quote fee (₹99 for new customers) holds the slot and is adjusted in the final bill.
+- Open 24/7 for requests. A basic service can be done in as fast as 2 hours once the mechanic arrives.
+- 10,000+ services done. 1,300+ gated communities trust us.
+- Safety: certified mechanics (visited, document-checked, trained, trial jobs), itemised WhatsApp quote before work, OTP before the bike leaves, GST invoice for every job.
 - Warranty: 30-day service warranty on the work.
-- Roadside help: puncture, battery jump start, towing and breakdown help.
+- Roadside help for bikes and scooters: breakdown diagnosis, puncture, battery jump-start, starting problems, fuel-related help, minor on-the-spot repairs, emergency towing support if required. Arrival time depends on traffic and location.
 - Car service is live: periodic and brake service, jump start, flat tyre help, towing and fuel delivery, quote first. Spare parts come through our partner Axlio.
-- Legal entity: NOVA VENTURES, Bengaluru, Karnataka.
+- Legal entity: NOVA VENTURES, Haralur Main Rd, 1st Sector, HSR Layout, Bengaluru, Karnataka 560102. GSTIN 29DVCPR0895G1Z3.
+- Contact: +91 79652 95649 · hello@mechanixpro.in · WhatsApp from the website. Instagram: https://www.instagram.com/themechanixpro/
 
 ## Pages
 - [Services and prices](https://mechanixpro.in/services/)
