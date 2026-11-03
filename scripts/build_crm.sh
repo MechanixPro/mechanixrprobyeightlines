@@ -7,7 +7,7 @@ out="$root/dist-crm"
 rm -rf "$out"; mkdir -p "$out/assets/js" "$out/assets/img"
 cp -R "$root/crm" "$out/crm"
 mkdir -p "$out/assets/css"; cp "$root/assets/css/minimal.css" "$root/assets/css/theme.css" "$root/assets/css/maxi.css" "$out/assets/css/"
-cp "$root/assets/js/config.js" "$out/assets/js/"
+cp "$root/assets/js/config.js" "$root/assets/js/pingeo.js" "$out/assets/js/"
 cp "$root/assets/img/logo.svg" "$root/assets/img/favicon-32.png" "$root/assets/img/apple-touch-icon.png" "$out/assets/img/"
 cat > "$out/index.html" <<'I'
 <!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/crm/"><title>Mechanix Desk</title><a href="/crm/">Open the desk</a>

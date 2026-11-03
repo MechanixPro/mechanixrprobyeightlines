@@ -1,5 +1,6 @@
 import { rpc, esc, head, chips, empty, tag, modal, field, toast, label, PIPE } from '../ui.js';
 import { PRESETS, presetRange, presetOf } from '../data-tools.js';
+import { findByPin } from './pinsearch.js';
 
 const SKILLS = [['two-wheeler', 'Two-wheeler'], ['scooter', 'Scooter'], ['royal-enfield', 'Royal Enfield'], ['electric', 'Electric'], ['tyre', 'Tyre'], ['battery', 'Battery'], ['superbike', 'Superbike']];
 const DOCS = [['agreement', 'Signed agreement'], ['training', 'Training done'], ['photo', 'Photo on file'], ['id_seen', 'ID seen (do not store the number)'], ['address_seen', 'Address checked']];
@@ -11,7 +12,7 @@ export async function render(root, ctx) {
   const pf = new Map(perf.map((x) => [x.id, x]));
   const pcell = (m) => { const x = pf.get(m.id); return x ? `<td class="n">${x.assigned}</td><td class="n">${x.completion_pct == null ? '—' : x.completion_pct + '%'}</td><td class="n">${x.avg_hours == null ? '—' : x.avg_hours + ' h'}</td><td class="n">${x.rating == null ? '—' : x.rating + ' / 5 <small class="muted">(' + x.rated + ')</small>'}</td>` : '<td></td><td></td><td></td><td></td>'; };
   root.innerHTML = `${head('Mechanics', 'Onboard each mechanic one step at a time. Going live needs the full checklist, skills and service PIN codes.',
-    `<input id="q" type="search" placeholder="Search name or mobile" value="${esc(st.q)}" aria-label="Search mechanics"><label class="small muted">Performance for <select id="mpre" aria-label="Date range">${PRESETS.filter(([k]) => k !== 'custom').map(([k, t]) => `<option value="${k}"${k === (st.from ? presetOf(st.from, st.to) : 'month') ? ' selected' : ''}>${t}</option>`).join('')}</select></label>${ctx.can('manage_mechanics') ? '<button class="btn primary" type="button" id="new">+ Mechanic</button>' : ''}`)}
+    `<input id="q" type="search" placeholder="Search name or mobile" value="${esc(st.q)}" aria-label="Search mechanics"><label class="small muted">Performance for <select id="mpre" aria-label="Date range">${PRESETS.filter(([k]) => k !== 'custom').map(([k, t]) => `<option value="${k}"${k === (st.from ? presetOf(st.from, st.to) : 'month') ? ' selected' : ''}>${t}</option>`).join('')}</select></label>${ctx.can('manage_mechanics') ? '<button class="btn primary" type="button" id="new">+ Mechanic</button>' : ''}${ctx.can('assign_leads') || ctx.can('manage_technicians') ? '<button class="btn ghost" type="button" id="pinSearch">Find by PIN</button>' : ''}`)}
     ${chips([['', 'All'], ...PIPE.map(([k, t]) => [k, t])], st.status)}
     ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Name</th><th>Mobile</th><th>Stage</th><th>Skills</th><th>PIN codes</th><th>Garage</th><th class="n">Checklist</th><th class="n">Jobs</th><th class="n">Completed</th><th class="n">Avg time to finish</th><th class="n">Customer rating</th><th></th></tr></thead><tbody>
       ${list.map((m) => `<tr><td><b>${esc(m.name)}</b><br><small class="muted">${esc(m.area || '')}</small></td><td>${esc(m.phone)}</td><td>${tag(label(PIPE, m.status), m.status === 'live' ? 'st-completed' : m.status === 'paused' ? 'late' : 'st-new')}</td><td>${esc((m.skills || []).join(', ') || '—')}</td><td>${esc((m.pincodes || []).join(', ') || '—')}</td><td>${esc(m.garage || '—')}</td><td class="n">${m.docs_done} / 5</td>${pcell(m)}
@@ -20,6 +21,7 @@ export async function render(root, ctx) {
   const q = root.querySelector('#q'); q.addEventListener('change', () => { st.q = q.value.trim(); ctx.reload(); });
   const mp = root.querySelector('#mpre'); mp.addEventListener('change', () => { const r = presetRange(mp.value); st.from = r.from; st.to = r.to; ctx.reload(); });
   const nb = root.querySelector('#new'); if (nb) nb.addEventListener('click', () => edit(null, ctx));
+  const ps = root.querySelector('#pinSearch'); if (ps) ps.addEventListener('click', () => findByPin());
   root.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => edit(list.find((m) => m.id === b.dataset.edit), ctx)));
   root.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => move(b.dataset.step, b.dataset.to, ctx)));
 }

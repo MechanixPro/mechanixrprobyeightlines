@@ -16,6 +16,7 @@ import * as team from './pages/team.js';
 import * as inbox from './pages/inbox.js';
 import { newBooking, editBooking } from './pages/booking.js';
 import { sendPaymentLink } from './pages/payment.js';
+import { findByPin } from './pages/pinsearch.js';
 
 const C = window.MXP || {};
 if (!C.supabaseUrl || !C.supabaseAnonKey) {
@@ -222,7 +223,7 @@ function renderBody() {
   const hints = { mine: 'Late and overdue leads come first. Every open lead needs a dated next step.', unassigned: 'Take a lead and contact it within ' + S.me.sla_minutes + ' minutes.' };
   const late = S.leads.filter((l) => l.is_late || l.overdue).length;
   $('#view').innerHTML = `<div class="view-head"><div><h1>${titles[S.view]}</h1><p class="muted">${hints[S.view]}</p></div>
-    <div class="view-tools"><input id="q" type="search" placeholder="Search name, phone or ref" value="${esc(S.q)}" aria-label="Search leads">${can('create_bookings') ? '<button class="btn primary" type="button" data-act="booking">+ Booking</button>' : ''}${can('add_leads') ? '<button class="btn" type="button" data-act="add">+ Lead</button>' : ''}${can('add_leads') ? '<button class="btn ghost" type="button" data-act="import">Import from AiSensy</button>' : ''}</div></div>
+    <div class="view-tools"><input id="q" type="search" placeholder="Search name, phone or ref" value="${esc(S.q)}" aria-label="Search leads">${can('create_bookings') ? '<button class="btn primary" type="button" data-act="booking">+ Booking</button>' : ''}${can('add_leads') ? '<button class="btn" type="button" data-act="add">+ Lead</button>' : ''}${can('add_leads') ? '<button class="btn ghost" type="button" data-act="import">Import from AiSensy</button>' : ''}${canTech() ? '<button class="btn ghost" type="button" data-act="pinSearch">Find by PIN</button>' : ''}</div></div>
     ${S.waiting.length && pageOk('inbox') ? `<div class="alert" role="status"><b>${S.waiting.length}</b> ${S.waiting.length === 1 ? 'customer wrote' : 'customers wrote'} on WhatsApp and ${S.waiting.length === 1 ? 'is' : 'are'} waiting. <button class="btn sm" type="button" data-act="gotoInbox">Open the Inbox</button></div>` : ''}
     ${S.unstaffed.length ? `<div class="alert" role="status"><b>${S.unstaffed.length}</b> booked ${S.unstaffed.length === 1 ? 'job has' : 'jobs have'} no technician yet: ${S.unstaffed.slice(0, 4).map((j) => `<button class="btn sm" type="button" data-act="open" data-id="${j.id}">${esc(j.ref)} ${esc(j.name)}</button>`).join(' ')}</div>` : ''}
     ${late ? `<div class="alert" role="status"><b>${late}</b> ${late === 1 ? 'lead needs' : 'leads need'} you right now.</div>` : ''}
@@ -500,6 +501,7 @@ document.addEventListener('click', async (e) => {
     if (act === 'lostSave') return await saveOutcome('lost');
     if (act === 'preset') { $('#next').value = b.dataset.iso; return; }
     if (act === 'move') return await moveAction(b.dataset.kind);
+    if (act === 'pinSearch') return findByPin();
     if (act === 'assign') { await rpc('crm_assign', { p_id: S.open, p_user: $('#assignTo').value || null }); toast('Assignment saved.'); return await afterChange(false); }
   } catch (err) { toast(clean(err), true); }
 });

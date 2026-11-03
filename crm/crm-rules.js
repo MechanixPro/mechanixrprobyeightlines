@@ -152,6 +152,25 @@ export function moveCheck(kind, v, today) {
   return { ok: true };
 }
 
+/** Distance in km between two [lat, lng] points (haversine), or null if either is missing. */
+function kmBetween(a, b) {
+  if (!a || !b) return null;
+  const rad = Math.PI / 180, dLat = (b[0] - a[0]) * rad, dLng = (b[1] - a[1]) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * rad) * Math.cos(b[0] * rad) * Math.sin(dLng / 2) ** 2;
+  return Math.round(6371 * 2 * Math.asin(Math.sqrt(h)) * 10) / 10;
+}
+/** Find by PIN: technicians who cover the PIN first, then the rest by distance from the PIN's centre to their base (first) PIN; garages by distance. geo is PIN -> [lat, lng, ...]. */
+export function nearestByPin(pin, techs, garages, geo) {
+  const p = String(pin || '').trim();
+  if (!/^[0-9]{6}$/.test(p)) throw new Error('Enter a 6-digit PIN code.');
+  const centre = (geo || {})[p] || null, km = (q) => (centre && q && geo[q] ? kmBetween(centre, geo[q]) : null);
+  const byKm = (a, b) => (a.km == null) - (b.km == null) || (a.km ?? 0) - (b.km ?? 0);
+  const t = (techs || []).map((x) => ({ id: x.id, name: x.name, area: x.area || '', covers: (x.pincodes || []).includes(p), km: km((x.pincodes || [])[0]), jobs: (x.jobs || []).length }));
+  t.sort((a, b) => (b.covers - a.covers) || byKm(a, b));
+  const g = (garages || []).map((x) => ({ id: x.id, name: x.name, pincode: x.pincode || '', km: x.pincode === p ? 0 : km(x.pincode) })).sort(byKm);
+  return { pinKnown: !!centre, techs: t, garages: g };
+}
+
 export function parseContacts(text) {
   const rows = [], seen = new Set();
   for (const line of String(text || '').split(/\r?\n/)) {
