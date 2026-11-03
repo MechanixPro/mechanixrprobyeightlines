@@ -54,7 +54,7 @@ export async function editBooking(ctx, lead) {
   // Only people who may assign leads may set the technician; the database checks this too.
   // The board for the booking's day ranks them: free in the slot first, then those who cover the PIN code. Without a date, the plain list is used.
   let techs = [];
-  if (ctx.can('assign_leads')) {
+  if (ctx.can('assign_leads') || ctx.can('manage_technicians')) {
     try { techs = rankTechs((await rpc('crm_tech_board', { p_date: lead.preferred_date || null })).techs, lead); }
     catch (e) { try { techs = (await rpc('crm_mechanic_picker')).map((t) => ({ id: t.id, name: t.name, label: t.name + (t.area ? ' · ' + t.area : '') })); } catch (e2) { techs = []; } }
   }

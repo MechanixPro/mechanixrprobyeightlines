@@ -48,6 +48,8 @@ const SCREENS = [
 const S = { waiting: [], me: null, view: null, leads: [], q: '', open: null, detail: null, users: null, dispositions: [], counts: { unassigned: 0 }, unstaffed: [], board: null, busy: false, kind: 'note' };
 const can = (a) => !!S.me?.permissions?.actions?.[a];
 const pageOk = (p) => !!S.me?.permissions?.pages?.[p];
+// Technician work (board, picker, unstaffed alert, any booking's technician): supervisors with assign_leads, or the Technician lead with manage_technicians.
+const canTech = () => can('assign_leads') || can('manage_technicians');
 const screens = () => SCREENS.filter((s) => pageOk(s.page) && (!s.action || can(s.action) || can('assign_leads')));
 
 const ctx = {
@@ -146,7 +148,7 @@ async function pulse() {
     seen.due = new Set(due.map(key));
   }
   // A booked job still has no technician close to its slot: sound and pop-up once per job, for people who can assign.
-  if (can('assign_leads')) {
+  if (canTech()) {
     try {
       S.unstaffed = unstaffedSoon(await rpc('crm_unstaffed_jobs'));
       if (seen.unstaffed) { const fresh = S.unstaffed.filter((j) => !seen.unstaffed.has(j.id)); if (fresh.length) alertUser(fresh.length === 1 ? 'Job has no technician' : fresh.length + ' jobs have no technician', fresh.slice(0, 2).map((j) => j.ref + ' ' + j.name).join(', ')); }
@@ -210,7 +212,7 @@ async function loadList() {
   const view = S.view;
   S.leads = await rpc('crm_queue', { p_view: view, p_search: S.q || null });
   // People who assign technicians see today's board on My day.
-  S.board = null; if (view === 'mine' && can('assign_leads')) { try { S.board = await rpc('crm_tech_board', { p_date: null }); } catch (e) { S.board = null; } }
+  S.board = null; if (view === 'mine' && canTech()) { try { S.board = await rpc('crm_tech_board', { p_date: null }); } catch (e) { S.board = null; } }
   if (view !== 'unassigned') { try { S.counts.unassigned = (await rpc('crm_queue', { p_view: 'unassigned', p_search: null })).length; } catch (e) { /* badge only */ } }
   else S.counts.unassigned = S.leads.length;
   renderHeader();
@@ -260,7 +262,7 @@ async function openLead(id, kind) {
 }
 function renderSheet() {
   const d = S.detail, l = d.lead, sheet = $('#sheet');
-  const mineOrBoss = l.crm_owner === S.me.user_id || can('assign_leads');
+  const mineOrBoss = l.crm_owner === S.me.user_id || canTech();
   const canAct = can('edit_leads') && mineOrBoss;
   const moves = nextStatuses(l.status, can('assign_leads') ? 'supervisor' : 'sales');
   const t = timerInfo(l, new Date(), S.me.sla_minutes);
@@ -311,7 +313,7 @@ async function refreshChat(forceSync = true) {
     if (forceSync || Date.now() - lastSync > 60e3) await syncChat(id);
     const c = await rpc('crm_chat', { p_lead: id });
     if (S.open !== id || !$('#chat')) return;
-    const l = S.detail.lead, mineOrBoss = l.crm_owner === S.me.user_id || can('assign_leads');
+    const l = S.detail.lead, mineOrBoss = l.crm_owner === S.me.user_id || canTech();
     const draft = $('#replyText')?.value || '';
     const canAct = can('edit_leads') && mineOrBoss && !!l.crm_owner;
     const wrote = chatMeta?.last_active || c.last_customer_msg_at;
