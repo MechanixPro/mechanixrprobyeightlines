@@ -606,7 +606,7 @@ function moneyCardBody(l) {
     <dl class="kv">${row('Invoice total', '<b>' + rupee2(a.total) + '</b>')}${row('Collected by the company, manual', rupee2(a.byChannel.company_manual))}${row('Collected online (Razorpay)', rupee2(a.byChannel.company_portal))}${row('Collected by the mechanic', rupee2(a.byChannel.mechanic))}${row('Customer still owes', '<b>' + rupee2(a.outstanding) + '</b>')}${a.mechanicId ? row('Mechanic must pay the company', rupee2(a.remitDue)) + row('Company must pay the mechanic', rupee2(a.payoutDue)) : ''}</dl>
     ${l.mechanic_id && !(a.remitDue > 0.005) ? `<div class="remit-box"><b>Mechanic</b><span class="tiny muted">Send ${esc(S.mechanics.find((m) => m.id === l.mechanic_id)?.name || 'the mechanic')} the job details on WhatsApp.</span><button class="btn btn-wa btn-sm" type="button" data-act="mechPayLink" data-amt="0" data-id="${l.id}">Send job details to the mechanic</button></div>` : ''}
     ${a.remitDue > 0.005 && l.mechanic_id ? `<div class="remit-box"><b>${esc(S.mechanics.find((m) => m.id === l.mechanic_id)?.name || 'The mechanic')} owes the company ${rupee2(a.remitDue)}</b><span class="tiny muted">Collected at the door. Send a payment link on WhatsApp for the company share only. When it is paid it is recorded here automatically.</span><button class="btn btn-wa btn-sm" type="button" data-act="mechPayLink" data-amt="${a.remitDue}" data-id="${l.id}">Send payment link to the mechanic</button></div>` : ''}
-    ${l.status === 'completed' && a.outstanding <= 0.005 && a.collected > 0.005 ? `<div class="remit-box"><b>Fully paid. Warranty card ready to send.</b><span class="tiny muted">A card with the vehicle, dates, terms and a QR code. It is also sent automatically on WhatsApp once the message template is approved.</span><button class="btn btn-wa btn-sm" type="button" data-act="warrantyCard" data-id="${l.id}">Send warranty card on WhatsApp</button></div>` : ''}
+    ${l.status === 'completed' && a.outstanding <= 0.005 && a.collected > 0.005 ? `<div class="remit-box"><b>Fully paid. Warranty card ready to issue.</b><span class="tiny muted">Choose the number of days and what the warranty covers, then send the card (vehicle, dates, cover, terms and a QR code) on WhatsApp.</span><button class="btn btn-wa btn-sm" type="button" data-act="warrantyCard" data-id="${l.id}">Issue warranty card</button></div>` : ''}
     ${entryRows(entries, true)}${btn}</div>`;
 }
 async function openLead(id, silent) {
@@ -663,6 +663,28 @@ function askReason(title, hint, okLabel) {
     const done = (v) => { document.removeEventListener('keydown', onKey, true); m.remove(); resolve(v); };
     const yes = () => { const v = inp.value.trim(); if (!v) { err.hidden = false; inp.focus(); return; } done(v); };
     const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); done(null); } else if (e.key === 'Enter' && document.activeElement === inp) { e.preventDefault(); yes(); } };
+    document.addEventListener('keydown', onKey, true);
+    m.addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('[data-md]'); if (b) { if (b.dataset.md === 'yes') yes(); else done(null); } else if (e.target === m) done(null); });
+  });
+}
+// Before issuing a warranty card: how many days it runs and what it covers. Shows the end date as the days change. Resolves { days, covers } or null.
+function askWarranty({ days, covers, start, issued }) {
+  return new Promise((resolve) => {
+    const until = (d) => { const n = parseInt(d, 10); if (!(n >= 1 && n <= 1095)) return 'Enter 1 to 1095 days.'; const t = new Date(start + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + n - 1); return 'Valid until ' + t.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) + ' (day of service counts as day 1).'; };
+    const m = document.createElement('div'); m.className = 'modal'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', 'Issue warranty card');
+    m.innerHTML = `<div class="modal-box"><h3 style="margin:0 0 6px">${issued ? 'Update and send the warranty card' : 'Issue warranty card'}</h3>
+      <label class="label" for="wc-days">Warranty days</label><input id="wc-days" type="number" inputmode="numeric" min="1" max="1095" step="1" value="${esc(days)}">
+      <p class="tiny muted" id="wc-until" style="margin:4px 0 0">${esc(until(days))}</p>
+      <label class="label" for="wc-covers">Valid for <span class="muted" style="font-weight:400">(what the warranty covers, shown on the card)</span></label><input id="wc-covers" maxlength="160" autocomplete="off" value="${esc(covers)}" placeholder="e.g. Engine work and labour on this service">
+      ${issued ? '<p class="tiny muted" style="margin:6px 0 0">This booking already has a card. Saving keeps the same card number and link, with the new days and cover.</p>' : ''}
+      <p class="tiny muted" id="wc-err" style="margin:6px 0 0;color:var(--ember,#B45309)" hidden></p>
+      <div class="modal-btns"><button class="btn btn-ghost" type="button" data-md="no">Cancel</button><button class="btn btn-primary" type="button" data-md="yes">Issue warranty card</button></div></div>`;
+    document.body.appendChild(m);
+    const di = m.querySelector('#wc-days'), ci = m.querySelector('#wc-covers'), err = m.querySelector('#wc-err'); di.focus(); di.select();
+    di.addEventListener('input', () => { m.querySelector('#wc-until').textContent = until(di.value); });
+    const done = (v) => { document.removeEventListener('keydown', onKey, true); m.remove(); resolve(v); };
+    const yes = () => { const n = Number(di.value); if (!Number.isInteger(n) || n < 1 || n > 1095) { err.textContent = 'Enter the warranty days as a whole number from 1 to 1095.'; err.hidden = false; di.focus(); return; } if (!ci.value.trim()) { err.textContent = 'Say what the warranty covers.'; err.hidden = false; ci.focus(); return; } done({ days: n, covers: ci.value.trim() }); };
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); done(null); } else if (e.key === 'Enter' && (document.activeElement === di || document.activeElement === ci)) { e.preventDefault(); yes(); } };
     document.addEventListener('keydown', onKey, true);
     m.addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('[data-md]'); if (b) { if (b.dataset.md === 'yes') yes(); else done(null); } else if (e.target === m) done(null); });
   });
@@ -1126,13 +1148,19 @@ const ACT = {
   },
   async warrantyCard(btn) {
     const l = S.leads.find((x) => x.id === btn.dataset.id); if (!l) return;
+    // The card may already exist (made automatically once fully paid); start the form from it.
+    const { data: have } = await sb.from('warranty_cards').select('days,covers,done_on').eq('lead_id', l.id).maybeSingle();
+    const start = have?.done_on || new Date(new Date(l.completed_at || Date.now()).getTime() + 330 * 60_000).toISOString().slice(0, 10);
+    const services = [svcName(l.service_id), ...(l.addons || []).map((x) => svcName(x))].filter((x) => x && x !== '—').join(' + ');
+    const pick = await askWarranty({ days: have?.days || WARRANTY_DAYS, covers: have?.covers || (services ? services + ' (workmanship)' : ''), start, issued: !!have });
+    if (!pick) return;
     btn.disabled = true; const old = btn.textContent; btn.textContent = 'Making card…';
-    const { data, error } = await sb.functions.invoke('warranty-card', { body: { lead_id: l.id } });
+    const { data, error } = await sb.functions.invoke('warranty-card', { body: { lead_id: l.id, days: pick.days, covers: pick.covers } });
     btn.disabled = false; btn.textContent = old;
     if (error || !data || data.error) { let msg = data && data.error; if (!msg && error && error.context && error.context.json) { try { msg = (await error.context.json()).error; } catch (x) { /* ignore */ } } return toast('Could not make the card: ' + (msg || (error && error.message) || 'try again')); }
     const first = String(l.name).split(' ')[0], until = new Date(data.valid_until + 'T12:00:00+05:30').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-    window.open(waLink(l.phone, `Hi ${first}, thank you. Your Mechanix Pro booking ${l.ref} is fully paid and your service warranty card is ready. It is valid until ${until}. Open and verify it here: ${data.url}`), '_blank', 'noopener');
-    await audit('warranty_card_shared', { ref: l.ref, code: data.code }); toast('Card ready. WhatsApp is open with the message.');
+    window.open(waLink(l.phone, `Hi ${first}, thank you. Your Mechanix Pro booking ${l.ref} is fully paid and your service warranty card is ready. It covers ${data.covers || 'the service work'} for ${data.days} days, valid until ${until}. Open and verify it here: ${data.url}`), '_blank', 'noopener');
+    await audit('warranty_card_shared', { ref: l.ref, code: data.code, days: data.days }); toast('Card ready. WhatsApp is open with the message.');
   },
   iselMode() { S.imode = !S.imode; S.isel.clear(); render(); },
   iselAll() { registerRows().forEach((r) => S.isel.add(r.lead_id)); render(); },

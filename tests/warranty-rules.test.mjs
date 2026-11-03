@@ -34,3 +34,21 @@ test('the card system is wired end to end', () => {
 test('the site build ships the warranty and rate card pages', () => {
   const sh = read('scripts/build_site.sh'); assert.match(sh, /\brate-card\b/); assert.match(sh, /\bwarranty\b/);
 });
+
+import { cleanWarrantyInput } from '../supabase/functions/_shared/warranty-rules.ts';
+test('the admin can set the days and what the card covers, within limits', () => {
+  assert.deepEqual(cleanWarrantyInput({ days: '90', covers: '  Engine   overhaul <b>labour</b> ' }), { ok: true, value: { days: 90, covers: 'Engine overhaul blabour/b' } });
+  assert.deepEqual(cleanWarrantyInput({}), { ok: true, value: { days: null, covers: null } });
+  assert.deepEqual(cleanWarrantyInput({ days: '', covers: '   ' }), { ok: true, value: { days: null, covers: null } });
+  for (const bad of [0, -5, 1096, 2.5, 'abc']) assert.equal(cleanWarrantyInput({ days: bad }).ok, false, String(bad));
+  assert.equal(cleanWarrantyInput({ days: 1095 }).value.days, 1095);
+  assert.equal(cleanWarrantyInput({ covers: 'x'.repeat(300) }).value.covers.length, 160);
+});
+test('issuing takes the days and cover from the admin, and the card shows what it covers', () => {
+  assert.match(read('supabase/migrations/20261223000000_warranty_card_options.sql'), /add column if not exists covers text/);
+  const w = read('supabase/functions/_shared/warranty.ts'); assert.match(w, /opts/); assert.match(w, /validUntil\(have\.done_on/);
+  assert.match(read('supabase/functions/warranty-card/index.ts'), /cleanWarrantyInput/);
+  assert.match(read('supabase/functions/warranty-verify/index.ts'), /covers/);
+  assert.match(read('assets/js/warranty.js'), /Covers/);
+  const a = read('admin/admin.js'); assert.match(a, /id="wc-days"/); assert.match(a, /id="wc-covers"/); assert.match(a, /Issue warranty card/);
+});

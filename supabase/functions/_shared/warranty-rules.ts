@@ -15,7 +15,15 @@ export const istDate = (ts: number | string | Date): string => new Date(new Date
 export function validUntil(done: string, days: number): string {
   const d = new Date(done + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + Math.max(1, Math.round(days)) - 1); return d.toISOString().slice(0, 10);
 }
-export const warrantyStatus = (until: string, now: number | Date = Date.now()): 'active' | 'expired' => (istDate(now) <= until ? 'active' : 'expired');
+export const MAX_WARRANTY_DAYS = 1095;
+/** What the admin sets when issuing: the number of days (1 to 3 years) and what the card covers. Blank means "use the default". */
+export function cleanWarrantyInput(b: any): { ok: true; value: { days: number | null; covers: string | null } } | { ok: false; error: string } {
+  const raw = String(b?.days ?? '').trim(), n = Number(raw);
+  if (raw !== '' && (!Number.isInteger(n) || n < 1 || n > MAX_WARRANTY_DAYS)) return { ok: false, error: `Enter the warranty days as a whole number from 1 to ${MAX_WARRANTY_DAYS}.` };
+  const covers = String(b?.covers ?? '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 160);
+  return { ok: true, value: { days: raw === '' ? null : n, covers: covers || null } };
+}
+export const warrantyStatus =(until: string, now: number | Date = Date.now()): 'active' | 'expired' => (istDate(now) <= until ? 'active' : 'expired');
 
 /** Registration number with the middle hidden for the public page: KA05MQ1234 becomes KA••MQ1234. */
 export function maskReg(reg: string | null | undefined): string {

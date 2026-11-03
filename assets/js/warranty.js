@@ -14,7 +14,7 @@
     lead.textContent = live ? 'This warranty is genuine and active.' : 'This warranty is genuine, but it has ended.';
     box.innerHTML = '<article class="wr-card' + (live ? '' : ' ended') + '"><header><img src="/assets/img/logo.svg" alt="" width="28" height="29"><b>MECHANIX PRO</b><span class="wr-state">' + (live ? 'Active' : 'Ended') + '</span></header>' +
       '<h2>' + esc(c.customer) + '</h2><p class="wr-sub">' + esc([c.bike, c.vehicle].filter(Boolean).join(' · ')) + '</p>' +
-      '<dl><dt>Service</dt><dd>' + esc(c.service || 'Service') + '</dd><dt>Done on</dt><dd>' + esc(fmt(c.done_on)) + '</dd><dt>Valid until</dt><dd><b>' + esc(fmt(c.valid_until)) + '</b></dd><dt>Card number</dt><dd>' + esc(c.code) + '</dd></dl>' +
+      '<dl><dt>Service</dt><dd>' + esc(c.service || 'Service') + '</dd>' + (c.covers ? '<dt>Covers</dt><dd>' + esc(c.covers) + '</dd>' : '') + (c.days ? '<dt>Warranty</dt><dd>' + esc(c.days) + ' days</dd>' : '') + '<dt>Done on</dt><dd>' + esc(fmt(c.done_on)) + '</dd><dt>Valid until</dt><dd><b>' + esc(fmt(c.valid_until)) + '</b></dd><dt>Card number</dt><dd>' + esc(c.code) + '</dd></dl>' +
       '<div class="wr-qr" role="img" aria-label="QR code for this card">' + (c.qr_svg || '') + '</div></article>' +
       '<h3>Terms</h3><ul class="wr-terms">' + (c.terms || []).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>';
   }).catch(function () { fail('We could not check the card right now. Please try again in a minute.'); });
