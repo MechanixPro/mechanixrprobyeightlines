@@ -17,6 +17,8 @@ create table if not exists public.tech_job_links (
   pay_link_url     text
 );
 create index if not exists tech_job_links_lead_idx on public.tech_job_links (lead_id, created_at desc);
+-- One reported link per booking: two links reported at the same moment cannot both record money.
+create unique index if not exists tech_job_links_one_report on public.tech_job_links (lead_id) where reported_at is not null;
 alter table public.tech_job_links enable row level security;
 revoke all on public.tech_job_links from public, anon, authenticated;
 
@@ -28,13 +30,13 @@ create or replace function public.crm_tech_link(p_lead uuid) returns text langua
 declare l public.leads; tok text;
 begin
   perform public.crm_need_role();
-  select * into l from public.leads where id = p_lead and deleted_at is null;
+  select * into l from public.leads where id = p_lead and deleted_at is null for update;  -- two taps at once wait for each other, so only one link stays open
   if not found then raise exception 'lead not found' using errcode = 'P0002'; end if;
   if not (public.crm_can('assign_leads') or public.crm_can('manage_technicians') or (public.crm_can('edit_leads') and l.crm_owner = auth.uid())) then
     raise exception 'you do not have permission to do this' using errcode = '42501';
   end if;
   if l.mechanic_id is null then raise exception 'assign a technician first' using errcode = 'P0001'; end if;
-  if l.status in ('lost') then raise exception 'this lead is closed' using errcode = 'P0001'; end if;
+  if l.status = 'lost' then raise exception 'this lead is closed' using errcode = 'P0001'; end if;
   update public.tech_job_links set expires_at = now() where lead_id = p_lead and reported_at is null and expires_at > now();
   tok := encode(extensions.gen_random_bytes(32), 'hex');
   insert into public.tech_job_links (lead_id, mechanic_id, token_hash, created_by, expires_at)

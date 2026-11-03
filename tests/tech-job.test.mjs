@@ -16,11 +16,14 @@ test('the technician percent follows the admin rule: booking, then garage, then 
   assert.equal(techPct({ lead: {}, mechanic: { payout_rate: 0 }, settings }), 30);
   assert.equal(techPct({ lead: {}, mechanic: null, settings: {} }), 30);
 });
-test('the company share is what is left after the technician cut, on the amount before GST when an invoice says so', () => {
-  assert.deepEqual(companyShare({ collected: 1000, pct: 30, basis: 'collected' }), { mechanicCut: 300, company: 700 });
-  assert.deepEqual(companyShare({ collected: 1180, pct: 30, basis: 'before_gst', invoice: { total: 1180, taxable: 1000 } }), { mechanicCut: 300, company: 880 });
-  assert.deepEqual(companyShare({ collected: 1000, pct: 30, basis: 'before_gst', invoice: null }), { mechanicCut: 300, company: 700 });
-  assert.deepEqual(companyShare({ collected: 0, pct: 30, basis: 'collected' }), { mechanicCut: 0, company: 0 });
+test('the company share matches the admin ledger: technician earns pct of the price before GST plus any adjustment; the company gets the rest of what they collected', () => {
+  const bill = { total: 1180, taxable: 1000 };
+  assert.deepEqual(companyShare({ collected: 1180, pct: 30, adjust: 0, bill }), { mechanicCut: 300, company: 880 });
+  assert.deepEqual(companyShare({ collected: 1180, pct: 30, adjust: 50, bill }), { mechanicCut: 350, company: 830 });
+  assert.deepEqual(companyShare({ collected: 590, pct: 30, adjust: 0, bill }), { mechanicCut: 150, company: 440 });
+  assert.deepEqual(companyShare({ collected: 1180, pct: 30, adjust: -400, bill }), { mechanicCut: 0, company: 1180 });
+  assert.deepEqual(companyShare({ collected: 1000, pct: 30, adjust: 0, bill: null }), { mechanicCut: 300, company: 700 });
+  assert.deepEqual(companyShare({ collected: 0, pct: 30, adjust: 0, bill }), { mechanicCut: 0, company: 0 });
 });
 test('a report needs a 64-hex token and an amount from 0 to 1,00,000; notes with ID numbers are dropped', () => {
   assert.equal(cleanReport({ t: T, amount: '1499.5', note: 'paid cash' }).value.amount, 1499.5);
@@ -35,7 +38,13 @@ test('a report needs a 64-hex token and an amount from 0 to 1,00,000; notes with
 test('the job-link migration and the tech-job function', () => {
   const m = read('supabase/migrations/20261222000000_tech_job_links.sql'), f = read('supabase/functions/tech-job/index.ts');
   for (const s of ['token_hash text unique', "'technician'", 'function public.crm_tech_link(p_lead uuid)', 'extensions.gen_random_bytes(32)', 'expires_at = now()', "interval '7 days'", 'enable row level security']) assert.ok(m.includes(s), s);
-  for (const s of ['This link is not valid.', 'This link has expired. Ask the desk for a new one.', 'This job is already reported.', "purpose: 'remittance'", "source: 'technician'", 'tech_job_hit', 'Too many tries. Wait a few minutes.', "collected_by: 'mechanic'"]) assert.ok(f.includes(s), s);
+  for (const s of ['This link is not valid.', 'This link has expired. Ask the desk for a new one.', 'This job is already reported.', "purpose: 'remittance'", "source: 'technician'", 'tech_job_hit', 'Too many tries. Wait a few minutes.', "collected_by: 'mechanic'",
+    'commission_adjust', 'buildInvoice(', "'23505'", "status === 'lost'"]) assert.ok(f.includes(s), s);
+  assert.match(m, /create unique index if not exists tech_job_links_one_report on public\.tech_job_links \(lead_id\) where reported_at is not null/);
+  assert.match(m, /for update/);
+  // once reported, the link shows only the payment, never the customer's details
+  const rep = f.slice(f.indexOf('if (link.reported_at) {'), f.indexOf("if (action === 'get')")); assert.ok(rep.length > 100);
+  assert.match(rep, /company_share/); assert.doesNotMatch(rep, /phone|address/);
   const get = f.slice(f.indexOf("if (action === 'get')"), f.indexOf("if (action === 'report')"));
   assert.ok(get.length > 500, 'found the get branch');
   assert.doesNotMatch(get, /est_total|amount_due|price/);

@@ -19,11 +19,13 @@ export function techPct({ lead = {}, mechanic = null, settings = {} }: { lead?: 
   return clampPct(settings?.doorstep_pct ?? DEFAULT_PCT);
 }
 
-/** The technician keeps pct of the base (the amount before GST when the basis says so and an invoice gives the split); the company's share is the rest of what they collected. */
-export function companyShare({ collected, pct, basis, invoice = null }: { collected: number; pct: number; basis: string; invoice?: { total: number; taxable: number } | null }) {
-  const amt = Math.max(0, Number(collected) || 0);
-  const base = basis === 'before_gst' && invoice && Number(invoice.total) > 0 ? amt * (Number(invoice.taxable) || 0) / Number(invoice.total) : amt;
-  const mechanicCut = round2((base * clampPct(pct)) / 100);
+/** The same rule as the admin ledger (admin/ledger.js jobAccount): the technician earns pct of the bill before GST plus any adjustment (never below 0 or above that amount),
+ *  and keeps that share of what they collected; the company's share is the rest of what they collected. bill is the invoice (or the booking's bill); without one, the amount collected is the base. */
+export function companyShare({ collected, pct, adjust = 0, bill = null }: { collected: number; pct: number; adjust?: number; bill?: { total: number; taxable: number } | null }) {
+  const amt = round2(Math.max(0, Number(collected) || 0));
+  const total = bill && Number(bill.total) > 0 ? Number(bill.total) : amt, service = bill && Number(bill.total) > 0 ? Number(bill.taxable) || 0 : amt;
+  const earnings = round2(Math.min(service, Math.max(0, (service * clampPct(pct)) / 100 + (Number(adjust) || 0))));
+  const denom = Math.max(total, amt), mechanicCut = denom > 0 ? round2(earnings * (amt / denom)) : 0;
   return { mechanicCut, company: Math.max(0, round2(amt - mechanicCut)) };
 }
 

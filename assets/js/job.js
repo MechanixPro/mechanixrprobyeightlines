@@ -23,11 +23,10 @@
   call({ action: 'get', t: t }).then(function (x) {
     if (!x.ok) { fail((x.d && x.d.error) || 'This link is not valid.'); return; }
     var d = x.d, rows = [['Booking', d.ref], ['Customer', [d.first_name, d.phone].filter(Boolean).join(' · ')], ['Bike', d.bike], ['Service', d.service], ['When', d.when], ['Place', [d.area, d.address].filter(Boolean).join(', ')], ['Notes', d.notes]];
+    if (d.reported) { lead.textContent = 'Booking ' + d.ref + '.'; result(d); return; }
     facts.innerHTML = rows.filter(function (r) { return r[1]; }).map(function (r) { return '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>'; }).join('');
     if (d.phone) facts.insertAdjacentHTML('beforeend', '<dt></dt><dd><a class="btn btn-ghost btn-sm" href="tel:+91' + esc(String(d.phone).replace(/\D/g, '').slice(-10)) + '">Call the customer</a></dd>');
-    lead.textContent = 'Booking ' + d.ref + '.'; job.hidden = false;
-    if (d.reported) { result(d); return; }
-    form.hidden = false;
+    lead.textContent = 'Booking ' + d.ref + '.'; job.hidden = false; form.hidden = false;
   }).catch(function () { fail('Could not load the job. Check your internet and open the link again.'); });
   form.addEventListener('submit', function (e) {
     e.preventDefault();

@@ -26,3 +26,10 @@ test('the sheet has the move bar, both RPCs, the WhatsApp offer and the email ca
   for (const s of ['Move this lead', 'data-act="move"', "rpc('crm_assign_technician'", "rpc('crm_confirm_booking'", 'Send job to', "invoke('confirm-booking'"]) assert.ok(c.includes(s), s);
   assert.match(f, /crm_users/); assert.match(f, /status !== 'scheduled'|status === 'scheduled'/);
 });
+
+test('review fixes: the Technician lead can move unowned leads, desk emails resend on a real change and check permission', () => {
+  const m = read('supabase/migrations/20261220000000_desk_move_lead.sql'), f = read('supabase/functions/confirm-booking/index.ts');
+  assert.match(m, /l\.crm_owner is null and r <> 'supervisor' and not public\.crm_can\('manage_technicians'\)/);
+  assert.match(f, /preferred_date[\s\S]{0,80}preferred_slot[\s\S]{0,80}mechanic_id/); assert.match(f, /details->>key/);
+  assert.match(f, /crm_can[\s\S]{0,40}edit_leads/); assert.match(f, /deleted_at/);
+});

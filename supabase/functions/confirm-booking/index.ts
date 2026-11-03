@@ -20,11 +20,16 @@ Deno.serve(async (req) => {
 
   const b = await req.json().catch(() => ({}));
   const { data: lead } = await db.from('leads').select('*').eq('id', String(b.lead_id ?? '')).maybeSingle();
-  if (!lead) return json(req, { error: 'Booking not found' }, 404);
+  if (!lead || lead.deleted_at) return json(req, { error: 'Booking not found' }, 404);
   if (['completed', 'lost'].includes(lead.status)) return json(req, { error: 'This booking is already closed' }, 400);
+  // What this confirmation says: a new email goes out only when the date, slot or technician changed.
+  const key = [lead.preferred_date, lead.preferred_slot, lead.mechanic_id].join('|');
   if (!admin) {
+    // The same rule as moving the lead in the desk: edit_leads, and the lead is theirs or they see all leads.
+    const [{ data: canEdit }, { data: seeAll }] = await Promise.all([userClient.rpc('crm_can', { p_action: 'edit_leads' }), userClient.rpc('crm_can', { p_action: 'view_all_leads' })]);
+    if (!canEdit || !(seeAll || lead.crm_owner === user.id)) return json(req, { error: 'Not allowed' }, 403);
     if (lead.status !== 'scheduled') return json(req, { error: 'Confirm the booking in the desk first' }, 400);
-    const { count } = await db.from('email_log').select('id', { count: 'exact', head: true }).eq('lead_id', lead.id).eq('template', 'booking_confirmed').eq('status', 'sent').gt('created_at', new Date(Date.now() - 24 * 3600_000).toISOString());
+    const { count } = await db.from('audit_log').select('id', { count: 'exact', head: true }).eq('action', 'booking_confirmed').eq('details->>lead', lead.ref).eq('details->>key', key).gt('created_at', new Date(Date.now() - 24 * 3600_000).toISOString());
     if ((count ?? 0) > 0) return json(req, { ok: true, emailed: false, already: true });
   }
 
@@ -37,7 +42,7 @@ Deno.serve(async (req) => {
 
   if (admin) await db.from('leads').update({ status: 'scheduled', confirmed_at: new Date().toISOString() }).eq('id', lead.id);
   else if (!lead.confirmed_at) await db.from('leads').update({ confirmed_at: new Date().toISOString() }).eq('id', lead.id);
-  await db.from('audit_log').insert({ actor: user.id, action: 'booking_confirmed', details: { lead: lead.ref, from: admin ? 'admin' : 'desk' } });
+  await db.from('audit_log').insert({ actor: user.id, action: 'booking_confirmed', details: { lead: lead.ref, from: admin ? 'admin' : 'desk', key } });
 
   let emailed = false;
   if (cust?.email) {

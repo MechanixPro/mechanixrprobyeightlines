@@ -16,7 +16,8 @@ begin
   select * into l from public.leads where id = p_id for update;
   if not found or l.deleted_at is not null then raise exception 'lead not found' using errcode = 'P0002'; end if;
   if not (public.crm_can('view_all_leads') or l.crm_owner = auth.uid() or l.crm_owner is null) then raise exception 'lead not found' using errcode = 'P0002'; end if;
-  if l.crm_owner is null and r <> 'supervisor' then raise exception 'take the lead first' using errcode = 'P0001';
+  -- The Technician lead may set the technician on a lead nobody has taken yet (a website booking, say).
+  if l.crm_owner is null and r <> 'supervisor' and not public.crm_can('manage_technicians') then raise exception 'take the lead first' using errcode = 'P0001';
   elsif l.crm_owner is distinct from auth.uid() and not public.crm_can('view_all_leads') then raise exception 'this lead belongs to a colleague' using errcode = '42501';
   end if;
   if l.status in ('lost','completed') then raise exception 'this lead is closed' using errcode = 'P0001'; end if;
