@@ -28,3 +28,15 @@ test('no GST or phone contradictions in the built pages, and llms.txt carries th
   for (const s of ['10,000+ services done', '1,300+ gated communities', 'roadside emergency visit ₹1,299', '₹99 for new customers', '560001 to 560110', '+91 79652 95649']) assert.ok(l.includes(s), s);
   assert.match(read('robots.txt'), /Content-Signal: search=yes, ai-input=yes, ai-train=no/);
 });
+
+test('robots.txt lets AI search read the site and keeps AI training out', () => {
+  // Groups: consecutive User-agent lines share the rules that follow them.
+  const groups = []; let cur = null;
+  for (const line of read('robots.txt').split('\n').map((l) => l.trim())) {
+    const m = line.match(/^(User-agent|Allow|Disallow):\s*(.*)$/i); if (!m) continue;
+    if (/^user-agent$/i.test(m[1])) { if (!cur || cur.rules.length) groups.push(cur = { agents: [], rules: [] }); cur.agents.push(m[2]); } else cur.rules.push(m[1].toLowerCase() + ' ' + m[2]);
+  }
+  const rules = (bot) => groups.find((g) => g.agents.includes(bot)).rules;
+  for (const bot of ['OAI-SearchBot', 'ChatGPT-User', 'Claude-SearchBot', 'PerplexityBot', 'Perplexity-User']) assert.ok(rules(bot).includes('allow /'), bot);
+  for (const bot of ['GPTBot', 'ClaudeBot', 'Google-Extended', 'Applebot-Extended', 'CCBot']) assert.deepEqual(rules(bot), ['disallow /'], bot);
+});

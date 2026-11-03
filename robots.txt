@@ -3,22 +3,23 @@ Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
 Disallow: /admin/
 
-# AI assistants and AI search are welcome to read the public pages.
-User-agent: GPTBot
-Allow: /
+# AI search and AI assistants answering a question are welcome to read and quote the public pages.
 User-agent: OAI-SearchBot
-Allow: /
 User-agent: ChatGPT-User
-Allow: /
-User-agent: ClaudeBot
-Allow: /
 User-agent: Claude-SearchBot
-Allow: /
+User-agent: Claude-User
 User-agent: PerplexityBot
+User-agent: Perplexity-User
 Allow: /
+Disallow: /admin/
+
+# AI model training is not allowed.
+User-agent: GPTBot
+User-agent: ClaudeBot
 User-agent: Google-Extended
-Allow: /
 User-agent: Applebot-Extended
-Allow: /
+User-agent: CCBot
+User-agent: Bytespider
+Disallow: /
 
 Sitemap: https://mechanixpro.in/sitemap.xml
