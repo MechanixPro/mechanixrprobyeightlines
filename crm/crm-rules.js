@@ -104,6 +104,31 @@ export function timerInfo(lead, now = new Date(), slaMinutes = 15) {
 export const targetPercent = (booked, target) => (target > 0 ? Math.min(100, Math.round((booked / target) * 100)) : 0);
 export const conversion = (booked, total) => (total > 0 ? Math.round((booked / total) * 100) : 0);
 
+/** Slot wording and start hour (IST), the same as the website and the booking emails. */
+export const SLOT_TEXT = { morning: 'Morning (9 AM – 12 PM)', afternoon: 'Afternoon (12 – 4 PM)', evening: 'Evening (4 – 8 PM)', asap: 'As soon as possible' };
+const SLOT_START = { morning: 9, afternoon: 12, evening: 16 };
+
+/** The WhatsApp message a Care Buddy sends the technician for a job. No prices: the technician gets the bill in the admin. Notes with ID numbers are left out. */
+export function techJobMessage(l) {
+  const first = String(l.mechanic_name || '').trim().split(' ')[0];
+  const day = l.preferred_date ? new Date(l.preferred_date + 'T12:00:00+05:30').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' }) : '';
+  const line = (k, v) => (v ? `${k}: ${v}\n` : '');
+  return `Hi${first ? ' ' + first : ''}, new job ${l.ref}.\n\n` + line('Customer', `${l.name} (${l.phone})`) + line('Bike', l.bike) + line('Service', l.service_name)
+    + line('Place', [l.area, l.address].filter(Boolean).join(', ')) + line('When', [day, SLOT_TEXT[l.preferred_slot] || ''].filter(Boolean).join(' · '))
+    + line('Notes', l.notes && !hasPii(l.notes) ? String(l.notes).slice(0, 300) : '') + '\nPlease reply OK to confirm.';
+}
+
+/** Booked jobs with no technician that need one now: today's jobs from 2 hours before the slot starts, "as soon as possible" jobs at once, and any earlier day still unstaffed. */
+export function unstaffedSoon(jobs, now = new Date()) {
+  const ist = new Date(now.getTime() + 330 * 60e3), today = ist.toISOString().slice(0, 10), hour = ist.getUTCHours() + ist.getUTCMinutes() / 60;
+  return (jobs || []).filter((j) => {
+    if (!j.preferred_date || j.preferred_date > today) return false;
+    if (j.preferred_date < today) return true;
+    const start = SLOT_START[j.preferred_slot];
+    return start == null || hour >= start - 2;
+  });
+}
+
 export function parseContacts(text) {
   const rows = [], seen = new Set();
   for (const line of String(text || '').split(/\r?\n/)) {

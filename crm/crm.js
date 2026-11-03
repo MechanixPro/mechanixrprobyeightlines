@@ -1,7 +1,7 @@
 // Mechanix Desk for Care Buddies. The shell: sign in, navigation by permission, "My day" and the lead sheet.
 // Every other screen lives in ./pages/. Every read and write goes through database functions that check the person's permissions.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
-import { hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent, parseContacts } from './crm-rules.js';
+import { hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent, parseContacts, techJobMessage, unstaffedSoon } from './crm-rules.js';
 import { setClient, rpc, $, $$, esc, rupee, when, toast, clean, debounce, modal, field, confirmBox } from './ui.js';
 import * as dashboard from './pages/dashboard.js';
 import * as leads from './pages/leads.js';
@@ -45,7 +45,7 @@ const SCREENS = [
   { id: 'team', title: 'Team', page: 'team', mod: team },
 ];
 
-const S = { waiting: [], me: null, view: null, leads: [], q: '', open: null, detail: null, users: null, dispositions: [], counts: { unassigned: 0 }, busy: false, kind: 'note' };
+const S = { waiting: [], me: null, view: null, leads: [], q: '', open: null, detail: null, users: null, dispositions: [], counts: { unassigned: 0 }, unstaffed: [], busy: false, kind: 'note' };
 const can = (a) => !!S.me?.permissions?.actions?.[a];
 const pageOk = (p) => !!S.me?.permissions?.pages?.[p];
 const screens = () => SCREENS.filter((s) => pageOk(s.page) && (!s.action || can(s.action) || can('assign_leads')));
@@ -108,7 +108,7 @@ async function boot() {
   startAlerts();
 }
 /* ---------- fast alerts: a new lead or a customer reply makes a sound, a pop-up, a vibration and a number in the tab title ---------- */
-let audioCtx = null, titleBase = document.title; const seen = { leads: null, replies: null, due: null };
+let audioCtx = null, titleBase = document.title; const seen = { leads: null, replies: null, due: null, unstaffed: null };
 function beep() {
   try {
     audioCtx ||= new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -145,7 +145,15 @@ async function pulse() {
     if (seen.due) { const fresh = due.filter((l) => !seen.due.has(key(l))); if (fresh.length) alertUser(fresh.length === 1 ? 'Follow-up due' : fresh.length + ' follow-ups due', fresh.slice(0, 2).map((l) => l.name).join(', ')); }
     seen.due = new Set(due.map(key));
   }
-  const n = (unassigned ? unassigned.length : 0) + (replies ? replies.length : 0) + dueNow; document.title = (n ? '(' + n + ') ' : '') + titleBase;
+  // A booked job still has no technician close to its slot: sound and pop-up once per job, for people who can assign.
+  if (can('assign_leads')) {
+    try {
+      S.unstaffed = unstaffedSoon(await rpc('crm_unstaffed_jobs'));
+      if (seen.unstaffed) { const fresh = S.unstaffed.filter((j) => !seen.unstaffed.has(j.id)); if (fresh.length) alertUser(fresh.length === 1 ? 'Job has no technician' : fresh.length + ' jobs have no technician', fresh.slice(0, 2).map((j) => j.ref + ' ' + j.name).join(', ')); }
+      seen.unstaffed = new Set(S.unstaffed.map((j) => j.id));
+    } catch (e) { /* next time */ }
+  }
+  const n = (unassigned ? unassigned.length : 0) + (replies ? replies.length : 0) + dueNow + S.unstaffed.length; document.title = (n ? '(' + n + ') ' : '') + titleBase;
 }
 function startAlerts() {
   const who = $('#who');
@@ -212,6 +220,7 @@ function renderBody() {
   $('#view').innerHTML = `<div class="view-head"><div><h1>${titles[S.view]}</h1><p class="muted">${hints[S.view]}</p></div>
     <div class="view-tools"><input id="q" type="search" placeholder="Search name, phone or ref" value="${esc(S.q)}" aria-label="Search leads">${can('create_bookings') ? '<button class="btn primary" type="button" data-act="booking">+ Booking</button>' : ''}${can('add_leads') ? '<button class="btn" type="button" data-act="add">+ Lead</button>' : ''}${can('add_leads') ? '<button class="btn ghost" type="button" data-act="import">Import from AiSensy</button>' : ''}</div></div>
     ${S.waiting.length && pageOk('inbox') ? `<div class="alert" role="status"><b>${S.waiting.length}</b> ${S.waiting.length === 1 ? 'customer wrote' : 'customers wrote'} on WhatsApp and ${S.waiting.length === 1 ? 'is' : 'are'} waiting. <button class="btn sm" type="button" data-act="gotoInbox">Open the Inbox</button></div>` : ''}
+    ${S.unstaffed.length ? `<div class="alert" role="status"><b>${S.unstaffed.length}</b> booked ${S.unstaffed.length === 1 ? 'job has' : 'jobs have'} no technician yet: ${S.unstaffed.slice(0, 4).map((j) => `<button class="btn sm" type="button" data-act="open" data-id="${j.id}">${esc(j.ref)} ${esc(j.name)}</button>`).join(' ')}</div>` : ''}
     ${late ? `<div class="alert" role="status"><b>${late}</b> ${late === 1 ? 'lead needs' : 'leads need'} you right now.</div>` : ''}
     <div class="cards">${S.leads.length ? S.leads.map(card).join('') : `<div class="empty">${S.view === 'mine' ? 'Nothing open. Take a lead from <b>Unassigned</b>, or add one you got by phone.' : 'No unassigned leads right now.'}</div>`}</div>`;
   const q = $('#q'); if (q) q.addEventListener('input', debounce(async () => { S.q = q.value.trim(); await loadList(); renderBody(); const n = $('#q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 350));
@@ -251,6 +260,7 @@ function renderSheet() {
       <div><span>Bike</span><b>${esc(l.bike || '—')}</b></div><div><span>Service</span><b>${esc(l.service_name || '—')}</b></div>
       <div><span>Preferred</span><b>${esc([l.preferred_date, l.preferred_slot].filter(Boolean).join(' · ') || '—')}</b></div><div><span>Quote, excluding GST</span><b>${l.est_total ? rupee(l.est_total) : '—'}${l.coupon_code ? ` <small>(${esc(l.coupon_code)} −${rupee(l.coupon_discount)})</small>` : ''}</b></div>
       ${S.money ? `<div><span>Vehicle number</span><b>${esc(S.money.vehicle_reg || 'Not added yet')}</b></div><div><span>Customer paid</span><b>${rupee2(S.money.paid || 0)}</b></div>${S.money.invoice_total != null ? `<div><span>Invoice total · balance</span><b>${rupee2(S.money.invoice_total)} · ${rupee2(S.money.balance || 0)} left</b></div>` : '<div><span>Invoice</span><b>Made when the job is done, with GST added</b></div>'}` : ''}
+      <div><span>Technician</span><b>${l.mechanic_name ? esc(l.mechanic_name) : `<span class="${BOOKED.includes(l.status) && l.status !== 'completed' ? 'badtxt' : 'muted'}">Not assigned</span>`}</b></div>
       <div><span>With</span><b>${esc(l.owner_name || 'Nobody yet')}</b></div><div><span>Stage</span><b>${STATUS_LABEL[l.status]}</b></div>
       ${S.rating && S.rating.rating ? `<div><span>Customer rating</span><b>${'★'.repeat(S.rating.rating)}${'☆'.repeat(5 - S.rating.rating)} ${S.rating.rating}/5${S.rating.comment ? ` <small>“${esc(S.rating.comment)}”</small>` : ''}</b></div>` : S.rating && S.rating.requested_at ? `<div><span>Customer rating</span><b>Asked ${when(S.rating.requested_at)}</b></div>` : ''}
       ${l.disposition ? `<div><span>Disposition</span><b>${esc(l.disposition)}${l.sub_disposition ? ' · ' + esc(l.sub_disposition) : ''}</b></div>` : ''}${l.address ? `<div class="wide"><span>Address</span><b>${esc(l.address)}</b></div>` : ''}</div>
@@ -259,6 +269,7 @@ function renderSheet() {
       <a class="btn wa" href="${waUrl(l.phone, firstMessage(l, S.me.name))}" target="_blank" rel="noopener" data-act="wa" data-id="${l.id}">WhatsApp</a>
       ${!l.crm_owner && can('take_leads') ? `<button class="btn primary" type="button" data-act="take" data-id="${l.id}">Take lead</button>` : ''}
       ${can('edit_leads') && mineOrBoss && !l.crm_won_at && l.status !== 'lost' ? '<button class="btn" type="button" data-act="editBooking">Edit booking</button>' : ''}
+      ${l.mechanic_phone && canAct && l.status !== 'lost' ? `<a class="btn wa" href="${waUrl(l.mechanic_phone, techJobMessage(l))}" target="_blank" rel="noopener">Send job to ${esc(String(l.mechanic_name || 'technician').split(' ')[0])}</a>` : ''}
       ${can('send_payment_link') && l.crm_owner && !BOOKED.includes(l.status) && l.status !== 'lost' ? '<button class="btn" type="button" data-act="payLink">Send payment link</button>' : ''}
       ${can('create_tickets') ? '<button class="btn ghost" type="button" data-act="ticket">Raise a ticket</button>' : ''}</div>
     ${!l.crm_owner && !can('assign_leads') ? '<p class="alert">Take this lead first. Then you can log what happened.</p>' : ''}
