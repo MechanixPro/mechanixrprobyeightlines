@@ -1,8 +1,8 @@
 // Mechanix Desk for Care Buddies. The shell: sign in, navigation by permission, "My day" and the lead sheet.
 // Every other screen lives in ./pages/. Every read and write goes through database functions that check the person's permissions.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
-import { hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent, parseContacts, techJobMessage, unstaffedSoon } from './crm-rules.js';
-import { setClient, rpc, $, $$, esc, rupee, when, toast, clean, debounce, modal, field, confirmBox } from './ui.js';
+import { hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent, parseContacts, techJobMessage, unstaffedSoon, rankTechs, moveCheck } from './crm-rules.js';
+import { setClient, rpc, $, $$, esc, rupee, when, toast, clean, debounce, modal, field, confirmBox, SLOTS } from './ui.js';
 import * as dashboard from './pages/dashboard.js';
 import * as leads from './pages/leads.js';
 import * as webleads from './pages/webleads.js';
@@ -277,6 +277,9 @@ function renderSheet() {
       ${S.rating && S.rating.rating ? `<div><span>Customer rating</span><b>${'★'.repeat(S.rating.rating)}${'☆'.repeat(5 - S.rating.rating)} ${S.rating.rating}/5${S.rating.comment ? ` <small>“${esc(S.rating.comment)}”</small>` : ''}</b></div>` : S.rating && S.rating.requested_at ? `<div><span>Customer rating</span><b>Asked ${when(S.rating.requested_at)}</b></div>` : ''}
       ${l.disposition ? `<div><span>Disposition</span><b>${esc(l.disposition)}${l.sub_disposition ? ' · ' + esc(l.sub_disposition) : ''}</b></div>` : ''}${l.address ? `<div class="wide"><span>Address</span><b>${esc(l.address)}</b></div>` : ''}</div>
     ${l.notes ? `<p class="note-box">${mask(l.notes)}</p>` : ''}
+    ${canAct && !['lost', 'completed'].includes(l.status) ? `<div class="move-bar"><span class="label">Move this lead</span><div class="row wrap">
+      <button class="btn" type="button" data-act="move" data-kind="assign">Assign technician</button><button class="btn primary" type="button" data-act="move" data-kind="confirm">Confirm booking</button>
+      ${OPEN.includes(l.status) ? '<button class="btn ghost" type="button" data-act="move" data-kind="callback">Call back later</button><button class="btn ghost" type="button" data-act="move" data-kind="notint">Not interested</button>' : ''}</div></div>` : ''}
     <div class="lc-actions big"><a class="btn call" href="${telUrl(l.phone)}" data-act="call" data-id="${l.id}">Call</a>
       <a class="btn wa" href="${waUrl(l.phone, firstMessage(l, S.me.name))}" target="_blank" rel="noopener" data-act="wa" data-id="${l.id}">WhatsApp</a>
       ${!l.crm_owner && can('take_leads') ? `<button class="btn primary" type="button" data-act="take" data-id="${l.id}">Take lead</button>` : ''}
@@ -402,6 +405,40 @@ async function saveLog() {
     await afterChange(true);
   } catch (e) { $('#logErr').textContent = clean(e); $('#logSave').disabled = false; }
 }
+/* ---------- move the lead: technician assigned, booking confirmed ---------- */
+const MOVE_SUBS = { 'Technician assigned': 'assign', 'Booking confirmed': 'confirm' };
+const istToday = () => new Date(Date.now() + 330 * 60e3).toISOString().slice(0, 10);
+async function moveAction(kind) {
+  if (kind === 'callback' || kind === 'notint') {
+    const f = $('#logForm'); if (!f || !f.disp) return;
+    f.disp.value = kind === 'callback' ? 'Call backs' : 'Not interested'; syncLogForm(); f.scrollIntoView({ behavior: 'smooth', block: 'start' }); (f.sub || f.body).focus(); return;
+  }
+  const l = S.detail.lead, confirm = kind === 'confirm';
+  const techOptions = async (date) => { try { return rankTechs((await rpc('crm_tech_board', { p_date: date || null })).techs, { ...l, preferred_date: date }); } catch (e) { return (await rpc('crm_mechanic_picker')).map((t) => ({ id: t.id, label: t.name + (t.area ? ' · ' + t.area : '') })); } };
+  const opts = (list, sel) => '<option value="">Choose the technician</option>' + list.map((t) => `<option value="${t.id}"${t.id === sel ? ' selected' : ''}>${esc(t.label)}</option>`).join('');
+  const first = await techOptions(l.preferred_date);
+  const body = `<div class="fld"><label class="label" for="mvTech">Technician</label><select id="mvTech" name="mechanic_id">${opts(first, l.mechanic_id)}</select><p class="hint">Free in the slot and covering the PIN code come first.</p></div>
+    ${confirm ? `<div class="grid2">${field('Visit date', 'date', { type: 'date', min: istToday(), value: l.preferred_date && l.preferred_date >= istToday() ? l.preferred_date : '', half: true })}${field('Time slot', 'slot', { type: 'select', options: SLOTS, value: l.preferred_slot, half: true })}</div>` : ''}
+    ${field('Note (optional)', 'note', { type: 'textarea', rows: 2, max: 500, hint: 'Never write Aadhaar, PAN, bank or card numbers.' })}`;
+  modal({ title: confirm ? 'Confirm the booking' : 'Assign a technician', intro: confirm ? 'Moves the booking to Scheduled. The customer gets the confirmation with the technician\'s name.' : 'Sets who goes to this job. The lead stays where it is.', body, submit: confirm ? 'Confirm booking' : 'Assign technician',
+    onOpen: (form) => { if (confirm) form.date.addEventListener('change', async () => { const cur = form.mechanic_id.value; form.mechanic_id.innerHTML = opts(await techOptions(form.date.value), cur); }); },
+    onSubmit: async (form, d, close) => {
+      const v = { mechanic_id: form.mechanic_id.value, date: d.date, slot: d.slot }, chk = moveCheck(kind, v, istToday());
+      if (!chk.ok) throw new Error(chk.error);
+      const r = confirm ? await rpc('crm_confirm_booking', { p_id: l.id, p_mechanic: v.mechanic_id, p_date: v.date, p_slot: v.slot, p_note: d.note || null })
+        : await rpc('crm_assign_technician', { p_id: l.id, p_mechanic: v.mechanic_id, p_note: d.note || null, p_next_action: null });
+      close();
+      if (confirm && !r.already) sb.functions.invoke('confirm-booking', { body: { lead_id: l.id } }).then(({ data, error }) => { if (error || (data && data.error)) toast('Booking confirmed. The confirmation email could not be sent.', true); });
+      toast(confirm ? (r.already ? 'Already confirmed. Nothing changed.' : 'Booking confirmed with ' + r.mechanic_name + '.') : 'Technician assigned: ' + r.mechanic_name + '.');
+      await afterChange(false); offerJobShare();
+    } });
+}
+async function offerJobShare() {
+  const l = S.detail && S.detail.lead; if (!l || !l.mechanic_phone) return;
+  const first = String(l.mechanic_name || 'the technician').split(' ')[0];
+  if (await confirmBox(`Send the job to ${first} on WhatsApp now?`, 'Send job to ' + first)) window.open(waUrl(l.mechanic_phone, techJobMessage(l)), '_blank', 'noopener');
+}
+
 function assignBox(l) {
   return `<div class="assign"><h3>Assign</h3><div class="row"><select id="assignTo" aria-label="Assign to"><option value="">Unassigned queue</option>${(S.users || []).filter((u) => u.active).map((u) => `<option value="${u.user_id}" ${u.user_id === l.crm_owner ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select>
     <button class="btn ghost" type="button" data-act="assign">Save assignment</button></div></div>`;
@@ -460,10 +497,15 @@ document.addEventListener('click', async (e) => {
     if (act === 'lostOpen') { $('#lostPick').hidden = false; return; }
     if (act === 'lostSave') return await saveOutcome('lost');
     if (act === 'preset') { $('#next').value = b.dataset.iso; return; }
+    if (act === 'move') return await moveAction(b.dataset.kind);
     if (act === 'assign') { await rpc('crm_assign', { p_id: S.open, p_user: $('#assignTo').value || null }); toast('Assignment saved.'); return await afterChange(false); }
   } catch (err) { toast(clean(err), true); }
 });
-document.addEventListener('change', (e) => { if (e.target.matches('#status, [name=kind], #disp')) syncLogForm(); });
+document.addEventListener('change', (e) => {
+  if (e.target.matches('#status, [name=kind], #disp')) syncLogForm();
+  // These two sub-dispositions do more than log: they set the technician (and confirm the booking), so they open the move form.
+  if (e.target.matches('#sub') && MOVE_SUBS[e.target.value]) { const kind = MOVE_SUBS[e.target.value]; e.target.value = ''; moveAction(kind).catch((err) => toast(clean(err), true)); }
+});
 document.addEventListener('submit', (e) => { if (e.target.id === 'logForm') { e.preventDefault(); saveLog(); } if (e.target.id === 'replyForm') { e.preventDefault(); sendReply(); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('.modal-back') && !$('#sheet').hidden) closeSheet(); });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });

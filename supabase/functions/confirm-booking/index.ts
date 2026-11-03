@@ -1,5 +1,6 @@
-// POST /functions/v1/confirm-booking  { lead_id }  — called from the admin panel by a signed-in admin.
-// Moves the booking to "scheduled" and emails the customer a confirmation with their Mechanix Pro certified mechanic.
+// POST /functions/v1/confirm-booking  { lead_id }  — called from the admin panel by a signed-in admin, or from the desk (Crew) by an active desk user.
+// Admin: moves the booking to "scheduled" and emails the customer a confirmation with their Mechanix Pro certified mechanic.
+// Desk: the booking is already "scheduled" (crm_confirm_booking set it), so this only sends the email, at most once a day per booking.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { adminDb, env, json, corsHeaders } from '../_shared/util.ts';
 import { sendEmail, FROM_BOOKING } from '../_shared/resend.ts';
@@ -14,12 +15,18 @@ Deno.serve(async (req) => {
   if (!user) return json(req, { error: 'Sign in again' }, 401);
   const db = adminDb();
   const { data: admin } = await db.from('admins').select('user_id').eq('user_id', user.id).maybeSingle();
-  if (!admin) return json(req, { error: 'Not allowed' }, 403);
+  const { data: desk } = admin ? { data: null } : await db.from('crm_users').select('user_id').eq('user_id', user.id).eq('active', true).maybeSingle();
+  if (!admin && !desk) return json(req, { error: 'Not allowed' }, 403);
 
   const b = await req.json().catch(() => ({}));
   const { data: lead } = await db.from('leads').select('*').eq('id', String(b.lead_id ?? '')).maybeSingle();
   if (!lead) return json(req, { error: 'Booking not found' }, 404);
   if (['completed', 'lost'].includes(lead.status)) return json(req, { error: 'This booking is already closed' }, 400);
+  if (!admin) {
+    if (lead.status !== 'scheduled') return json(req, { error: 'Confirm the booking in the desk first' }, 400);
+    const { count } = await db.from('email_log').select('id', { count: 'exact', head: true }).eq('lead_id', lead.id).eq('template', 'booking_confirmed').eq('status', 'sent').gt('created_at', new Date(Date.now() - 24 * 3600_000).toISOString());
+    if ((count ?? 0) > 0) return json(req, { ok: true, emailed: false, already: true });
+  }
 
   const [{ data: cust }, { data: bike }, { data: mech }, { data: svc }] = await Promise.all([
     lead.customer_id ? db.from('customers').select('email,email_unsubscribed_at').eq('id', lead.customer_id).maybeSingle() : Promise.resolve({ data: null }),
@@ -28,8 +35,9 @@ Deno.serve(async (req) => {
     lead.service_id ? db.from('services').select('name').eq('id', lead.service_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
 
-  await db.from('leads').update({ status: 'scheduled', confirmed_at: new Date().toISOString() }).eq('id', lead.id);
-  await db.from('audit_log').insert({ actor: user.id, action: 'booking_confirmed', details: { lead: lead.ref } });
+  if (admin) await db.from('leads').update({ status: 'scheduled', confirmed_at: new Date().toISOString() }).eq('id', lead.id);
+  else if (!lead.confirmed_at) await db.from('leads').update({ confirmed_at: new Date().toISOString() }).eq('id', lead.id);
+  await db.from('audit_log').insert({ actor: user.id, action: 'booking_confirmed', details: { lead: lead.ref, from: admin ? 'admin' : 'desk' } });
 
   let emailed = false;
   if (cust?.email) {

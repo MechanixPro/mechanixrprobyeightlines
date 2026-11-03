@@ -141,6 +141,17 @@ export function rankTechs(board, lead) {
   return list.sort((a, b) => (a.busy - b.busy) || (b.covers - a.covers) || (a.i - b.i));
 }
 
+/** Check a "Technician assigned" (assign) or "Booking confirmed" (confirm) move before saving. today is the IST date as YYYY-MM-DD. */
+export function moveCheck(kind, v, today) {
+  if (!v.mechanic_id) return { ok: false, error: 'Choose the technician.' };
+  if (kind === 'confirm') {
+    if (!v.date) return { ok: false, error: 'Choose the date.' };
+    if (!v.slot) return { ok: false, error: 'Choose a time slot.' };
+    if (v.date < today) return { ok: false, error: 'The date is in the past.' };
+  }
+  return { ok: true };
+}
+
 export function parseContacts(text) {
   const rows = [], seen = new Set();
   for (const line of String(text || '').split(/\r?\n/)) {
