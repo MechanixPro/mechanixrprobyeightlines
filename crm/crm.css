@@ -110,3 +110,7 @@ button.stat.clickable:hover{box-shadow:0 10px 26px rgba(15,29,69,.16)}
 details.board{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;margin:0 0 14px}details.board summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}details.board .table-wrap{border:0;margin-top:6px}details.board td{white-space:normal;vertical-align:top}details.board .chip.pick{margin:2px 4px 2px 0}
 .move-bar{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;margin:12px 0}.move-bar .row{gap:8px;margin-top:6px}
 .goodtxt{color:var(--good,#11743b);font-weight:700}
+
+.ho-card h3{margin:0 0 8px}.ho-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line)}.ho-row p{margin:2px 0 0}
+.ho-row .btn.sm{min-height:44px}
+.ho-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}.ho-photos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block}

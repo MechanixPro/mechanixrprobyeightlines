@@ -9,3 +9,16 @@ main.page.job-page{max-width:560px;margin:0 auto;padding:24px 16px 48px;width:au
 .job-page .err{color:#b42318;min-height:20px}
 .job-pay{display:block;text-align:center;font-size:18px;min-height:56px;line-height:56px;margin-top:12px}
 .job-page .card h2{margin:0 0 12px;font-size:24px}.job-page .card>*:first-child{margin-top:0}
+/* Handover steps: photos and the customer's code */
+.job-h{font-size:24px;margin:24px 0 0}
+.job-page .job-step h2{margin:0 0 8px}
+.job-snap{display:flex;align-items:center;justify-content:center;min-height:52px;cursor:pointer}
+.job-page .job-file{position:absolute;width:1px;min-height:0;height:1px;padding:0;border:0;opacity:0;overflow:hidden}
+.job-file:focus-visible+.job-count,.job-snap:focus-within{outline:2px solid var(--ember,#F2801F)}
+.job-count{margin:10px 0 6px;font-weight:600}
+.job-thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.job-thumb{position:relative;display:block}.job-thumb img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block}
+.job-thumb button{position:absolute;top:-6px;right:-6px;width:44px;height:44px;background:none;border:0;padding:0;font-size:0;cursor:pointer}
+.job-thumb button::after{content:"×";position:absolute;top:6px;right:6px;width:24px;height:24px;line-height:22px;text-align:center;font-size:18px;border-radius:50%;background:#14295A;color:#fff}
+.job-code{letter-spacing:.4em;text-align:center;font-size:24px}
+.job-ok{color:#067647;font-weight:600;margin:0}
