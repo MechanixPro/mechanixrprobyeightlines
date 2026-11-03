@@ -459,7 +459,7 @@ async function sendJob() {
   const l = S.detail && S.detail.lead; if (!l || !l.mechanic_phone) return;
   const win = window.open('about:blank', '_blank');  // open now, while the tap still counts, then point it at WhatsApp
   let url = null; try { url = await rpc('crm_tech_link', { p_lead: l.id }); } catch (e) { toast('The job link could not be made: ' + clean(e) + ' Sending the job without it.', true); }
-  const wa = waUrl(l.mechanic_phone, techJobMessage(l, url));
+  const wa = waUrl(l.mechanic_phone, techJobMessage(l, url, { pickup: !!(S.handover && S.handover.is_pickup) }));
   if (win) { win.opener = null; win.location.href = wa; } else window.open(wa, '_blank', 'noopener');
 }
 

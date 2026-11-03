@@ -11,9 +11,12 @@ test('the video and its poster are in the project and small enough for phones', 
   assert.ok(size('assets/video/how-it-works.mp4') < 3 * 1024 * 1024);
   assert.ok(size('assets/video/how-it-works-poster.webp') < 150 * 1024);
 });
-test('the home page has no autoplay hero video; only the two muted job clips in Watch the work', () => {
+test('the home page has no autoplay hero video; only the two muted job clips in Watch the work and the tap-to-play booking demo', () => {
   const vids = read('index.html').match(/<video[^>]*>/g) || [];
-  assert.equal(vids.length, 2); vids.forEach((v) => { assert.match(v, /data-watch/); assert.match(v, /muted/); assert.doesNotMatch(v, /autoplay/); });
+  assert.equal(vids.length, 3);
+  vids.forEach((v) => { assert.match(v, /muted/); assert.doesNotMatch(v, /autoplay/); assert.match(v, /preload="none"/); });
+  assert.equal(vids.filter((v) => /data-watch/.test(v)).length, 2);
+  const demo = vids.filter((v) => !/data-watch/.test(v)); assert.equal(demo.length, 1); assert.match(demo[0], /how-to-book-poster/); assert.match(demo[0], /\bcontrols\b/);
 });
 test('the first play is recorded through the shared tags, with no personal data', () => {
   const j = read('assets/js/media.js');

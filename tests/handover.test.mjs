@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { isCode, isKind, isPickupJob, handoverHash, sameHash, codeExpiry, codeState, stepState, afterWrongTry, cleanPhotos, cleanUploadRequest, purgeCutoff, CODE_TTL_HOURS, MAX_ATTEMPTS, MIN_PHOTOS, MAX_PHOTOS, HANDOVER_KEEP_MONTHS } from '../supabase/functions/_shared/handover.ts';
-import { handoverStatus, canSendHandoverCode, handoverMessage } from '../crm/crm-rules.js';
+import { handoverStatus, canSendHandoverCode, handoverMessage, techJobMessage } from '../crm/crm-rules.js';
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const LEAD = '11111111-2222-3333-4444-555555555555', U = (n) => `00000000-0000-0000-0000-00000000000${n}`;
 const now = new Date('2026-11-10T10:00:00Z');
@@ -164,4 +164,14 @@ test('photo cleanup goes through the Storage API, because Supabase refuses direc
   assert.match(f, /x-desk-cron/); assert.match(f, /storage\.from\('handover'\)\.remove/);
   // rows are cleared only after the files are removed
   assert.ok(f.indexOf(".remove(") < f.indexOf("update({ photo_paths: [] })"));
+});
+
+test('the WhatsApp job message tells the technician about the photos and code for pickup jobs, and stays as before for doorstep jobs', () => {
+  const lead = { ref: 'MXP-1', name: 'A', phone: '9000000001', mechanic_name: 'Guru Raj' }, url = 'https://mechanixpro.in/job/?t=ab';
+  const pick = techJobMessage(lead, url, { pickup: true });
+  assert.match(pick, /PICKUP JOB/); assert.match(pick, /4 photos/); assert.match(pick, /4-digit code/); assert.ok(pick.endsWith(url));
+  assert.doesNotMatch(pick, /₹/);
+  const door = techJobMessage(lead, url);
+  assert.doesNotMatch(door, /PICKUP JOB/); assert.ok(door.endsWith('After the job, update the amount collected here: ' + url));
+  assert.match(read('crm/crm.js'), /techJobMessage\(l, url, \{ pickup: !!\(S\.handover && S\.handover\.is_pickup\) \}\)/);
 });

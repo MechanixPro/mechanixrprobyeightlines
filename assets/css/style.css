@@ -1254,3 +1254,9 @@ html{-webkit-tap-highlight-color:transparent}
 @keyframes heroConvoy{0%{transform:translateX(-100%)}100%{transform:translateX(100vw)}}
 @media(max-width:700px){.hero-ride{height:30%}.hero-ride .convoy{animation-duration:60s}.hero-ride .convoy img{height:clamp(70px,22vw,110px);opacity:.26}}
 @media(prefers-reduced-motion:reduce){.hero-ride .convoy{animation:none;transform:none;left:-2%}}
+
+/* "How booking works" demo video: starts only when tapped, loads nothing until then */
+.how-demo{margin:28px 0 0;max-width:300px}
+.how-demo video{display:block;width:100%;height:auto;aspect-ratio:9/16;border-radius:24px;background:#0F2250}
+.how-demo figcaption{margin-top:10px;color:var(--ink-2);font-size:15px;line-height:1.45}
+.how-demo figcaption b{color:var(--ember)}
