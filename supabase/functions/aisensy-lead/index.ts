@@ -33,5 +33,6 @@ Deno.serve(async (req) => {
   }).select('ref').single();
   if (error) { console.error(error); return json(req, { error: 'Could not save' }, 500); }
   await alertNewLead(db, { ref: lead.ref, name: x.name, phone: last10(x.phone), source: 'whatsapp', area: x.area ?? null, note: x.note ?? null });
-  return json(req, { ok: true, ref: lead.ref, estimate: est });
+  // No ID goes back: a lead is not a booking, and the chatbot must not show the customer a reference. The private ref stays in the database.
+  return json(req, { ok: true, estimate: est });
 });

@@ -19,10 +19,10 @@
     });
   }
   function done(html) { out.innerHTML = '<div class="card track-card fade">' + html + '</div>'; msg.textContent = ''; go.disabled = false; }
-  function verify(resp, ref) {
+  function verify(resp, bid) {
     msg.textContent = 'Confirming your payment…';
     call('verify-payment', { razorpay_order_id: resp.razorpay_order_id, razorpay_payment_id: resp.razorpay_payment_id, razorpay_signature: resp.razorpay_signature }).then(function (x) {
-      if (x.ok && x.d.status === 'paid') done('<h2 style="font-size:28px">Payment received.</h2><p>Thank you. Your booking <b>' + esc(x.d.ref || ref) + '</b> is confirmed. We will message you on WhatsApp with the next steps.</p>');
+      if (x.ok && x.d.status === 'paid') done('<h2 style="font-size:28px">Payment received.</h2><p>Thank you. ' + (x.d.booking_id || bid ? 'Your booking <b>' + esc(x.d.booking_id || bid) + '</b>' : 'Your booking') + ' is confirmed. We will message you on WhatsApp with the next steps.</p>');
       else if (x.status === 202) done('<h2 style="font-size:28px">Almost done.</h2><p>' + esc(x.d.message || 'Your payment is being confirmed.') + '</p>');
       else { go.disabled = false; msg.textContent = (x.d && x.d.error) || 'We could not confirm the payment. If money was taken, message us on WhatsApp with your reference.'; }
     }).catch(function () { go.disabled = false; msg.textContent = 'No connection while confirming. If money was taken, message us on WhatsApp with your reference.'; });
@@ -37,9 +37,9 @@
       if (!x.ok) { go.disabled = false; msg.textContent = (x.d && x.d.error) || 'Something went wrong. Please try again.'; return; }
       return loadCheckout().then(function () {
         var o = x.d, rzp = new window.Razorpay({
-          key: o.key_id, amount: o.amount, currency: o.currency, order_id: o.order_id, name: 'Mechanix Pro', description: 'Booking ' + o.ref,
+          key: o.key_id, amount: o.amount, currency: o.currency, order_id: o.order_id, name: 'Mechanix Pro', description: o.booking_id ? 'Booking ' + o.booking_id : 'Mechanix Pro slot fee',
           prefill: { name: o.name, contact: '+91' + phone.replace(/\D/g, '').slice(-10) }, theme: { color: '#F2801F' },
-          handler: function (resp) { verify(resp, o.ref); },
+          handler: function (resp) { verify(resp, o.booking_id); },
           modal: { ondismiss: function () { go.disabled = false; msg.textContent = 'Payment cancelled. Nothing was charged. You can try again.'; } },
         });
         rzp.on('payment.failed', function (r) { go.disabled = false; msg.textContent = 'Payment failed' + (r && r.error && r.error.description ? ': ' + r.error.description : '') + '. You can try again.'; });

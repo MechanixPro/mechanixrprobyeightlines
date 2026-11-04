@@ -48,7 +48,8 @@ ${d.buildUrl ? `<p style="margin:14px 0 0"><a href="${escapeHtml(d.buildUrl)}" s
 const first = (name: string) => escapeHtml(String(name || 'there').trim().split(/\s+/)[0] || 'there');
 const firstText = (name: string) => String(name || 'there').trim().split(/\s+/)[0] || 'there';
 
-export type BookingData = Site & { checkupFee?: number | null; newCustomer?: boolean; nick?: string | null; buildUrl?: string | null; name: string; ref: string; bike: string; service: string; area: string; whenText: string; estimate: number };
+// ref is the booking ID (MP-yy-yy-####). A request that is not confirmed yet has none, so every template leaves the line out instead of showing a private ref.
+export type BookingData = Site & { checkupFee?: number | null; newCustomer?: boolean; nick?: string | null; buildUrl?: string | null; name: string; ref?: string | null; bike: string; service: string; area: string; whenText: string; estimate: number };
 
 const step = (n: number, t: string) => `<tr><td style="padding:5px 12px 5px 0;font:700 15px ${FONT};color:${EMBER};vertical-align:top">${n}</td><td style="padding:5px 0;font:15px/1.5 ${FONT};color:${INK}">${t}</td></tr>`;
 const tick = (t: string) => `<tr><td style="padding:4px 10px 4px 0;font:700 15px ${FONT};color:${EMBER};vertical-align:top">&#10003;</td><td style="padding:4px 0;font:15px/1.5 ${FONT};color:${INK}">${t}</td></tr>`;
@@ -56,7 +57,7 @@ const heading = (t: string) => `<p style="margin:22px 0 8px;font:700 16px ${FONT
 
 // The one email a customer gets when they book. It explains the journey, the slot fee and how their money is protected, and states only true things.
 export function bookingReceived(d: BookingData): Mail {
-  const subject = `We got your request ${d.ref}`;
+  const subject = `We got your request${d.ref ? ' ' + d.ref : ''}`;
   const fee = d.checkupFee ? rupee(d.checkupFee) : null;
   const feeLine = fee
     ? (d.newCustomer
@@ -69,7 +70,7 @@ export function bookingReceived(d: BookingData): Mail {
   const body = `${h1(`Thanks, ${firstText(d.name)}. We got your request.`)}
 ${p('Our expert will check what your bike needs and send you a quote on WhatsApp. Nothing starts, and nothing is charged, until you approve it.')}
 ${buildCard(d)}
-${rows([['Reference', d.ref], ['Bike', d.bike], ['Service', d.service], ['Area', d.area], ['Preferred time', d.whenText], ['Starting estimate', rupee(d.estimate) + ', excluding GST']])}
+${rows([...(d.ref ? [['Reference', d.ref] as [string, string]] : []), ['Bike', d.bike], ['Service', d.service], ['Area', d.area], ['Preferred time', d.whenText], ['Starting estimate', rupee(d.estimate) + ', excluding GST']])}
 ${heading('What happens next')}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 6px">
 ${step(1, 'Our expert calls or messages you to confirm what is needed, and whether it can be done at your door.')}
@@ -92,26 +93,26 @@ ${tick('Mechanix Pro-certified mechanics')}${tick('OEM and aftermarket parts, fi
 </table>
 ${p(`Questions? Message us on WhatsApp or call, any time. We are open 24/7. Full terms: <a href="${escapeHtml(d.siteUrl)}/refund-policy/" style="color:${NAVY}">refund policy</a>.`)}
 ${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}${button('Call us', 'tel:' + d.phoneTel, NAVY, '#ffffff')}`;
-  const text = `Thanks, ${firstText(d.name)}. We got your request.\n\nOur expert will check what your bike needs and send you a quote on WhatsApp. Nothing starts, and nothing is charged, until you approve it.\n\nYour package for ${d.bike}${d.buildUrl ? `\nEdit your build: ${d.buildUrl}` : ''}\n\nReference: ${d.ref}\nBike: ${d.bike}\nService: ${d.service}\nArea: ${d.area}\nPreferred time: ${d.whenText}\nStarting estimate: ${rupee(d.estimate)}, excluding GST\n\nWhat happens next\n1. Our expert calls or messages you to confirm what is needed.\n2. You get an itemised quote on WhatsApp. Quote first: work starts only after you approve.\n3. You approve, and we lock your slot with a small fee. A Mechanix Pro-certified mechanic then comes to you.\n4. After the service you get a GST invoice, and our 30-day service warranty starts.\n\nThe slot fee, explained\n${feeText} It is adjusted in your final bill if you go ahead with the service.\n\nHow your money is protected\n- Cancel more than 2 hours before your slot and the fee is refunded in full.\n- You pay securely on Razorpay. We never see your card details.\n- We never ask for your card number, PIN or OTP on chat, call or email.\n- Extra work is shown to you first and starts only after your approval.\n\nWhat you can count on: Mechanix Pro-certified mechanics, OEM and aftermarket parts, 30-day service warranty, OTP-safe handover, a GST invoice for every job.\n\nWhatsApp: ${d.whatsappUrl}\nCall: ${d.phoneDisplay}`;
+  const text = `Thanks, ${firstText(d.name)}. We got your request.\n\nOur expert will check what your bike needs and send you a quote on WhatsApp. Nothing starts, and nothing is charged, until you approve it.\n\nYour package for ${d.bike}${d.buildUrl ? `\nEdit your build: ${d.buildUrl}` : ''}\n\n${d.ref ? `Reference: ${d.ref}\n` : ''}Bike: ${d.bike}\nService: ${d.service}\nArea: ${d.area}\nPreferred time: ${d.whenText}\nStarting estimate: ${rupee(d.estimate)}, excluding GST\n\nWhat happens next\n1. Our expert calls or messages you to confirm what is needed.\n2. You get an itemised quote on WhatsApp. Quote first: work starts only after you approve.\n3. You approve, and we lock your slot with a small fee. A Mechanix Pro-certified mechanic then comes to you.\n4. After the service you get a GST invoice, and our 30-day service warranty starts.\n\nThe slot fee, explained\n${feeText} It is adjusted in your final bill if you go ahead with the service.\n\nHow your money is protected\n- Cancel more than 2 hours before your slot and the fee is refunded in full.\n- You pay securely on Razorpay. We never see your card details.\n- We never ask for your card number, PIN or OTP on chat, call or email.\n- Extra work is shown to you first and starts only after your approval.\n\nWhat you can count on: Mechanix Pro-certified mechanics, OEM and aftermarket parts, 30-day service warranty, OTP-safe handover, a GST invoice for every job.\n\nWhatsApp: ${d.whatsappUrl}\nCall: ${d.phoneDisplay}`;
   return { subject, html: layout({ preheader: 'Your quote comes on WhatsApp. Nothing starts until you approve it.', title: subject, body, site: d }), text };
 }
 
-export type PaymentLinkData = Site & { name: string; ref: string; amount: number; payUrl: string };
+export type PaymentLinkData = Site & { name: string; ref?: string | null; amount: number; payUrl: string };
 export function paymentLinkEmail(d: PaymentLinkData): Mail {
-  const subject = `Pay ${rupee(d.amount)} to confirm booking ${d.ref}`;
+  const subject = d.ref ? `Pay ${rupee(d.amount)} to confirm booking ${d.ref}` : `Pay ${rupee(d.amount)} to lock your slot`;
   const body = `${h1(`Your secure payment link, ${firstText(d.name)}.`)}
-${p(`Please pay <b>${rupee(d.amount)}</b> for booking <b>${escapeHtml(d.ref)}</b> to lock your slot. It is adjusted in your final bill if you go ahead with the service.`)}
+${p(`Please pay <b>${rupee(d.amount)}</b> for ${d.ref ? `booking <b>${escapeHtml(d.ref)}</b>` : 'your request'} to lock your slot. It is adjusted in your final bill if you go ahead with the service.`)}
 ${button('Pay securely', d.payUrl)}
 ${p('You can pay by UPI, card, wallet or net banking on Razorpay. We never ask for your card number, PIN or OTP on chat, call or email.')}
 ${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}${button('Call us', 'tel:' + d.phoneTel, NAVY, '#ffffff')}`;
-  const text = `Your secure payment link, ${firstText(d.name)}.\n\nPlease pay ${rupee(d.amount)} for booking ${d.ref} to lock your slot. It is adjusted in your final bill if you go ahead.\n\nPay securely: ${d.payUrl}\n\nWe never ask for your card number, PIN or OTP on chat, call or email.\n\nWhatsApp: ${d.whatsappUrl}\nCall: ${d.phoneDisplay}`;
-  return { subject, html: layout({ preheader: `Pay ${rupee(d.amount)} for ${d.ref}`, title: subject, body, site: d }), text };
+  const text = `Your secure payment link, ${firstText(d.name)}.\n\nPlease pay ${rupee(d.amount)} for ${d.ref ? `booking ${d.ref}` : 'your request'} to lock your slot. It is adjusted in your final bill if you go ahead.\n\nPay securely: ${d.payUrl}\n\nWe never ask for your card number, PIN or OTP on chat, call or email.\n\nWhatsApp: ${d.whatsappUrl}\nCall: ${d.phoneDisplay}`;
+  return { subject, html: layout({ preheader: d.ref ? `Pay ${rupee(d.amount)} for ${d.ref}` : `Pay ${rupee(d.amount)} to lock your slot`, title: subject, body, site: d }), text };
 }
 
 export type ConfirmedData = BookingData & { mechanicName?: string | null; amountDue?: number | null };
 export function bookingConfirmed(d: ConfirmedData): Mail {
-  const subject = `Your service is confirmed ${d.ref}`;
-  const pairs: Array<[string, string]> = [['Reference', d.ref], ['Bike', d.bike], ['Service', d.service], ['When', d.whenText], ['Where', d.area]];
+  const subject = `Your service is confirmed${d.ref ? ' ' + d.ref : ''}`;
+  const pairs: Array<[string, string]> = [...(d.ref ? [['Reference', d.ref] as [string, string]] : []), ['Bike', d.bike], ['Service', d.service], ['When', d.whenText], ['Where', d.area]];
   if (d.mechanicName) pairs.push(['Your mechanic', d.mechanicName]);
   if (d.amountDue) pairs.push(['Amount due', rupee(d.amountDue)]);
   const body = `${h1(`You're all set, ${firstText(d.name)}.`)}
@@ -192,16 +193,16 @@ ${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}${button('Call us', '
   return { subject, html: layout({ preheader: `Invoice ${v.number}: total ${inr2(v.total)}`, title: subject, body, site: d }), text };
 }
 
-export type PickupData = Site & { name: string; ref: string; bike: string; reg?: string | null; service: string; mechanicName?: string | null };
+export type PickupData = Site & { name: string; ref?: string | null; bike: string; reg?: string | null; service: string; mechanicName?: string | null };
 /** Sent when the team collects the customer's vehicle for service. */
 export function vehiclePickedUp(d: PickupData): Mail {
-  const subject = `Your ${d.bike} has been picked up ${d.ref}`;
-  const pairs: Array<[string, string]> = [['Reference', d.ref], ['Vehicle', d.bike + (d.reg ? ` (${d.reg})` : '')], ['Service', d.service]];
+  const subject = `Your ${d.bike} has been picked up${d.ref ? ' ' + d.ref : ''}`;
+  const pairs: Array<[string, string]> = [...(d.ref ? [['Reference', d.ref] as [string, string]] : []), ['Vehicle', d.bike + (d.reg ? ` (${d.reg})` : '')], ['Service', d.service]];
   if (d.mechanicName) pairs.push(['Your mechanic', d.mechanicName]);
   const body = `${h1(`We have your ${escapeHtml(d.bike)}, ${firstText(d.name)}.`)}
 ${p('Your vehicle has been picked up by the Mechanix Pro team and is on its way for service. We will share an update and the quote for any extra work before we start it. Nothing extra is done without your approval.')}
 ${rows(pairs)}
 ${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}${button('Call us', 'tel:' + d.phoneTel, NAVY, '#ffffff')}`;
-  const text = `We have your ${d.bike}, ${firstText(d.name)}.\n\nYour vehicle has been picked up by the Mechanix Pro team and is on its way for service. We will share an update and the quote for any extra work before we start it.\n\nReference: ${d.ref}\nVehicle: ${d.bike}${d.reg ? ' (' + d.reg + ')' : ''}\nService: ${d.service}${d.mechanicName ? '\nYour mechanic: ' + d.mechanicName : ''}\n\nWhatsApp: ${d.whatsappUrl}\nCall: ${d.phoneDisplay}`;
-  return { subject, html: layout({ preheader: `Picked up for service: ${d.ref}`, title: subject, body, site: d }), text };
+  const text = `We have your ${d.bike}, ${firstText(d.name)}.\n\nYour vehicle has been picked up by the Mechanix Pro team and is on its way for service. We will share an update and the quote for any extra work before we start it.\n\n${d.ref ? `Reference: ${d.ref}\n` : ''}Vehicle: ${d.bike}${d.reg ? ' (' + d.reg + ')' : ''}\nService: ${d.service}${d.mechanicName ? '\nYour mechanic: ' + d.mechanicName : ''}\n\nWhatsApp: ${d.whatsappUrl}\nCall: ${d.phoneDisplay}`;
+  return { subject, html: layout({ preheader: d.ref ? `Picked up for service: ${d.ref}` : 'Picked up for service', title: subject, body, site: d }), text };
 }

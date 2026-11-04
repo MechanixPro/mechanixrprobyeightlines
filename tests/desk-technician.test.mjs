@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { techJobMessage, unstaffedSoon } from '../crm/crm-rules.js';
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 
-const lead = { ref: 'MXP-1042', name: '[Customer Name]', phone: '9000000000', bike: 'Honda Activa', service_name: 'General service', area: 'HSR Layout', address: '12, 5th Main', preferred_date: '2026-11-04', preferred_slot: 'morning', mechanic_name: 'Ravi Kumar', notes: 'Brake noise' };
+const lead = { ref: 'L-XYZ123', booking_id: 'MXP-1042', name: '[Customer Name]', phone: '9000000000', bike: 'Honda Activa', service_name: 'General service', area: 'HSR Layout', address: '12, 5th Main', preferred_date: '2026-11-04', preferred_slot: 'morning', mechanic_name: 'Ravi Kumar', notes: 'Brake noise' };
 
 test('the job message to the technician has what they need and no money figures', () => {
   const t = techJobMessage(lead);
@@ -13,7 +13,7 @@ test('the job message to the technician has what they need and no money figures'
   assert.doesNotMatch(t, /₹|rs\.?\s?\d/i);
 });
 test('empty fields are left out of the job message', () => {
-  const t = techJobMessage({ ref: 'MXP-1', name: 'A', phone: '9000000001' });
+  const t = techJobMessage({ ref: 'L-ABC123', booking_id: 'MXP-1', name: 'A', phone: '9000000001' });
   assert.doesNotMatch(t, /Bike:|Service:|Place:|When:|Notes:/);
   assert.match(t, /^Hi, new job MXP-1/);
 });

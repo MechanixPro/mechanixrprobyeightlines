@@ -28,7 +28,7 @@ test('mail headers use the real logo and wordmark images', () => {
   assert.match(h, /assets\/img\/email-logo\.png/); assert.match(h, /assets\/img\/email-wordmark\.png/);
 });
 test('invoice mail lists items, splits GST, shows company details and what was paid', () => {
-  const inv = adminInvoice({ ref: 'MP-1', name: 'Asha', phone: '9876543210', service_id: 'general', addons: ['wash'], coupon_discount: 100, paid_amount: 349 }, [
+  const inv = adminInvoice({ ref: 'L-1', booking_id: 'MP-1', name: 'Asha', phone: '9876543210', service_id: 'general', addons: ['wash'], coupon_discount: 100, paid_amount: 349 }, [
     { id: 'general', kind: 'service', name: 'General service', price: 1299 }, { id: 'wash', kind: 'addon', name: 'Foam wash', price: 199 }], { date: '2026-10-08T05:00:00Z' });
   const m = invoiceEmail({ ...SITE, invoice: inv, company: { legalName: 'NOVA VENTURES', addressLines: ['Haralur Main Rd'], city: 'Bengaluru', state: 'Karnataka', pincode: '560102', gstin: '29DVCPR0895G1Z3' } });
   assert.match(m.subject, /INV-MP-1/);

@@ -2,6 +2,7 @@
 // replies STOP, or the lead is closed. Max 4 reminders over 3 days; never during quiet hours.
 import { adminDb, env, rupee, respectQuietHours, getSetting, safeEqual } from '../_shared/util.ts';
 import { sendSmart, whatsappReady, TPL } from '../_shared/whatsapp.ts';
+import { bookingId, idParam } from '../_shared/booking-id.ts';
 
 // Delay before the NEXT reminder, by step just sent.
 const NEXT_DELAY_H = [3, 21, 48]; // step0 → +3h, step1 → +21h (≈24h), step2 → +48h (≈72h), step3 → stop
@@ -29,16 +30,16 @@ Deno.serve(async (req) => {
     const step: number = lead.followup_step ?? 0;
     let text: string, tpl: { name: string; params: string[] };
     if (lead.payment_link && step < 3) {
-      text = `Hi ${first}, your slot for booking ${lead.ref} is on hold. Pay ${rupee(lead.amount_due ?? 199)} to confirm (adjusted in your final bill): ${lead.payment_link}`;
-      tpl = { name: TPL.payment(), params: [first, String(lead.amount_due ?? 199), lead.ref, lead.payment_link] };
+      text = `Hi ${first}, your slot is on hold${bookingId(lead) ? ' for booking ' + bookingId(lead) : ''}. Pay ${rupee(lead.amount_due ?? 199)} to confirm (adjusted in your final bill): ${lead.payment_link}`;
+      tpl = { name: TPL.payment(), params: [first, String(lead.amount_due ?? 199), idParam(lead), lead.payment_link] };
     } else if (step < 3) {
       text = step === 0
-        ? `Hi ${first}, this is Mechanix Pro. We got your booking ${lead.ref}. Reply YES to confirm your slot, or tell us a better time.`
-        : `Hi ${first}, your Mechanix Pro booking ${lead.ref} is still open. Shall we confirm it? Reply YES or share a convenient time.`;
-      tpl = { name: TPL.followup(), params: [first, lead.ref] };
+        ? `Hi ${first}, this is Mechanix Pro. We got your ${bookingId(lead) ? 'booking ' + bookingId(lead) : 'request'}. Reply YES to confirm your slot, or tell us a better time.`
+        : `Hi ${first}, your Mechanix Pro booking ${idParam(lead)} is still open. Shall we confirm it? Reply YES or share a convenient time.`;
+      tpl = { name: TPL.followup(), params: [first, idParam(lead)] };
     } else {
-      text = `Hi ${first}, should we keep booking ${lead.ref} open? Reply YES to continue or STOP to close it.`;
-      tpl = { name: TPL.last(), params: [first, lead.ref] };
+      text = `Hi ${first}, should we keep booking ${idParam(lead)} open? Reply YES to continue or STOP to close it.`;
+      tpl = { name: TPL.last(), params: [first, idParam(lead)] };
     }
     const id = await sendSmart(db, lead, text, tpl, 'system');
     const nextStep = step + 1;

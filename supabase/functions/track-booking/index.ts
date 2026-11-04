@@ -2,6 +2,7 @@
 // Public, for the /track/ page. Both the reference and the booking's mobile number must match; the answer is progress only.
 import { adminDb, env, json, corsHeaders, sha256Hex } from '../_shared/util.ts';
 import { cleanLookup, trackView } from '../_shared/track.ts';
+import { refFilter } from '../_shared/booking-id.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
@@ -18,7 +19,7 @@ Deno.serve(async (req) => {
   if ((count ?? 0) >= 20) return json(req, { error: 'Too many tries. Please wait a few minutes.' }, 429);
   await db.from('track_attempts').insert({ ip_hash: ipHash });
 
-  const { data: lead } = await db.from('leads').select('ref,status,phone,area,service_id,preferred_date,preferred_slot,preferred_time,est_total,bike_id,mechanic_id').or(`ref.eq.${v.ref},old_ref.eq.${v.ref}`).eq('phone', v.phone).is('deleted_at', null).maybeSingle();
+  const { data: lead } = await db.from('leads').select('booking_id,status,phone,area,service_id,preferred_date,preferred_slot,preferred_time,est_total,bike_id,mechanic_id').or(refFilter(v.ref)).eq('phone', v.phone).is('deleted_at', null).maybeSingle();
   // The same answer for "no such reference" and "wrong number", so nobody can probe which references exist.
   if (!lead) return json(req, { error: 'We could not find that booking. Check the reference and the number you booked with.' }, 404);
   const [svc, bike, mech] = await Promise.all([

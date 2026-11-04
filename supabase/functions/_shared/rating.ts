@@ -1,5 +1,6 @@
 // Customer rating links. Pure (WebCrypto only), so Node can test it.
 // The link carries the booking reference and a signature only the server can make, so nobody can rate a booking they were not sent a link for.
+import { REF_RE } from './booking-id.ts';
 const enc = new TextEncoder();
 async function hmacHex(secret: string, data: string): Promise<string> {
   const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
@@ -17,7 +18,7 @@ export const ratingUrl = (site: string, ref: string, token: string) => `${site.r
 
 export function cleanRating(b: Record<string, unknown>): { ok: true; value: { ref: string; k: string; rating: number; comment: string | null } } | { ok: false; error: string } {
   const ref = String(b?.ref ?? '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
-  if (!/^MP-(?:\d{2}-\d{2}-\d{4}|[A-Z0-9]{6})$/.test(ref)) return { ok: false, error: 'This rating link is not valid.' };
+  if (!REF_RE.test(ref)) return { ok: false, error: 'This rating link is not valid.' };
   const rating = Number(b?.rating);
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) return { ok: false, error: 'Choose a rating from 1 to 5.' };
   const comment = String(b?.comment ?? '').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500) || null;

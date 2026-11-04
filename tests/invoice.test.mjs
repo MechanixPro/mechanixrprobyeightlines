@@ -10,7 +10,7 @@ const services = [
   { id: 'bigbike', kind: 'fee', name: 'Big bike surcharge', price: 300 },
   { id: 'repair', kind: 'service', name: 'Repair or problem check', price: 349 },
 ];
-const lead = { ref: 'MP-53020C', name: 'Asha', phone: '9876543210', service_id: 'general', addons: ['wash'], big_bike: false, coupon_discount: 0, paid_amount: 0, created_at: '2026-10-08T05:00:00Z' };
+const lead = { ref: 'L-53020C', booking_id: 'MP-53020C', name: 'Asha', phone: '9876543210', service_id: 'general', addons: ['wash'], big_bike: false, coupon_discount: 0, paid_amount: 0, created_at: '2026-10-08T05:00:00Z' };
 
 test('invoice lists the service and add-ons and splits GST out of the inclusive total', () => {
   const v = buildInvoice(lead, services);
@@ -156,7 +156,7 @@ test('bookings made after the cutover are billed before GST with GST added on to
 test('an allocated invoice number replaces the booking-reference fallback, in both builders', () => {
   for (const b of [buildInvoice, buildInvoiceFn]) {
     assert.equal(b(lead, services, { number: 'MP/26-27/0007' }).number, 'MP/26-27/0007');
-    assert.equal(b(lead, services, { number: '   ' }).number, 'INV-' + lead.ref);
+    assert.equal(b(lead, services, { number: '   ' }).number, 'INV-' + lead.booking_id);
   }
 });
 test('every line carries a steady item code made from its service id', () => {

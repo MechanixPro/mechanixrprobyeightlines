@@ -15,6 +15,7 @@ import { supervisorEmails } from '../_shared/desk-notify.ts';
 import { formatWhen } from '../_shared/when.ts';
 import { runWatchdog } from '../_shared/desk-health.ts';
 import { issueCard, cardUrl } from '../_shared/warranty.ts';
+import { idParam, leadLabel } from '../_shared/booking-id.ts';
 
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
 const MIN = 60_000;
@@ -70,17 +71,17 @@ Deno.serve(async (req) => {
     if (await getSetting(db, 'desk_sla_alerts', true)) {
       const sla = Number(await getSetting(db, 'crm_sla_minutes', 15)) || 15;
       const now = Date.now();
-      const { data: cand } = await db.from('leads').select('id,ref,name,last_customer_msg_at,wa_last_message_at,crm_owner').is('deleted_at', null).in('status', OPEN).eq('opted_out', false)
+      const { data: cand } = await db.from('leads').select('id,ref,booking_id,name,last_customer_msg_at,wa_last_message_at,crm_owner').is('deleted_at', null).in('status', OPEN).eq('opted_out', false)
         .gt('last_customer_msg_at', new Date(now - 3 * 86400_000).toISOString()).lt('last_customer_msg_at', new Date(now - sla * MIN).toISOString()).limit(60);
       const ids = (cand ?? []).map((l: any) => l.id);
       const { data: acts } = ids.length ? await db.from('crm_activities').select('lead_id,created_at').in('lead_id', ids).in('kind', ['call', 'whatsapp']).gt('created_at', new Date(now - 3 * 86400_000).toISOString()) : { data: [] };
       const waiting = (cand ?? []).filter((l: any) => (!l.wa_last_message_at || Date.parse(l.last_customer_msg_at) >= Date.parse(l.wa_last_message_at) - 90_000)
         && !(acts ?? []).some((a: any) => a.lead_id === l.id && Date.parse(a.created_at) > Date.parse(l.last_customer_msg_at)));
-      const { data: unowned } = await db.from('leads').select('id,ref,name,created_at,source').is('deleted_at', null).eq('status', 'new').is('crm_owner', null)
+      const { data: unowned } = await db.from('leads').select('id,ref,booking_id,name,created_at,source').is('deleted_at', null).eq('status', 'new').is('crm_owner', null)
         .gt('created_at', new Date(now - 2 * 86400_000).toISOString()).lt('created_at', new Date(now - sla * MIN).toISOString()).limit(60);
       const items: { lead_id: string; kind: string; line: string }[] = [];
-      for (const l of waiting) items.push({ lead_id: l.id, kind: 'reply_wait:' + new Date(l.last_customer_msg_at).toISOString().slice(0, 16), line: `${l.name} (${l.ref}) wrote on WhatsApp ${Math.round((now - Date.parse(l.last_customer_msg_at)) / MIN)} min ago and has no answer` });
-      for (const l of unowned ?? []) items.push({ lead_id: l.id, kind: 'unassigned', line: `${l.name} (${l.ref}, ${l.source}) has had no owner for ${Math.round((now - Date.parse(l.created_at)) / MIN)} min` });
+      for (const l of waiting) items.push({ lead_id: l.id, kind: 'reply_wait:' + new Date(l.last_customer_msg_at).toISOString().slice(0, 16), line: `${l.name} (${leadLabel(l)}) wrote on WhatsApp ${Math.round((now - Date.parse(l.last_customer_msg_at)) / MIN)} min ago and has no answer` });
+      for (const l of unowned ?? []) items.push({ lead_id: l.id, kind: 'unassigned', line: `${l.name} (${leadLabel(l)}, ${l.source}) has had no owner for ${Math.round((now - Date.parse(l.created_at)) / MIN)} min` });
       const { data: sent } = items.length ? await db.from('crm_alerts_sent').select('lead_id,kind').in('lead_id', items.map((i) => i.lead_id)) : { data: [] };
       const fresh = items.filter((i) => !(sent ?? []).some((s: any) => s.lead_id === i.lead_id && s.kind === i.kind));
       let emailed = 0;
@@ -101,14 +102,14 @@ Deno.serve(async (req) => {
     const rc = DESK_TEMPLATES.find((t) => t.name === 'mxp_desk_rating_link')!;
     if (await getSetting(db, 'desk_auto_rating', true) && hour >= 9 && hour < 20 && ready[rc.campaign] && env('AISENSY_API_KEY') && env('RATING_SECRET')) {
       const now = Date.now();
-      const { data: jobs } = await db.from('leads').select('id,ref,name,phone').is('deleted_at', null).eq('status', 'completed').eq('consent_whatsapp', true).eq('opted_out', false).is('rating_requested_at', null)
+      const { data: jobs } = await db.from('leads').select('id,ref,booking_id,name,phone').is('deleted_at', null).eq('status', 'completed').eq('consent_whatsapp', true).eq('opted_out', false).is('rating_requested_at', null)
         .not('completed_at', 'is', null).gt('completed_at', new Date(now - 48 * 3600_000).toISOString()).lt('completed_at', new Date(now - 2 * 3600_000).toISOString()).order('completed_at').limit(10);
       const ids = (jobs ?? []).map((l: any) => l.id);
       const { data: failed } = ids.length ? await db.from('crm_alerts_sent').select('lead_id').in('lead_id', ids).eq('kind', 'rating_fail') : { data: [] };
       let sentN = 0, failN = 0;
       for (const l of (jobs ?? []).filter((x: any) => !(failed ?? []).some((f: any) => f.lead_id === x.id))) {
         const link = ratingUrl(env('SITE_URL', 'https://mechanixpro.in'), l.ref, await ratingToken(env('RATING_SECRET'), l.ref));
-        const r = await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: rc.campaign, phone: l.phone, name: l.name, params: [String(l.name).split(' ')[0], l.ref, link], source: 'mechanix-desk-auto' });
+        const r = await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: rc.campaign, phone: l.phone, name: l.name, params: [String(l.name).split(' ')[0], idParam(l), link], source: 'mechanix-desk-auto' });
         if (r.ok) {
           sentN++;
           await db.from('leads').update({ rating_requested_at: new Date().toISOString() }).eq('id', l.id);
@@ -128,20 +129,20 @@ Deno.serve(async (req) => {
       const tpl = (n: string) => DESK_TEMPLATES.find((t) => t.name === n)!;
       type Job = { l: any; kind: string; t: string; params: string[]; note: string };
       const jobs: Job[] = [];
-      const base = () => db.from('leads').select('id,ref,name,phone,area,est_total,status,preferred_date,preferred_slot,mechanic_id,completed_at,address').is('deleted_at', null).eq('consent_whatsapp', true).eq('opted_out', false).gt('updated_at', since).limit(30);
+      const base = () => db.from('leads').select('id,ref,booking_id,name,phone,area,est_total,status,preferred_date,preferred_slot,mechanic_id,completed_at,address').is('deleted_at', null).eq('consent_whatsapp', true).eq('opted_out', false).gt('updated_at', since).limit(30);
       if (ready[tpl('mxp_quote_ready_v2').campaign]) {
         const { data } = await base().eq('status', 'quoted').gt('est_total', 0);
-        for (const l of data ?? []) jobs.push({ l, kind: 'journey_quote:' + Math.round(l.est_total), t: 'mxp_quote_ready_v2', params: [String(l.name).split(' ')[0], l.ref, String(Math.round(l.est_total))], note: 'Quote sent automatically' });
+        for (const l of data ?? []) jobs.push({ l, kind: 'journey_quote:' + Math.round(l.est_total), t: 'mxp_quote_ready_v2', params: [String(l.name).split(' ')[0], idParam(l), String(Math.round(l.est_total))], note: 'Quote sent automatically' });
       }
       if (ready[tpl('mxp_booking_confirmed').campaign]) {
         const { data } = await base().eq('status', 'scheduled').not('mechanic_id', 'is', null).not('preferred_date', 'is', null);
         const mids = [...new Set((data ?? []).map((l: any) => l.mechanic_id))];
         const { data: ms } = mids.length ? await db.from('mechanics').select('id,name').in('id', mids) : { data: [] };
-        for (const l of data ?? []) { const m = (ms ?? []).find((x: any) => x.id === l.mechanic_id); jobs.push({ l, kind: 'journey_booked:' + l.preferred_date + ':' + l.preferred_slot + ':' + l.mechanic_id, t: 'mxp_booking_confirmed', params: [String(l.name).split(' ')[0], l.ref, formatWhen(l.preferred_date, l.preferred_slot), String(m?.name ?? 'from our team').split(' ')[0], l.area || 'your address'], note: 'Booking confirmation sent automatically' }); }
+        for (const l of data ?? []) { const m = (ms ?? []).find((x: any) => x.id === l.mechanic_id); jobs.push({ l, kind: 'journey_booked:' + l.preferred_date + ':' + l.preferred_slot + ':' + l.mechanic_id, t: 'mxp_booking_confirmed', params: [String(l.name).split(' ')[0], idParam(l), formatWhen(l.preferred_date, l.preferred_slot), String(m?.name ?? 'from our team').split(' ')[0], l.area || 'your address'], note: 'Booking confirmation sent automatically' }); }
       }
       if (ready[tpl('mxp_service_done').campaign]) {
         const { data } = await base().eq('status', 'completed').not('completed_at', 'is', null);
-        for (const l of data ?? []) jobs.push({ l, kind: 'journey_done', t: 'mxp_service_done', params: [String(l.name).split(' ')[0], l.ref], note: 'Service-done message sent automatically' });
+        for (const l of data ?? []) jobs.push({ l, kind: 'journey_done', t: 'mxp_service_done', params: [String(l.name).split(' ')[0], idParam(l)], note: 'Service-done message sent automatically' });
       }
       const ids = [...new Set(jobs.map((j) => j.l.id))];
       const { data: sent } = ids.length ? await db.from('crm_alerts_sent').select('lead_id,kind').in('lead_id', ids) : { data: [] };
@@ -173,10 +174,10 @@ Deno.serve(async (req) => {
       if (ready[t.campaign] && env('AISENSY_API_KEY')) {
         const { data: unsent } = await db.from('warranty_cards').select('id,code,lead_id,customer_name,phone,valid_until').is('sent_at', null).gt('created_at', new Date(Date.now() - 7 * 86400_000).toISOString()).limit(8);
         const ids = (unsent ?? []).map((u: any) => u.lead_id);
-        const { data: leads } = ids.length ? await db.from('leads').select('id,ref,consent_whatsapp,opted_out').in('id', ids) : { data: [] };
+        const { data: leads } = ids.length ? await db.from('leads').select('id,ref,booking_id,consent_whatsapp,opted_out').in('id', ids) : { data: [] };
         for (const u of unsent ?? []) {
           const l = (leads ?? []).find((x: any) => x.id === u.lead_id); if (!l || !l.consent_whatsapp || l.opted_out) continue;
-          const r = await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: t.campaign, phone: u.phone, name: u.customer_name, params: [String(u.customer_name).split(' ')[0], l.ref, new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date(u.valid_until + 'T12:00:00+05:30')), cardUrl(u.code)], source: 'mechanix-desk-warranty' });
+          const r = await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: t.campaign, phone: u.phone, name: u.customer_name, params: [String(u.customer_name).split(' ')[0], idParam(l), new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date(u.valid_until + 'T12:00:00+05:30')), cardUrl(u.code)], source: 'mechanix-desk-warranty' });
           await db.from('warranty_cards').update({ sent_at: new Date().toISOString() }).eq('id', u.id);
           if (r.ok) { sentN++; await db.from('crm_activities').insert({ lead_id: u.lead_id, actor: null, kind: 'whatsapp', body: 'Warranty card sent automatically on WhatsApp' }).then(() => {}, () => {}); }
         }

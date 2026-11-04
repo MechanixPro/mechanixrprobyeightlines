@@ -6,6 +6,7 @@ import { createPaymentLink, razorpayReady } from '../_shared/razorpay.ts';
 import { sendCampaign } from '../_shared/aisensy-send.ts';
 import { slotFee } from '../_shared/checkout.ts';
 import { isReturningCustomer } from '../_shared/customer.ts';
+import { forBooking, idParam } from '../_shared/booking-id.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
@@ -36,7 +37,7 @@ Deno.serve(async (req) => {
   try {
     const reuse = lead.payment_link && Number(lead.amount_due) === amount;
     const link = reuse ? { id: lead.payment_link_id as string, url: lead.payment_link as string }
-      : await createPaymentLink({ amount, ref: lead.ref, leadId: lead.id, name: lead.name, phone: lead.phone, description: `Mechanix Pro booking ${lead.ref}` });
+      : await createPaymentLink({ amount, ref: lead.ref, leadId: lead.id, name: lead.name, phone: lead.phone, description: `Mechanix Pro ${lead.booking_id ? 'booking ' + lead.booking_id : 'slot fee'}` });
     if (!reuse) await db.from('leads').update({ payment_link: link.url, payment_link_id: link.id, amount_due: amount, status: 'payment_sent', followup_step: 2, next_followup_at: new Date(Date.now() + 2 * 3600_000).toISOString() }).eq('id', lead.id);
 
     const first = String(lead.name).split(' ')[0];
@@ -44,7 +45,7 @@ Deno.serve(async (req) => {
     if (b.send_whatsapp !== false) {
       if (!env('AISENSY_API_KEY')) why = 'not_connected';
       else {
-        const r = await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: env('AISENSY_CAMPAIGN_PAYMENT', 'mxp_desk_payment_link'), phone: lead.phone, name: lead.name, params: [first, String(amount), lead.ref, link.url], source: 'mechanix-desk' });
+        const r = await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: env('AISENSY_CAMPAIGN_PAYMENT', 'mxp_desk_payment_link'), phone: lead.phone, name: lead.name, params: [first, String(amount), idParam(lead), link.url], source: 'mechanix-desk' });
         sent = r.ok; if (!r.ok) why = r.error ?? 'failed';
       }
     }
@@ -52,7 +53,7 @@ Deno.serve(async (req) => {
     if (!lead.crm_first_contact_at && sent) await db.from('leads').update({ crm_first_contact_at: new Date().toISOString() }).eq('id', lead.id);
     if (sent) await db.from('messages').insert({ lead_id: lead.id, phone: lead.phone, direction: 'out', sender: 'staff', body: `Payment link for ${rupee(amount)}: ${link.url}` });
     await db.from('audit_log').insert({ actor: user.id, action: 'desk_payment_link', details: { lead: lead.ref, amount, sent } });
-    return json(req, { ok: true, url: link.url, amount, suggested, whatsapp_sent: sent, whatsapp_note: why, whatsapp_text: `Hi ${first}, here is your secure link to pay ${rupee(amount)} for Mechanix Pro booking ${lead.ref}: ${link.url}` });
+    return json(req, { ok: true, url: link.url, amount, suggested, whatsapp_sent: sent, whatsapp_note: why, whatsapp_text: `Hi ${first}, here is your secure link to pay ${rupee(amount)} for ${forBooking(lead)}: ${link.url}` });
   } catch (e) {
     return json(req, { error: (e as Error).message }, 400);
   }

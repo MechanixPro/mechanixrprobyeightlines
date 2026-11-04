@@ -4,6 +4,7 @@
 import { adminDb, env, json, corsHeaders, sha256Hex } from '../_shared/util.ts';
 import { cleanOrderRequest, orderBody, slotFee } from '../_shared/checkout.ts';
 import { isReturningCustomer } from '../_shared/customer.ts';
+import { refFilter } from '../_shared/booking-id.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
@@ -23,7 +24,7 @@ Deno.serve(async (req) => {
   if ((count ?? 0) >= 20) return json(req, { error: 'Too many tries. Please wait a few minutes.' }, 429);
   await db.from('track_attempts').insert({ ip_hash: ipHash });
 
-  const { data: lead } = await db.from('leads').select('id,ref,name,phone,status,amount_due,paid_amount').or(`ref.eq.${v.ref},old_ref.eq.${v.ref}`).eq('phone', v.phone).maybeSingle();
+  const { data: lead } = await db.from('leads').select('id,ref,booking_id,name,phone,status,amount_due,paid_amount').or(refFilter(v.ref)).eq('phone', v.phone).maybeSingle();
   if (!lead) return json(req, { error: 'We could not find that booking. Check the reference and the number you booked with.' }, 404);
   if (lead.status === 'paid' || lead.status === 'completed') return json(req, { error: 'This booking is already paid. Thank you!' }, 409);
   if (lead.status === 'lost') return json(req, { error: 'This booking is closed. Message us on WhatsApp to start again.' }, 409);
@@ -40,5 +41,5 @@ Deno.serve(async (req) => {
   const j = await r.json().catch(() => ({}));
   if (r.status === 401) { console.error('razorpay auth failed'); return json(req, { error: 'Online payment is not set up correctly. Please pay through the link on WhatsApp.' }, 401); }
   if (!r.ok || !j.id) { console.error('razorpay order error', r.status, j?.error?.description); return json(req, { error: 'Could not start the payment. Please try again.' }, 500); }
-  return json(req, { order_id: j.id, amount: j.amount, currency: j.currency, key_id: keyId, name: lead.name, ref: lead.ref });
+  return json(req, { order_id: j.id, amount: j.amount, currency: j.currency, key_id: keyId, name: lead.name, booking_id: lead.booking_id ?? null });
 });

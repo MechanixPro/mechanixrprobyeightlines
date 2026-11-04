@@ -6,7 +6,7 @@
   var q = new URLSearchParams(location.search);
   var ref = (q.get('r') || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 13), k = (q.get('k') || '').toLowerCase().replace(/[^a-f0-9]/g, '').slice(0, 24);
   var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
-  if (!/^MP-(?:\d{2}-\d{2}-\d{4}|[A-Z0-9]{6})$/.test(ref) || !/^[a-f0-9]{24}$/.test(k)) {
+  if (!/^(?:MP-\d{2}-\d{2}-\d{4}|MP-[A-Z0-9]{6}|L-[A-Z0-9]{6})$/.test(ref) || !/^[a-f0-9]{24}$/.test(k)) {
     form.hidden = true;
     done.innerHTML = '<div class="card fade"><h2>This link is not valid</h2><p>Please use the link from your WhatsApp message, or message us and we will help.</p></div>';
     return;

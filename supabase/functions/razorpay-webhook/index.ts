@@ -2,6 +2,7 @@
 // In Razorpay Dashboard → Webhooks, subscribe to "payment_link.paid". Deploy with --no-verify-jwt.
 import { adminDb, env, hmacSha256Hex, safeEqual, rupee } from '../_shared/util.ts';
 import { sendSmart, TPL } from '../_shared/whatsapp.ts';
+import { bookingId } from '../_shared/booking-id.ts';
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
@@ -30,7 +31,10 @@ Deno.serve(async (req) => {
   const { error: ledgerErr } = await db.from('ledger_entries').insert({ lead_id: lead.id, entry_type: 'customer_payment', amount, collected_by: 'company_portal', method: 'Razorpay payment link', reference: pay?.id ?? null, gateway_txn_id: pay?.id ?? null, gateway_fee: Math.round(Number(pay?.fee ?? 0)) / 100, source: 'gateway', settlement_status: 'pending' });
   if (ledgerErr && ledgerErr.code !== '23505') console.error('ledger insert failed', ledgerErr);
   await db.from('leads').update({ status: 'paid', next_followup_at: null }).eq('id', lead.id);
+  // The payment gives the booking its ID (database trigger): read it back so the message can carry it.
+  const { data: ided } = await db.from('leads').select('booking_id').eq('id', lead.id).maybeSingle();
+  const bid = bookingId(ided) ?? bookingId(lead);
   await db.from('audit_log').insert({ actor: null, action: 'payment_received', details: { lead: lead.ref, amount, payment_id: pay?.id } });
-  await sendSmart(db, lead, `Payment of ${rupee(amount)} received for booking ${lead.ref}. Your slot is confirmed — we will share your mechanic's details before the visit. Thank you!`, { name: TPL.paid(), params: [String(amount), lead.ref] }, 'system');
+  await sendSmart(db, lead, `Payment of ${rupee(amount)} received for ${bid ? 'booking ' + bid : 'your request'}. Your slot is confirmed — we will share your mechanic's details before the visit. Thank you!`, { name: TPL.paid(), params: [String(amount), bid ?? 'request'] }, 'system');
   return new Response('ok');
 });

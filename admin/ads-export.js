@@ -20,7 +20,7 @@ export function adsConversions(leads, { now = new Date(), name = 'Completed job'
     seen.add(g);
     const when = l.completed_at || l.updated_at || l.created_at;
     const value = Number(l.paid_amount) > 0 ? Number(l.paid_amount) : Number(l.est_total) > 0 ? Number(l.est_total) : 1;
-    rows.push({ gclid: g, name, time: ist(when), value, currency: 'INR', ref: l.ref });
+    rows.push({ gclid: g, name, time: ist(when), value, currency: 'INR', ref: l.booking_id || l.ref });
   }
   rows.sort((a, b) => a.time.localeCompare(b.time));
   const csv = ['Parameters:TimeZone=Asia/Kolkata', 'Google Click ID,Conversion Name,Conversion Time,Conversion Value,Conversion Currency']

@@ -7,7 +7,7 @@ import { mechanicCut, snapshotRow, sameFigures, filterRegister, registerTotals, 
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 
 const services = [{ id: 'general', kind: 'service', name: 'General service', price: 1299 }];
-const base = { id: 'L1', ref: 'MP-AB12CD', name: 'Asha Rao', phone: '9876543210', service_id: 'general', addons: [], paid_amount: 0, mechanic_id: 'M1', customer_id: 'C1' };
+const base = { id: 'L1', ref: 'L-AB12CD', booking_id: 'MP-AB12CD', name: 'Asha Rao', phone: '9876543210', service_id: 'general', addons: [], paid_amount: 0, mechanic_id: 'M1', customer_id: 'C1' };
 const withRate = (rate, basis = 'excl', paid = 0) => ({ ...base, paid_amount: paid, invoice_override: { basis, rate, lines: [{ name: 'Labour and parts', amount: 1000 }] } });
 const mech = { id: 'M1', name: 'Ravi', payout_rate: 40 };
 
@@ -64,7 +64,7 @@ test('printing again with the same figures does not save a duplicate; a change d
 });
 
 const rows = (() => {
-  const mk = (ref, rate, mechRow, paid, issued) => snapshotRow({ invoice: buildInvoice({ ...withRate(rate, 'excl', paid), ref }, services), lead: { ...withRate(rate, 'excl', paid), ref }, customer: null, mechanic: mechRow, via: 'email', basis: 'before_gst', revision: 1, now: issued });
+  const mk = (ref, rate, mechRow, paid, issued) => snapshotRow({ invoice: buildInvoice({ ...withRate(rate, 'excl', paid), booking_id: ref }, services), lead: { ...withRate(rate, 'excl', paid), booking_id: ref }, customer: null, mechanic: mechRow, via: 'email', basis: 'before_gst', revision: 1, now: issued });
   return [mk('MP-A1', 18, { id: 'M1', name: 'Ravi', payout_rate: 40 }, 1180, '2026-10-02T05:00:00.000Z'), mk('MP-A2', 0, { id: 'M1', name: 'Ravi', payout_rate: 40 }, 1000, '2026-10-05T05:00:00.000Z'),
     mk('MP-A3', 5, { id: 'M2', name: 'Meena', payout_rate: 50 }, 0, '2026-10-09T05:00:00.000Z'), mk('MP-A4', 18, null, 0, '2026-09-20T05:00:00.000Z')];
 })();

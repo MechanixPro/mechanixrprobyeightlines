@@ -45,8 +45,8 @@ const cell = (v) => { const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' +
 const istDay = (iso) => new Date(new Date(iso).getTime() + IST).toISOString().slice(0, 10);
 
 export function reportCsv(leads, { services = [], mechanics = [] } = {}) {
-  const head = ['Ref', 'Date', 'Service', 'Area', 'Mechanic', 'Status', 'Estimate', 'Paid', 'Discount', 'Coupon', 'Source', 'Campaign'];
-  const rows = leads.map((l) => [l.ref, istDay(l.created_at), services.find((s) => s.id === l.service_id)?.name ?? l.service_id, l.area, mechanics.find((m) => m.id === l.mechanic_id)?.name ?? 'Unassigned', l.status, l.est_total, l.paid_amount ?? 0, l.coupon_discount || 0, l.coupon_code, l.utm?.utm_source || 'direct', l.campaign]);
+  const head = ['Booking ID', 'Date', 'Service', 'Area', 'Mechanic', 'Status', 'Estimate', 'Paid', 'Discount', 'Coupon', 'Source', 'Campaign'];
+  const rows = leads.map((l) => [l.booking_id || '', istDay(l.created_at), services.find((s) => s.id === l.service_id)?.name ?? l.service_id, l.area, mechanics.find((m) => m.id === l.mechanic_id)?.name ?? 'Unassigned', l.status, l.est_total, l.paid_amount ?? 0, l.coupon_discount || 0, l.coupon_code, l.utm?.utm_source || 'direct', l.campaign]);
   return [head, ...rows].map((r) => r.map(cell).join(',')).join('\n');
 }
 

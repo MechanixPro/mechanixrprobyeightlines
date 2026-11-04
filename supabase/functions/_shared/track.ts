@@ -1,5 +1,6 @@
 // What a customer may see when they look up a booking: progress only, never contact details, address or notes. No Deno APIs, so Node can test it.
 import { formatWhen } from './when.ts';
+import { REF_RE } from './booking-id.ts';
 export const STAGES = ['Request received', 'Quote shared', 'Slot confirmed', 'Mechanic booked', 'Service done'];
 const BY_STATUS: Record<string, { index: number; note: string; closed?: boolean }> = {
   new: { index: 0, note: 'We have your request. Our expert will message or call you soon.' },
@@ -16,7 +17,7 @@ export function stageFor(status: string) { const s = BY_STATUS[status] ?? BY_STA
 export function cleanLookup(b: Record<string, unknown>): { ok: true; ref: string; phone: string } | { ok: false } {
   const ref = String(b?.ref ?? '').trim().toUpperCase();
   const phone = String(b?.phone ?? '').replace(/\D/g, '').slice(-10);
-  if (!/^MP-(?:\d{2}-\d{2}-\d{4}|[A-Z0-9]{6})$/.test(ref) || !/^[6-9]\d{9}$/.test(phone)) return { ok: false };
+  if (!REF_RE.test(ref) ||!/^[6-9]\d{9}$/.test(phone)) return { ok: false };
   return { ok: true, ref, phone };
 }
 
@@ -28,7 +29,7 @@ export function trackView(l: Record<string, any>, x: Extra) {
   const bike = x.nick ? `"${x.nick}"${base ? ` (${base})` : ''}` : base || null;
   const showMech = ['scheduled', 'completed'].includes(l.status) && x.mechanic;
   return {
-    ref: l.ref, status: l.status, stage: st.index, closed: st.closed, note: st.note, stages: STAGES,
+    booking_id: l.booking_id ?? null, status: l.status, stage: st.index, closed: st.closed, note: st.note, stages: STAGES,
     service: x.service ?? null, bike, area: l.area ?? null, when,
     mechanic: showMech ? String(x.mechanic).trim().split(/\s+/)[0] : null, certified: showMech ? x.certified !== false : null,
     estimate: l.est_total ?? null,

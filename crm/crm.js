@@ -1,7 +1,7 @@
 // Mechanix Desk for Care Buddies. The shell: sign in, navigation by permission, "My day" and the lead sheet.
 // Every other screen lives in ./pages/. Every read and write goes through database functions that check the person's permissions.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
-import { hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent, parseContacts, techJobMessage, unstaffedSoon, rankTechs, moveCheck, handoverStatus, canSendHandoverCode, handoverMessage, HANDOVER_KIND_LABEL } from './crm-rules.js';
+import { bookingLabel, idOr, canConfirmBooking, canMarkJunk, canRestoreJunk, hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent, parseContacts, techJobMessage, unstaffedSoon, rankTechs, moveCheck, handoverStatus, canSendHandoverCode, handoverMessage, HANDOVER_KIND_LABEL } from './crm-rules.js';
 import { setClient, rpc, $, $$, esc, rupee, when, toast, clean, debounce, modal, field, confirmBox, SLOTS } from './ui.js';
 import * as dashboard from './pages/dashboard.js';
 import * as leads from './pages/leads.js';
@@ -223,9 +223,9 @@ function renderBody() {
   const hints = { mine: 'Late and overdue leads come first. Every open lead needs a dated next step.', unassigned: 'Take a lead and contact it within ' + S.me.sla_minutes + ' minutes.' };
   const late = S.leads.filter((l) => l.is_late || l.overdue).length;
   $('#view').innerHTML = `<div class="view-head"><div><h1>${titles[S.view]}</h1><p class="muted">${hints[S.view]}</p></div>
-    <div class="view-tools"><input id="q" type="search" placeholder="Search name, phone or ref" value="${esc(S.q)}" aria-label="Search leads">${can('create_bookings') ? '<button class="btn primary" type="button" data-act="booking">+ Booking</button>' : ''}${can('add_leads') ? '<button class="btn" type="button" data-act="add">+ Lead</button>' : ''}${can('add_leads') ? '<button class="btn ghost" type="button" data-act="import">Import from AiSensy</button>' : ''}${canTech() ? '<button class="btn ghost" type="button" data-act="pinSearch">Find by PIN</button>' : ''}</div></div>
+    <div class="view-tools"><input id="q" type="search" placeholder="Search name, phone or booking ID" value="${esc(S.q)}" aria-label="Search leads">${can('create_bookings') ? '<button class="btn primary" type="button" data-act="booking">+ Booking</button>' : ''}${can('add_leads') ? '<button class="btn" type="button" data-act="add">+ Lead</button>' : ''}${can('add_leads') ? '<button class="btn ghost" type="button" data-act="import">Import from AiSensy</button>' : ''}${canTech() ? '<button class="btn ghost" type="button" data-act="pinSearch">Find by PIN</button>' : ''}</div></div>
     ${S.waiting.length && pageOk('inbox') ? `<div class="alert" role="status"><b>${S.waiting.length}</b> ${S.waiting.length === 1 ? 'customer wrote' : 'customers wrote'} on WhatsApp and ${S.waiting.length === 1 ? 'is' : 'are'} waiting. <button class="btn sm" type="button" data-act="gotoInbox">Open the Inbox</button></div>` : ''}
-    ${S.unstaffed.length ? `<div class="alert" role="status"><b>${S.unstaffed.length}</b> booked ${S.unstaffed.length === 1 ? 'job has' : 'jobs have'} no technician yet: ${S.unstaffed.slice(0, 4).map((j) => `<button class="btn sm" type="button" data-act="open" data-id="${j.id}">${esc(j.ref)} ${esc(j.name)}</button>`).join(' ')}</div>` : ''}
+    ${S.unstaffed.length ? `<div class="alert" role="status"><b>${S.unstaffed.length}</b> booked ${S.unstaffed.length === 1 ? 'job has' : 'jobs have'} no technician yet: ${S.unstaffed.slice(0, 4).map((j) => `<button class="btn sm" type="button" data-act="open" data-id="${j.id}">${esc(idOr(j, 'Job'))} ${esc(j.name)}</button>`).join(' ')}</div>` : ''}
     ${late ? `<div class="alert" role="status"><b>${late}</b> ${late === 1 ? 'lead needs' : 'leads need'} you right now.</div>` : ''}
     ${S.board ? techBoard(S.board) : ''}
     <div class="cards">${S.leads.length ? S.leads.map(card).join('') : `<div class="empty">${S.view === 'mine' ? 'Nothing open. Take a lead from <b>Unassigned</b>, or add one you got by phone.' : 'No unassigned leads right now.'}</div>`}</div>`;
@@ -234,7 +234,7 @@ function renderBody() {
 
 const SLOT_SHORT = { morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening', asap: 'ASAP' };
 function techBoard(b) {
-  const job = (j) => `<button class="chip pick" type="button" data-act="open" data-id="${j.id}">${esc(j.ref)} · ${esc(SLOT_SHORT[j.slot] || 'No slot')}${j.area ? ' · ' + esc(j.area) : ''}${j.status === 'completed' ? ' · done' : ''}</button>`;
+  const job = (j) => `<button class="chip pick" type="button" data-act="open" data-id="${j.id}">${esc(j.booking_id || j.name)} · ${esc(SLOT_SHORT[j.slot] || 'No slot')}${j.area ? ' · ' + esc(j.area) : ''}${j.status === 'completed' ? ' · done' : ''}</button>`;
   const busy = b.techs.filter((t) => t.jobs.length).length;
   return `<details class="board" open><summary><b>Technicians today</b> <span class="small muted">${busy} of ${b.techs.length} have jobs${b.unassigned.length ? ` · <span class="badtxt">${b.unassigned.length} booked with no technician</span>` : ''}</span></summary>
     <div class="table-wrap"><table><tbody>${b.unassigned.length ? `<tr><td class="badtxt"><b>No technician</b></td><td>${b.unassigned.map(job).join(' ')}</td></tr>` : ''}
@@ -268,7 +268,7 @@ function renderSheet() {
   const moves = nextStatuses(l.status, can('assign_leads') ? 'supervisor' : 'sales');
   const t = timerInfo(l, new Date(), S.me.sla_minutes);
   sheet.hidden = false; document.body.classList.add('noscroll');
-  $('#sheetPanel').innerHTML = `<div class="sheet-head"><div><h2 id="sheetTitle">${esc(l.name)}</h2><p class="muted small">${esc(l.ref)} · ${esc(SOURCE_LABEL[l.source] || l.source)}${l.campaign ? ' · ' + esc(l.campaign) : ''}</p></div><button class="btn ghost" type="button" data-act="close" aria-label="Close">Close</button></div>
+  $('#sheetPanel').innerHTML = `<div class="sheet-head"><div><h2 id="sheetTitle">${esc(l.name)}</h2><p class="muted small">${esc(idOr(l))} · ${esc(SOURCE_LABEL[l.source] || l.source)}${l.campaign ? ' · ' + esc(l.campaign) : ''}</p></div><button class="btn ghost" type="button" data-act="close" aria-label="Close">Close</button></div>
     <div class="timer t-${t.tone}">${esc(t.label)}</div>
     <div class="facts">
       <div><span>Phone</span><b>${esc(l.phone)}</b></div><div><span>Area</span><b>${esc([l.area, l.pincode].filter(Boolean).join(' · ') || '—')}</b></div>
@@ -283,14 +283,17 @@ function renderSheet() {
     <div class="lc-actions big"><a class="btn call" href="${telUrl(l.phone)}" data-act="call" data-id="${l.id}">Call</a>
       <a class="btn wa" href="${waUrl(l.phone, firstMessage(l, S.me.name))}" target="_blank" rel="noopener" data-act="wa" data-id="${l.id}">WhatsApp</a>
       ${!l.crm_owner && can('take_leads') ? `<button class="btn primary" type="button" data-act="take" data-id="${l.id}">Take lead</button>` : ''}
-      ${can('edit_leads') && mineOrBoss && !l.crm_won_at && l.status !== 'lost' ? '<button class="btn" type="button" data-act="editBooking">Edit booking</button>' : ''}
+      ${canConfirmBooking(l, { canCreate: can('create_bookings'), userId: S.me.user_id, boss: canTech() }) ? '<button class="btn primary" type="button" data-act="confirmBooking">Confirm booking</button>' : ''}
+      ${can('edit_leads') && mineOrBoss && !l.crm_won_at && !['lost', 'junk'].includes(l.status) ? '<button class="btn" type="button" data-act="editBooking">Edit booking</button>' : ''}
       ${l.mechanic_phone && canAct && l.status !== 'lost' ? `<button class="btn wa" type="button" data-act="sendJob">Send job to ${esc(String(l.mechanic_name || 'technician').split(' ')[0])}</button>` : ''}
-      ${can('send_payment_link') && l.crm_owner && !BOOKED.includes(l.status) && l.status !== 'lost' ? '<button class="btn" type="button" data-act="payLink">Send payment link</button>' : ''}
-      ${can('create_tickets') ? '<button class="btn ghost" type="button" data-act="ticket">Raise a ticket</button>' : ''}</div>
+      ${can('send_payment_link') && l.crm_owner && !BOOKED.includes(l.status) && !['lost', 'junk'].includes(l.status) ? '<button class="btn" type="button" data-act="payLink">Send payment link</button>' : ''}
+      ${can('create_tickets') ? '<button class="btn ghost" type="button" data-act="ticket">Raise a ticket</button>' : ''}
+      ${canMarkJunk(l, S.me.is_admin) ? '<button class="btn ghost" type="button" data-act="junkOpen">Mark as junk</button>' : ''}${canRestoreJunk(l, S.me.is_admin) ? '<button class="btn" type="button" data-act="junkRestore">Restore</button>' : ''}</div>
+    ${l.status === 'junk' ? `<p class="alert">Junk${l.junk_reason ? ': ' + esc(l.junk_reason) : ''}. It is kept as data and left out of follow-ups, reminders and totals.</p>` : ''}
     ${handoverCard(l, canAct)}
     ${!l.crm_owner && !can('assign_leads') ? '<p class="alert">Take this lead first. Then you can log what happened.</p>' : ''}
     ${canAct && l.crm_owner && (moves.length || OPEN.includes(l.status)) ? logForm(l, moves) : (BOOKED.includes(l.status) ? '<p class="alert good">This booking is confirmed.</p>' : '')}
-    ${canAct && (l.crm_owner || can('assign_leads')) && !BOOKED.includes(l.status) && l.status !== 'lost' ? outcomeBox() : ''}
+    ${canAct && (l.crm_owner || can('assign_leads')) && !BOOKED.includes(l.status) && !['lost', 'junk'].includes(l.status) ? outcomeBox() : ''}
     ${can('assign_leads') ? assignBox(l) : ''}
     <h3>History</h3><ul class="timeline">${d.activities.length ? d.activities.map((a) => `<li><b>${esc(KIND_LABEL[a.kind] || a.kind)}</b> <span class="muted small">${esc(a.actor || 'System')} · ${when(a.created_at)}</span>${a.body ? '<p>' + mask(a.body) + '</p>' : ''}</li>`).join('') : '<li class="muted">Nothing logged yet.</li>'}</ul>
     <h3>WhatsApp chat</h3><div id="chat" class="chat-box"><p class="muted small">Loading chat…</p></div>`;
@@ -369,6 +372,22 @@ function outcomeBox() {
     <div class="row wrap"><button class="btn primary" type="button" data-act="won">Won</button><button class="btn" type="button" data-act="lostOpen">Lost</button></div>
     <div id="lostPick" hidden><label class="label" for="oLost">Why was it lost?</label><select id="oLost"><option value="">Choose a reason</option>${LOST_REASONS.map((r) => `<option>${r}</option>`).join('')}</select>
       <label class="label" for="oNote">Note (needed for Other)</label><input id="oNote" maxlength="200"><div class="row wrap" style="margin-top:8px"><button class="btn" type="button" data-act="lostSave">Save as lost</button></div></div></div>`;
+}
+/* Confirm booking: the database gives the booking ID (the same one again if it already has one) and writes who did it to the history. */
+async function confirmBooking() {
+  const id = await rpc('confirm_booking', { p_lead: S.open });
+  toast('Booking ID ' + id + ' given.'); await afterChange(false);
+}
+/* Mark as junk and Restore: admin only, checked again by the database. The lead stays as data with its reason. */
+function markJunk() {
+  const lead = S.detail.lead;
+  modal({ title: 'Mark as junk', intro: esc(lead.name) + ' is kept as data, but is left out of follow-ups, reminders and totals. You can restore it later.', body: field('Why is it junk? (optional)', 'reason', { max: 200, hint: 'For example spam, test or wrong number. No ID or card numbers.' }),
+    submit: 'Mark as junk', danger: true, onSubmit: async (f, d, close) => { await rpc('mark_lead_junk', { p_lead: lead.id, p_reason: String(d.reason || '').trim() || null }); close(); toast('Marked as junk.'); await afterChange(true); } });
+}
+async function restoreJunk() {
+  if (!(await confirmBox('Restore this lead to its earlier stage?', 'Restore'))) return;
+  const back = await rpc('restore_lead_junk', { p_lead: S.open });
+  toast('Restored to ' + (STATUS_LABEL[back] || back) + '.'); await afterChange(false);
 }
 async function saveOutcome(kind) {
   const note = ($('#oNote') || {}).value || '', reason = ($('#oLost') || {}).value || '';
@@ -548,12 +567,15 @@ document.addEventListener('click', async (e) => {
     if (act === 'import') return importDialog();
     if (act === 'booking') return newBooking(ctx);
     if (act === 'editBooking') return editBooking(ctx, S.detail.lead);
+    if (act === 'confirmBooking') return await confirmBooking();
+    if (act === 'junkOpen') return markJunk();
+    if (act === 'junkRestore') return await restoreJunk();
     if (act === 'gotoInbox') return go('inbox');
     if (act === 'chatRefresh') { await refreshChat(true); return toast('Checked.'); }
     if (act === 'tplFollowup') return await sendTemplate('followup');
     if (act === 'tplRating') return await sendTemplate('rating');
     if (act === 'payLink') return sendPaymentLink(ctx, S.detail.lead, () => afterChange(false));
-    if (act === 'ticket') { const l = S.detail.lead; const { newTicket } = tickets; return newTicket(ctx, { lead: l.id, title: 'Issue with ' + l.name + ' (' + l.ref + ')' }); }
+    if (act === 'ticket') { const l = S.detail.lead; const { newTicket } = tickets; return newTicket(ctx, { lead: l.id, title: 'Issue with ' + l.name + (bookingLabel(l) ? ' (' + bookingLabel(l) + ')' : '') }); }
     if (act === 'won') return await saveOutcome('won');
     if (act === 'lostOpen') { $('#lostPick').hidden = false; return; }
     if (act === 'lostSave') return await saveOutcome('lost');

@@ -26,8 +26,12 @@ const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const rupee = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 const when = (d) => (d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
+const BOOKED_STATUSES = ['paid', 'scheduled', 'completed'];
 const STATUSES = ['new', 'contacted', 'quoted', 'payment_sent', 'paid', 'scheduled', 'completed', 'lost'];
-const LABEL = { new: 'New', contacted: 'Contacted', quoted: 'Quoted', payment_sent: 'Payment sent', paid: 'Paid', scheduled: 'Scheduled', completed: 'Completed', lost: 'Lost' };
+const LABEL = { new: 'New', contacted: 'Contacted', quoted: 'Quoted', payment_sent: 'Payment sent', paid: 'Paid', scheduled: 'Scheduled', completed: 'Completed', lost: 'Lost', junk: 'Junk' };
+// A lead has no booking ID until it is confirmed: show the ID when there is one, else the word Lead. The private ref (L-...) is never shown.
+const bid = (l) => (l && l.booking_id) || 'Lead';
+const bkg = (l) => (l && l.booking_id ? 'booking ' + l.booking_id : 'booking');
 const SLOT = { morning: 'Morning 9–12', afternoon: 'Afternoon 12–4', evening: 'Evening 4–8', asap: 'ASAP (SOS)' };
 
 if (!C.supabaseUrl || !C.supabaseAnonKey) {
@@ -89,7 +93,7 @@ async function boot() {
   await Promise.all([loadLeads(), loadServices(), loadSettings(), loadPeople(), loadHome(), loadIssues(), loadPins(), loadWaitlist(), loadInvoices(), loadLedger()]);
   render();
   S.channel = sb.channel('mxp-admin')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async (p) => { if (p.eventType === 'INSERT') toast('New booking ' + (p.new?.ref ?? '')); await loadLeads(); if (!['prices', 'settings', 'offers', 'homeimgs'].includes(S.tab)) render(); if (S.open) openLead(S.open, true); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async (p) => { if (p.eventType === 'INSERT') toast('New lead'); await loadLeads(); if (!['prices', 'settings', 'offers', 'homeimgs'].includes(S.tab)) render(); if (S.open) openLead(S.open, true); })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ledger_entries' }, async () => { await Promise.all([loadLedger(), loadLeads()]); if (['sales', 'mechledger'].includes(S.tab)) render(); })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (p) => { if (S.open && p.new?.lead_id === S.open) openLead(S.open, true); })
     .subscribe();
@@ -103,9 +107,11 @@ async function ensureInvNo(lead) {
   if (S.invNo[lead.id]) return S.invNo[lead.id];
   const { data, error } = await sb.rpc('invoice_no_for', { p_lead: lead.id });
   if (error || !data) { toast('Could not get the invoice number: ' + ((error && error.message) || 'try again')); return null; }
+  if (!lead.booking_id) lead.booking_id = data;   // the number is the booking ID, given now if it had none
   return (S.invNo[lead.id] = data);
 }
 // The booking whose invoice is on screen. The invoice can be opened from the Invoices list, where no booking sheet is open, so it cannot rely on S.open.
+const leadOf = (id) => S.leads.find((x) => x.id === id) || (S.junkLeads || []).find((x) => x.id === id);
 const invLead = () => S.leads.find((x) => x.id === (S.invLead || S.open));
 const bikeOf = (l) => S.bikes.find((x) => x.id === l.bike_id) || S.bikes.filter((x) => x.customer_id && x.customer_id === l.customer_id)[0] || null;
 function withBike(l) { const b = S.bikes.find((x) => x.id === l.bike_id); return b ? { ...l, big_bike: !!b.big_bike, engine_class: b.engine_class || null } : l; }
@@ -124,7 +130,7 @@ function engineRead(prefix) { const s = $('#' + prefix + '-engine'); return s ? 
 /* ---------- data ---------- */
 async function loadLeads() {
   const { data, error } = await sb.from('leads').select('*').is('deleted_at', null).order('created_at', { ascending: false }).limit(500);
-  if (error) toast('Could not load bookings'); else S.leads = data;
+  if (error) toast('Could not load bookings'); else { S.leads = data.filter((l) => l.status !== 'junk'); S.junkLeads = data.filter((l) => l.status === 'junk'); }
 }
 async function loadInvoices() {
   const { data, error } = await sb.from('invoices').select('*').order('issued_at', { ascending: false }).limit(3000);
@@ -222,7 +228,7 @@ function dash() {
     <div class="kpi"><b>${rupee(paidWeek.reduce((s, l) => s + (l.paid_amount || 0), 0))}</b><span>Collected online (${rl})</span></div>
     <div class="kpi"><b>${L.filter((l) => l.status === 'payment_sent').length}</b><span>Waiting for payment</span></div>
   </div>
-  ${waiting.length ? `<div class="card" style="margin-bottom:16px;border:1.5px solid var(--ember)"><h3>Needs a reply (${waiting.length})</h3>${waiting.slice(0, 6).map((l) => `<button class="row" data-lead="${l.id}"><span class="ref">${esc(l.ref)}</span><span>${esc(l.name)}<br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')}</span></span><span class="meta">${when(l.created_at)}</span></button>`).join('')}</div>` : ''}
+  ${waiting.length ? `<div class="card" style="margin-bottom:16px;border:1.5px solid var(--ember)"><h3>Needs a reply (${waiting.length})</h3>${waiting.slice(0, 6).map((l) => `<button class="row" data-lead="${l.id}"><span class="ref">${esc(bid(l))}</span><span>${esc(l.name)}<br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')}</span></span><span class="meta">${when(l.created_at)}</span></button>`).join('')}</div>` : ''}
   <div class="split2"><div class="card"><h3>Pipeline (${rl})</h3>${bars(funnel)}</div><div class="card"><h3>Where bookings come from</h3>${bars(by('utm'))}<h3 style="margin-top:14px">Top areas</h3>${bars(by('area'))}</div></div>
   ${sourcesCard(week, rl)}`;
 }
@@ -233,8 +239,8 @@ function sourcesCard(week, rl = 'Last 7 days') {
 }
 
 function leads() {
-  return `<div class="toolbar"><input id="q" type="search" placeholder="Search name, phone or MP-ref" value="${esc(S.q)}" aria-label="Search bookings">
-  <select id="fs" aria-label="Filter by status"><option value="open"${S.status === 'open' ? ' selected' : ''}>Open (needs action)</option><option value="all"${S.status === 'all' ? ' selected' : ''}>All</option>${STATUSES.map((s) => `<option value="${s}"${S.status === s ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
+  return `<div class="toolbar"><input id="q" type="search" placeholder="Search name, phone or booking ID" value="${esc(S.q)}" aria-label="Search bookings">
+  <select id="fs" aria-label="Filter by status"><option value="open"${S.status === 'open' ? ' selected' : ''}>Open (needs action)</option><option value="all"${S.status === 'all' ? ' selected' : ''}>All</option><option value="junk"${S.status === 'junk' ? ' selected' : ''}>Junk (${(S.junkLeads || []).length})</option>${STATUSES.map((s) => `<option value="${s}"${S.status === s ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
   <button class="btn btn-ghost btn-sm" type="button" data-act="csv">Export CSV</button><button class="btn btn-primary btn-sm" type="button" data-act="newLead">Add booking</button>${isOwner() ? '<button class="btn btn-ghost btn-sm" type="button" data-act="showDeleted">Deleted bookings</button>' : ''}
   ${isOwner() ? (S.selMode ? `<button class="btn btn-ghost btn-sm" type="button" data-act="selectAll">Select all shown</button><button class="btn btn-dark btn-sm" type="button" data-act="deleteSelected"${S.sel.size ? '' : ' disabled'}>Delete selected (${S.sel.size})</button><button class="btn btn-ghost btn-sm" type="button" data-act="selectDone">Done</button>` : '<button class="btn btn-ghost btn-sm" type="button" data-act="selectMode">Select to delete</button>') : ''}</div><div class="list" id="list"></div>`;
 }
@@ -275,7 +281,7 @@ function openCustomer(id) {
     <label class="check"><input type="checkbox" id="cb"${r.blocked ? ' checked' : ''}><span>Block this customer. New website bookings from this number are not saved. They can still message you on WhatsApp.</span></label>
     <label class="label" for="cr">Reason (private)</label><input id="cr" maxlength="200" value="${esc(r.blockedReason || '')}">
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn btn-primary" type="button" data-act="saveCustomer">Save</button>${isOwner() ? '<button class="btn btn-ghost" type="button" data-act="deleteCustomer">Delete customer</button>' : ''}</div></div>
-  <div class="card" style="margin-top:12px"><h3>Booking history</h3>${mine.length ? mine.map((l) => `<button class="row" data-lead="${l.id}" style="border-radius:12px"><span class="ref">${esc(l.ref)}</span><span>${esc(svcName(l.service_id))}<br><span class="meta">${when(l.created_at)}</span></span><span class="pill ${l.status}">${LABEL[l.status]}</span></button>`).join('') : '<p class="small muted">No bookings yet.</p>'}</div>`;
+  <div class="card" style="margin-top:12px"><h3>Booking history</h3>${mine.length ? mine.map((l) => `<button class="row" data-lead="${l.id}" style="border-radius:12px"><span class="ref">${esc(bid(l))}</span><span>${esc(svcName(l.service_id))}<br><span class="meta">${when(l.created_at)}</span></span><span class="pill ${l.status}">${LABEL[l.status]}</span></button>`).join('') : '<p class="small muted">No bookings yet.</p>'}</div>`;
   $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
 }
 
@@ -436,12 +442,12 @@ function reports() {
 
 function filtered() {
   const q = S.q.trim().toLowerCase();
-  return S.leads.filter((l) => (S.status === 'all' || (S.status === 'open' ? ['new', 'contacted', 'quoted', 'payment_sent'].includes(l.status) : l.status === S.status)) &&
-    (!q || [l.name, l.phone, l.ref, l.area].some((v) => String(v ?? '').toLowerCase().includes(q))));
+  return (S.status === 'junk' ? S.junkLeads || [] : S.leads).filter((l) => (S.status === 'all' || (S.status === 'open' ? ['new', 'contacted', 'quoted', 'payment_sent'].includes(l.status) : l.status === S.status)) &&
+    (!q || [l.name, l.phone, l.booking_id, l.ref, l.area].some((v) => String(v ?? '').toLowerCase().includes(q))));
 }
 function renderList() {
   const el = $('#list'); if (!el) return; const rows = filtered();
-  el.innerHTML = rows.length ? rows.map((l) => `<button class="row${S.selMode && S.sel.has(l.id) ? ' picked' : ''}" data-lead="${l.id}"${S.selMode ? ` aria-pressed="${S.sel.has(l.id)}"` : ''}><span class="ref">${S.selMode ? `<span class="chk" aria-hidden="true">${S.sel.has(l.id) ? '\u2611' : '\u2610'}</span> ` : ''}${esc(l.ref)}<br><span class="meta">${l.source === 'whatsapp' ? 'WhatsApp' : 'Website'}</span></span><span>${esc(l.name)} · <span class="meta">${esc(l.phone)}</span><br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')} · ${l.preferred_date ? esc(l.preferred_date) + ' ' + esc(SLOT[l.preferred_slot] ?? '') : ''}</span></span><span style="text-align:right"><span class="pill ${l.status}">${LABEL[l.status]}</span><br><span class="meta">${l.est_total ? rupee(l.est_total) : ''} · ${when(l.created_at)}</span></span></button>`).join('') : '<p class="muted" style="padding:16px">No bookings here yet.</p>';
+  el.innerHTML = rows.length ? rows.map((l) => `<button class="row${S.selMode && S.sel.has(l.id) ? ' picked' : ''}" data-lead="${l.id}"${S.selMode ? ` aria-pressed="${S.sel.has(l.id)}"` : ''}><span class="ref">${S.selMode ? `<span class="chk" aria-hidden="true">${S.sel.has(l.id) ? '\u2611' : '\u2610'}</span> ` : ''}${esc(bid(l))}<br><span class="meta">${l.source === 'whatsapp' ? 'WhatsApp' : 'Website'}</span></span><span>${esc(l.name)} · <span class="meta">${esc(l.phone)}</span><br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')} · ${l.preferred_date ? esc(l.preferred_date) + ' ' + esc(SLOT[l.preferred_slot] ?? '') : ''}</span></span><span style="text-align:right"><span class="pill ${l.status}">${LABEL[l.status]}</span><br><span class="meta">${l.est_total ? rupee(l.est_total) : ''} · ${when(l.created_at)}</span></span></button>`).join('') : '<p class="muted" style="padding:16px">No bookings here yet.</p>';
 }
 
 /* ---------- commission: one simple rule per job ---------- */
@@ -455,7 +461,7 @@ function jobFacts(l) {
   const inv = buildInvoice(withBike(l), S.services), rate = jobRate(l), sp = jobSplit({ service: inv.taxable, gst: inv.total - inv.taxable, pct: rate.pct, adjust: l.commission_adjust });
   const dd = new Date(l.completed_at || l.paid_at || l.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   const bc = a ? a.byChannel : { company_manual: 0, company_portal: 0, mechanic: 0 };
-  return { inv, rate, sp, a, job: { ref: l.ref, date: dd, place: rate.place, service: sp.base, gst: sp.gst, total: inv.total, pct: sp.pct, adjust: sp.adjust, adjustNote: l.commission_note || '', earnings: sp.earnings, company: sp.company, collected: a ? a.collected : 0, byChannel: bc, remitDue: a ? a.remitDue : 0, payoutDue: a ? a.payoutDue : 0 } };
+  return { inv, rate, sp, a, job: { ref: bid(l), date: dd, place: rate.place, service: sp.base, gst: sp.gst, total: inv.total, pct: sp.pct, adjust: sp.adjust, adjustNote: l.commission_note || '', earnings: sp.earnings, company: sp.company, collected: a ? a.collected : 0, byChannel: bc, remitDue: a ? a.remitDue : 0, payoutDue: a ? a.payoutDue : 0 } };
 }
 const waLink = (phone, text) => 'https://wa.me/91' + String(phone || '').replace(/\D/g, '').slice(-10) + '?text=' + encodeURIComponent(text);
 function payoutCard(l) {
@@ -543,8 +549,8 @@ function customerVehicleCard(l) {
   const b = S.bikes.find((x) => x.id === l.bike_id) || null;
   const name = (c && c.name) || l.name || '', bike = bikeLabel(b) || 'vehicle', reg = (b && b.reg_no) || l.reg_no || '';
   const when = [l.preferred_date, l.preferred_slot].filter(Boolean).join(' ');
-  const confirmText = `Hi ${name.split(' ')[0] || ''}, your Mechanix Pro booking ${l.ref} is confirmed${when ? ' for ' + when : ''}. ${bike !== 'vehicle' ? 'Vehicle: ' + bike + (reg ? ' (' + reg + ')' : '') + '. ' : ''}Any extra work is shown to you first and done only after your approval. Reply here for any help.`;
-  const pickText = `Hi ${name.split(' ')[0] || ''}, your ${bike}${reg ? ' (' + reg + ')' : ''} has been picked up by the Mechanix Pro team for service (booking ${l.ref}). We will update you and share the quote for any extra work before we start it.`;
+  const confirmText = `Hi ${name.split(' ')[0] || ''}, your Mechanix Pro ${bkg(l)} is confirmed${when ? ' for ' + when : ''}. ${bike !== 'vehicle' ? 'Vehicle: ' + bike + (reg ? ' (' + reg + ')' : '') + '. ' : ''}Any extra work is shown to you first and done only after your approval. Reply here for any help.`;
+  const pickText = `Hi ${name.split(' ')[0] || ''}, your ${bike}${reg ? ' (' + reg + ')' : ''} has been picked up by the Mechanix Pro team for service (${bkg(l)}). We will update you and share the quote for any extra work before we start it.`;
   const wa = (t) => 'https://wa.me/91' + encodeURIComponent(l.phone) + '?text=' + encodeURIComponent(t);
   return `<div class="card" style="margin-top:12px"><h3>Customer and vehicle</h3>
     <label class="label" for="cv-name">Customer name</label><input id="cv-name" maxlength="60" value="${esc(name)}" data-init="${esc(name)}">
@@ -611,7 +617,7 @@ function moneyCardBody(l) {
 }
 async function openLead(id, silent) {
   if (!silent && S.open !== id) S.dt = 'booking';
-  S.open = id; const l = S.leads.find((x) => x.id === id); if (!l) return;
+  S.open = id; const l = leadOf(id); if (!l) return;
   const { data: msgs } = await sb.from('messages').select('*').eq('lead_id', id).order('created_at').limit(200);
   const wa = 'https://wa.me/91' + l.phone;
   const DETAILS = `<div class="card"><dl class="kv"><dt>Customer</dt><dd>${esc(l.name)}<br><a href="tel:+91${esc(l.phone)}">+91 ${esc(l.phone)}</a></dd><dt>Service</dt><dd>${esc(svcName(l.service_id))}${(l.addons || []).length ? ' + ' + l.addons.map((a) => esc(svcName(a))).join(', ') : ''}</dd><dt>Estimate</dt><dd>${l.est_total ? rupee(l.est_total) : '—'}</dd><dt>Area</dt><dd>${esc(l.area || '—')}</dd><dt>When</dt><dd>${esc(l.preferred_date || '—')} · ${esc(l.preferred_time || SLOT[l.preferred_slot] || '—')}</dd>${leadDetailRows(l).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${k === 'Map pin' ? `<a href="${esc(v)}" target="_blank" rel="noopener">Open in Google Maps</a>` : esc(v)}</dd>`).join('')}<dt>Source</dt><dd>${esc(l.source)}${l.utm?.utm_campaign ? ' · ' + esc(l.utm.utm_campaign) : ''}</dd><dt>Created</dt><dd>${when(l.created_at)}</dd><dt>Reminders</dt><dd>${l.next_followup_at ? 'Next ' + when(l.next_followup_at) + ' (step ' + (l.followup_step + 1) + ' of 4)' : 'None scheduled'}</dd></dl>
@@ -619,12 +625,12 @@ async function openLead(id, silent) {
   S.dt = S.dt || 'booking';
   const dtab = (id, label) => `<button type="button" role="tab" data-dt="${id}" aria-selected="${S.dt === id}">${label}</button>`;
   const panel = (id, inner) => `<section class="dpanel" id="dt-${id}"${S.dt === id ? '' : ' hidden'}>${inner}</section>`;
-  const linkBlock = l.payment_link ? `<p class="small">Payment link: <a href="${esc(l.payment_link)}" target="_blank" rel="noopener">${esc(l.payment_link)}</a> (${rupee(l.amount_due)})</p><p><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="https://wa.me/91${esc(l.phone)}?text=${encodeURIComponent('Hi ' + String(l.name).split(' ')[0] + ', here is your secure link to pay ' + rupee(l.amount_due) + ' for booking ' + l.ref + ': ' + l.payment_link)}">Send link on WhatsApp</a></p>` : '';
+  const linkBlock = l.payment_link ? `<p class="small">Payment link: <a href="${esc(l.payment_link)}" target="_blank" rel="noopener">${esc(l.payment_link)}</a> (${rupee(l.amount_due)})</p><p><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="https://wa.me/91${esc(l.phone)}?text=${encodeURIComponent('Hi ' + String(l.name).split(' ')[0] + ', here is your secure link to pay ' + rupee(l.amount_due) + ' for ' + (l.booking_id ? 'booking ' + l.booking_id : 'your request') + ': ' + l.payment_link)}">Send link on WhatsApp</a></p>` : '';
   const customerEmail = S.customers.find((c) => c.id === l.customer_id)?.email || '';
-  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${esc(l.ref)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${esc(bid(l))}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
   <p style="margin:8px 0"><span class="pill ${l.status}">${LABEL[l.status]}</span> ${l.opted_out ? '<span class="pill lost">Opted out</span>' : ''} ${l.paid_amount ? `<span class="pill paid">Paid ${rupee(l.paid_amount)}</span>` : ''}</p>
   ${summaryStrip(l)}
-  <div class="qa"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button><button class="btn btn-ghost btn-sm" type="button" data-act="confirmBooking">Confirm and email customer</button><button class="btn btn-ghost btn-sm" type="button" data-act="issueFromLead">Log an issue</button></div>
+  <div class="qa"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button>${l.booking_id || ['lost', 'junk'].includes(l.status) ? '' : '<button class="btn btn-ghost btn-sm" type="button" data-act="giveId">Give booking ID</button>'}<button class="btn btn-ghost btn-sm" type="button" data-act="confirmBooking">Confirm and email customer</button>${!l.booking_id && !BOOKED_STATUSES.includes(l.status) && l.status !== 'junk' ? '<button class="btn btn-ghost btn-sm" type="button" data-act="markJunk">Mark as junk</button>' : ''}${l.status === 'junk' ? '<button class="btn btn-ghost btn-sm" type="button" data-act="restoreJunk">Restore</button>' : ''}<button class="btn btn-ghost btn-sm" type="button" data-act="issueFromLead">Log an issue</button></div>
   <div class="dtabs" role="tablist" aria-label="Booking sections">${dtab('booking', 'Booking')}${dtab('money', 'Money')}${dtab('customer', 'Customer')}${dtab('messages', 'Messages')}</div>
   ${panel('booking', `${DETAILS}
     ${customerVehicleCard(l)}
@@ -721,7 +727,7 @@ const ACT = {
     const v = (id) => ($('#' + id)?.value ?? '');
     const kind = S.finKind, r = buildEntry(kind, { amount: v('fin-amount'), by: v('fin-by'), method: v('fin-method'), reference: v('fin-ref'), on: v('fin-on'), reason: v('fin-reason'), note: v('fin-note'), mechanic: l.mechanic_id || '', gatewayFee: v('fin-fee'), txn: v('fin-txn'), settlement: v('fin-settle') }, { today: todayIST(), lead: l, collectedBy: a.byChannel, outstanding: a.outstanding });
     if (!r.ok) return toast(r.error);
-    if (!confirm(`${FIN_KINDS[kind]}: ${rupee2(r.entry.amount)} for ${l.ref}? This cannot be edited later, only cancelled with a reason.`)) return;
+    if (!confirm(`${FIN_KINDS[kind]}: ${rupee2(r.entry.amount)} for ${bid(l)}? This cannot be edited later, only cancelled with a reason.`)) return;
     const { error } = await sb.from('ledger_entries').insert({ ...r.entry, created_by: S.me.user_id });
     if (error) return toast('Could not save: ' + error.message);
     if (kind === 'payment' && !['paid', 'scheduled', 'completed'].includes(l.status)) await sb.from('leads').update({ status: 'paid' }).eq('id', l.id);
@@ -758,7 +764,7 @@ const ACT = {
   },
   ledgerCsv() {
     if (!S.ledger.length) return toast('Nothing to download');
-    const refs = Object.fromEntries(S.leads.map((l) => [l.id, l.ref])), mechanics = Object.fromEntries(S.mechanics.map((m) => [m.id, m.name]));
+    const refs = Object.fromEntries(S.leads.map((l) => [l.id, bid(l)])), mechanics = Object.fromEntries(S.mechanics.map((m) => [m.id, m.name]));
     const blob = new Blob(['\ufeff' + ledgerCsv([...S.ledger].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)), { refs, mechanics, who: whoRecorded })], { type: 'text/csv;charset=utf-8' }), a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = 'mechanix-transactions-' + todayIST() + '.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   },
@@ -797,7 +803,7 @@ const ACT = {
   showMoveBooking() { const b = $('#moveBox'); if (b) { b.hidden = !b.hidden; if (!b.hidden) $('#cc-q').focus(); } },
   async moveBooking(btn) {
     const l = S.leads.find((x) => x.id === S.open), c = S.customers.find((x) => x.id === btn.getAttribute('data-id')); if (!l || !c) return;
-    if (!confirm(`Move ${l.ref} to ${c.name} (+91 ${c.phone})? The booking will show under that customer.`)) return;
+    if (!confirm(`Move ${bid(l)} to ${c.name} (+91 ${c.phone})? The booking will show under that customer.`)) return;
     const bike = S.bikes.find((b) => b.id === l.bike_id), upd = { customer_id: c.id, name: c.name, phone: c.phone };
     if (bike && bike.customer_id !== c.id) upd.bike_id = null;
     const { error } = await sb.from('leads').update(upd).eq('id', l.id);
@@ -806,7 +812,7 @@ const ACT = {
   },
   async voidInvoice() {
     const l = S.leads.find((x) => x.id === S.open); if (!l) return;
-    const reason = await askReason(`Delete the invoice for ${l.ref}?`, 'Why is it being deleted? It is hidden from the register and sales figures, and you can restore it.', 'Delete invoice');
+    const reason = await askReason(`Delete the invoice for ${bid(l)}?`, 'Why is it being deleted? It is hidden from the register and sales figures, and you can restore it.', 'Delete invoice');
     if (!reason) return;
     if (!S.invoicesAll.some((r) => r.lead_id === l.id)) { const saved = await saveInvoiceCopy(l, 'rebuilt'); if (!saved) return toast('There is no invoice on this booking to delete.'); await loadInvoices(); }
     const { data, error } = await sb.rpc('void_invoices', { p_lead: l.id, p_reason: reason });
@@ -827,7 +833,7 @@ const ACT = {
     S.open = null; S.openCust = null; S.openMech = null;
     $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">Deleted bookings</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
     <p class="small muted">These are hidden from every list and no reminders go out. They are kept because they have an invoice or payment. Restore one to bring it back.</p>
-    ${(data ?? []).length ? (data ?? []).map((l) => `<div class="card" style="margin-top:10px"><b class="mono">${esc(l.ref)}</b> · ${esc(l.name)} · ${esc(svcName(l.service_id))}<br><span class="tiny muted">Deleted ${esc(when(l.deleted_at))}${l.deleted_reason ? ' · ' + esc(l.deleted_reason) : ''}</span>${isOwner() ? `<div style="margin-top:8px"><button class="btn btn-ghost btn-sm" type="button" data-act="restoreLead" data-id="${l.id}">Restore</button></div>` : ''}</div>`).join('') : '<p class="muted">No deleted bookings.</p>'}`;
+    ${(data ?? []).length ? (data ?? []).map((l) => `<div class="card" style="margin-top:10px"><b class="mono">${esc(bid(l))}</b> · ${esc(l.name)} · ${esc(svcName(l.service_id))}<br><span class="tiny muted">Deleted ${esc(when(l.deleted_at))}${l.deleted_reason ? ' · ' + esc(l.deleted_reason) : ''}</span>${isOwner() ? `<div style="margin-top:8px"><button class="btn btn-ghost btn-sm" type="button" data-act="restoreLead" data-id="${l.id}">Restore</button></div>` : ''}</div>`).join('') : '<p class="muted">No deleted bookings.</p>'}`;
     $('#sheet').hidden = false;
   },
   async restoreLead(btn) {
@@ -869,7 +875,7 @@ const ACT = {
     const upd = { status: n.to }; if (n.to === 'completed') upd.completed_at = new Date().toISOString();
     const { error } = await sb.from('leads').update(upd).eq('id', l.id);
     if (error) return toast('Could not update: ' + error.message);
-    await audit('board_step', { ref: l.ref, from: l.status, to: n.to }); toast(l.ref + ': ' + n.label.toLowerCase()); await loadLeads(); render();
+    await audit('board_step', { ref: l.ref, from: l.status, to: n.to }); toast(bid(l) + ': ' + n.label.toLowerCase()); await loadLeads(); render();
   },
   async boardMech(sel) {
     const l = S.leads.find((x) => x.id === sel.getAttribute('data-board-mech')); if (!l) return;
@@ -1070,7 +1076,7 @@ const ACT = {
   },
   async deleteLead() {
     const l = S.leads.find((x) => x.id === S.open); if (!l) return;
-    if (!confirm(`Delete booking ${l.ref} for ${l.name}?`)) return;
+    if (!confirm(`Delete ${l.booking_id ? 'booking ' + l.booking_id : 'the lead'} for ${l.name}?`)) return;
     const r = await removeBookings([l.id], 'Deleted by the owner');
     if (r.error) return toast('Could not delete: ' + r.error);
     await audit('booking_deleted', { ref: l.ref, archived: r.archived }); toast(removedMsg(r));
@@ -1116,7 +1122,7 @@ const ACT = {
   icselAll() { S.invoicesAll.filter((r) => r.lead_id === S.open).forEach((r) => S.icsel.add(r.id)); openLead(S.open, true); },
   async icselDelete() {
     const l = S.leads.find((x) => x.id === S.open); const ids = [...S.icsel].filter((id) => S.invoicesAll.some((r) => r.id === id && r.lead_id === S.open && !r.voided_at)); if (!l || !ids.length) return;
-    const reason = await askReason(`Delete ${ids.length} invoice cop${ids.length === 1 ? 'y' : 'ies'} of ${l.ref}?`, 'Why? They are hidden from the register and sales figures, and you can restore them.', 'Delete');
+    const reason = await askReason(`Delete ${ids.length} invoice cop${ids.length === 1 ? 'y' : 'ies'} of ${bid(l)}?`, 'Why? They are hidden from the register and sales figures, and you can restore them.', 'Delete');
     if (!reason) return; const { data, error } = await sb.rpc('void_invoice_ids', { p_ids: ids, p_reason: reason });
     if (error) return toast('Could not delete: ' + error.message);
     await audit('invoice_deleted', { ref: l.ref, copies: data, reason }); S.icsel.clear(); toast('Deleted'); await loadInvoices(); openLead(l.id, true); if (['sales', 'invoices', 'custbook'].includes(S.tab)) render();
@@ -1140,7 +1146,7 @@ const ACT = {
     const first = String(m.name).split(' ')[0];
     const b = bikeOf(l), a = salesModel().accounts.find((x) => x.lead_id === l.id), when = [l.preferred_date ? new Date(l.preferred_date + 'T12:00:00+05:30').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '', l.preferred_slot && l.preferred_slot !== 'asap' ? l.preferred_slot : ''].filter(Boolean).join(' ');
     const line = (k, v) => (v ? `${k}: ${v}\n` : '');
-    const text = `Hi ${first}, booking ${l.ref}${l.status === 'completed' ? ' is complete' : ' details'}.\n\n` + line('Customer', `${l.name} (${l.phone})`) + line('Vehicle', [b && b.reg_no ? String(b.reg_no).toUpperCase() : '', b ? [b.brand && b.brand !== 'Other' ? b.brand : '', b.model].filter(Boolean).join(' ') : ''].filter(Boolean).join(' · '))
+    const text = `Hi ${first}, ${bkg(l)}${l.status === 'completed' ? ' is complete' : ' details'}.\n\n` + line('Customer', `${l.name} (${l.phone})`) + line('Vehicle', [b && b.reg_no ? String(b.reg_no).toUpperCase() : '', b ? [b.brand && b.brand !== 'Other' ? b.brand : '', b.model].filter(Boolean).join(' ') : ''].filter(Boolean).join(' · '))
       + line('Service', [svcName(l.service_id), ...(l.addons || []).map((x) => svcName(x))].filter(Boolean).join(' + ')) + line('Place', [l.area, l.address].filter(Boolean).join(', ')) + line('When', when)
       + line('Bill total', a ? rupee2(a.total) : '') + line('Customer paid', a ? rupee2(a.collected) : '') + line('Collected by you', a && a.byChannel.mechanic ? rupee2(a.byChannel.mechanic) : '')
       + (url ? `\nPlease pay the company share ${rupee2(amt)} here:\n${url}` : '');
@@ -1159,7 +1165,7 @@ const ACT = {
     btn.disabled = false; btn.textContent = old;
     if (error || !data || data.error) { let msg = data && data.error; if (!msg && error && error.context && error.context.json) { try { msg = (await error.context.json()).error; } catch (x) { /* ignore */ } } return toast('Could not make the card: ' + (msg || (error && error.message) || 'try again')); }
     const first = String(l.name).split(' ')[0], until = new Date(data.valid_until + 'T12:00:00+05:30').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-    window.open(waLink(l.phone, `Hi ${first}, thank you. Your Mechanix Pro booking ${l.ref} is fully paid and your service warranty card is ready. It covers ${data.covers || 'the service work'} for ${data.days} days, valid until ${until}. Open and verify it here: ${data.url}`), '_blank', 'noopener');
+    window.open(waLink(l.phone, `Hi ${first}, thank you. Your Mechanix Pro ${bkg(l)} is fully paid and your service warranty card is ready. It covers ${data.covers || 'the service work'} for ${data.days} days, valid until ${until}. Open and verify it here: ${data.url}`), '_blank', 'noopener');
     await audit('warranty_card_shared', { ref: l.ref, code: data.code, days: data.days }); toast('Card ready. WhatsApp is open with the message.');
   },
   iselMode() { S.imode = !S.imode; S.isel.clear(); render(); },
@@ -1264,6 +1270,28 @@ const ACT = {
     if (error || !data || data.error) return toast('Could not send: ' + ((data && data.error) || (error && error.message) || 'try again'));
     toast(data.emailed ? 'Pickup email sent to the customer.' : data.has_email ? 'Pickup noted. The email could not be sent.' : 'Pickup noted. No customer email saved, so use Share pickup on WhatsApp.');
   },
+  // Give the booking ID without emailing anyone. The database gives the same ID again if it already has one, and writes who did it to the history.
+  async giveId() {
+    const l = leadOf(S.open); if (!l) return;
+    const { data, error } = await sb.rpc('confirm_booking', { p_lead: l.id });
+    if (error) return toast('Could not give an ID: ' + error.message);
+    toast('Booking ID ' + data + ' given'); await loadLeads(); openLead(l.id, true);
+  },
+  async markJunk() {
+    const l = leadOf(S.open); if (!l) return;
+    const reason = prompt('Mark ' + l.name + ' as junk? It is kept as data but left out of follow-ups, reminders, totals and reports, and you can restore it.\n\nWhy is it junk? (optional, no ID or card numbers)', '');
+    if (reason === null) return;
+    const { error } = await sb.rpc('mark_lead_junk', { p_lead: l.id, p_reason: reason || null });
+    if (error) return toast('Could not mark as junk: ' + error.message);
+    toast('Marked as junk'); await loadLeads(); render(); openLead(l.id, true);
+  },
+  async restoreJunk() {
+    const l = leadOf(S.open); if (!l) return;
+    if (!confirm('Restore ' + l.name + ' to its earlier stage?')) return;
+    const { data, error } = await sb.rpc('restore_lead_junk', { p_lead: l.id });
+    if (error) return toast('Could not restore: ' + error.message);
+    toast('Restored to ' + (LABEL[data] || data)); await loadLeads(); render(); openLead(l.id, true);
+  },
   async confirmBooking() {
     const l = S.leads.find((x) => x.id === S.open);
     if (!l.mechanic_id && !confirm('No mechanic is assigned yet. Confirm without one?')) return;
@@ -1296,7 +1324,7 @@ const ACT = {
     if (!(amount > 0)) return toast('Enter the amount received');
     const r = buildEntry('payment', { amount, by: $('#pby')?.value || 'company_manual', method: 'Cash or transfer', on: todayIST() }, { today: todayIST(), lead: l });
     if (!r.ok) return toast(r.error);
-    if (!confirm(`Record ${rupee(amount)} received by ${r.entry.collected_by === 'mechanic' ? 'the mechanic' : 'the company'} for ${l.ref}?`)) return;
+    if (!confirm(`Record ${rupee(amount)} received by ${r.entry.collected_by === 'mechanic' ? 'the mechanic' : 'the company'} for ${bid(l)}?`)) return;
     const { error } = await sb.from('ledger_entries').insert({ ...r.entry, created_by: S.me.user_id });
     if (error) return toast(error.message);
     if (!['paid', 'scheduled', 'completed'].includes(l.status)) await sb.from('leads').update({ status: 'paid' }).eq('id', l.id);
@@ -1324,7 +1352,7 @@ const ACT = {
     toast('Booking added'); await loadLeads(); S.tab === 'leads' ? renderList() : render(); openLead(data.id);
   },
   csv() {
-    const rows = [['Ref', 'Created', 'Name', 'Phone', 'Source', 'Area', 'Service', 'Estimate', 'Date', 'Slot', 'Status', 'Paid', 'UTM source', 'UTM campaign']].concat(filtered().map((l) => [l.ref, l.created_at, l.name, l.phone, l.source, l.area, svcName(l.service_id), l.est_total, l.preferred_date, l.preferred_slot, LABEL[l.status], l.paid_amount, l.utm?.utm_source, l.utm?.utm_campaign]));
+    const rows = [['Booking ID', 'Created', 'Name', 'Phone', 'Source', 'Area', 'Service', 'Estimate', 'Date', 'Slot', 'Status', 'Paid', 'UTM source', 'UTM campaign']].concat(filtered().map((l) => [l.booking_id || '', l.created_at, l.name, l.phone, l.source, l.area, svcName(l.service_id), l.est_total, l.preferred_date, l.preferred_slot, LABEL[l.status], l.paid_amount, l.utm?.utm_source, l.utm?.utm_campaign]));
     const csv = rows.map((r) => r.map((c) => { c = String(c ?? ''); return /[",\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(',')).join('\n');
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'mechanixpro-bookings-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
     audit('exported_csv', { rows: rows.length - 1 });
@@ -1417,7 +1445,7 @@ function openIssue(id) {
   const recent = S.leads.slice(0, 200), w = warrantyInfo(S.leads.find((l) => l.id === i.lead_id), WARRANTY_DAYS);
   $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${id === 'new' ? 'Log an issue' : 'Issue'}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
   <div class="card" style="margin-top:12px"><div class="inline-form">
-    <label class="label" for="il">Booking</label><select id="il"${id === 'new' ? '' : ' disabled'}><option value="">Not linked to a booking</option>${recent.map((l) => `<option value="${l.id}"${l.id === i.lead_id ? ' selected' : ''}>${esc(l.ref)} · ${esc(l.name)}</option>`).join('')}</select>
+    <label class="label" for="il">Booking</label><select id="il"${id === 'new' ? '' : ' disabled'}><option value="">Not linked to a booking</option>${recent.map((l) => `<option value="${l.id}"${l.id === i.lead_id ? ' selected' : ''}>${esc(bid(l))} · ${esc(l.name)}</option>`).join('')}</select>
     <p class="tiny muted" id="iw">${i.lead_id ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''}</p>
     <label class="label" for="ik">Type</label><select id="ik"${id === 'new' ? '' : ' disabled'}>${Object.entries(KIND_LABEL).map(([k, t]) => `<option value="${k}"${k === i.kind ? ' selected' : ''}>${t}</option>`).join('')}</select>
     <label class="label" for="ia">Refund amount in rupees (refunds only)</label><input id="ia" inputmode="numeric" maxlength="6" value="${esc(i.amount ?? '')}">
@@ -1659,7 +1687,7 @@ async function openInvoice(lead, opts = {}) {
 function boardCard(l) {
   const m = S.mechanics.find((x) => x.id === l.mechanic_id), n = nextStep(l.status);
   const when = [l.preferred_slot ? ({ asap: 'As soon as possible', morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening' }[l.preferred_slot] || '') : '', l.preferred_time || ''].filter(Boolean).join(' · ');
-  return `<article class="bcard"><div class="bhead"><button class="bref" type="button" data-lead="${l.id}">${esc(l.ref)}</button><span class="pill ${l.status}">${LABEL[l.status]}</span></div>
+  return `<article class="bcard"><div class="bhead"><button class="bref" type="button" data-lead="${l.id}">${esc(bid(l))}</button><span class="pill ${l.status}">${LABEL[l.status]}</span></div>
     <p class="bname"><b>${esc(l.name)}</b> <span class="muted">${esc(svcName(l.service_id))}${l.est_total ? ' · ' + rupee(l.est_total) : ''}</span></p>
     <p class="meta" style="margin:2px 0 8px">${esc([when, l.area, l.pincode].filter(Boolean).join(' · ') || 'No time or place yet')}</p>
     <label class="tiny muted" for="bm-${l.id}">Mechanic</label>

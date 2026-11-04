@@ -11,8 +11,8 @@ export function bookingRows({ customer, leads, accounts = [], svcName = (x) => x
   return customerLeads(customer, leads).map((l) => {
     const a = byLead.get(l.id);
     return a
-      ? { id: l.id, ref: l.ref, createdAt: l.created_at, when: l.preferred_date || '', service: svcName(l.service_id), status: l.status, kind: 'invoice', total: r2(a.total), paid: r2(a.collected), balance: r2(a.outstanding) }
-      : { id: l.id, ref: l.ref, createdAt: l.created_at, when: l.preferred_date || '', service: svcName(l.service_id), status: l.status, kind: 'estimate', total: r2(l.est_total), paid: r2(l.paid_amount), balance: 0 };
+      ? { id: l.id, ref: l.booking_id || 'Lead', createdAt: l.created_at, when: l.preferred_date || '', service: svcName(l.service_id), status: l.status, kind: 'invoice', total: r2(a.total), paid: r2(a.collected), balance: r2(a.outstanding) }
+      : { id: l.id, ref: l.booking_id || 'Lead', createdAt: l.created_at, when: l.preferred_date || '', service: svcName(l.service_id), status: l.status, kind: 'estimate', total: r2(l.est_total), paid: r2(l.paid_amount), balance: 0 };
   });
 }
 

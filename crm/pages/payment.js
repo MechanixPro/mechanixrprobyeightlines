@@ -2,7 +2,7 @@ import { supabase, modal, field, esc, rupee, toast, clean } from '../ui.js';
 
 /** The first payment: a secure link for the slot fee, sent from the desk's WhatsApp number when it is connected. */
 export function sendPaymentLink(ctx, lead, done) {
-  const m = modal({ title: 'Send the payment link', intro: `For ${esc(lead.name)} (${esc(lead.ref)}). Leave the amount empty to use the standard slot fee.`,
+  const m = modal({ title: 'Send the payment link', intro: `For ${esc(lead.name)}${lead.booking_id ? ' (' + esc(lead.booking_id) + ')' : ''}. Leave the amount empty to use the standard slot fee.`,
     body: `${field('Amount in rupees', 'amount', { type: 'number', min: 1, max: 100000, hint: ctx.can('assign_leads') ? 'As a supervisor you can send any amount up to ₹1,00,000.' : 'You can send up to the slot fee or the quote, whichever is higher.' })}
       <label class="check"><input type="checkbox" name="wa" checked><span>Send it on WhatsApp now</span></label><div id="result"></div>`,
     submit: 'Create and send link', onSubmit: async (f, d) => {

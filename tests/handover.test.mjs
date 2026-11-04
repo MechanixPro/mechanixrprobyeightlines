@@ -96,7 +96,7 @@ test('Crew shows each step as not started, code sent, locked, expired or verifie
   assert.equal(canSendHandoverCode(v, 'pickup'), false); assert.equal(canSendHandoverCode(v, 'return'), true);
 });
 test('the WhatsApp message carries the code for the customer only', () => {
-  const m = handoverMessage({ name: 'Asha Rao', ref: 'MP-1', mechanic_name: 'Ravi Kumar' }, 'pickup', '4821');
+  const m = handoverMessage({ name: 'Asha Rao', ref: 'L-ABC123', booking_id: 'MP-1', mechanic_name: 'Ravi Kumar' }, 'pickup', '4821');
   assert.match(m, /^Hi Asha, your Mechanix Pro pickup code for booking MP-1 is 4821\./); assert.match(m, /Ravi/); assert.match(m, /24 hours/);
   assert.match(handoverMessage({ name: 'Asha', ref: 'MP-1' }, 'return', '0007'), /return code .* 0007/);
 });

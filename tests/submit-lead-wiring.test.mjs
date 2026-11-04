@@ -37,5 +37,5 @@ test('submit-lead sends the confirmation email after saving, logs it, and can ne
   assert.match(afterInsert, /try \{[\s\S]*sendEmail\([\s\S]*\} catch/);
   assert.match(afterInsert, /from\('email_log'\)\.insert/);
   assert.match(afterInsert, /email_marketing_consent/);
-  assert.ok(afterInsert.indexOf('sendEmail(') < afterInsert.indexOf('return json(req, { ok: true, ref: lead.ref'), 'email is sent before the response is returned');
+  assert.ok(afterInsert.indexOf('sendEmail(') < afterInsert.indexOf('return json(req, { ok: true, total: priced.total'), 'email is sent before the response is returned');
 });

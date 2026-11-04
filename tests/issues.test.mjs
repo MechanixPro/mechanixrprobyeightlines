@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { issueRows, openIssueCount, warrantyInfo } from '../admin/issue-view.js';
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
-const leads = [{ id: 'l1', ref: 'MP-AAA111', name: 'Asha', phone: '9876543210', preferred_date: '2026-10-01', status: 'completed' }];
+const leads = [{ id: 'l1', ref: 'L-AAA111', booking_id: 'MP-AAA111', name: 'Asha', phone: '9876543210', preferred_date: '2026-10-01', status: 'completed' }];
 const issues = [
   { id: 'i1', lead_id: 'l1', kind: 'refund', status: 'open', amount: 349, note: 'Slot missed', created_at: '2026-10-05T10:00:00Z' },
   { id: 'i2', lead_id: 'l1', kind: 'warranty', status: 'resolved', amount: null, note: 'Chain loose again', created_at: '2026-10-06T10:00:00Z', resolved_at: '2026-10-07T10:00:00Z' },

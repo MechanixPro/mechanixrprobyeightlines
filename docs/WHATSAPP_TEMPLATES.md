@@ -10,4 +10,6 @@ Names must match the Supabase secrets (`WA_TPL_*`) or these defaults.
 | `mxp_payment_received` | Payment of ₹{{1}} received for booking {{2}}. Your slot is confirmed and we will share your mechanic's details before the visit. | 1 amount · 2 ref |
 | `mxp_last_reminder` | Hi {{1}}, should we keep your Mechanix Pro booking {{2}} open? Reply YES to continue or STOP to close it. | 1 first name · 2 ref |
 
+**The ID slot ("ref").** A lead has no booking ID until Crew or Admin confirms it (or it is paid, scheduled or completed). Until then the code fills that variable with the word `request`, so the texts read "your Mechanix Pro booking request" (templates 1, 2, 5 and the payment reminder). Once the booking has an ID the variable carries it, for example `MP-26-27-0001`. The variable count of every template is unchanged, so no new approval is needed.
+
 Add a footer to each: "Reply STOP to opt out." Keep them Utility (booking-related). Promotional offers need a separate Marketing template and opt-in.

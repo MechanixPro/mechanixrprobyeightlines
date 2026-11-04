@@ -6,7 +6,7 @@ export function issueRows(issues, leads, filter = 'all') {
   const byId = new Map(leads.map((l) => [l.id, l]));
   return issues
     .filter((i) => filter === 'all' || (filter === 'open' ? i.status !== 'resolved' : i.status === filter))
-    .map((i) => { const l = byId.get(i.lead_id); return { ...i, ref: l ? l.ref : '—', customer: l ? l.name : '—', phone: l ? l.phone : '' }; })
+    .map((i) => { const l = byId.get(i.lead_id); return { ...i, ref: l ? (l.booking_id || 'Lead') : '—', customer: l ? l.name : '—', phone: l ? l.phone : '' }; })
     .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
 }
 export const openIssueCount = (issues) => issues.filter((i) => i.status !== 'resolved').length;

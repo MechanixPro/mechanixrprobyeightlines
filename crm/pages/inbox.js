@@ -18,7 +18,7 @@ export async function render(root, ctx) {
 const mins = (iso) => Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60e3));
 function card(c, ctx) {
   const m = mins(c.wrote_at), late = m > 15;
-  return `<article class="lead-card tone-${late ? 'late' : 'new'}"><div class="lc-top"><div><h2>${esc(c.name)}</h2><p class="muted small">${esc(c.ref)} · wrote ${when(c.wrote_at)}</p></div>${c.unassigned ? '<span class="chip late">Unassigned</span>' : `<span class="chip soft">${esc(c.owner || '')}</span>`}</div>
+  return `<article class="lead-card tone-${late ? 'late' : 'new'}"><div class="lc-top"><div><h2>${esc(c.name)}</h2><p class="muted small">${esc(c.booking_id || 'Lead')} · wrote ${when(c.wrote_at)}</p></div>${c.unassigned ? '<span class="chip late">Unassigned</span>' : `<span class="chip soft">${esc(c.owner || '')}</span>`}</div>
     <div class="timer t-${late ? 'late' : 'new'}">Waiting ${ago(c.wrote_at).replace(' ago', '')}${late ? '. Reply now' : ''}</div>
     <div class="lc-actions">${c.unassigned && ctx.can('take_leads') ? `<button class="btn primary" type="button" data-take="${c.id}">Take and reply</button>` : ''}<button class="btn ${c.unassigned ? 'ghost' : 'primary'}" type="button" data-open="${c.id}">Open and reply</button></div></article>`;
 }

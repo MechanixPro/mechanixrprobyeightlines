@@ -249,7 +249,7 @@
     return '<div class="takeaway"><b>Not ready to send? Take your build with you.</b><div class="chips"><button type="button" class="btn btn-ghost btn-sm" data-act="sendDraft">Send to WhatsApp now</button><button type="button" class="btn btn-ghost btn-sm" data-act="copyBuild">Copy link to my build</button><button type="button" class="btn btn-ghost btn-sm" data-act="shareBuild">Share</button>' + (canCall ? '<button type="button" class="btn btn-ghost btn-sm" data-act="callback"' + (sending ? ' disabled' : '') + '>Save my build and call me back</button>' : '') + '</div>' + (canCall ? '<p class="tiny muted" style="margin:8px 0 0">Call-back needs only your name and number below. No day or time.</p>' : '') + '</div>';
   }
   function callbackDone() {
-    return '<div class="confirm-panel" role="status"><b>Saved. We will call you soon.</b><p>' + (cbDone.ref ? 'Your reference is <b>' + esc(cbDone.ref) + '</b>. ' : '') + 'Our expert will call you from ' + esc(C.phoneDisplay || 'our number') + '. You can also chat with us now.</p><div class="chips"><button type="button" class="btn btn-wa btn-sm" data-act="sendDraft">Chat on WhatsApp</button><button type="button" class="btn btn-ghost btn-sm" data-act="copyBuild">Copy link to my build</button></div></div>';
+    return '<div class="confirm-panel" role="status"><b>Saved. We will call you soon.</b><p>' + (cbDone.ref ? 'Your booking ID is <b>' + esc(cbDone.ref) + '</b>. ' : '') + 'Our expert will call you from ' + esc(C.phoneDisplay || 'our number') + '. You can also chat with us now.</p><div class="chips"><button type="button" class="btn btn-wa btn-sm" data-act="sendDraft">Chat on WhatsApp</button><button type="button" class="btn btn-ghost btn-sm" data-act="copyBuild">Copy link to my build</button></div></div>';
   }
   function ccSeg() {
     if (L.hasTiers(items)) return [['std', 'Up to 149cc'], ['mid', '150 to 250cc'], ['big', L.hasBigRows(items) ? '251 to 500cc' : 'Above 250cc']].map(function (o) { return '<button type="button" data-act="cc" data-v="' + o[0] + '" aria-pressed="' + (st.cc === o[0]) + '">' + o[1] + '</button>'; }).join('');
@@ -340,7 +340,7 @@
     if (navigator.share) navigator.share({ title: 'My bike service build', text: text, url: link }).catch(function () {});
     else window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
   }
-  /* Referral: the booking reference travels as ?ref=, which the site already saves with the next booking. */
+  /* Referral: a booking ID (when there is one) travels as ?ref=, which the site already saves with the next booking. A new request has no ID yet, so the link is the plain site address. */
   function shareRef(ref) {
     var link = location.origin + '/' + (ref ? '?ref=' + encodeURIComponent(ref) : ''), text = 'I booked a doorstep bike service with Mechanix Pro in Bengaluru. Quote first, work after your OK: ' + link;
     if (navigator.share) navigator.share({ title: 'Mechanix Pro', text: text, url: link }).catch(function () {});
@@ -429,7 +429,7 @@
       '<div class="rcpt-slot" aria-hidden="true"><i class="rcpt-led"></i></div>' +
       '<div class="rcpt-paper"><div class="rcpt-head"><span class="rcpt-ico" aria-hidden="true"><img src="/assets/img/logo-mark.webp" alt="" width="34" height="35"></span><h3 id="doneT">Thank you!</h3><p>' + name + ' is in the queue.</p></div>' +
       '<div class="rcpt-perf" aria-hidden="true"><i></i><i></i></div>' + (st.pin || st.lat ? '<div class="pm pm-mini rcpt-map" id="rcptMap"></div>' : '') +
-      '<dl class="rcpt-rows"><div><dt>Reference</dt><dd>' + (ref ? esc(ref) : 'Pending') + '</dd></div><div><dt>Estimate</dt><dd>from ' + rupee(total()) + '</dd></div><div><dt>Bike</dt><dd>' + esc(bikeTitle()) + '</dd></div><div><dt>Service</dt><dd>' + esc(sv ? sv.name : '') + '</dd></div><div><dt>When</dt><dd>' + esc(when) + '</dd></div><div><dt>Status</dt><dd><span class="rcpt-chip">Request received</span></dd></div></dl>' +
+      '<dl class="rcpt-rows">' + (ref ? '<div><dt>Booking ID</dt><dd>' + esc(ref) + '</dd></div>' : '') + '<div><dt>Estimate</dt><dd>from ' + rupee(total()) + '</dd></div><div><dt>Bike</dt><dd>' + esc(bikeTitle()) + '</dd></div><div><dt>Service</dt><dd>' + esc(sv ? sv.name : '') + '</dd></div><div><dt>When</dt><dd>' + esc(when) + '</dd></div><div><dt>Status</dt><dd><span class="rcpt-chip">Request received</span></dd></div></dl>' +
       '<div class="rcpt-barcode" aria-hidden="true"><svg viewBox="0 0 ' + barW + ' 46" preserveAspectRatio="none">' + svgBars + '</svg><small>' + (ref ? esc(ref) : 'MECHANIX PRO') + '</small></div>' +
       '<p class="rcpt-foot">Your quote arrives on WhatsApp. Nothing starts until you approve it.</p>' +
       '<a class="btn btn-wa" id="doneWa" href="' + esc(url) + '">Open WhatsApp now</a>' +

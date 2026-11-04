@@ -18,14 +18,14 @@ Deno.serve(async (req) => {
   const b = await req.json().catch(() => ({}));
   const amount = Math.round(Number(b.amount) * 100) / 100;
   if (!(amount >= 1 && amount <= 100000)) return json(req, { error: 'Amount must be between ₹1 and ₹1,00,000' }, 400);
-  const { data: lead } = await db.from('leads').select('id,ref,mechanic_id').eq('id', String(b.lead_id ?? '')).maybeSingle();
+  const { data: lead } = await db.from('leads').select('id,ref,booking_id,mechanic_id').eq('id', String(b.lead_id ?? '')).maybeSingle();
   if (!lead) return json(req, { error: 'Booking not found' }, 404);
   if (!lead.mechanic_id) return json(req, { error: 'Assign a mechanic to this booking first' }, 400);
   const { data: mech } = await db.from('mechanics').select('id,name,phone').eq('id', lead.mechanic_id).maybeSingle();
   if (!mech) return json(req, { error: 'Mechanic not found' }, 404);
 
   try {
-    const link = await createPaymentLink({ amount, ref: lead.ref, leadId: lead.id, name: mech.name, phone: String(mech.phone ?? '').replace(/\D/g, '').slice(-10), description: `Company share for booking ${lead.ref}`, notes: { purpose: 'remittance', mechanic_id: mech.id } });
+    const link = await createPaymentLink({ amount, ref: lead.ref, leadId: lead.id, name: mech.name, phone: String(mech.phone ?? '').replace(/\D/g, '').slice(-10), description: `Company share for ${lead.booking_id ? 'booking ' + lead.booking_id : 'a job'}`, notes: { purpose: 'remittance', mechanic_id: mech.id } });
     await db.from('audit_log').insert({ actor: user.id, action: 'mechanic_pay_link_created', details: { lead: lead.ref, mechanic: mech.name, amount } });
     return json(req, { ok: true, url: link.url, mechanic: mech.name, phone: mech.phone ?? null });
   } catch (e) {

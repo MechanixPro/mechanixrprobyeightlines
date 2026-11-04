@@ -41,7 +41,7 @@ export async function newBooking(ctx, pre = {}) {
     onSubmit: async (form, d, close) => {
       const r = await rpc('crm_create_booking', { p: { ...d, addons: d.addons || [] } });
       close();
-      if (r.duplicate) { toast('This customer already has an open booking. Opening it.'); } else { toast(`Booking ${r.ref} created.` + (r.coupon_discount ? ` Coupon saved ${rupee(r.coupon_discount)}.` : '')); }
+      if (r.duplicate) { toast('This customer already has an open booking. Opening it.'); } else { toast('Lead created. Confirm the booking when it is agreed.' + (r.coupon_discount ? ` Coupon saved ${rupee(r.coupon_discount)}.` : '')); }
       ctx.reload(); ctx.openLead(r.id);
     } });
   return m;
@@ -65,7 +65,7 @@ export async function editBooking(ctx, lead) {
     <div class="grid2">${field('Preferred date', 'preferred_date', { type: 'date', value: lead.preferred_date || '', half: true })}${field('Time slot', 'preferred_slot', { type: 'select', options: SLOTS, value: lead.preferred_slot, half: true })}
     ${field('PIN code', 'pincode', { inputmode: 'numeric', value: lead.pincode, half: true })}${field('Area', 'area', { value: lead.area, half: true })}</div>
     ${field('Address', 'address', { type: 'textarea', rows: 2, max: 200, value: lead.address })}${field('Requirements and notes', 'notes', { type: 'textarea', rows: 3, value: lead.notes })}`;
-  modal({ title: `Edit booking ${lead.ref}`, intro: 'Changes show in the admin straight away and are written to the history.', body, submit: 'Save changes', wide: true,
+  modal({ title: lead.booking_id ? `Edit booking ${lead.booking_id}` : `Edit ${lead.name}`, intro: 'Changes show in the admin straight away and are written to the history.', body, submit: 'Save changes', wide: true,
     onSubmit: async (form, d, close) => {
       // Send only what the agent changed. The database checks every field it receives (a PIN must be in the service area, a date cannot be in the past),
       // so sending untouched blanks or an old date made a simple bike edit fail on leads that never had a PIN.

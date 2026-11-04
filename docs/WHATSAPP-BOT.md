@@ -36,7 +36,7 @@ Prices come from the admin Prices tab. Check them before pasting these answers i
 - **Electric scooters?** We do a problem check first and quote the fix before any work.
 - **My bike broke down right now.** Share your live location here. The roadside emergency visit starts at ₹699. A team member will reply.
 - **How do I pay?** Through a secure payment link (UPI, cards, wallets, net banking). We never ask for card numbers or OTPs on chat.
-- **Where is my booking?** Enter your reference and mobile number at https://mechanixpro.in/track/
+- **Where is my booking?** Enter your booking ID (given when the booking is confirmed) and mobile number at https://mechanixpro.in/track/
 - **Opening hours?** We are open 24/7.
 - **Fleets, delivery riders, apartments?** Yes. See https://mechanixpro.in/fleet/ and https://mechanixpro.in/societies/
 - **Car service, e-challan, bike rental, OEM parts, insurance claims?** Coming soon. Join the waitlist at https://mechanixpro.in/coming-soon/
@@ -86,13 +86,13 @@ AiSensy is a WhatsApp Business provider with a flow builder, a shared team inbox
    }
    ```
    `service` is one of `basic`, `general`, `full`, `repair`, `sos`. `preferred_slot` is `morning`, `afternoon`, `evening` or `asap`. `preferred_date` is `YYYY-MM-DD`. Only `name` and `phone` are required.
-3. The function answers `{ "ok": true, "ref": "MP-XXXXXX", "estimate": 1299 }`. Show the reference to the customer: "Your reference is {{ref}}. Our expert will send your quote shortly."
+3. The function answers `{ "ok": true, "estimate": 1299 }`. It gives no reference: a lead gets its booking ID only after the team confirms it. Tell the customer: "We have your request. Our expert will send your quote shortly."
 4. Wrong or missing secret returns 403. More than 3 bookings from one number in 10 minutes returns 429.
 
 **Flow to build in AiSensy** (each step one message):
 1. Welcome: "Hi, I'm Mechanix Pro's assistant. How can I help?" Buttons: Book a service, Roadside help, Prices, Talk to a person.
 2. Book a service: ask name, bike brand and model, which service (Basic, General, Full, Repair or problem check), area or PIN, day, time slot. Confirm the details back.
-3. Call the webhook step above, then show the reference.
+3. Call the webhook step above, then say we have the request (no reference is shown).
 4. Prices: send the starting prices list from "Frequently asked questions".
 5. Roadside help: ask them to share live location, then route to a person.
 6. Talk to a person: assign to the team inbox. Use that route for accident, complaint and refund keywords too.

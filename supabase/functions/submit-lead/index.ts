@@ -10,6 +10,7 @@ import { bookingReceived } from '../_shared/email-templates.ts';
 import { slotFee } from '../_shared/checkout.ts';
 import { isReturningCustomer } from '../_shared/customer.ts';
 import { formatWhen } from '../_shared/when.ts';
+import { NEUTRAL_ID } from '../_shared/booking-id.ts';
 
 const SLOTS = ['morning', 'afternoon', 'evening', 'asap'];
 const clean = (v: unknown, max: number) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, max);
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
   }).select('id, ref').single();
   if (error) { console.error(error); return json(req, { error: 'Could not save. Please message us on WhatsApp.' }, 500); }
 
-  await alertNewLead(db, { ref: lead.ref, name, phone, source: 'website', area: clean(b.area, 40) || null, service: priced.service.name });
+  await alertNewLead(db, { name, phone, source: 'website', area: clean(b.area, 40) || null, service: priced.service.name });
 
   // Confirmation email (optional, only when the customer gave an address). It can never block or fail the booking.
   if (extra.email) {
@@ -113,7 +114,7 @@ Deno.serve(async (req) => {
       const mail = bookingReceived({ checkupFee: slot || null, newCustomer, nick: nick || null, buildUrl: env('SITE_URL', 'https://mechanixpro.in') + '/book/?' + buildQ,
         siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 79652 95649'), phoneTel: env('PHONE_TEL', '+917965295649'),
         whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918042303061'), email: 'hello@mechanixpro.in',
-        name, ref: lead.ref, bike: (() => { const base = [brand, model].filter((x) => x && x !== 'Other').join(' ') || 'Your bike'; return nick ? `"${nick}" (${base})` : base; })(),
+        name, bike: (() => { const base = [brand, model].filter((x) => x && x !== 'Other').join(' ') || 'Your bike'; return nick ? `"${nick}" (${base})` : base; })(),
         service: priced.service.name, area: clean(b.area, 40) || 'Bengaluru', whenText: isCallback ? 'We will call you back soon' : formatWhen(date, slot, extra.preferred_time), estimate: priced.total,
       });
       const r = await sendEmail({ to: extra.email, subject: mail.subject, html: mail.html, text: mail.text, from: FROM_BOOKING, tags: { template: 'booking_received' } });
@@ -123,8 +124,9 @@ Deno.serve(async (req) => {
 
   // 6) Optional instant confirmation template (only if enabled and consented).
   if (consent && whatsappReady() && env('SEND_RECEIVED_TEMPLATE') === 'true') {
-    const id = await sendTemplate(phone, TPL.received(), [name.split(' ')[0], lead.ref, priced.service.name]);
-    await db.from('messages').insert({ lead_id: lead.id, phone, direction: 'out', sender: 'system', body: `Template ${TPL.received()}: booking ${lead.ref} received (${priced.service.name}, ${rupee(priced.total)})`, wa_message_id: id });
+    const id = await sendTemplate(phone, TPL.received(), [name.split(' ')[0], NEUTRAL_ID, priced.service.name]);
+    await db.from('messages').insert({ lead_id: lead.id, phone, direction: 'out', sender: 'system', body: `Template ${TPL.received()}: booking request received (${priced.service.name}, ${rupee(priced.total)})`, wa_message_id: id });
   }
-  return json(req, { ok: true, ref: lead.ref, total: priced.total, coupon_discount: couponDiscount });
+  // No booking ID goes back: a lead is not a booking, so the website shows none. The ID is given when the team confirms.
+  return json(req, { ok: true, total: priced.total, coupon_discount: couponDiscount });
 });

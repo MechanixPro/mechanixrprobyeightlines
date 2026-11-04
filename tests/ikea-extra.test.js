@@ -33,7 +33,7 @@ test('returning visitors with a saved build get a welcome-back card', () => {
 test('after sending, the confirmation prints like a receipt: a slot, a paper that slides out, perforation, details, a barcode and confetti', () => {
   const a = read('assets/js/app.js'); const fn = a.slice(a.indexOf('function showDone'), a.indexOf('/* ---------- events'));
   for (const c of ['rcpt-slot', 'rcpt-paper', 'rcpt-perf', 'rcpt-rows', 'rcpt-barcode', 'confetti']) assert.ok(fn.includes(c), c);
-  for (const t of ['Thank you!', 'Reference', 'Estimate', 'Status', 'Request received', 'Open WhatsApp now', 'Add to calendar']) assert.ok(fn.includes(t), t);
+  for (const t of ['Thank you!', 'Booking ID', 'Estimate', 'Status', 'Request received', 'Open WhatsApp now', 'Add to calendar']) assert.ok(fn.includes(t), t);
   const css = read('assets/css/style.css'); const i = css.indexOf('.rcpt-paper');
   assert.ok(i > 0); for (const k of ['@keyframes rcptPrint', '@keyframes cfFall']) assert.ok(css.includes(k), k);
   assert.match(css.slice(css.indexOf('/* receipt checkout')), /prefers-reduced-motion/);

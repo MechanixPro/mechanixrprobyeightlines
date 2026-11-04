@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     const mail = vehiclePickedUp({
       siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 79652 95649'), phoneTel: env('PHONE_TEL', '+917965295649'),
       whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918042303061'), email: 'hello@mechanixpro.in',
-      name: lead.name, ref: lead.ref, bike: bikeName, reg: bike?.reg_no ?? lead.reg_no ?? null, service: svc?.name ?? 'Service',
+      name: lead.name, ref: lead.booking_id ?? null, bike: bikeName, reg: bike?.reg_no ?? lead.reg_no ?? null, service: svc?.name ?? 'Service',
       mechanicName: mech ? mech.name + (mech.certified === false ? '' : ' (Mechanix Pro certified)') : null,
     });
     const r = await sendEmail({ to: cust.email, subject: mail.subject, html: mail.html, text: mail.text, from: FROM_BOOKING, tags: { template: 'vehicle_picked_up' } });

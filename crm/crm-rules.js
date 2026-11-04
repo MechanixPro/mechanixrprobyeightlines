@@ -2,7 +2,7 @@
 // so an agent sees the problem before saving, and the database still refuses anything that slips past.
 export const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
 export const BOOKED = ['paid', 'scheduled', 'completed'];
-export const STATUS_LABEL = { new: 'New', contacted: 'Contacted', quoted: 'Quote sent', payment_sent: 'Advance link sent', paid: 'Booked', scheduled: 'Booked', completed: 'Done', lost: 'Lost' };
+export const STATUS_LABEL = { new: 'New', contacted: 'Contacted', quoted: 'Quote sent', payment_sent: 'Advance link sent', paid: 'Booked', scheduled: 'Booked', completed: 'Done', lost: 'Lost', junk: 'Junk' };
 export const LOST_REASONS = ['Price too high', 'No answer', 'Wrong area', 'Booked elsewhere', 'Not interested', 'Other'];
 export const SOURCE_LABEL = { website: 'Website', whatsapp: 'WhatsApp', phone: 'Phone call', walk_in: 'Walk in', app: 'App', instagram: 'Meta (Instagram)' };
 /** Friendly name for a lead source or an ad utm_source. */
@@ -13,10 +13,26 @@ export function sourceName(key) {
     if (['fb', 'facebook', 'meta', 'ig'].includes(k)) return 'Meta';
   return k ? k.charAt(0).toUpperCase() + k.slice(1) : 'Unknown';
 }
+/** The booking ID a customer sees, or '' for a lead that is not confirmed yet. The private ref (L-...) is never shown. */
+export const bookingLabel = (l) => String((l && l.booking_id) || '').trim();
+/** Where an ID would go on a screen or message: the booking ID, or a neutral word (default Lead) until the booking is confirmed. */
+export const idOr = (l, word = 'Lead') => bookingLabel(l) || word;
+export const isJunk = (l) => !!l && l.status === 'junk';
+/** Leads that count in pipeline totals, conversion and cost per lead: junk is kept as data but is not a lead. */
+export const countable = (leads) => (leads || []).filter((l) => !isJunk(l));
+/** Crew 'Confirm booking' (gives the booking ID). Mirrors confirm_booking: an open lead with no ID, for someone who can create bookings and may see it. The database decides. */
+export function canConfirmBooking(lead, me) {
+  if (!lead || bookingLabel(lead) || ['lost', 'junk'].includes(lead.status)) return false;
+  return !!(me && me.canCreate && (me.boss || !lead.crm_owner || lead.crm_owner === me.userId));
+}
+/** Mark as junk and Restore are admin only (not the other desk roles). A confirmed booking is never junk. */
+export const canMarkJunk = (lead, isAdmin) => isAdmin === true && !!lead && lead.status !== 'junk' && !bookingLabel(lead) && !BOOKED.includes(lead.status);
+export const canRestoreJunk = (lead, isAdmin) => isAdmin === true && isJunk(lead);
 export const KIND_LABEL = { call: 'Call', whatsapp: 'WhatsApp', note: 'Note', status: 'Status', assign: 'Assigned', create: 'Added', edit: 'Edited', delete: 'Deleted', restore: 'Restored' };
 
 /** Statuses an agent may move a lead to from its current one: forward steps, or Lost. A lost lead is reopened only by a supervisor. */
 export function nextStatuses(current, role) {
+  if (current === 'junk') return [];
   if (current === 'lost') return role === 'supervisor' ? OPEN.filter((s) => s !== 'new') : [];
   if (BOOKED.includes(current)) return [];
   const i = OPEN.indexOf(current);
@@ -89,6 +105,7 @@ export function ago(iso, now = new Date()) {
 export function timerInfo(lead, now = new Date(), slaMinutes = 15) {
   if (BOOKED.includes(lead.status)) return { label: 'Booked', tone: 'good' };
   if (lead.status === 'lost') return { label: lead.crm_lost_reason || 'Lost', tone: 'muted' };
+  if (lead.status === 'junk') return { label: lead.junk_reason ? 'Junk: ' + lead.junk_reason : 'Junk', tone: 'muted' };
   if (!lead.crm_first_contact_at && lead.status === 'new') {
     const m = minutesAgo(lead.created_at, now);
     return m > slaMinutes ? { label: 'Waiting ' + m + ' min. Contact now', tone: 'late' } : { label: 'New. Contact within ' + Math.max(1, slaMinutes - m) + ' min', tone: 'new' };
@@ -113,7 +130,7 @@ export function techJobMessage(l, url, opts = {}) {
   const first = String(l.mechanic_name || '').trim().split(' ')[0];
   const day = l.preferred_date ? new Date(l.preferred_date + 'T12:00:00+05:30').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' }) : '';
   const line = (k, v) => (v ? `${k}: ${v}\n` : '');
-  return `Hi${first ? ' ' + first : ''}, new job ${l.ref}.\n\n` + line('Customer', `${l.name} (${l.phone})`) + line('Bike', l.bike) + line('Service', l.service_name)
+  return `Hi${first ? ' ' + first : ''}, new job${bookingLabel(l) ? ' ' + bookingLabel(l) : ''}.\n\n` + line('Customer', `${l.name} (${l.phone})`) + line('Bike', l.bike) + line('Service', l.service_name)
     + line('Place', [l.area, l.address].filter(Boolean).join(', ')) + line('When', [day, SLOT_TEXT[l.preferred_slot] || ''].filter(Boolean).join(' · '))
     + line('Notes', l.notes && !hasPii(l.notes) ? String(l.notes).slice(0, 300) : '') + '\nPlease reply OK to confirm.'
     + (opts.pickup ? '\n\nPICKUP JOB: the bike goes to the workshop. At pickup, and again when you bring it back, open the link below: take 4 photos of the bike (front, back, left, right) and enter the 4-digit code the customer shows you.' : '')
@@ -211,5 +228,5 @@ export function canSendHandoverCode(items, kind) {
 export function handoverMessage(l, kind, code) {
   const first = String(l.name || '').trim().split(' ')[0], tech = String(l.mechanic_name || '').trim().split(' ')[0];
   const what = kind === 'pickup' ? `before ${tech || 'our technician'} takes your bike` : `when ${tech || 'our technician'} brings your bike back`;
-  return `Hi${first ? ' ' + first : ''}, your Mechanix Pro ${kind} code for booking ${l.ref} is ${code}.\n\nShare it with ${tech || 'the technician'} only ${what}, after they have photographed the bike. It works for 24 hours. Do not share it with anyone else.`;
+  return `Hi${first ? ' ' + first : ''}, your Mechanix Pro ${kind} code for ${bookingLabel(l) ? 'booking ' + bookingLabel(l) : 'your booking'} is ${code}.\n\nShare it with ${tech || 'the technician'} only ${what}, after they have photographed the bike. It works for 24 hours. Do not share it with anyone else.`;
 }

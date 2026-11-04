@@ -41,9 +41,9 @@ test('breakdowns name things in plain words and sort by money collected', () => 
   assert.deepEqual(r.bySource.map((x) => x.name), ['google', 'direct']);
 });
 test('reportCsv has a header, one row per booking, no names or phone numbers, and quotes safely', () => {
-  const csv = reportCsv([L({ ref: 'MP-9', area: 'HSR, Layout', campaign: 'say "hi"' })], { services, mechanics });
+  const csv = reportCsv([L({ ref: 'L-9', booking_id: 'MP-9', area: 'HSR, Layout', campaign: 'say "hi"' })], { services, mechanics });
   const [head, row] = csv.split('\n');
-  assert.equal(head, 'Ref,Date,Service,Area,Mechanic,Status,Estimate,Paid,Discount,Coupon,Source,Campaign');
+  assert.equal(head, 'Booking ID,Date,Service,Area,Mechanic,Status,Estimate,Paid,Discount,Coupon,Source,Campaign');
   assert.match(row, /^MP-9,2026-10-08,General service,"HSR, Layout",Kiran,completed,1299,1299,0,,direct,"say ""hi"""$/);
   assert.doesNotMatch(csv, /phone|name/i);
 });

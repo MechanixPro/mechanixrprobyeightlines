@@ -5,6 +5,7 @@ import { createPaymentLink } from '../_shared/razorpay.ts';
 import { sendSmart, TPL } from '../_shared/whatsapp.ts';
 import { paymentLinkEmail } from '../_shared/email-templates.ts';
 import { sendEmail, FROM_BOOKING } from '../_shared/resend.ts';
+import { forBooking, idParam } from '../_shared/booking-id.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
@@ -33,10 +34,10 @@ Deno.serve(async (req) => {
     // Resend reuses the link already made for this amount, so the customer never gets two different links.
     const reuse = b.resend === true && lead.payment_link && Number(lead.amount_due) === amount;
     const link = reuse ? { id: lead.payment_link_id as string, url: lead.payment_link as string }
-      : await createPaymentLink({ amount, ref: lead.ref, leadId: lead.id, name: lead.name, phone: lead.phone, description: `Mechanix Pro booking ${lead.ref}` });
+      : await createPaymentLink({ amount, ref: lead.ref, leadId: lead.id, name: lead.name, phone: lead.phone, description: `Mechanix Pro ${lead.booking_id ? 'booking ' + lead.booking_id : 'slot fee'}` });
     if (!reuse) await db.from('leads').update({ payment_link: link.url, payment_link_id: link.id, amount_due: amount, status: 'payment_sent', followup_step: 2, next_followup_at: new Date(Date.now() + 2 * 3600_000).toISOString() }).eq('id', lead.id);
     const first = String(lead.name).split(' ')[0];
-    const sent = b.send_whatsapp === false || reuse ? null : await sendSmart(db, lead, `Hi ${first}, here is your secure link to pay ${rupee(amount)} for booking ${lead.ref}: ${link.url}`, { name: TPL.payment(), params: [first, String(amount), lead.ref, link.url] }, 'staff');
+    const sent = b.send_whatsapp === false || reuse ? null : await sendSmart(db, lead, `Hi ${first}, here is your secure link to pay ${rupee(amount)} for ${forBooking(lead)}: ${link.url}`, { name: TPL.payment(), params: [first, String(amount), idParam(lead), link.url] }, 'staff');
     // Email the link too when the customer gave an address. A failure here never blocks the link.
     let emailed = false, hasEmail = false;
     try {
@@ -45,7 +46,7 @@ Deno.serve(async (req) => {
       if (to) {
         hasEmail = true;
         const mail = paymentLinkEmail({ siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 79652 95649'), phoneTel: env('PHONE_TEL', '+917965295649'),
-          whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918042303061'), email: 'hello@mechanixpro.in', name: lead.name, ref: lead.ref, amount, payUrl: link.url });
+          whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918042303061'), email: 'hello@mechanixpro.in', name: lead.name, ref: lead.booking_id ?? null, amount, payUrl: link.url });
         const r = await sendEmail({ to, subject: mail.subject, html: mail.html, text: mail.text, from: FROM_BOOKING, tags: { template: 'payment_link' } });
         await db.from('email_log').insert({ lead_id: lead.id, to_email: to, template: 'payment_link', status: r.ok ? 'sent' : r.skipped ? 'skipped' : 'failed', provider_id: r.id ?? null, error: r.error ?? null });
         emailed = r.ok;

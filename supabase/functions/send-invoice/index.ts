@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
   // The engine size lives on the bike: bring it onto the booking so the bill matches the estimate.
   const { data: bike } = lead.bike_id ? await db.from('bikes').select('big_bike,engine_class,reg_no,brand,model').eq('id', lead.bike_id).maybeSingle() : { data: null };
   const { data: invNo } = await db.rpc('invoice_no_alloc', { p_lead: lead.id });
-  const invoice = buildInvoice({ ...lead, big_bike: bike?.big_bike ?? false, engine_class: bike?.engine_class ?? null }, services ?? [], { customer: cust, bike, number: invNo });
+  const invoice = buildInvoice({ ...lead, booking_id: invNo ?? lead.booking_id, big_bike: bike?.big_bike ?? false, engine_class: bike?.engine_class ?? null }, services ?? [], { customer: cust, bike, number: invNo });
   const miss = missingDetails(invoice);
   if (miss.length) return json(req, { error: 'Add the ' + miss.join(', ') + ' to the invoice first' }, 400);
   if (!invoice.lines.length) return json(req, { error: 'This booking has no priced items to invoice' }, 400);

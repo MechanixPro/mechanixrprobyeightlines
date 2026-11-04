@@ -4,6 +4,7 @@ import { adminDb, env, json, corsHeaders } from '../_shared/util.ts';
 import { cleanRating, ratingTokenOk } from '../_shared/rating.ts';
 import { sendEmail } from '../_shared/resend.ts';
 import { supervisorEmails } from '../_shared/desk-notify.ts';
+import { refFilter, leadLabel } from '../_shared/booking-id.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
@@ -13,7 +14,7 @@ Deno.serve(async (req) => {
   const x = v.value;
   if (!(await ratingTokenOk(env('RATING_SECRET'), x.ref, x.k))) return json(req, { error: 'This rating link is not valid.' }, 403);
   const db = adminDb();
-  const { data: lead } = await db.from('leads').select('id,ref,name,crm_owner,status').or(`ref.eq.${x.ref},old_ref.eq.${x.ref}`).is('deleted_at', null).maybeSingle();
+  const { data: lead } = await db.from('leads').select('id,ref,booking_id,name,crm_owner,status').or(refFilter(x.ref)).is('deleted_at', null).maybeSingle();
   if (!lead || lead.status !== 'completed') return json(req, { error: 'You can rate a booking after the job is done.' }, 400);
 
   const { data: old } = await db.from('lead_ratings').select('rating,created_at').eq('lead_id', lead.id).maybeSingle();
@@ -24,10 +25,10 @@ Deno.serve(async (req) => {
 
   if (x.rating <= 3 && !old) {
     try {
-      await db.from('crm_tickets').insert({ category: 'booking_issue', priority: x.rating <= 2 ? 'critical' : 'high', title: `Low rating (${x.rating}/5) for ${lead.ref}`, body: x.comment ?? 'The customer gave a low rating with no comment. Call them.', lead_id: lead.id, owner: lead.crm_owner });
+      await db.from('crm_tickets').insert({ category: 'booking_issue', priority: x.rating <= 2 ? 'critical' : 'high', title: `Low rating (${x.rating}/5) for ${leadLabel(lead)}`, body: x.comment ?? 'The customer gave a low rating with no comment. Call them.', lead_id: lead.id, owner: lead.crm_owner });
       const to = await supervisorEmails(db);
-      const text = `${lead.name} rated booking ${lead.ref} ${x.rating} out of 5.${x.comment ? '\n\nThey wrote: ' + x.comment : ''}\n\nA ticket is open in the desk. Please call the customer today.`;
-      for (const addr of to) await sendEmail({ to: addr, subject: `Low rating (${x.rating}/5) for ${lead.ref}`, html: `<p>${text.replace(/\n/g, '<br>').replace(/</g, '&lt;')}</p>`, text, tags: { template: 'low_rating' } });
+      const text = `${lead.name} rated ${lead.booking_id ? 'booking ' + lead.booking_id : 'a job'} ${x.rating} out of 5.${x.comment ? '\n\nThey wrote: ' + x.comment : ''}\n\nA ticket is open in the desk. Please call the customer today.`;
+      for (const addr of to) await sendEmail({ to: addr, subject: `Low rating (${x.rating}/5) for ${leadLabel(lead)}`, html: `<p>${text.replace(/\n/g, '<br>').replace(/</g, '&lt;')}</p>`, text, tags: { template: 'low_rating' } });
     } catch (e) { console.error('low rating follow-up', e); }
   }
   return json(req, { ok: true, rating: x.rating });

@@ -17,7 +17,7 @@ test('the sample text swaps every placeholder for a [Label], the format AiSensy 
 });
 test('the payment-link function sends the four parameters the payment template expects', () => {
   const src = readFileSync(new URL('../supabase/functions/desk-payment-link/index.ts', import.meta.url), 'utf8');
-  assert.match(src, /params: \[first, String\(amount\), lead\.ref, link\.url\]/);
+  assert.match(src, /params: \[first, String\(amount\), idParam\(lead\), link\.url\]/);
   assert.equal(DESK_TEMPLATES[0].params, 4);
 });
 test('no template promises something the desk does not do and none contains a price or a number we could get wrong', () => {

@@ -10,7 +10,7 @@ const rupees = (p: number) => p / 100;
 // Item code printed beside each line: the service or add-on id in capitals, so the same item always has the same code.
 const itemCode = (id: string) => 'MXP-' + String(id || 'ITEM').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
 type Svc = { id: string; kind: string; name: string; price: number };
-type LeadLike = { ref: string; name: string; phone: string; service_id?: string | null; addons?: string[] | null; big_bike?: boolean | null; coupon_discount?: number | null; extra_discount?: number | null; extra_discount_note?: string | null; paid_amount?: number | null };
+type LeadLike = { ref: string; booking_id?: string | null; name: string; phone: string; service_id?: string | null; addons?: string[] | null; big_bike?: boolean | null; coupon_discount?: number | null; extra_discount?: number | null; extra_discount_note?: string | null; paid_amount?: number | null };
 
 // An edited invoice ("invoice_override") replaces the package lines. Amounts are before GST unless the admin says they include it.
 function cleanOverride(o: any): { basis: string; rate: number; lines: Array<{ name: string; amount: number }> } | null {
@@ -68,7 +68,7 @@ export function buildInvoice(lead: LeadLike, services: Svc[], opts: { number?: s
   const when = new Date(opts.date || Date.now());
   const dateLabel = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(when);
   return {
-    number: clean80(opts.number, 24) || 'INV-' + lead.ref, ref: lead.ref, dateLabel, customer: { name: lead.name, phone: lead.phone, company: clean80(opts.customer && opts.customer.company_name), gstin: clean80(opts.customer && opts.customer.gstin), address: clean80(opts.customer && opts.customer.address, 160), email: clean80((opts.customer && (opts.customer as any).email) || (lead as any).email, 120) },
+    number: clean80(opts.number, 24) || 'INV-' + (lead.booking_id || 'DRAFT'), ref: lead.booking_id || '', dateLabel, customer: { name: lead.name, phone: lead.phone, company: clean80(opts.customer && opts.customer.company_name), gstin: clean80(opts.customer && opts.customer.gstin), address: clean80(opts.customer && opts.customer.address, 160), email: clean80((opts.customer && (opts.customer as any).email) || (lead as any).email, 120) },
     vehicle: vehicleOf(opts.bike),
     lines, subtotal: rupees(subtotal), discount: rupees(discount), couponDiscount: rupees(couponDiscount), extraDiscount: rupees(extraDiscount), extraNote: String(lead.extra_discount_note || '').slice(0, 80), total: rupees(total),
     basis, taxable: rupees(taxable), cgst: rupees(cgst), sgst: rupees(sgst), gstRate: rate,

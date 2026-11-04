@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
   // Once reported, the link shows only the payment (for 30 more days), never the customer's details.
   if (link.reported_at) {
     if (Date.parse(link.reported_at) + 30 * 864e5 <= Date.now()) return json(req, { error: EXPIRED }, 410);
-    const done = { ref: lead.ref, reported: true, company_share: Number(link.company_share ?? 0), pay_url: link.pay_link_url ?? null };
+    const done = { booking_id: lead.booking_id ?? null, reported: true, company_share: Number(link.company_share ?? 0), pay_url: link.pay_link_url ?? null };
     return action === 'report' ? json(req, { error: DONE, ...done }, 409) : json(req, done);
   }
   if (Date.parse(link.expires_at) <= Date.now()) return json(req, { error: EXPIRED }, 410);
@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     if (!link.opened_at) await db.from('tech_job_links').update({ opened_at: new Date().toISOString() }).eq('id', link.id);
     const b = bike.data as { brand?: string; model?: string; reg_no?: string } | null;
     return json(req, {
-      ref: lead.ref, first_name: String(lead.name ?? '').split(' ')[0], phone: lead.phone, area: lead.area ?? null, address: lead.address ?? null,
+      booking_id: lead.booking_id ?? null, first_name: String(lead.name ?? '').split(' ')[0], phone: lead.phone, area: lead.area ?? null, address: lead.address ?? null,
       bike: b ? [b.reg_no ? String(b.reg_no).toUpperCase() : '', [b.brand && b.brand !== 'Other' ? b.brand : '', b.model].filter(Boolean).join(' ')].filter(Boolean).join(' · ') || null : null,
       service: (svc.data as { name?: string } | null)?.name ?? null,
       when: lead.preferred_date ? formatWhen(String(lead.preferred_date), String(lead.preferred_slot ?? ''), lead.preferred_time ?? null) : null,
@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
     let payUrl: string | null = null;
     if (share.company >= 1 && mech) {
       try {
-        const pl = await createPaymentLink({ amount: share.company, ref: lead.ref, leadId: lead.id, name: mech.name, phone: String(mech.phone ?? '').replace(/\D/g, '').slice(-10), description: `Company share for booking ${lead.ref}`, notes: { purpose: 'remittance', mechanic_id: link.mechanic_id } });
+        const pl = await createPaymentLink({ amount: share.company, ref: lead.ref, leadId: lead.id, name: mech.name, phone: String(mech.phone ?? '').replace(/\D/g, '').slice(-10), description: `Company share for ${lead.booking_id ? 'booking ' + lead.booking_id : 'a job'}`, notes: { purpose: 'remittance', mechanic_id: link.mechanic_id } });
         payUrl = pl.url;
         await db.from('tech_job_links').update({ pay_link_url: payUrl }).eq('id', link.id);
       } catch (e) { console.error('tech-job pay link', (e as Error).message); }
@@ -123,7 +123,7 @@ async function handover(req: Request, db: ReturnType<typeof adminDb>, link: any,
   if (!isPickupJob(lead)) return json(req, { pickup: false, steps: [] }, action === 'handover_state' ? 200 : 400);
   const { data: rows } = await db.from('handovers').select('id,kind,code_hash,code_expires_at,attempts,locked_at,verified_at,photo_paths,created_at').eq('lead_id', lead.id).order('created_at', { ascending: false });
   const all = rows ?? [];
-  if (action === 'handover_state') return json(req, { pickup: true, ref: lead.ref, steps: HANDOVER_KINDS.map((k) => stepState(all, k)) });
+  if (action === 'handover_state') return json(req, { pickup: true, booking_id: lead.booking_id ?? null, steps: HANDOVER_KINDS.map((k) => stepState(all, k)) });
 
   const kind = body?.kind;
   if (!isKind(kind)) return json(req, { error: 'Choose pickup or return.' }, 400);
