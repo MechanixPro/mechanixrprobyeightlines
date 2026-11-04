@@ -14,14 +14,15 @@ export async function verifyAgentive(raw: string, header: string | null, secret:
   return equal(sig.v2, await hmacHex(secret, sig.t + '.' + raw));
 }
 
-export type MenuKey = { label: string; lead: boolean; campaign: string | null };
+export type MenuKey = { label: string; lead: boolean; campaign: string | null; vehicle?: 'car' | 'parts' };
 /** What each key on the call menu means. Must match docs/IVR-FLOW.md. A key not listed here is only noted. */
 export const MENU: Record<string, MenuKey> = {
   // The live Agentive flow "Care Buddy" has key 1 for first service and roadside together, so the caller gets the booking link; the call still rings the team for a breakdown.
   '1': { label: 'First service or roadside help', lead: true, campaign: 'mxp_ivr_book' },
   '2': { label: 'Book a bike service or problem check', lead: true, campaign: 'mxp_ivr_book' },
   '3': { label: 'Ongoing booking or customer support', lead: false, campaign: 'mxp_ivr_track' },
-  '4': { label: 'Car service or parts', lead: true, campaign: 'mxp_ivr_car' },
+  // Key 4 is one option for car service and parts together, so it is tagged car; the desk changes it to parts when the caller wants parts.
+  '4': { label: 'Car service or parts', lead: true, campaign: 'mxp_ivr_car', vehicle: 'car' },
   '5-1': { label: 'Fleet or society', lead: true, campaign: 'mxp_ivr_business' },
   '5-2': { label: 'Garage partnership', lead: true, campaign: 'mxp_ivr_business' },
   '0': { label: 'Talk to a Care Buddy', lead: true, campaign: null },

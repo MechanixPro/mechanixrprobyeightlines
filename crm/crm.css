@@ -78,6 +78,9 @@ fieldset.checks{border:0;margin:14px 0 0;padding:0;min-width:0}fieldset.checks l
 .btn.danger{background:var(--bad);color:#fff;box-shadow:none}
 .filters{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 12px}.filters .chip.pick{min-height:40px}.chip.pick.on{background:var(--navy);color:#fff}.chip.pick b{margin-left:4px}
 .chip.late{background:var(--bad-bg);color:var(--bad)}
+.chip.veh{font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 8px;min-height:0;margin-left:6px;vertical-align:middle}.veh-bike{background:var(--next-bg);color:var(--next)}.veh-car{background:#FFF1E2;color:#9A4B00}.veh-parts{background:var(--good-bg);color:var(--good)}
+@media(prefers-color-scheme:dark){.veh-car{background:#3B2410;color:#FFB36B}}
+.veh-pick{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}.veh-pick select{min-height:44px}
 .bulk{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--next-bg);color:var(--next);border-radius:12px;padding:8px 12px;margin:0 0 10px}
 table.leads tr.row-open,tr.row-open{cursor:pointer}tr.row-open:hover{background:var(--next-bg)}tr.late td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
 th input[type=checkbox],td input[type=checkbox]{width:20px;height:20px;min-height:0}

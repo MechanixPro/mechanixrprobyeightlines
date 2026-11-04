@@ -17,6 +17,14 @@ export function sourceName(key) {
 export const bookingLabel = (l) => String((l && l.booking_id) || '').trim();
 /** Where an ID would go on a screen or message: the booking ID, or a neutral word (default Lead) until the booking is confirmed. */
 export const idOr = (l, word = 'Lead') => bookingLabel(l) || word;
+/** Vehicle tag on a lead: BIKE, CAR or PARTS. A missing or unknown value is bike (the database default). */
+export const VEHICLES = ['bike', 'car', 'parts'];
+export const VEHICLE_LABEL = { bike: 'BIKE', car: 'CAR', parts: 'PARTS' };
+export const vehicleOf = (l) => (l && VEHICLES.includes(l.vehicle) ? l.vehicle : 'bike');
+/** Who sees the change control: someone who may edit leads, on a lead that is theirs or that a supervisor handles. The database decides (set_lead_vehicle). */
+export const canSetVehicle = (lead, { canEdit, mineOrBoss }) => canEdit === true && mineOrBoss === true && !!lead && lead.status !== 'junk';
+/** Bike, car and parts counts from a list of lead rows (junk left out), for a one-line split. */
+export function vehicleCounts(rows) { const c = { bike: 0, car: 0, parts: 0 }; for (const r of rows || []) if (!isJunk(r)) c[vehicleOf(r)]++; return c; }
 export const isJunk = (l) => !!l && l.status === 'junk';
 /** Leads that count in pipeline totals, conversion and cost per lead: junk is kept as data but is not a lead. */
 export const countable = (leads) => (leads || []).filter((l) => !isJunk(l));

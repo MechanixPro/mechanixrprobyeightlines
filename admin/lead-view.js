@@ -22,6 +22,11 @@ export function leadDetailRows(l) {
   return rows;
 }
 
+/** Vehicle tag on a lead: BIKE, CAR or PARTS. Missing or unknown is bike (the database default). */
+export const VEHICLES = ['bike', 'car', 'parts'];
+export const VEHICLE_LABEL = { bike: 'BIKE', car: 'CAR', parts: 'PARTS' };
+export const vehicleOf = (l) => (l && VEHICLES.includes(l.vehicle) ? l.vehicle : 'bike');
+
 export function sourceReport(leads) {
   const count = (values) => {
     const m = new Map();
@@ -32,5 +37,6 @@ export function sourceReport(leads) {
     source: count(leads.map((l) => l.utm?.utm_source || 'direct')),
     campaign: count(leads.map((l) => l.campaign)),
     referrer: count(leads.map((l) => l.ref_code)),
+    vehicle: count(leads.map((l) => VEHICLE_LABEL[vehicleOf(l)])),
   };
 }

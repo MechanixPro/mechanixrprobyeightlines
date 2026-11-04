@@ -11,6 +11,7 @@ import { slotFee } from '../_shared/checkout.ts';
 import { isReturningCustomer } from '../_shared/customer.ts';
 import { formatWhen } from '../_shared/when.ts';
 import { NEUTRAL_ID } from '../_shared/booking-id.ts';
+import { cleanVehicle, detectVehicle, vehicleCols } from '../_shared/vehicle.ts';
 
 const SLOTS = ['morning', 'afternoon', 'evening', 'asap'];
 const clean = (v: unknown, max: number) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, max);
@@ -86,8 +87,11 @@ Deno.serve(async (req) => {
   }
 
   const consent = b.consent_whatsapp === true;
+  // Website bookings are bike unless the form clearly sends a car (or parts): an explicit vehicle field, or a car/Axlio ad campaign name. No signal leaves the database default (bike).
+  const utmIn = typeof b.utm === 'object' && b.utm ? (b.utm as Record<string, unknown>) : {};
+  const vehicle = cleanVehicle(b.vehicle) ?? detectVehicle([extra.campaign, utmIn.utm_campaign, utmIn.utm_term, utmIn.utm_content].filter((x) => typeof x === 'string').join(' '));
   const { data: lead, error } = await db.from('leads').insert({
-    customer_id: cust.id, bike_id: bike?.id ?? null, ...extra, coupon_code: couponCode || null, coupon_discount: couponDiscount, name, phone,
+    customer_id: cust.id, bike_id: bike?.id ?? null, ...extra, ...vehicleCols(vehicle), coupon_code: couponCode || null, coupon_discount: couponDiscount, name, phone,
     area: clean(b.area, 40), service_id: priced.service.id, addons: priced.addons.map((a) => a.id), est_total: priced.total,
     preferred_date: prefDate, preferred_slot: prefSlot, source: 'website', page: clean(b.page, 120),
     utm: typeof b.utm === 'object' && b.utm ? b.utm : {}, consent_whatsapp: consent, ip_hash: ipHash,

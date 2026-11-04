@@ -2,6 +2,7 @@
 // It never replies by itself. STOP-type words opt the customer out of automated messages.
 import { alertNewLead } from './new-lead-alert.ts';
 import { getSetting } from './util.ts';
+import { detectVehicle, upgradeVehicle, vehicleCols } from './vehicle.ts';
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
 export const STOP_WORDS = /^\s*(stop|unsubscribe|cancel messages|band karo)\s*$/i;
 
@@ -19,7 +20,7 @@ export async function ingestInbound(db: any, x: { phone: string; name: string; t
   // WhatsApp enquiries are added to the desk by hand: a message from a number with no open lead is not turned into one (setting desk_auto_whatsapp_leads switches it back on).
   if (needsLead && !(await getSetting<boolean>(db, 'desk_auto_whatsapp_leads', false))) return { ok: true, manual: true };
   if (!lead || ['completed', 'lost', 'junk'].includes(lead.status)) {
-    lead = (await db.from('leads').insert({ customer_id: cust?.id ?? null, name: (x.name || 'WhatsApp customer').slice(0, 60), phone: x.phone, source: 'whatsapp', consent_whatsapp: true, page: 'whatsapp-desk' }).select('*').single()).data; isNew = !!lead;
+    lead = (await db.from('leads').insert({ customer_id: cust?.id ?? null, name: (x.name || 'WhatsApp customer').slice(0, 60), phone: x.phone, source: 'whatsapp', consent_whatsapp: true, page: 'whatsapp-desk', ...vehicleCols(detectVehicle(x.text)) }).select('*').single()).data;isNew = !!lead;
   }
   if (!lead) return { ok: false, error: 'Could not save' };
   if (isNew) await alertNewLead(db, { ref: lead.ref, name: lead.name, phone: x.phone, source: 'whatsapp', note: x.text.slice(0, 120) });
@@ -30,5 +31,6 @@ export async function ingestInbound(db: any, x: { phone: string; name: string; t
   if (lead.status === 'new' && lead.crm_owner) patch.status = 'contacted';
   if (STOP_WORDS.test(x.text)) Object.assign(patch, { opted_out: true, ai_enabled: false, next_followup_at: null });
   await db.from('leads').update(patch).eq('id', lead.id);
+  await upgradeVehicle(db, lead.id, detectVehicle(x.text));   // bike to car/parts once; never over a desk-set tag
   return { ok: true, lead: lead.ref };
 }

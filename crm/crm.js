@@ -1,8 +1,8 @@
 // Mechanix Desk for Care Buddies. The shell: sign in, navigation by permission, "My day" and the lead sheet.
 // Every other screen lives in ./pages/. Every read and write goes through database functions that check the person's permissions.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
-import { bookingLabel, idOr, canConfirmBooking, canMarkJunk, canRestoreJunk, hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent, parseContacts, techJobMessage, unstaffedSoon, rankTechs, moveCheck, handoverStatus, canSendHandoverCode, handoverMessage, HANDOVER_KIND_LABEL } from './crm-rules.js';
-import { setClient, rpc, $, $$, esc, rupee, when, toast, clean, debounce, modal, field, confirmBox, SLOTS } from './ui.js';
+import { vehicleOf, VEHICLE_LABEL, canSetVehicle, bookingLabel, idOr, canConfirmBooking, canMarkJunk, canRestoreJunk, hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent, parseContacts, techJobMessage, unstaffedSoon, rankTechs, moveCheck, handoverStatus, canSendHandoverCode, handoverMessage, HANDOVER_KIND_LABEL } from './crm-rules.js';
+import { vehicleTag, setClient, rpc, $, $$, esc, rupee, when, toast, clean, debounce, modal, field, confirmBox, SLOTS } from './ui.js';
 import * as dashboard from './pages/dashboard.js';
 import * as leads from './pages/leads.js';
 import * as webleads from './pages/webleads.js';
@@ -246,7 +246,7 @@ function card(l) {
   const src = sourceName(l.utm_source || l.source), camp = l.campaign || '';
   const mine = l.crm_owner && l.crm_owner === S.me.user_id, take = !l.crm_owner && can('take_leads');
   return `<article class="lead-card tone-${t.tone}" data-id="${l.id}">
-    <div class="lc-top"><div><h2>${esc(l.name)}</h2><p class="muted small">${esc([l.bike, l.service_name, l.area].filter(Boolean).join(' · ') || 'No details yet')}</p></div><span class="chip st-${l.status}">${STATUS_LABEL[l.status]}</span></div>
+    <div class="lc-top"><div><h2>${esc(l.name)}${vehicleTag(vehicleOf(l))}</h2><p class="muted small">${esc([l.bike, l.service_name, l.area].filter(Boolean).join(' · ') || 'No details yet')}</p></div><span class="chip st-${l.status}">${STATUS_LABEL[l.status]}</span></div>
     <div class="lc-meta"><span class="chip soft">${esc(src)}${camp ? ' · ' + esc(camp) : ''}</span><span class="small muted">${ago(l.created_at)}</span>${l.crm_owner && !mine ? `<span class="small muted">with ${esc(l.owner_name || 'a colleague')}</span>` : ''}</div>
     <div class="timer t-${t.tone}">${esc(t.label)}</div>${S.waiting.some((w) => w.id === l.id) ? '<div class="timer t-late">Customer replied on WhatsApp. Answer now</div>' : ''}
     <div class="lc-actions"><a class="btn call" href="${telUrl(l.phone)}" data-act="call" data-id="${l.id}">Call</a>
@@ -268,11 +268,11 @@ function renderSheet() {
   const moves = nextStatuses(l.status, can('assign_leads') ? 'supervisor' : 'sales');
   const t = timerInfo(l, new Date(), S.me.sla_minutes);
   sheet.hidden = false; document.body.classList.add('noscroll');
-  $('#sheetPanel').innerHTML = `<div class="sheet-head"><div><h2 id="sheetTitle">${esc(l.name)}</h2><p class="muted small">${esc(idOr(l))} · ${esc(SOURCE_LABEL[l.source] || l.source)}${l.campaign ? ' · ' + esc(l.campaign) : ''}</p></div><button class="btn ghost" type="button" data-act="close" aria-label="Close">Close</button></div>
+  $('#sheetPanel').innerHTML = `<div class="sheet-head"><div><h2 id="sheetTitle">${esc(l.name)}${vehicleTag(vehicleOf(l))}</h2><p class="muted small">${esc(idOr(l))} · ${esc(SOURCE_LABEL[l.source] || l.source)}${l.campaign ? ' · ' + esc(l.campaign) : ''}</p></div><button class="btn ghost" type="button" data-act="close" aria-label="Close">Close</button></div>
     <div class="timer t-${t.tone}">${esc(t.label)}</div>
     <div class="facts">
       <div><span>Phone</span><b>${esc(l.phone)}</b></div><div><span>Area</span><b>${esc([l.area, l.pincode].filter(Boolean).join(' · ') || '—')}</b></div>
-      <div><span>Bike</span><b>${esc(l.bike || '—')}</b></div><div><span>Service</span><b>${esc(l.service_name || '—')}</b></div>
+      <div><span>Vehicle</span><b>${esc(VEHICLE_LABEL[vehicleOf(l)])}${l.vehicle_source === 'desk' ? ' <small class="muted">set by the desk</small>' : ''}</b></div><div><span>Bike</span><b>${esc(l.bike || '—')}</b></div><div><span>Service</span><b>${esc(l.service_name || '—')}</b></div>
       <div><span>Preferred</span><b>${esc([l.preferred_date, l.preferred_slot].filter(Boolean).join(' · ') || '—')}</b></div><div><span>Quote, excluding GST</span><b>${l.est_total ? rupee(l.est_total) : '—'}${l.coupon_code ? ` <small>(${esc(l.coupon_code)} −${rupee(l.coupon_discount)})</small>` : ''}</b></div>
       ${S.money ? `<div><span>Vehicle number</span><b>${esc(S.money.vehicle_reg || 'Not added yet')}</b></div><div><span>Customer paid</span><b>${rupee2(S.money.paid || 0)}</b></div>${S.money.invoice_total != null ? `<div><span>Invoice total · balance</span><b>${rupee2(S.money.invoice_total)} · ${rupee2(S.money.balance || 0)} left</b></div>` : '<div><span>Invoice</span><b>Made when the job is done, with GST added</b></div>'}` : ''}
       <div><span>Technician</span><b>${l.mechanic_name ? esc(l.mechanic_name) : `<span class="${BOOKED.includes(l.status) && l.status !== 'completed' ? 'badtxt' : 'muted'}">Not assigned</span>`}</b></div>
@@ -280,6 +280,7 @@ function renderSheet() {
       ${S.rating && S.rating.rating ? `<div><span>Customer rating</span><b>${'★'.repeat(S.rating.rating)}${'☆'.repeat(5 - S.rating.rating)} ${S.rating.rating}/5${S.rating.comment ? ` <small>“${esc(S.rating.comment)}”</small>` : ''}</b></div>` : S.rating && S.rating.requested_at ? `<div><span>Customer rating</span><b>Asked ${when(S.rating.requested_at)}</b></div>` : ''}
       ${l.disposition ? `<div><span>Disposition</span><b>${esc(l.disposition)}${l.sub_disposition ? ' · ' + esc(l.sub_disposition) : ''}</b></div>` : ''}${l.address ? `<div class="wide"><span>Address</span><b>${esc(l.address)}</b></div>` : ''}</div>
     ${l.notes ? `<p class="note-box">${mask(l.notes)}</p>` : ''}
+    ${canSetVehicle(l, { canEdit: can('edit_leads'), mineOrBoss }) ? `<div class="veh-pick"><label for="vehSel" class="small muted">Vehicle</label><select id="vehSel" data-lead="${l.id}" aria-label="Vehicle">${['bike', 'car', 'parts'].map((v) => `<option value="${v}"${v === vehicleOf(l) ? ' selected' : ''}>${VEHICLE_LABEL[v]}</option>`).join('')}</select></div>` : ''}
     <div class="lc-actions big"><a class="btn call" href="${telUrl(l.phone)}" data-act="call" data-id="${l.id}">Call</a>
       <a class="btn wa" href="${waUrl(l.phone, firstMessage(l, S.me.name))}" target="_blank" rel="noopener" data-act="wa" data-id="${l.id}">WhatsApp</a>
       ${!l.crm_owner && can('take_leads') ? `<button class="btn primary" type="button" data-act="take" data-id="${l.id}">Take lead</button>` : ''}
@@ -551,6 +552,13 @@ function importDialog() {
       close(); toast(`${r.created} lead${r.created === 1 ? '' : 's'} added${r.duplicates ? ', ' + r.duplicates + ' already open' : ''}${r.invalid ? ', ' + r.invalid + ' skipped (not a mobile number)' : ''}.`); await go(S.view, true);
     } });
 }
+
+/* ---------- vehicle tag (BIKE / CAR / PARTS) ---------- */
+document.addEventListener('change', async (e) => {
+  const s = e.target.closest && e.target.closest('#vehSel'); if (!s) return;
+  try { await rpc('set_lead_vehicle', { p_lead: s.dataset.lead, p_vehicle: s.value }); toast('Vehicle set to ' + VEHICLE_LABEL[s.value] + '.'); await go(S.view, true); await openLead(s.dataset.lead); }
+  catch (err) { toast(err.message || 'Could not change the vehicle.'); }
+});
 
 /* ---------- clicks ---------- */
 document.addEventListener('click', async (e) => {

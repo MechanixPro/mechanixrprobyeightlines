@@ -1,6 +1,6 @@
 // Mechanix Pro admin panel — Supabase Auth + Row Level Security. All data access is checked in the database.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
-import { leadDetailRows, sourceReport } from './lead-view.js';
+import { leadDetailRows, sourceReport, vehicleOf, VEHICLE_LABEL } from './lead-view.js';
 import { customerRows, searchCustomers, mechanicStats, cleanCustomerEdit, cleanBikeEdit } from './people.js';
 import { couponRows } from './coupon-view.js';
 import { rangeFor, buildReport, reportCsv, payoutReport } from './report.js';
@@ -178,7 +178,7 @@ document.addEventListener('input', (e) => {
 document.addEventListener('change', (e) => { const m = { 'df-range': 'range', 'df-from': 'from', 'df-to': 'to', 'df-src': 'src', 'df-area': 'area', 'df-svc': 'svc' }[e.target.id]; if (m) { S.df[m] = e.target.value; render(); } });
 document.addEventListener('click', (e) => { if (e.target.id === 'df-reset') { S.df = { range: '7d', from: '', to: '', src: '', area: '', svc: '' }; render(); } });
 document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-ie=name]')) { const c = catItem(e.target.value), a = e.target.closest('.ie-row').querySelector('[data-ie=amount]'); if (c && a && !a.value.trim()) a.value = c.price; } });
-document.addEventListener('change', (e) => { if (e.target.id === 'il') { const l = S.leads.find((x) => x.id === e.target.value), w = warrantyInfo(l, WARRANTY_DAYS); $('#iw').textContent = l ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''; } if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'ifs') { S.ifilter = e.target.value; render(); } if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
+document.addEventListener('change', (e) => { if (e.target.id === 'il') { const l = S.leads.find((x) => x.id === e.target.value), w = warrantyInfo(l, WARRANTY_DAYS); $('#iw').textContent = l ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''; } if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'ifs') { S.ifilter = e.target.value; render(); } if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'fv') { S.vehicle = e.target.value; renderList(); } if (e.target.id === 'vsel') ACT.setVehicle(e.target.value); if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
 document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-board-mech]')) { ACT.boardMech(e.target); return; } const m = { 'if-period': 'period', 'if-gst': 'gst', 'if-rate': 'rate', 'if-mech': 'mechanic' }[e.target.id]; if (m) { S.ifl[m] = e.target.value; render(); } });
 document.addEventListener('input', (e) => { if (e.target.id === 'if-q') { S.ifl.q = e.target.value; const pos = e.target.selectionStart; render(); const q = $('#if-q'); if (q) { q.focus(); q.setSelectionRange(pos, pos); } } });
 document.addEventListener('change', (e) => { const c = e.target.closest && e.target.closest('[data-icsel]'); if (c) { if (c.checked) S.icsel.add(c.dataset.icsel); else S.icsel.delete(c.dataset.icsel); if (S.open) openLead(S.open, true); } });
@@ -235,11 +235,12 @@ function dash() {
 function sourcesCard(week, rl = 'Last 7 days') {
   const r = sourceReport(week);
   const rows = (a) => (a.length ? a.map(([k, v]) => `<div class="b"><span>${esc(k)}</span><b>${v}</b></div>`).join('') : '<p class="small muted">None yet</p>');
-  return `<div class="card" style="margin-top:16px"><h3>Sources (${esc(rl)})</h3><div class="split2"><div><h4>Source</h4>${rows(r.source)}</div><div><h4>Campaign</h4>${rows(r.campaign)}</div><div><h4>Referrer</h4>${rows(r.referrer)}</div></div></div>`;
+  return `<div class="card" style="margin-top:16px"><h3>Sources (${esc(rl)})</h3><div class="split2"><div><h4>Source</h4>${rows(r.source)}</div><div><h4>Campaign</h4>${rows(r.campaign)}</div><div><h4>Referrer</h4>${rows(r.referrer)}</div><div><h4>Vehicle</h4>${rows(r.vehicle)}</div></div></div>`;
 }
 
 function leads() {
   return `<div class="toolbar"><input id="q" type="search" placeholder="Search name, phone or booking ID" value="${esc(S.q)}" aria-label="Search bookings">
+  <select id="fv" aria-label="Filter by vehicle"><option value="">All vehicles</option>${['bike', 'car', 'parts'].map((v) => `<option value="${v}"${S.vehicle === v ? ' selected' : ''}>${VEHICLE_LABEL[v]}</option>`).join('')}</select>
   <select id="fs" aria-label="Filter by status"><option value="open"${S.status === 'open' ? ' selected' : ''}>Open (needs action)</option><option value="all"${S.status === 'all' ? ' selected' : ''}>All</option><option value="junk"${S.status === 'junk' ? ' selected' : ''}>Junk (${(S.junkLeads || []).length})</option>${STATUSES.map((s) => `<option value="${s}"${S.status === s ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
   <button class="btn btn-ghost btn-sm" type="button" data-act="csv">Export CSV</button><button class="btn btn-primary btn-sm" type="button" data-act="newLead">Add booking</button>${isOwner() ? '<button class="btn btn-ghost btn-sm" type="button" data-act="showDeleted">Deleted bookings</button>' : ''}
   ${isOwner() ? (S.selMode ? `<button class="btn btn-ghost btn-sm" type="button" data-act="selectAll">Select all shown</button><button class="btn btn-dark btn-sm" type="button" data-act="deleteSelected"${S.sel.size ? '' : ' disabled'}>Delete selected (${S.sel.size})</button><button class="btn btn-ghost btn-sm" type="button" data-act="selectDone">Done</button>` : '<button class="btn btn-ghost btn-sm" type="button" data-act="selectMode">Select to delete</button>') : ''}</div><div class="list" id="list"></div>`;
@@ -443,11 +444,12 @@ function reports() {
 function filtered() {
   const q = S.q.trim().toLowerCase();
   return (S.status === 'junk' ? S.junkLeads || [] : S.leads).filter((l) => (S.status === 'all' || (S.status === 'open' ? ['new', 'contacted', 'quoted', 'payment_sent'].includes(l.status) : l.status === S.status)) &&
+    (!S.vehicle || vehicleOf(l) === S.vehicle) &&
     (!q || [l.name, l.phone, l.booking_id, l.ref, l.area].some((v) => String(v ?? '').toLowerCase().includes(q))));
 }
 function renderList() {
   const el = $('#list'); if (!el) return; const rows = filtered();
-  el.innerHTML = rows.length ? rows.map((l) => `<button class="row${S.selMode && S.sel.has(l.id) ? ' picked' : ''}" data-lead="${l.id}"${S.selMode ? ` aria-pressed="${S.sel.has(l.id)}"` : ''}><span class="ref">${S.selMode ? `<span class="chk" aria-hidden="true">${S.sel.has(l.id) ? '\u2611' : '\u2610'}</span> ` : ''}${esc(bid(l))}<br><span class="meta">${l.source === 'whatsapp' ? 'WhatsApp' : 'Website'}</span></span><span>${esc(l.name)} · <span class="meta">${esc(l.phone)}</span><br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')} · ${l.preferred_date ? esc(l.preferred_date) + ' ' + esc(SLOT[l.preferred_slot] ?? '') : ''}</span></span><span style="text-align:right"><span class="pill ${l.status}">${LABEL[l.status]}</span><br><span class="meta">${l.est_total ? rupee(l.est_total) : ''} · ${when(l.created_at)}</span></span></button>`).join('') : '<p class="muted" style="padding:16px">No bookings here yet.</p>';
+  el.innerHTML = rows.length ? rows.map((l) => `<button class="row${S.selMode && S.sel.has(l.id) ? ' picked' : ''}" data-lead="${l.id}"${S.selMode ? ` aria-pressed="${S.sel.has(l.id)}"` : ''}><span class="ref">${S.selMode ? `<span class="chk" aria-hidden="true">${S.sel.has(l.id) ? '\u2611' : '\u2610'}</span> ` : ''}${esc(bid(l))}<br><span class="meta">${l.source === 'whatsapp' ? 'WhatsApp' : 'Website'}</span></span><span>${esc(l.name)} <span class="pill veh-${vehicleOf(l)}">${VEHICLE_LABEL[vehicleOf(l)]}</span> · <span class="meta">${esc(l.phone)}</span><br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')} · ${l.preferred_date ? esc(l.preferred_date) + ' ' + esc(SLOT[l.preferred_slot] ?? '') : ''}</span></span><span style="text-align:right"><span class="pill ${l.status}">${LABEL[l.status]}</span><br><span class="meta">${l.est_total ? rupee(l.est_total) : ''} · ${when(l.created_at)}</span></span></button>`).join('') : '<p class="muted" style="padding:16px">No bookings here yet.</p>';
 }
 
 /* ---------- commission: one simple rule per job ---------- */
@@ -620,7 +622,7 @@ async function openLead(id, silent) {
   S.open = id; const l = leadOf(id); if (!l) return;
   const { data: msgs } = await sb.from('messages').select('*').eq('lead_id', id).order('created_at').limit(200);
   const wa = 'https://wa.me/91' + l.phone;
-  const DETAILS = `<div class="card"><dl class="kv"><dt>Customer</dt><dd>${esc(l.name)}<br><a href="tel:+91${esc(l.phone)}">+91 ${esc(l.phone)}</a></dd><dt>Service</dt><dd>${esc(svcName(l.service_id))}${(l.addons || []).length ? ' + ' + l.addons.map((a) => esc(svcName(a))).join(', ') : ''}</dd><dt>Estimate</dt><dd>${l.est_total ? rupee(l.est_total) : '—'}</dd><dt>Area</dt><dd>${esc(l.area || '—')}</dd><dt>When</dt><dd>${esc(l.preferred_date || '—')} · ${esc(l.preferred_time || SLOT[l.preferred_slot] || '—')}</dd>${leadDetailRows(l).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${k === 'Map pin' ? `<a href="${esc(v)}" target="_blank" rel="noopener">Open in Google Maps</a>` : esc(v)}</dd>`).join('')}<dt>Source</dt><dd>${esc(l.source)}${l.utm?.utm_campaign ? ' · ' + esc(l.utm.utm_campaign) : ''}</dd><dt>Created</dt><dd>${when(l.created_at)}</dd><dt>Reminders</dt><dd>${l.next_followup_at ? 'Next ' + when(l.next_followup_at) + ' (step ' + (l.followup_step + 1) + ' of 4)' : 'None scheduled'}</dd></dl>
+  const DETAILS = `<div class="card"><dl class="kv"><dt>Customer</dt><dd>${esc(l.name)}<br><a href="tel:+91${esc(l.phone)}">+91 ${esc(l.phone)}</a></dd><dt>Service</dt><dd>${esc(svcName(l.service_id))}${(l.addons || []).length ? ' + ' + l.addons.map((a) => esc(svcName(a))).join(', ') : ''}</dd><dt>Estimate</dt><dd>${l.est_total ? rupee(l.est_total) : '—'}</dd><dt>Vehicle</dt><dd><select id="vsel" aria-label="Vehicle">${['bike', 'car', 'parts'].map((v) => `<option value="${v}"${v === vehicleOf(l) ? ' selected' : ''}>${VEHICLE_LABEL[v]}</option>`).join('')}</select>${l.vehicle_source === 'desk' ? ' <span class="tiny muted">set by the desk</span>' : ''}</dd><dt>Area</dt><dd>${esc(l.area || '—')}</dd><dt>When</dt><dd>${esc(l.preferred_date || '—')} · ${esc(l.preferred_time || SLOT[l.preferred_slot] || '—')}</dd>${leadDetailRows(l).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${k === 'Map pin' ? `<a href="${esc(v)}" target="_blank" rel="noopener">Open in Google Maps</a>` : esc(v)}</dd>`).join('')}<dt>Source</dt><dd>${esc(l.source)}${l.utm?.utm_campaign ? ' · ' + esc(l.utm.utm_campaign) : ''}</dd><dt>Created</dt><dd>${when(l.created_at)}</dd><dt>Reminders</dt><dd>${l.next_followup_at ? 'Next ' + when(l.next_followup_at) + ' (step ' + (l.followup_step + 1) + ' of 4)' : 'None scheduled'}</dd></dl>
   <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">Open WhatsApp chat</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a></div></div>`, MECH = `${S.mechanics.filter((m) => m.active || m.id === l.mechanic_id).map((m) => `<option value="${m.id}"${m.id === l.mechanic_id ? ' selected' : ''}>${esc(m.name)}${m.active ? '' : ' (inactive)'}</option>`).join('')}`, CONV = `<div class="card"><h3>WhatsApp conversation</h3><div class="chat">${(msgs ?? []).map((m) => `<div class="bubble ${m.direction}">${esc(m.body)}<small>${m.direction === 'in' ? 'Customer' : m.sender === 'ai' ? 'AI assistant' : m.sender === 'staff' ? 'Team' : 'Automatic'} · ${when(m.created_at)}</small></div>`).join('') || '<p class="muted small">No messages yet. The conversation appears here once WhatsApp automation is connected.</p>'}</div></div>`;
   S.dt = S.dt || 'booking';
   const dtab = (id, label) => `<button type="button" role="tab" data-dt="${id}" aria-selected="${S.dt === id}">${label}</button>`;
@@ -1284,6 +1286,12 @@ const ACT = {
     const { error } = await sb.rpc('mark_lead_junk', { p_lead: l.id, p_reason: reason || null });
     if (error) return toast('Could not mark as junk: ' + error.message);
     toast('Marked as junk'); await loadLeads(); render(); openLead(l.id, true);
+  },
+  async setVehicle(v) {
+    const l = leadOf(S.open); if (!l) return;
+    const { error } = await sb.rpc('set_lead_vehicle', { p_lead: l.id, p_vehicle: v });
+    if (error) return toast('Could not change the vehicle: ' + error.message);
+    toast('Vehicle set to ' + VEHICLE_LABEL[v]); await loadLeads(); render(); openLead(l.id, true);
   },
   async restoreJunk() {
     const l = leadOf(S.open); if (!l) return;

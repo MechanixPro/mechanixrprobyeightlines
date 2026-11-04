@@ -80,6 +80,8 @@ export function confirmBox(message, label = 'Yes', danger = false) {
 export const head = (title, hint, tools = '') => `<div class="view-head"><div><h1>${esc(title)}</h1>${hint ? `<p class="muted">${hint}</p>` : ''}</div><div class="view-tools">${tools}</div></div>`;
 export const chips = (items, current, attr = 'data-f') => `<div class="filters" role="group">${items.map(([v, t, n]) => `<button type="button" class="chip pick${v === current ? ' on' : ''}" ${attr}="${esc(v)}" aria-pressed="${v === current}">${esc(t)}${n != null ? ` <b>${n}</b>` : ''}</button>`).join('')}</div>`;
 export const empty = (t) => `<div class="empty">${t}</div>`;
+/** BIKE / CAR / PARTS badge for a lead row or sheet. */
+export const vehicleTag = (v) => { const k = ['bike', 'car', 'parts'].includes(v) ? v : 'bike'; return `<span class="chip veh veh-${k}" title="Vehicle: ${k}">${k.toUpperCase()}</span>`; };
 export const tag = (text, tone = '') => `<span class="chip ${tone}">${esc(text)}</span>`;
 export const bar = (done, target) => { const p = target > 0 ? Math.min(100, Math.round((done / target) * 100)) : 0; return `<div class="bar dark" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100"><span style="width:${p}%"></span></div>`; };
 

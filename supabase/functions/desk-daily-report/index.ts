@@ -46,11 +46,16 @@ async function handle(req: Request): Promise<Response> {
   const waiting = (waitCand ?? []).filter((l: any) => !l.wa_last_message_at || Date.parse(l.last_customer_msg_at) >= Date.parse(l.wa_last_message_at) - 90_000).length;
 
   const total = (created ?? []).length;
-  const lines = [`New leads: ${total}`, ...Object.entries(bySource).sort((a, b) => b[1] - a[1]).map(([k, n]) => `  ${k}: ${n}`), `Bookings made: ${booked}`, `Jobs completed: ${completed}`, `Lost: ${lost}`,
+  // Bike / car / parts split of today's new leads. Read on its own so the report still goes out if the column is not there yet.
+  const vq = await db.from('leads').select('vehicle').is('deleted_at', null).gte('created_at', day0);
+  const byVehicle = { bike: 0, car: 0, parts: 0 } as Record<string, number>;
+  for (const l of vq.error ? [] : vq.data ?? []) { const k = String((l as any).vehicle ?? 'bike'); if (k in byVehicle) byVehicle[k]++; }
+  const vehicleLine = vq.error ? null : `Bike ${byVehicle.bike} · Car ${byVehicle.car} · Parts ${byVehicle.parts}`;
+  const lines = [`New leads: ${total}`, ...Object.entries(bySource).sort((a, b) => b[1] - a[1]).map(([k, n]) => `  ${k}: ${n}`), ...(vehicleLine ? [`  By vehicle: ${vehicleLine}`] : []), `Bookings made: ${booked}`, `Jobs completed: ${completed}`, `Lost: ${lost}`,
     `Ratings today: ${rs.length}${avg ? ` (average ${avg} out of 5)` : ''}`, `Customers still waiting for a reply: ${waiting}`, `Open tickets: ${tickets}`, '', 'Care Buddies:', ...agents.map((a) => `  ${a.name}: ${a.contacts} contacts, ${a.booked} bookings`)];
   const text = `Mechanix Pro desk, ${label}\n\n${lines.join('\n')}\n\nOpen the desk: ${DESK_URL}`;
   const html = `<h2 style="margin:0 0 8px">Mechanix Pro desk</h2><p style="margin:0 0 14px;color:#555">${esc(label)}</p>
-    <table cellpadding="6" style="border-collapse:collapse;font-size:15px"><tr><td>New leads</td><td align="right"><b>${total}</b></td></tr>${Object.entries(bySource).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<tr><td style="color:#555;padding-left:18px">${esc(k)}</td><td align="right">${n}</td></tr>`).join('')}
+    <table cellpadding="6" style="border-collapse:collapse;font-size:15px"><tr><td>New leads</td><td align="right"><b>${total}</b></td></tr>${Object.entries(bySource).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<tr><td style="color:#555;padding-left:18px">${esc(k)}</td><td align="right">${n}</td></tr>`).join('')}${vehicleLine ? `<tr><td style="color:#555;padding-left:18px">By vehicle</td><td align="right">${esc(vehicleLine)}</td></tr>` : ''}
     <tr><td>Bookings made</td><td align="right"><b>${booked}</b></td></tr><tr><td>Jobs completed</td><td align="right"><b>${completed}</b></td></tr><tr><td>Lost</td><td align="right">${lost}</td></tr>
     <tr><td>Ratings today</td><td align="right">${rs.length}${avg ? ` · ${avg}/5` : ''}</td></tr><tr><td>Customers still waiting for a reply</td><td align="right"><b${waiting ? ' style="color:#B3261E"' : ''}>${waiting}</b></td></tr><tr><td>Open tickets</td><td align="right">${tickets}</td></tr></table>
     ${agents.length ? `<h3 style="margin:18px 0 6px">Care Buddies</h3><table cellpadding="6" style="border-collapse:collapse;font-size:15px">${agents.map((a) => `<tr><td>${esc(a.name)}</td><td align="right">${a.contacts} contacts</td><td align="right"><b>${a.booked}</b> bookings</td></tr>`).join('')}</table>` : ''}

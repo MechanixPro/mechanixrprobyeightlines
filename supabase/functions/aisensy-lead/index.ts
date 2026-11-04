@@ -3,6 +3,7 @@
 import { alertNewLead } from '../_shared/new-lead-alert.ts';
 import { adminDb, env, json, safeEqual, last10, priceBooking } from '../_shared/util.ts';
 import { cleanAisensyLead } from '../_shared/aisensy.ts';
+import { detectVehicle, vehicleCols } from '../_shared/vehicle.ts';
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return json(req, { error: 'Method not allowed' }, 405);
@@ -30,6 +31,7 @@ Deno.serve(async (req) => {
     customer_id: cust.id, bike_id: bikeId, name: x.name, phone: last10(x.phone), source: 'whatsapp', status: 'new', consent_whatsapp: true,
     service_id: serviceId, est_total: est, area: x.area, pincode: x.pincode, address: x.address, preferred_date: x.preferred_date, preferred_slot: x.preferred_slot,
     note: x.note, campaign: x.campaign, ref_code: x.ref_code, page: 'whatsapp-chatbot',
+    ...vehicleCols(detectVehicle([x.campaign, x.note, x.bike_brand, x.bike_model].filter(Boolean).join(' '))),
   }).select('ref').single();
   if (error) { console.error(error); return json(req, { error: 'Could not save' }, 500); }
   await alertNewLead(db, { ref: lead.ref, name: x.name, phone: last10(x.phone), source: 'whatsapp', area: x.area ?? null, note: x.note ?? null });

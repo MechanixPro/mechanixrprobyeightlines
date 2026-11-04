@@ -6,6 +6,7 @@ import { adminDb, env, hmacSha256Hex, safeEqual } from '../_shared/util.ts';
 import { verifyAgentive, cleanKeypress, cleanCall, MENU } from '../_shared/agentive.ts';
 import { sendCampaign } from '../_shared/aisensy-send.ts';
 import { alertNewLead } from '../_shared/new-lead-alert.ts';
+import { detectVehicle, upgradeVehicle, vehicleCols } from '../_shared/vehicle.ts';
 
 const reply = (b: unknown = { ok: true }, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
@@ -52,10 +53,11 @@ Deno.serve(async (req) => {
       const { data: cust } = await db.from('customers').upsert({ phone: k.phone }, { onConflict: 'phone', ignoreDuplicates: true }).select('id,blocked').maybeSingle();
       if (cust?.blocked) return reply({ ok: true });
       const id = cust?.id ?? (await db.from('customers').select('id').eq('phone', k.phone).maybeSingle()).data?.id ?? null;
-      lead = (await db.from('leads').insert({ customer_id: id, name: k.phone, phone: k.phone, source: 'phone', page: 'ivr', notes: line }).select('id,ref,notes,status,name').single()).data;
+      lead = (await db.from('leads').insert({ customer_id: id, name: k.phone, phone: k.phone, source: 'phone', page: 'ivr', notes: line, ...vehicleCols(item?.vehicle ?? detectVehicle(k.keyLabel)) }).select('id,ref,notes,status,name').single()).data;
       if (lead) await alertNewLead(db, { ref: lead.ref, name: lead.name, phone: k.phone, source: 'phone', note: line });
     } else {
       await db.from('leads').update({ notes: [lead.notes, line].filter(Boolean).join('\n').slice(0, 1500) }).eq('id', lead.id);
+      await upgradeVehicle(db, lead.id, item?.vehicle ?? detectVehicle(k.keyLabel));   // a caller who presses the car key on an open bike lead moves it to car once; a desk tag is never overridden
     }
     if (item?.campaign) {
       const r = await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: item.campaign, phone: k.phone, name: lead?.name ?? 'Customer', params: [], source: 'mechanix-ivr' });

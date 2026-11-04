@@ -28,7 +28,7 @@ test('sourceReport counts leads by source, campaign and referrer', () => {
   assert.deepEqual(r.referrer, [['ASHA', 2]]);
 });
 test('sourceReport on no leads gives empty lists', () => {
-  assert.deepEqual(sourceReport([]), { source: [], campaign: [], referrer: [] });
+  assert.deepEqual(sourceReport([]), { source: [], campaign: [], referrer: [], vehicle: [] });
 });
 
 test('shows the address and a map link when the customer shared a location', () => {

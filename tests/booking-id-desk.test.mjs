@@ -116,5 +116,8 @@ test('the migration keeps won leads as they are and moves every other lead to a 
 
 test('the migration is the newest and in order', () => {
   const files = readdirSync(new URL('../supabase/migrations', import.meta.url)).filter((f) => f.endsWith('.sql')).sort();
-  assert.equal(files[files.length - 1], '20261225000000_booking_id_after_confirmation.sql');
+  const i = files.indexOf('20261225000000_booking_id_after_confirmation.sql');
+  assert.ok(i > 0, 'the booking ID migration exists');
+  assert.equal(files[i - 1], '20261224000002_handover_purge_api.sql');   // nothing slipped in before it
+  assert.deepEqual(files.slice(i + 1), ['20261226000000_lead_vehicle.sql']);   // only the vehicle tag comes after (it carries its own tests)
 });

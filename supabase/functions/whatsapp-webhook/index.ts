@@ -7,6 +7,7 @@ import { slotFee } from '../_shared/checkout.ts';
 import { isReturningCustomer } from '../_shared/customer.ts';
 import { createPaymentLink, razorpayReady } from '../_shared/razorpay.ts';
 import { REF_IN_TEXT, refFilter } from '../_shared/booking-id.ts';
+import { detectVehicle, upgradeVehicle, vehicleCols } from '../_shared/vehicle.ts';
 
 const STOP_WORDS = /^\s*(stop|unsubscribe|cancel messages|band karo)\s*$/i;
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
@@ -52,7 +53,7 @@ async function handleMessage(db: ReturnType<typeof adminDb>, msg: any, profileNa
   if (!lead) lead = (await db.from('leads').select('*').eq('phone', phone).is('deleted_at', null).order('created_at', { ascending: false }).limit(1).maybeSingle()).data;
   if (!lead || ['completed', 'lost', 'junk'].includes(lead.status)) {
     const { data: cust } = await db.from('customers').upsert({ phone, name: profileName || null }, { onConflict: 'phone' }).select('id').single();
-    lead = (await db.from('leads').insert({ customer_id: cust?.id, name: (profileName || 'WhatsApp customer').slice(0, 60), phone, source: 'whatsapp', consent_whatsapp: true }).select('*').single()).data;
+    lead = (await db.from('leads').insert({ customer_id: cust?.id, name: (profileName || 'WhatsApp customer').slice(0, 60), phone, source: 'whatsapp', consent_whatsapp: true, ...vehicleCols(detectVehicle(text)) }).select('*').single()).data;
   }
   if (!lead) return;
 
@@ -72,6 +73,7 @@ async function handleMessage(db: ReturnType<typeof adminDb>, msg: any, profileNa
     return;
   }
   await db.from('leads').update(patch).eq('id', lead.id);
+  await upgradeVehicle(db, lead.id, detectVehicle(text));   // bike to car/parts once; never over a desk-set tag
 
   const aiOn = await getSetting(db, 'ai_enabled', true);
   if (!aiOn || !lead.ai_enabled || !aiReady() || !whatsappReady() || ['paid', 'scheduled'].includes(lead.status) && !/\?/.test(text)) return;

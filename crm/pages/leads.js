@@ -1,14 +1,14 @@
-import { rpc, esc, head, chips, empty, when, day, tag, STAGE, toast, clean, modal, field, confirmBox, toCsv, downloadFile, debounce } from '../ui.js';
-import { sourceName } from '../crm-rules.js';
+import { rpc, esc, head, chips, empty, when, day, tag, vehicleTag, STAGE, toast, clean, modal, field, confirmBox, toCsv, downloadFile, debounce } from '../ui.js';
+import { sourceName, vehicleOf, VEHICLE_LABEL } from '../crm-rules.js';
 import { newBooking } from './booking.js';
 import { PRESETS, presetRange, presetOf, parseCsv, toImportRows } from '../data-tools.js';
 import { exportButtons, bindExports } from '../exports.js';
 
 const FILTERS = [['all', 'All'], ['mine', 'Mine'], ['unassigned', 'Unassigned'], ['new', 'New'], ['followups', 'Follow-ups'], ['converted', 'Converted'], ['won', 'Won'], ['lost', 'Lost'], ['junk', 'Junk'], ['unassigned_open', 'Unassigned and open'], ['overdue', 'Overdue']];
-const st = { filter: 'mine', q: '', from: '', to: '', owner: '', tech: '', picked: new Set() };
+const st = { filter: 'mine', q: '', from: '', to: '', owner: '', tech: '', vehicle: '', picked: new Set() };
 const OPEN_STAGES = ['new', 'contacted', 'quoted', 'payment_sent'];
 /** Set what the Leads page shows before opening it (the dashboard cards use this). */
-export function showLeads(opts) { Object.assign(st, { filter: 'all', q: '', from: '', to: '', owner: '', tech: '', picked: new Set() }, opts); }
+export function showLeads(opts) { Object.assign(st, { filter: 'all', q: '', from: '', to: '', owner: '', tech: '', vehicle: '', picked: new Set() }, opts); }
 
 export async function render(root, ctx) {
   const all = ctx.can('view_all_leads');
@@ -16,10 +16,10 @@ export async function render(root, ctx) {
   // Junk is an admin view (Mark as junk and Restore are admin only).
   const filters = FILTERS.filter(([k]) => (all || !['new', 'unassigned_open'].includes(k)) && (k !== 'junk' || (ctx.me && ctx.me.is_admin)));
   const serverFilter = { overdue: 'followups', unassigned_open: 'unassigned' }[st.filter] || st.filter;
-  const args = { p_filter: serverFilter, p_search: st.q || null };
+  const args = { p_filter: serverFilter, p_search: st.q || null, p_vehicle: st.vehicle || null };
   const [rowsAll, sum] = await Promise.all([
     all ? rpc('crm_leads_list', { ...args, p_owner: st.owner || null, p_from: st.from || null, p_to: st.to || null }) : rpc('crm_my_leads', args),
-    rpc('crm_leads_summary', { p_from: st.from || null, p_to: st.to || null, p_owner: st.owner || null })]);
+    rpc('crm_leads_summary', { p_from: st.from || null, p_to: st.to || null, p_owner: st.owner || null, p_vehicle: st.vehicle || null })]);
   const staged = st.filter === 'overdue' ? rowsAll.filter((r) => r.overdue) : st.filter === 'unassigned_open' ? rowsAll.filter((r) => OPEN_STAGES.includes(r.stage)) : rowsAll;
   // The technician filter works on the rows already loaded; 'none' is bookings with nobody assigned.
   const techs = [...new Map(rowsAll.filter((r) => r.mechanic_id).map((r) => [r.mechanic_id, r.mechanic_name || 'Technician'])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
@@ -27,6 +27,7 @@ export async function render(root, ctx) {
   const users = all && ctx.can('assign_leads') ? await ctx.users() : [];
   const count = (k) => (k === 'all' ? sum.all : sum[k]);
   const tools = `<input id="q" type="search" placeholder="Search name, mobile or booking ID" value="${esc(st.q)}" aria-label="Search leads">
+    <select id="vehicle" aria-label="Vehicle"><option value="">All vehicles</option>${['bike', 'car', 'parts'].map((v) => `<option value="${v}"${v === st.vehicle ? ' selected' : ''}>${VEHICLE_LABEL[v]}</option>`).join('')}</select>
     ${all ? `<label class="small muted">Range <select id="preset" aria-label="Date range">${[['all', 'All dates'], ...PRESETS].map(([k, t]) => `<option value="${k}"${k === (st.from || st.to ? presetOf(st.from, st.to) : 'all') ? ' selected' : ''}>${t}</option>`).join('')}</select></label><label class="small muted">From <input id="from" type="date" value="${st.from}"></label><label class="small muted">To <input id="to" type="date" value="${st.to}"></label>` : ''}
     ${users.length ? `<select id="owner" aria-label="Care Buddy"><option value="">Everyone</option>${users.filter((u) => u.active).map((u) => `<option value="${u.user_id}"${u.user_id === st.owner ? ' selected' : ''}>${esc(u.name)}</option>`).join('')}</select>` : ''}
     ${all ? `<select id="tech" aria-label="Technician"><option value="">Any technician</option><option value="none"${st.tech === 'none' ? ' selected' : ''}>Booked, no technician</option>${techs.map(([id, n]) => `<option value="${id}"${id === st.tech ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>` : ''}
@@ -34,6 +35,7 @@ export async function render(root, ctx) {
   const sel = st.picked.size;
   root.innerHTML = `${head('Leads', 'Every lead from every source. Open a row to call, message, log what happened or edit the booking.', tools)}
     ${chips(filters.map(([k, t]) => [k, t, ['all', 'converted', 'won', 'followups', 'lost', 'junk'].includes(k) ? count(k) : null]), st.filter)}
+    ${sum.by_vehicle ? `<p class="small muted">${['bike', 'car', 'parts'].map((v) => { const x = sum.by_vehicle[v] || {}; return `${VEHICLE_LABEL[v]} ${x.leads || 0} leads, ${x.converted || 0} converted`; }).join(' · ')}</p>` : ''}
     <p class="small muted">${sum.pct ? `Converted ${sum.pct.converted}% · Won ${sum.pct.won}% · Lost ${sum.pct.lost}% · Follow-ups due ${sum.pct.followups}% of ${sum.all} leads` : ''}</p>
     ${sel && (ctx.can('assign_leads') || ctx.can('delete_leads')) ? `<div class="bulk"><b>${sel} selected</b>${ctx.can('assign_leads') ? '<button class="btn sm" type="button" id="bulkAssign">Assign</button>' : ''}${ctx.can('delete_leads') ? '<button class="btn sm danger" type="button" id="bulkDelete">Delete</button>' : ''}<button class="btn ghost sm" type="button" id="bulkClear">Clear</button></div>` : ''}
     ${rows.length ? table(rows, ctx, all) : empty('No leads match these filters.')}`;
@@ -44,7 +46,7 @@ function table(rows, ctx, techCol) {
   const pick = ctx.can('assign_leads') || ctx.can('delete_leads');
   return `<div class="table-wrap"><table class="leads"><thead><tr>${pick ? '<th><input type="checkbox" id="pickAll" aria-label="Select all"></th>' : ''}<th>Lead</th><th>Mobile number</th><th>Source</th><th>Stage</th><th>Owner</th>${techCol ? '<th>Technician</th>' : ''}<th>Disposition</th><th>Sub disposition</th><th>Follow-up</th><th>Created date</th><th>Last activity date</th></tr></thead><tbody>
     ${rows.map((r) => `<tr class="row-open${r.is_late || r.overdue ? ' late' : ''}" data-id="${r.id}">${pick ? `<td><input type="checkbox" class="pick" data-id="${r.id}" ${st.picked.has(r.id) ? 'checked' : ''} aria-label="Select ${esc(r.lead)}"></td>` : ''}
-      <td><b>${esc(r.lead)}</b><br><small class="muted">${esc([r.booking_id, r.bike, r.area].filter(Boolean).join(' · '))}</small></td><td>${esc(r.mobile)}</td><td>${esc(sourceName(r.platform || r.source))}</td>
+      <td><b>${esc(r.lead)}</b>${vehicleTag(vehicleOf(r))}<br><small class="muted">${esc([r.booking_id, r.bike, r.area].filter(Boolean).join(' · '))}</small></td><td>${esc(r.mobile)}</td><td>${esc(sourceName(r.platform || r.source))}</td>
       <td>${tag(STAGE[r.stage] || r.stage, 'st-' + r.stage)}${r.is_late ? ' ' + tag('Late', 'late') : ''}</td><td>${esc(r.owner_name || 'Unassigned')}</td>${techCol ? `<td class="${!r.mechanic_id && ['paid', 'scheduled'].includes(r.stage) ? 'badtxt' : ''}">${esc(r.mechanic_name || (['paid', 'scheduled'].includes(r.stage) ? 'Not assigned' : '—'))}</td>` : ''}<td>${esc(r.disposition || '—')}</td><td>${esc(r.sub_disposition || '—')}</td>
       <td class="${r.overdue ? 'badtxt' : ''}">${when(r.follow_up)}</td><td>${day(r.created_at)}</td><td>${when(r.last_activity)}</td></tr>`).join('')}</tbody></table></div>`;
 }
@@ -54,14 +56,14 @@ function bind(root, ctx, rows, users) {
   root.querySelectorAll('[data-f]').forEach((b) => b.addEventListener('click', () => { st.filter = b.dataset.f; st.picked.clear(); again(); }));
   const q = root.querySelector('#q');
   q.addEventListener('input', debounce(async () => { st.q = q.value.trim(); await again(); const n = document.querySelector('#q'); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }, 350));
-  for (const [id, key] of [['from', 'from'], ['to', 'to'], ['owner', 'owner'], ['tech', 'tech']]) { const el = root.querySelector('#' + id); if (el) el.addEventListener('change', () => { st[key] = el.value; again(); }); }
+  for (const [id, key] of [['from', 'from'], ['to', 'to'], ['owner', 'owner'], ['tech', 'tech'], ['vehicle', 'vehicle']]) { const el = root.querySelector('#' + id); if (el) el.addEventListener('change', () => { st[key] = el.value; again(); }); }
   root.querySelectorAll('tr.row-open').forEach((tr) => tr.addEventListener('click', (e) => { if (e.target.closest('input')) return; ctx.openLead(tr.dataset.id); }));
   root.querySelectorAll('input.pick').forEach((c) => c.addEventListener('change', () => { c.checked ? st.picked.add(c.dataset.id) : st.picked.delete(c.dataset.id); again(); }));
   const all = root.querySelector('#pickAll'); if (all) all.addEventListener('change', () => { rows.forEach((r) => (all.checked ? st.picked.add(r.id) : st.picked.delete(r.id))); again(); });
   const nb = root.querySelector('#newBooking'); if (nb) nb.addEventListener('click', () => newBooking(ctx));
   const nl = root.querySelector('#newLead'); if (nl) nl.addEventListener('click', () => ctx.addLead());
   bindExports(root, () => ({ name: 'leads', what: 'Leads', title: 'Mechanix Pro leads', subtitle: [st.from || st.to ? `${st.from || 'start'} to ${st.to || 'today'}` : 'All dates', st.filter !== 'all' ? 'Filter: ' + st.filter : ''].filter(Boolean).join(' · '), by: ctx.me && ctx.me.name, rows, filters: { filter: st.filter, from: st.from || null, to: st.to || null, owner: st.owner || null, q: st.q || null },
-    columns: [['booking_id', 'Booking ID'], ['lead', 'Lead'], ['mobile', 'Mobile number'], [(r) => sourceName(r.platform || r.source), 'Source'], [(r) => STAGE[r.stage] || r.stage, 'Stage'], ['owner_name', 'Owner'], ['mechanic_name', 'Technician'], ['disposition', 'Disposition'], ['sub_disposition', 'Sub disposition'], ['follow_up', 'Follow-up'], ['created_at', 'Created date'], ['last_activity', 'Last activity date']] }), 'leads');
+    columns: [['booking_id', 'Booking ID'], ['lead', 'Lead'], [(r) => VEHICLE_LABEL[vehicleOf(r)], 'Vehicle'], ['mobile', 'Mobile number'], [(r) => sourceName(r.platform || r.source), 'Source'], [(r) => STAGE[r.stage] || r.stage, 'Stage'], ['owner_name', 'Owner'], ['mechanic_name', 'Technician'], ['disposition', 'Disposition'], ['sub_disposition', 'Sub disposition'], ['follow_up', 'Follow-up'], ['created_at', 'Created date'], ['last_activity', 'Last activity date']] }), 'leads');
   const pre = root.querySelector('#preset'); if (pre) pre.addEventListener('change', () => { if (pre.value === 'all') { st.from = ''; st.to = ''; again(); return; } const r = presetRange(pre.value); if (r) { st.from = r.from; st.to = r.to; again(); } });
   const imp = root.querySelector('#importLeads'); if (imp) imp.addEventListener('click', () => importDialog(ctx, again));
   const clear = root.querySelector('#bulkClear'); if (clear) clear.addEventListener('click', () => { st.picked.clear(); again(); });
