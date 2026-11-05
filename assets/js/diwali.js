@@ -36,7 +36,10 @@
 
   function start(win) {
     var doc = win.document, cfg = win.MXP || {};
-    if (!active()) { [].forEach.call(doc.querySelectorAll('[data-diwali],[data-diwali-bar]'), function (n) { n.hidden = true; }); return; }
+    if (!active()) {
+      // The Diwali offer page ends with the festival: after the last day, send visitors to the services page.
+      if (istDay() > TO && /^\/offers\/diwali-ready\/?/.test(win.location.pathname) && win.location.replace) win.location.replace('/services/');
+      [].forEach.call(doc.querySelectorAll('[data-diwali],[data-diwali-bar]'), function (n) { n.hidden = true; }); return; }
     var calm = win.matchMedia && win.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var store = function (k, v) { try { if (v === undefined) return win.sessionStorage.getItem(k); win.sessionStorage.setItem(k, v); } catch (e) {} return null; };
     var offer = offerLine(cfg);

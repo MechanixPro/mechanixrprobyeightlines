@@ -31,3 +31,16 @@ test('the fireworks respect reduced motion and the script has no inline code', (
   assert.match(js, /prefers-reduced-motion/);
   assert.doesNotMatch(read('../index.html'), /<script>[^<]*diwali/i);
 });
+
+test('the Diwali offer page sends visitors to /services/ after 8 November, and not before', () => {
+  const run = (isoNow, path) => {
+    const real = Date.now; Date.now = () => Date.parse(isoNow);
+    const calls = [];
+    const win = { MXP: {}, location: { pathname: path, replace: (u) => calls.push(u) }, document: { querySelectorAll: () => [], querySelector: () => null } };
+    try { D.start(win); } finally { Date.now = real; }
+    return calls;
+  };
+  assert.deepEqual(run('2026-11-08T23:00:00+05:30', '/offers/diwali-ready/'), []);
+  assert.deepEqual(run('2026-11-09T00:30:00+05:30', '/offers/diwali-ready/'), ['/services/']);
+  assert.deepEqual(run('2026-11-09T00:30:00+05:30', '/offers/bike-service/'), []);
+});
