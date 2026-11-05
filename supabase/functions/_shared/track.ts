@@ -70,7 +70,7 @@ export function trackView(l: Record<string, any>, x: Extra) {
   const when = l.preferred_date && l.preferred_slot ? formatWhen(l.preferred_date, l.preferred_slot, l.preferred_time) : null;
   const base = String(x.bike ?? '').trim();
   const bike = x.nick ? `"${x.nick}"${base ? ` (${base})` : ''}` : base || null;
-  const showMech = ['scheduled', 'completed'].includes(l.status) && x.mechanic;
+  const showMech = (['scheduled', 'completed'].includes(l.status) || (paidConfirmation(l) && isPaid(l))) && x.mechanic;   // with a confirmation fee the mechanic shows (first name) as soon as one is assigned
   return {
     booking_id: l.booking_id ?? null, status: l.status, stage: st.index, closed: st.closed, note: st.note, stages: STAGES,
     service: x.service ?? null, bike, area: l.area ?? null, when,
