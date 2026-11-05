@@ -25,17 +25,21 @@
   var MIN_PHOTOS = 4, MAX_PHOTOS = 8, MAX_SIDE = 1280, QUALITY = 0.7, HINT = 'front, back, left and right', VEH = 'bike';
   var TITLE = { pickup: 'Pickup', return: 'Return' };
   // Shrink a photo on the phone: longest side 1280px, JPEG at 0.7 (about 150 KB).
+  // Photos are read as data: URLs (not blob: URLs): the site's Content-Security-Policy allows img-src 'self' data: https:, and a blob: image is blocked, so a blob: preview or compress step never worked there.
+  var dataUrl = function (blob) { return new Promise(function (resolve, reject) { var r = new FileReader(); r.onload = function () { resolve(r.result); }; r.onerror = function () { reject(new Error('read')); }; r.readAsDataURL(blob); }); };
   var compress = function (file) {
-    return new Promise(function (resolve, reject) {
-      var url = URL.createObjectURL(file), img = new Image();
-      img.onload = function () {
-        var k = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
-        c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
-        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
-        c.toBlob(function (b) { b ? resolve(b) : reject(new Error('compress')); }, 'image/jpeg', QUALITY);
-      };
-      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('image')); };
-      img.src = url;
+    return dataUrl(file).then(function (url) {
+      return new Promise(function (resolve, reject) {
+        var img = new Image();
+        img.onload = function () {
+          var k = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          c.toBlob(function (b) { b ? resolve(b) : reject(new Error('compress')); }, 'image/jpeg', QUALITY);
+        };
+        img.onerror = function () { reject(new Error('image')); };
+        img.src = url;
+      });
     });
   };
   var stepHtml = function (s) {
@@ -100,7 +104,7 @@
     inp.value = ''; msgEl.textContent = '';
     if (photos[k].length + files.length > MAX_PHOTOS) { msgEl.textContent = 'At most ' + MAX_PHOTOS + ' photos.'; files = files.slice(0, Math.max(0, MAX_PHOTOS - photos[k].length)); }
     files.reduce(function (p, f) {
-      return p.then(function () { return compress(f).then(function (b) { photos[k].push({ blob: b, preview: URL.createObjectURL(b), path: null }); paint(k); }); });
+      return p.then(function () { return compress(f).then(function (b) { return dataUrl(b).then(function (u) { photos[k].push({ blob: b, preview: u, path: null }); paint(k); }); }); });
     }, Promise.resolve()).catch(function () { msgEl.textContent = 'A photo could not be read. Take it again.'; });
   });
   hand.addEventListener('click', function (e) {

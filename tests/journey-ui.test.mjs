@@ -151,3 +151,11 @@ test('check script covers the new JS and the manifest keeps its start_url (the i
   const pkg = JSON.parse(read('package.json')).scripts.check; for (const w of ['thanks.js', 'install.js', 'job-geo.js', 'crm/pages/issues.js', 'assets/js/track.js', 'assets/js/job.js', 'admin/flow-core.js']) assert.ok(pkg.includes(w), w);
   assert.equal(JSON.parse(read('manifest.webmanifest')).start_url, '/?source=pwa');
 });
+test('regression: the step list is outside the form, so the success state must not look it up with the form-scoped $()', () => {
+  const b = read('assets/js/book-pay.js'); assert.doesNotMatch(b, /\$\('\.bk-steps'\)\.hidden/); assert.match(b, /doc\.querySelector\('\.bk-steps'\)/);
+  const html = read('src/book-pay.html'); assert.ok(html.indexOf('class="bk-steps"') < html.indexOf('<form id="bkForm"'), 'the step list comes before the form');
+});
+test('regression: photos are read as data: URLs, because the site CSP (img-src self data: https:) blocks blob: images', () => {
+  const csp = read('_headers').split('\n').find((l) => /Content-Security-Policy/.test(l)); assert.match(csp, /img-src 'self' data: https:/); assert.doesNotMatch(csp.match(/img-src[^;]*/)[0], /blob:/);
+  for (const f of ['assets/js/job.js', 'assets/js/track.js']) { const s = read(f); assert.doesNotMatch(s, /createObjectURL/, f + ' must not make blob: image URLs'); assert.match(s, /readAsDataURL/, f); }
+});

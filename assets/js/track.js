@@ -169,11 +169,14 @@
     }
     var say = function (id, text) { var el = doc.getElementById(id); if (el) el.textContent = text; };
     // compress a photo on the phone: longest side 1280 px, JPEG 0.7 (about 150 KB)
+    var dataUrl = function (blob) { return new Promise(function (resolve, reject) { var r = new win.FileReader(); r.onload = function () { resolve(r.result); }; r.onerror = function () { reject(new Error('read')); }; r.readAsDataURL(blob); }); };
     var compress = function (file) {
-      return new Promise(function (resolve, reject) {
-        var url = win.URL.createObjectURL(file), img = new win.Image();
-        img.onload = function () { var k = Math.min(1, 1280 / Math.max(img.naturalWidth, img.naturalHeight)), c = doc.createElement('canvas'); c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k)); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); win.URL.revokeObjectURL(url); c.toBlob(function (b) { b ? resolve(b) : reject(new Error('compress')); }, 'image/jpeg', 0.7); };
-        img.onerror = function () { win.URL.revokeObjectURL(url); reject(new Error('image')); }; img.src = url;
+      return dataUrl(file).then(function (url) {
+        return new Promise(function (resolve, reject) {
+          var img = new win.Image();
+          img.onload = function () { var k = Math.min(1, 1280 / Math.max(img.naturalWidth, img.naturalHeight)), c = doc.createElement('canvas'); c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k)); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); c.toBlob(function (bl) { bl ? resolve(bl) : reject(new Error('compress')); }, 'image/jpeg', 0.7); };
+          img.onerror = function () { reject(new Error('image')); }; img.src = url;   // a data: URL: the site's CSP blocks blob: images
+        });
       });
     };
     function addPhotos(files) {

@@ -175,7 +175,7 @@
     var msg = $('#bk-msg'), payBtn = $('#bk-pay');
     var free = function () { busy = false; payBtn.disabled = false; showFee(); };
     var done = function (d, email) {
-      store.clear(); form.hidden = true; $('.bk-steps').hidden = true;
+      store.clear(); form.hidden = true; var steps = doc.querySelector('.bk-steps'); if (steps) steps.hidden = true;   // the step list sits outside the form: the old $() lookup returned null and threw after a successful payment
       var box = doc.getElementById('bkDone'), T = win.MXP_THANKS, I = win.MXP_INSTALL;
       // Keep the private tracking link on this phone (token and booking ID only) so the home page and an installed app can show "Your booking".
       if (I && d.track_token) I.saveBooking(win, { t: d.track_token, id: d.booking_id });
