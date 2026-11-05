@@ -3,7 +3,15 @@
 export const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
 export const BOOKED = ['paid', 'scheduled', 'completed'];
 export const STATUS_LABEL = { new: 'New', contacted: 'Contacted', quoted: 'Quote sent', payment_sent: 'Advance link sent', paid: 'Booked', scheduled: 'Booked', completed: 'Done', lost: 'Lost', junk: 'Junk' };
-export const LOST_REASONS = ['Price too high', 'No answer', 'Wrong area', 'Booked elsewhere', 'Not interested', 'Other'];
+/** The fixed list of reasons a lead can be lost for. The same list is in crm_lost_reasons() in the database (20261227000000_crew_conversion.sql). Old leads keep the wording they were saved with. */
+export const LOST_REASONS = ['Price too high', 'No answer (after 3 tries)', 'Wrong area', 'Bought elsewhere', 'Not now / later', 'Not a real enquiry', 'Other'];
+export const LOST_NOTE_MIN = 5;
+/** A lead is only lost with a reason from the list; "Other" also needs a note of at least 5 characters. Used by the sheet, the Lost box and the admin panel. */
+export function lostReasonCheck(reason, note) {
+  if (!LOST_REASONS.includes(reason)) return { ok: false, error: 'Choose why the lead was lost.' };
+  if (reason === 'Other' && String(note ?? '').trim().length < LOST_NOTE_MIN) return { ok: false, error: 'Add a note of at least ' + LOST_NOTE_MIN + ' characters to explain "Other".' };
+  return { ok: true };
+}
 export const SOURCE_LABEL = { website: 'Website', whatsapp: 'WhatsApp', phone: 'Phone call', walk_in: 'Walk in', app: 'App', instagram: 'Meta (Instagram)' };
 /** Friendly name for a lead source or an ad utm_source. */
 export function sourceName(key) {
@@ -64,9 +72,7 @@ export function validateLog({ kind, body, status, current, nextAction, lostReaso
   const to = status || current;
   if (to !== current && !nextStatuses(current, 'sales').includes(to) && !(current === 'lost')) return { ok: false, error: 'That move is not allowed.' };
   if (to === 'lost') {
-    if (!LOST_REASONS.includes(lostReason)) return { ok: false, error: 'Choose why the lead was lost.' };
-    if (lostReason === 'Other' && !text) return { ok: false, error: 'Add a note to explain "Other".' };
-    return { ok: true };
+    return lostReasonCheck(lostReason, text);
   }
   if (OPEN.includes(to) && (kind !== 'note' || to !== current)) {
     if (!nextAction) return { ok: false, error: 'Set the next follow-up before saving.' };
@@ -237,4 +243,102 @@ export function handoverMessage(l, kind, code) {
   const first = String(l.name || '').trim().split(' ')[0], tech = String(l.mechanic_name || '').trim().split(' ')[0];
   const what = kind === 'pickup' ? `before ${tech || 'our technician'} takes your bike` : `when ${tech || 'our technician'} brings your bike back`;
   return `Hi${first ? ' ' + first : ''}, your Mechanix Pro ${kind} code for ${bookingLabel(l) ? 'booking ' + bookingLabel(l) : 'your booking'} is ${code}.\n\nShare it with ${tech || 'the technician'} only ${what}, after they have photographed the bike. It works for 24 hours. Do not share it with anyone else.`;
+}
+
+/* ---------- Booking steps: Lead, Called, Quote sent, Confirmed, Scheduled, Done ----------
+   Worked out from the status, the first contact time and the booking ID. No new status values: the database keeps its own. */
+export const STEPS = [['lead', 'Lead'], ['called', 'Called'], ['quote', 'Quote sent'], ['confirmed', 'Confirmed'], ['scheduled', 'Scheduled'], ['done', 'Done']];
+const firstContact = (l) => (l && (l.crm_first_contact_at || l.first_contact_at)) || null;
+/** Which step a lead has reached. A lost or junk lead keeps the step it reached, marked stopped. steps[].state is done, current, stopped or todo. */
+export function bookingStep(lead) {
+  const l = lead || {}, s = l.status, closed = s === 'lost' || s === 'junk' ? s : null;
+  let index = 0;
+  if (s === 'completed') index = 5;
+  else if (s === 'scheduled') index = 4;
+  else if (s === 'paid' || bookingLabel(l)) index = 3;
+  else if (s === 'quoted' || s === 'payment_sent') index = 2;
+  else if (s === 'contacted' || firstContact(l)) index = 1;
+  const steps = STEPS.map(([key, label], i) => ({ key, label, state: i < index ? 'done' : i > index ? 'todo' : closed ? 'stopped' : index === 5 ? 'done' : 'current' }));
+  return { index, key: STEPS[index][0], label: STEPS[index][1], closed, steps, next: closed || index === 5 ? null : STEPS[index + 1][1] };
+}
+/** The one button to show for a lead. role is agent, supervisor or admin; me ({ canCreate, userId, boss }) is optional and only decides whether Confirm booking is allowed. Returns null when there is nothing to do. */
+export function nextAction(lead, role = 'agent', me = null) {
+  const st = bookingStep(lead);
+  if (st.closed || st.index === 5) return null;
+  if (role === 'agent' && !lead.crm_owner && st.index < 3) return { key: 'take', label: 'Take lead', allowed: true, reason: '' };
+  switch (st.index) {
+    case 0: return { key: 'call', label: 'Call now', allowed: true, reason: '' };
+    case 1: return { key: 'quote', label: 'Send quote', allowed: true, reason: '' };
+    case 2: { const ok = me ? canConfirmBooking(lead, me) : true; return { key: 'confirm', label: 'Confirm booking', allowed: ok, reason: ok ? '' : 'You cannot confirm this booking. Ask a supervisor.' }; }
+    case 3: return { key: 'schedule', label: 'Schedule', allowed: true, reason: '' };
+    default: return role === 'admin' ? { key: 'done', label: 'Mark done', allowed: true, reason: '' } : { key: 'done', label: 'Mark done', allowed: false, reason: 'An admin marks the job done after the technician reports and payment is checked.' };
+  }
+}
+/** Is this move allowed from where the lead is? target: call, quote, confirm, schedule, done or lost. The database still decides; this gives the message first. */
+export function stepGuard(lead, target) {
+  const st = bookingStep(lead), no = (error) => ({ ok: false, error });
+  if (st.closed === 'junk') return no('This lead is junk. An admin must restore it first.');
+  if (st.closed === 'lost') return no('This lead is lost. A supervisor must reopen it first.');
+  if (target === 'quote' && st.index >= 2) return no('This lead is already past the quote step.');
+  if (target === 'confirm' && st.index >= 3) return no('This booking is already confirmed.');
+  if (target === 'schedule') {
+    if (!bookingLabel(lead) && st.index < 4) return no('Confirm the booking first. Scheduling needs the booking ID.');
+    if (st.index >= 4) return no('This booking is already scheduled.');
+  }
+  if (target === 'done') {
+    if (st.index === 5) return no('This job is already done.');
+    if (st.index < 3) return no('Confirm and schedule the booking before marking it done.');
+    if (st.index < 4) return no('Schedule the job before marking it done.');
+  }
+  if (target === 'lost' && BOOKED.includes(lead.status)) return no('A booked job cannot be marked lost here.');
+  return { ok: true };
+}
+
+/* ---------- Call now queue ---------- */
+export const WAIT_AMBER = 15, WAIT_RED = 120, WAIT_DARK = 1440;
+/** An open lead nobody has contacted yet and that has no booking ID. Mirrors crm_call_queue. Junk, lost and booked leads are never in it. */
+export const inCallQueue = (l) => !!l && OPEN.includes(l.status) && !bookingLabel(l) && !firstContact(l);
+/** How long a lead has waited, with its colour: amber past 15 minutes, red past 2 hours, dark past 24 hours. */
+export function waitInfo(createdAt, now = new Date()) {
+  const m = minutesAgo(createdAt, now);
+  const tone = m > WAIT_DARK ? 'dark' : m > WAIT_RED ? 'red' : m > WAIT_AMBER ? 'amber' : 'ok';
+  const label = m < 60 ? m + ' min' : m < 1440 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : Math.floor(m / 1440) + ' d ' + Math.floor((m % 1440) / 60) + ' h';
+  return { minutes: m, tone, label };
+}
+/** The queue: leads that belong in it, oldest first, each with its wait and whether it has no owner. */
+export function callQueue(leads, now = new Date()) {
+  return (leads || []).filter(inCallQueue)
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at) || String(a.id).localeCompare(String(b.id)))
+    .map((l) => ({ ...l, wait: waitInfo(l.created_at, now), unowned: !l.crm_owner }));
+}
+
+/* ---------- Conversion numbers ---------- */
+const pct = (n, d) => (d > 0 ? Math.round((n / d) * 100) : 0);
+export const istDate = (v) => new Date(new Date(v).getTime() + 330 * 60e3).toISOString().slice(0, 10);
+/** The first and last IST date (YYYY-MM-DD) of "today" (days = 1) or the last N days. */
+export function lastDays(days, now = Date.now()) { const to = istDate(now); return { from: istDate(new Date(to + 'T00:00:00Z').getTime() - (days - 1) * 864e5), to }; }
+/** Counts for a set of leads. Junk is left out. Quotes sent means the lead reached the quote step or later (worked out from its status today, there is no history table). */
+export function leadMetrics(rows, slaMin = 15) {
+  const m = { leads: 0, contacted: 0, within: 0, quotes: 0, confirmed: 0, scheduled: 0, done: 0, lost: 0 }, reasons = new Map();
+  for (const r of countable(rows)) {
+    m.leads++;
+    const fc = firstContact(r);
+    if (fc) { m.contacted++; if (new Date(fc).getTime() - new Date(r.created_at).getTime() <= slaMin * 60e3) m.within++; }
+    if (['quoted', 'payment_sent', ...BOOKED].includes(r.status) || bookingLabel(r)) m.quotes++;
+    if (bookingLabel(r) || BOOKED.includes(r.status)) m.confirmed++;
+    if (r.status === 'scheduled' || r.status === 'completed') m.scheduled++;
+    if (r.status === 'completed') m.done++;
+    if (r.status === 'lost') { m.lost++; const k = String(r.crm_lost_reason || 'No reason recorded'); reasons.set(k, (reasons.get(k) || 0) + 1); }
+  }
+  m.withinPct = pct(m.within, m.leads); m.confirmedPct = pct(m.confirmed, m.leads);
+  m.lostReasons = [...reasons].map(([reason, n]) => ({ reason, n })).sort((a, b) => b.n - a.n || a.reason.localeCompare(b.reason));
+  return m;
+}
+/** Total, bike / car / parts, by source and by day (India time). Cost per booking is not here: no ad spend is stored anywhere to divide by. */
+export function conversionReport(rows, { slaMin = 15 } = {}) {
+  const list = countable(rows), group = (keyOf) => { const g = new Map(); for (const r of list) { const k = keyOf(r); (g.get(k) || g.set(k, []).get(k)).push(r); } return g; };
+  const byVehicle = {}; for (const v of VEHICLES) byVehicle[v] = leadMetrics(list.filter((r) => vehicleOf(r) === v), slaMin);
+  const bySource = [...group((r) => sourceName(r.platform || r.source))].map(([source, rs]) => ({ source, ...leadMetrics(rs, slaMin) })).sort((a, b) => b.leads - a.leads || a.source.localeCompare(b.source));
+  const daily = [...group((r) => istDate(r.created_at))].map(([date, rs]) => ({ date, ...leadMetrics(rs, slaMin) })).sort((a, b) => a.date.localeCompare(b.date));
+  return { slaMin, total: leadMetrics(list, slaMin), byVehicle, bySource, daily };
 }

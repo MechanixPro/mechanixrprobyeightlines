@@ -3,12 +3,13 @@ import { sourceName } from '../crm-rules.js';
 import { PRESETS, presetRange, presetOf } from '../data-tools.js';
 import { exportButtons, bindExports } from '../exports.js';
 import { showLeads } from './leads.js';
+import * as conversion from './conversion.js';
 
 const iso = (d) => d.toISOString().slice(0, 10);
 const range = { from: null, to: null };
 
 export async function render(root, ctx) {
-  const [d, rt, fc, duty] = await Promise.all([rpc('crm_dashboard', { p_from: range.from, p_to: range.to }), rpc('crm_rating_summary', { p_from: range.from, p_to: range.to }).catch(() => null), rpc('crm_followup_capacity', { p_from: range.from, p_to: range.to }).catch(() => null), rpc('crm_on_duty').catch(() => null)]);
+  const [d, rt, fc, duty, conv] = await Promise.all([rpc('crm_dashboard', { p_from: range.from, p_to: range.to }), rpc('crm_rating_summary', { p_from: range.from, p_to: range.to }).catch(() => null), rpc('crm_followup_capacity', { p_from: range.from, p_to: range.to }).catch(() => null), rpc('crm_on_duty').catch(() => null), ctx.can('view_all_leads') ? conversion.section(ctx).catch(() => '<p class="err">Could not load the conversion view.</p>') : '']);
   const L = d.leads, T = d.targets, from = range.from || iso(new Date(d.range.from));
   const card = (n, t, tone = '', go = '') => (go ? `<button type="button" class="stat clickable ${tone}" data-goto="${go}" aria-label="${t}: ${n}. Open"><b>${n}</b><span>${t}</span></button>` : `<div class="stat ${tone}"><b>${n}</b><span>${t}</span></div>`);
   const target = (title, x) => `<div class="stat wide"><span>${title}</span><div class="two-num"><b>${x.daily_done}</b><small>of ${x.daily_target} today</small></div>${bar(x.daily_done, x.daily_target)}
@@ -24,7 +25,9 @@ export async function render(root, ctx) {
     ${fc ? `<h3>Follow-ups</h3><div class="stat-row">${card(fc.overdue, 'Overdue', fc.overdue ? 'bad' : '', 'overdue')}${card(fc.today, 'Due today')}${card(fc.upcoming, 'Scheduled later')}${card(fc.none, 'Owned, no follow-up set', fc.none ? 'bad' : '')}${card(fc.contacts, 'Calls and WhatsApp logged')}</div>` : ''}
     <div class="stat-row">${target('Team targets', T.team)}${target('Your targets', T.me)}</div>
     ${d.agents ? `<h3>Care Buddies <span class="small muted">${exportButtons('team')}</span></h3>${agents(d.agents, fc && fc.agents)}` : ''}
-    ${d.attribution ? `<h3>Where leads come from</h3>${attribution(d.attribution)}` : ''}`;
+    ${d.attribution ? `<h3>Where leads come from</h3>${attribution(d.attribution)}` : ''}
+    ${conv}`;
+  conversion.bind(root, ctx);
   root.querySelectorAll('[data-goto]').forEach((b) => b.addEventListener('click', () => {
     const t = b.dataset.goto;
     if (t === 'chats') return ctx.go('inbox');

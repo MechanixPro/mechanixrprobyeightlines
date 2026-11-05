@@ -23,7 +23,7 @@ test('assigning needs a technician; confirming needs technician, date and slot, 
 
 test('the log form handles both moves inline: no button bar, no pop-up', () => {
   const c = read('crm/crm.js'), f = read('supabase/functions/confirm-booking/index.ts');
-  for (const s of ['Move this lead to', '<option value="confirm">Booking confirmed</option>', 'id="techBox"', 'id="lfTech"', 'id="lfDate"', 'id="lfSlot"', "rpc('crm_assign_technician'", "rpc('crm_confirm_booking'", 'Send job to', "invoke('confirm-booking'"]) assert.ok(c.includes(s), s);
+  for (const s of ['Move this lead to', '<option value="confirm">Schedule: technician, date, slot (after Confirm booking)</option>', 'id="techBox"', 'id="lfTech"', 'id="lfDate"', 'id="lfSlot"', "rpc('crm_assign_technician'", "rpc('crm_confirm_booking'", 'Send job to', "invoke('confirm-booking'"]) assert.ok(c.includes(s), s);
   for (const gone of ['data-act="move"', 'class="move-bar"', 'MOVE_SUBS', 'function moveAction']) assert.ok(!c.includes(gone), 'removed: ' + gone);
   assert.match(f, /crm_users/); assert.match(f, /status !== 'scheduled'|status === 'scheduled'/);
 });

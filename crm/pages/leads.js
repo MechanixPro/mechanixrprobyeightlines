@@ -1,4 +1,4 @@
-import { rpc, esc, head, chips, empty, when, day, tag, vehicleTag, STAGE, toast, clean, modal, field, confirmBox, toCsv, downloadFile, debounce } from '../ui.js';
+import { rpc, esc, head, chips, empty, when, day, tag, vehicleTag, stepper, STAGE, toast, clean, modal, field, confirmBox, toCsv, downloadFile, debounce } from '../ui.js';
 import { sourceName, vehicleOf, VEHICLE_LABEL } from '../crm-rules.js';
 import { newBooking } from './booking.js';
 import { PRESETS, presetRange, presetOf, parseCsv, toImportRows } from '../data-tools.js';
@@ -47,7 +47,7 @@ function table(rows, ctx, techCol) {
   return `<div class="table-wrap"><table class="leads"><thead><tr>${pick ? '<th><input type="checkbox" id="pickAll" aria-label="Select all"></th>' : ''}<th>Lead</th><th>Mobile number</th><th>Source</th><th>Stage</th><th>Owner</th>${techCol ? '<th>Technician</th>' : ''}<th>Disposition</th><th>Sub disposition</th><th>Follow-up</th><th>Created date</th><th>Last activity date</th></tr></thead><tbody>
     ${rows.map((r) => `<tr class="row-open${r.is_late || r.overdue ? ' late' : ''}" data-id="${r.id}">${pick ? `<td><input type="checkbox" class="pick" data-id="${r.id}" ${st.picked.has(r.id) ? 'checked' : ''} aria-label="Select ${esc(r.lead)}"></td>` : ''}
       <td><b>${esc(r.lead)}</b>${vehicleTag(vehicleOf(r))}<br><small class="muted">${esc([r.booking_id, r.bike, r.area].filter(Boolean).join(' · '))}</small></td><td>${esc(r.mobile)}</td><td>${esc(sourceName(r.platform || r.source))}</td>
-      <td>${tag(STAGE[r.stage] || r.stage, 'st-' + r.stage)}${r.is_late ? ' ' + tag('Late', 'late') : ''}</td><td>${esc(r.owner_name || 'Unassigned')}</td>${techCol ? `<td class="${!r.mechanic_id && ['paid', 'scheduled'].includes(r.stage) ? 'badtxt' : ''}">${esc(r.mechanic_name || (['paid', 'scheduled'].includes(r.stage) ? 'Not assigned' : '—'))}</td>` : ''}<td>${esc(r.disposition || '—')}</td><td>${esc(r.sub_disposition || '—')}</td>
+      <td>${tag(STAGE[r.stage] || r.stage, 'st-' + r.stage)}${r.is_late ? ' ' + tag('Late', 'late') : ''}${stepper({ ...r, status: r.stage }, true)}</td><td>${esc(r.owner_name || 'Unassigned')}</td>${techCol ? `<td class="${!r.mechanic_id && ['paid', 'scheduled'].includes(r.stage) ? 'badtxt' : ''}">${esc(r.mechanic_name || (['paid', 'scheduled'].includes(r.stage) ? 'Not assigned' : '—'))}</td>` : ''}<td>${esc(r.disposition || '—')}</td><td>${esc(r.sub_disposition || '—')}</td>
       <td class="${r.overdue ? 'badtxt' : ''}">${when(r.follow_up)}</td><td>${day(r.created_at)}</td><td>${when(r.last_activity)}</td></tr>`).join('')}</tbody></table></div>`;
 }
 

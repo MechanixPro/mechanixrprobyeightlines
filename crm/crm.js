@@ -1,8 +1,8 @@
 // Mechanix Desk for Care Buddies. The shell: sign in, navigation by permission, "My day" and the lead sheet.
 // Every other screen lives in ./pages/. Every read and write goes through database functions that check the person's permissions.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
-import { vehicleOf, VEHICLE_LABEL, canSetVehicle, bookingLabel, idOr, canConfirmBooking, canMarkJunk, canRestoreJunk, hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent, parseContacts, techJobMessage, unstaffedSoon, rankTechs, moveCheck, handoverStatus, canSendHandoverCode, handoverMessage, HANDOVER_KIND_LABEL } from './crm-rules.js';
-import { vehicleTag, setClient, rpc, $, $$, esc, rupee, when, toast, clean, debounce, modal, field, confirmBox, SLOTS } from './ui.js';
+import { nextAction, stepGuard, lostReasonCheck, callQueue, vehicleOf, VEHICLE_LABEL, canSetVehicle, bookingLabel, idOr, canConfirmBooking, canMarkJunk, canRestoreJunk, hasPii, OPEN, BOOKED, STATUS_LABEL, LOST_REASONS, SOURCE_LABEL, KIND_LABEL, sourceName, nextStatuses, validateLog, followUpPresets, localInputValue, telUrl, waUrl, firstMessage, ago, timerInfo, targetPercent, parseContacts, techJobMessage, unstaffedSoon, rankTechs, moveCheck, handoverStatus, canSendHandoverCode, handoverMessage, HANDOVER_KIND_LABEL } from './crm-rules.js';
+import { vehicleTag, stepper, setClient, rpc, $, $$, esc, rupee, when, toast, clean, debounce, modal, field, confirmBox, SLOTS } from './ui.js';
 import * as dashboard from './pages/dashboard.js';
 import * as leads from './pages/leads.js';
 import * as webleads from './pages/webleads.js';
@@ -14,6 +14,7 @@ import * as mechanics from './pages/mechanics.js';
 import * as knowledge from './pages/knowledge.js';
 import * as team from './pages/team.js';
 import * as inbox from './pages/inbox.js';
+import * as callnow from './pages/callnow.js';
 import { newBooking, editBooking } from './pages/booking.js';
 import { sendPaymentLink } from './pages/payment.js';
 import { findByPin } from './pages/pinsearch.js';
@@ -33,6 +34,7 @@ const mask = (t) => esc(String(t ?? '').replace(/\b[A-Z]{5}[0-9]{4}[A-Z]\b/g, '�
 const SCREENS = [
   { id: 'dashboard', title: 'Dashboard', page: 'dashboard', mod: dashboard },
   { id: 'inbox', title: 'Inbox', page: 'inbox', mod: inbox },
+  { id: 'callnow', title: 'Call now', page: 'leads', mod: callnow },
   { id: 'mine', title: 'My day', page: 'leads' },
   { id: 'unassigned', title: 'Unassigned', page: 'leads', action: 'take_leads' },
   { id: 'leads', title: 'Leads', page: 'leads', mod: leads },
@@ -46,7 +48,7 @@ const SCREENS = [
   { id: 'team', title: 'Team', page: 'team', mod: team },
 ];
 
-const S = { waiting: [], me: null, view: null, leads: [], q: '', open: null, detail: null, users: null, dispositions: [], counts: { unassigned: 0 }, unstaffed: [], board: null, busy: false, kind: 'note' };
+const S = { waiting: [], me: null, view: null, leads: [], q: '', open: null, detail: null, users: null, dispositions: [], counts: { unassigned: 0, call: 0 }, unstaffed: [], board: null, busy: false, kind: 'note' };
 const can = (a) => !!S.me?.permissions?.actions?.[a];
 const pageOk = (p) => !!S.me?.permissions?.pages?.[p];
 // Technician work (board, picker, unstaffed alert, any booking's technician): supervisors with assign_leads, or the Technician lead with manage_technicians.
@@ -128,6 +130,7 @@ function alertUser(title, body) {
 async function pulse() {
   if (!S.me) return;
   let unassigned = null, replies = null, mine = null;
+  if (pageOk('leads')) { try { S.counts.call = callQueue(await rpc('crm_call_queue')).length; const cb = $('#cqBadge'); if (cb) { cb.textContent = S.counts.call; cb.hidden = !S.counts.call; } } catch (e) { /* next time */ } }
   if (pageOk('leads')) { try { unassigned = await rpc('crm_queue', { p_view: 'unassigned', p_search: null }); } catch (e) { /* next time */ } }
   if (pageOk('leads')) { try { mine = await rpc('crm_queue', { p_view: 'mine', p_search: null }); } catch (e) { /* next time */ } }
   if (pageOk('inbox')) { try { replies = await rpc('crm_replies_waiting'); } catch (e) { /* next time */ } }
@@ -172,11 +175,11 @@ async function refresh() {
   if (S.busy || document.hidden || !S.me || !$('#sheet').hidden || $('.modal-back')) return;
   loadWaiting();
   if (['mine', 'unassigned'].includes(S.view)) { try { S.me = await rpc('crm_me'); await loadList(); renderHeader(); renderBody(); } catch (e) { /* try again next minute */ } }
-  else if (S.view === 'inbox') { try { await go('inbox', true); } catch (e) { /* try again next minute */ } }
+  else if (['inbox', 'callnow'].includes(S.view)) { try { await go(S.view, true); } catch (e) { /* try again next minute */ } }
 }
 
 function renderTabs() {
-  $('#tabs').innerHTML = screens().map((s) => `<button type="button" data-view="${s.id}" aria-current="false">${esc(s.title)}${s.id === 'unassigned' ? ' <span class="badge" id="unBadge" hidden></span>' : ''}${s.id === 'inbox' ? ' <span class="badge" id="inBadge" hidden></span>' : ''}</button>`).join('');
+  $('#tabs').innerHTML = screens().map((s) => `<button type="button" data-view="${s.id}" aria-current="false">${esc(s.title)}${s.id === 'unassigned' ? ' <span class="badge" id="unBadge" hidden></span>' : ''}${s.id === 'inbox' ? ' <span class="badge" id="inBadge" hidden></span>' : ''}${s.id === 'callnow' ? ' <span class="badge" id="cqBadge" hidden></span>' : ''}</button>`).join('');
   $$('#tabs [data-view]').forEach((b) => b.addEventListener('click', () => go(b.dataset.view)));
 }
 
@@ -206,6 +209,7 @@ function renderHeader() {
   $('#goal').innerHTML = `<div class="goal-top"><b>${m.booked_today}</b> of ${m.daily_target} bookings today</div><div class="bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><span style="width:${pct}%"></span></div>
     <div class="goal-sub">${m.pending_advance} waiting for the advance · ${m.contacts_today} contacts made</div>`;
   const b = $('#unBadge'); if (b) { b.textContent = S.counts.unassigned; b.hidden = !S.counts.unassigned; }
+  const cb = $('#cqBadge'); if (cb) { cb.textContent = S.counts.call; cb.hidden = !S.counts.call; }
 }
 
 /* ---------- My day and Unassigned (card view) ---------- */
@@ -241,6 +245,33 @@ function techBoard(b) {
     ${b.techs.map((t) => `<tr><td><b>${esc(t.name)}</b><br><small class="muted">${esc(t.area || '')}</small></td><td>${t.jobs.length ? t.jobs.map(job).join(' ') : '<span class="muted small">Free all day</span>'}</td></tr>`).join('')}</tbody></table></div></details>`;
 }
 
+/* ---------- booking steps: the step bar and the one next-action button ---------- */
+const roleOf = () => (S.me.is_admin ? 'admin' : can('assign_leads') ? 'supervisor' : 'agent');
+const meRules = () => ({ canCreate: can('create_bookings'), userId: S.me.user_id, boss: canTech() });
+/** The single button for the lead's next step. Call now is a phone link; the others run through runStep. A step the person cannot take shows why. */
+function nextBtn(l) {
+  const a = nextAction(l, roleOf(), meRules()); if (!a) return '';
+  const btn = a.key === 'call' ? `<a class="btn primary call" href="${telUrl(l.phone)}" data-act="call" data-id="${l.id}">${a.label}</a>`
+    : `<button class="btn primary" type="button" data-act="step" data-key="${a.key}" data-id="${l.id}"${a.allowed ? '' : ' aria-disabled="true"'}>${a.label}</button>`;
+  return `<div class="next-step">${btn}${a.allowed ? '' : `<p class="why" role="note">${esc(a.reason)}</p>`}</div>`;
+}
+async function runStep(key, id) {
+  const l = S.detail && S.detail.lead && S.detail.lead.id === id ? S.detail.lead : S.leads.find((x) => x.id === id); if (!l) return;
+  const a = nextAction(l, roleOf(), meRules());
+  if (!a || a.key !== key) return toast('That is no longer the next step. Reload the page.', true);
+  if (!a.allowed) return toast(a.reason, true);
+  const g = stepGuard(l, key === 'take' ? 'call' : key); if (!g.ok) return toast(g.error, true);
+  if (key === 'take') { await rpc('crm_claim', { p_id: id }); toast('It is yours. Call the customer now.'); await go(S.view, true); return await openLead(id, 'call'); }
+  if (key === 'confirm') { S.open = id; return await confirmBooking(); }
+  if (key === 'done') { await rpc('crm_mark_done', { p_id: id }); toast('Marked done.'); S.open = id; return await afterChange(false); }
+  // Send quote and Schedule need details (a follow-up, a technician and a slot), so they open the lead with the form already set.
+  await openLead(id, 'note');
+  const st = $('#status'); if (!st) return toast('Take the lead first, then log the quote.', true);
+  st.value = key === 'quote' ? 'quoted' : 'confirm'; syncLogForm();
+  toast(key === 'quote' ? 'Pick the follow-up time and save to mark the quote as sent.' : 'Choose the technician, date and slot, then save.');
+  st.scrollIntoView({ block: 'center' });
+}
+
 function card(l) {
   const t = timerInfo(l, new Date(), S.me.sla_minutes);
   const src = sourceName(l.utm_source || l.source), camp = l.campaign || '';
@@ -248,7 +279,8 @@ function card(l) {
   return `<article class="lead-card tone-${t.tone}" data-id="${l.id}">
     <div class="lc-top"><div><h2>${esc(l.name)}${vehicleTag(vehicleOf(l))}</h2><p class="muted small">${esc([l.bike, l.service_name, l.area].filter(Boolean).join(' · ') || 'No details yet')}</p></div><span class="chip st-${l.status}">${STATUS_LABEL[l.status]}</span></div>
     <div class="lc-meta"><span class="chip soft">${esc(src)}${camp ? ' · ' + esc(camp) : ''}</span><span class="small muted">${ago(l.created_at)}</span>${l.crm_owner && !mine ? `<span class="small muted">with ${esc(l.owner_name || 'a colleague')}</span>` : ''}</div>
-    <div class="timer t-${t.tone}">${esc(t.label)}</div>${S.waiting.some((w) => w.id === l.id) ? '<div class="timer t-late">Customer replied on WhatsApp. Answer now</div>' : ''}
+    ${stepper(l)}<div class="timer t-${t.tone}">${esc(t.label)}</div>${S.waiting.some((w) => w.id === l.id) ? '<div class="timer t-late">Customer replied on WhatsApp. Answer now</div>' : ''}
+    ${nextBtn(l)}
     <div class="lc-actions"><a class="btn call" href="${telUrl(l.phone)}" data-act="call" data-id="${l.id}">Call</a>
       <a class="btn wa" href="${waUrl(l.phone, firstMessage(l, S.me.name))}" target="_blank" rel="noopener" data-act="wa" data-id="${l.id}">WhatsApp</a>
       ${take ? `<button class="btn primary" type="button" data-act="take" data-id="${l.id}">Take lead</button>` : ''}<button class="btn ghost" type="button" data-act="open" data-id="${l.id}">Open</button></div></article>`;
@@ -269,6 +301,7 @@ function renderSheet() {
   const t = timerInfo(l, new Date(), S.me.sla_minutes);
   sheet.hidden = false; document.body.classList.add('noscroll');
   $('#sheetPanel').innerHTML = `<div class="sheet-head"><div><h2 id="sheetTitle">${esc(l.name)}${vehicleTag(vehicleOf(l))}</h2><p class="muted small">${esc(idOr(l))} · ${esc(SOURCE_LABEL[l.source] || l.source)}${l.campaign ? ' · ' + esc(l.campaign) : ''}</p></div><button class="btn ghost" type="button" data-act="close" aria-label="Close">Close</button></div>
+    ${stepper(l)}${nextBtn(l)}
     <div class="timer t-${t.tone}">${esc(t.label)}</div>
     <div class="facts">
       <div><span>Phone</span><b>${esc(l.phone)}</b></div><div><span>Area</span><b>${esc([l.area, l.pincode].filter(Boolean).join(' · ') || '—')}</b></div>
@@ -359,11 +392,11 @@ function logForm(l, moves) {
     ${disps.length ? `<div class="grid2"><div class="fld half"><label class="label" for="disp">Disposition</label><select id="disp" name="disp"><option value="">None</option>${disps.map((x) => `<option${x === l.disposition ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></div>
       <div class="fld half"><label class="label" for="sub">Sub disposition</label><select id="sub" name="sub"><option value="">None</option></select></div></div>` : ''}
     <label class="label" for="status">Move this lead to</label>
-    <select id="status" name="status"><option value="">Stay at ${STATUS_LABEL[l.status]}</option>${moves.filter((s) => s !== 'lost').map((s) => `<option value="${s}">${STATUS_LABEL[s]}</option>`).join('')}<option value="confirm">Booking confirmed</option>${moves.includes('lost') ? '<option value="lost">Lost (give a reason)</option>' : ''}</select>
+    <select id="status" name="status"><option value="">Stay at ${STATUS_LABEL[l.status]}</option>${moves.filter((s) => s !== 'lost').map((s) => `<option value="${s}">${STATUS_LABEL[s]}</option>`).join('')}<option value="confirm">Schedule: technician, date, slot (after Confirm booking)</option>${moves.includes('lost') ? '<option value="lost">Lost (give a reason)</option>' : ''}</select>
     <div id="techBox" hidden><div class="fld"><label class="label" for="lfTech">Technician</label><select id="lfTech" name="lfTech"><option value="">Choose the technician</option></select><p class="hint">Free in the slot and covering the PIN code come first.</p></div>
       <div class="grid2" id="lfWhen" hidden><div class="fld half"><label class="label" for="lfDate">Visit date</label><input id="lfDate" name="lfDate" type="date" min="${istToday()}" value="${l.preferred_date && l.preferred_date >= istToday() ? l.preferred_date : ''}"></div>
         <div class="fld half"><label class="label" for="lfSlot">Time slot</label><select id="lfSlot" name="lfSlot"><option value="">Choose a slot</option>${SLOTS.map(([v, t]) => `<option value="${v}"${v === l.preferred_slot ? ' selected' : ''}>${t}</option>`).join('')}</select></div></div></div>
-    <div id="lostBox" hidden><label class="label" for="lost">Why was it lost?</label><select id="lost" name="lost"><option value="">Choose a reason</option>${LOST_REASONS.map((r) => `<option>${r}</option>`).join('')}</select></div>
+    <div id="lostBox" hidden><label class="label" for="lost">Why was it lost? (required)</label><select id="lost" name="lost"><option value="">Choose a reason</option>${LOST_REASONS.map((r) => `<option>${r}</option>`).join('')}</select><p class="hint">Other needs a note of at least 5 characters in the Note box above.</p></div>
     <div id="nextBox"><span class="label">Next follow-up (required)</span><div class="presets">${presets.map((p) => `<button class="chip pick" type="button" data-act="preset" data-iso="${localInputValue(p.date)}">${p.label}</button>`).join('')}</div>
       <input id="next" name="next" type="datetime-local" value="${localInputValue(def)}" aria-label="Follow-up date and time"></div>
     <p class="err" id="logErr" role="alert"></p><button class="btn primary wide" type="submit" id="logSave">Save</button></form>`;
@@ -372,7 +405,7 @@ function outcomeBox() {
   return `<div class="card" id="outcomeBox"><h3>Lead status</h3><p class="small muted">Close this lead as won or lost. This is separate from the note above.</p>
     <div class="row wrap"><button class="btn primary" type="button" data-act="won">Won</button><button class="btn" type="button" data-act="lostOpen">Lost</button></div>
     <div id="lostPick" hidden><label class="label" for="oLost">Why was it lost?</label><select id="oLost"><option value="">Choose a reason</option>${LOST_REASONS.map((r) => `<option>${r}</option>`).join('')}</select>
-      <label class="label" for="oNote">Note (needed for Other)</label><input id="oNote" maxlength="200"><div class="row wrap" style="margin-top:8px"><button class="btn" type="button" data-act="lostSave">Save as lost</button></div></div></div>`;
+      <label class="label" for="oNote">Note (Other needs at least 5 characters)</label><input id="oNote" maxlength="200"><div class="row wrap" style="margin-top:8px"><button class="btn" type="button" data-act="lostSave">Save as lost</button></div></div></div>`;
 }
 /* Confirm booking: the database gives the booking ID (the same one again if it already has one) and writes who did it to the history. */
 async function confirmBooking() {
@@ -392,8 +425,9 @@ async function restoreJunk() {
 }
 async function saveOutcome(kind) {
   const note = ($('#oNote') || {}).value || '', reason = ($('#oLost') || {}).value || '';
+  const g = stepGuard(S.detail.lead, kind === 'won' ? 'schedule' : 'lost'); if (!g.ok) return toast(g.error, true);
   if (kind === 'won' && !(await confirmBox('Mark this lead as won? It counts as booked.', 'Mark won'))) return;
-  if (kind === 'lost' && !reason) return toast('Choose why the lead was lost.', true);
+  if (kind === 'lost') { const c = lostReasonCheck(reason, note); if (!c.ok) return toast(c.error, true); }
   await rpc('crm_set_outcome', { p_id: S.open, p_outcome: kind, p_lost_reason: kind === 'lost' ? reason : null, p_note: note.trim() || null });
   toast(kind === 'won' ? 'Marked as won.' : 'Saved. Lead closed as lost.'); await afterChange(kind === 'lost');
 }
@@ -438,6 +472,8 @@ async function saveLog() {
   const kindRaw = (f.querySelector('[name=kind]:checked') || {}).value || 'note';
   const v = { kind: kindRaw, body: f.body.value, status: f.status.value, lostReason: f.lost.value, nextAction: f.next.value ? new Date(f.next.value).toISOString() : '', current: S.detail.lead.status };
   const mode = moveMode(f);
+  const target = mode === 'confirm' ? 'schedule' : { quoted: 'quote', lost: 'lost' }[v.status];
+  if (target) { const g = stepGuard(S.detail.lead, target); if (!g.ok) { $('#logErr').textContent = g.error; return; } }
   if (mode === 'confirm') return saveConfirm(f, v.body);
   const kind = v.kind === 'note' && v.status ? 'status' : v.kind;
   if (mode === 'assign') { const c = moveCheck('assign', { mechanic_id: f.lfTech.value }, istToday()); if (!c.ok) { $('#logErr').textContent = c.error; return; } }
@@ -523,10 +559,11 @@ function assignBox(l) {
     <button class="btn ghost" type="button" data-act="assign">Save assignment</button></div></div>`;
 }
 async function afterChange(close) {
+  const open = S.open;  // go() clears S.open, so keep it to redraw the sheet with the new step
   S.me = await rpc('crm_me'); renderHeader();
   if (close) closeSheet();
   await go(S.view, true);
-  if (!close && S.open) { S.detail = await rpc('crm_lead', { p_id: S.open }); renderSheet(); }
+  if (!close && open && !$('#sheet').hidden) { S.open = open; S.detail = await rpc('crm_lead', { p_id: open }); renderSheet(); }
 }
 function closeSheet() { $('#sheet').hidden = true; document.body.classList.remove('noscroll'); S.open = null; }
 
@@ -568,6 +605,7 @@ document.addEventListener('click', async (e) => {
     if (act === 'open') return await openLead(id);
     if (act === 'call' || act === 'wa') { await openLead(id, act === 'call' ? 'call' : 'whatsapp'); return; }
     if (act === 'take') { e.preventDefault(); await rpc('crm_claim', { p_id: id }); toast('It is yours. Contact the customer now.'); await go(S.view, true); return await openLead(id); }
+    if (act === 'step') return await runStep(b.dataset.key, id);
     if (act === 'close') return closeSheet();
     if (act === 'hoSend') return await sendHandoverCode(b.dataset.kind);
     if (act === 'hoPhotos') return await showHandoverPhotos(b.dataset.kind);

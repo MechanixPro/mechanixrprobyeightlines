@@ -19,6 +19,7 @@ import { filterAccounts, salesCsv, ledgerCsv, entryLabel } from './sales-view.js
 import { effectiveRate, jobSplit, cleanCommission, payoutShareText, statementShareText, PLACES } from './commission.js';
 import { customerList, bookingRows, summarize } from './customer-bookings.js';
 import { adsConversions } from './ads-export.js';
+import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport } from './booking-steps.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
 const C = window.MXP || {};
@@ -32,6 +33,16 @@ const LABEL = { new: 'New', contacted: 'Contacted', quoted: 'Quoted', payment_se
 // A lead has no booking ID until it is confirmed: show the ID when there is one, else the word Lead. The private ref (L-...) is never shown.
 const bid = (l) => (l && l.booking_id) || 'Lead';
 const bkg = (l) => (l && l.booking_id ? 'booking ' + l.booking_id : 'booking');
+// The step bar: Lead, Called, Quote sent, Confirmed, Scheduled, Done (worked out from the status, first contact and booking ID). Spans, because it also sits inside list buttons.
+const stepBar = (l, compact) => {
+  const st = bookingStep(l), note = st.closed ? (st.closed === 'junk' ? 'Junk' : 'Lost') + ' at ' + st.label : 'Step ' + (st.index + 1) + ' of 6: ' + st.label;
+  return `<span class="steps${compact ? ' compact' : ''}${st.closed ? ' closed' : ''}" role="img" aria-label="Booking steps. ${esc(note)}">${st.steps.map((x) => `<span class="step ${x.state}"><span>${esc(x.label)}</span></span>`).join('')}</span>`;
+};
+// The one button for the next step. Call now is a phone link that also marks the lead contacted.
+const nextBtn = (l) => {
+  const a = stepAction(l); if (!a) return '';
+  return `<p class="next-step">${a.key === 'call' ? `<a class="btn btn-primary btn-sm" href="tel:+91${esc(l.phone)}" data-act="stepCall">${a.label}</a>` : `<button class="btn btn-primary btn-sm" type="button" data-act="stepNext" data-key="${a.key}">${a.label}</button>`}</p>`;
+};
 const SLOT = { morning: 'Morning 9–12', afternoon: 'Afternoon 12–4', evening: 'Evening 4–8', asap: 'ASAP (SOS)' };
 
 if (!C.supabaseUrl || !C.supabaseAnonKey) {
@@ -175,6 +186,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('input', (e) => {
   if (e.target.id === 'cb-q') { S.cb.q = e.target.value; clearTimeout(S.cbT); S.cbT = setTimeout(() => { render(); const q = $('#cb-q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250); return; }
   if (e.target.id === 'cc-q') { const n = e.target.value.trim().toLowerCase(), res = $('#cc-res'); if (!res) return; const lead = S.leads.find((x) => x.id === S.open); res.innerHTML = n.length < 2 ? '' : S.customers.filter((c) => (!lead || c.id !== lead.customer_id) && (String(c.name).toLowerCase().includes(n) || String(c.phone).includes(n))).slice(0, 6).map((c) => `<button class="row" type="button" data-act="moveBooking" data-id="${c.id}" style="border-radius:10px;width:100%;margin-bottom:6px"><span>${esc(c.name)}</span><span class="meta">+91 ${esc(c.phone)}</span></button>`).join('') || '<p class="tiny muted">No customer found. Add them under Customers first.</p>'; return; } if (e.target.id === 'mr-range' || e.target.id === 'mr') { const v = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)); if (e.target.id === 'mr-range') $('#mr').value = v; else $('#mr-range').value = v; updateSplitPreview(); }  if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'wq') { S.wq = e.target.value; render(); const again = $('#wq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } if (e.target.id === 'pq') { S.pq = e.target.value; const l = $('#pinlist'); if (l) { const keep = e.target; render(); const again = $('#pq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
+document.addEventListener('change', (e) => { if (e.target.id === 'ls') { const lb = $('#lostBox'); if (lb) lb.hidden = e.target.value !== 'lost'; } });
 document.addEventListener('change', (e) => { const m = { 'df-range': 'range', 'df-from': 'from', 'df-to': 'to', 'df-src': 'src', 'df-area': 'area', 'df-svc': 'svc' }[e.target.id]; if (m) { S.df[m] = e.target.value; render(); } });
 document.addEventListener('click', (e) => { if (e.target.id === 'df-reset') { S.df = { range: '7d', from: '', to: '', src: '', area: '', svc: '' }; render(); } });
 document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-ie=name]')) { const c = catItem(e.target.value), a = e.target.closest('.ie-row').querySelector('[data-ie=amount]'); if (c && a && !a.value.trim()) a.value = c.price; } });
@@ -230,7 +242,21 @@ function dash() {
   </div>
   ${waiting.length ? `<div class="card" style="margin-bottom:16px;border:1.5px solid var(--ember)"><h3>Needs a reply (${waiting.length})</h3>${waiting.slice(0, 6).map((l) => `<button class="row" data-lead="${l.id}"><span class="ref">${esc(bid(l))}</span><span>${esc(l.name)}<br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')}</span></span><span class="meta">${when(l.created_at)}</span></button>`).join('')}</div>` : ''}
   <div class="split2"><div class="card"><h3>Pipeline (${rl})</h3>${bars(funnel)}</div><div class="card"><h3>Where bookings come from</h3>${bars(by('utm'))}<h3 style="margin-top:14px">Top areas</h3>${bars(by('area'))}</div></div>
-  ${sourcesCard(week, rl)}`;
+  ${sourcesCard(week, rl)}
+  ${conversionCard(week, rl)}`;
+}
+// Leads to bookings for the dates chosen above, by vehicle and source. Cost per booking is not shown: no ad spend is stored anywhere.
+function conversionCard(week, rl) {
+  const rep = conversionReport(week), t = rep.total, n = rep.slaMin;
+  if (!t.leads) return `<div class="card" style="margin-top:16px"><h3>Conversion (${esc(rl)})</h3><p class="small muted">No leads in these dates.</p></div>`;
+  const row = (name, m) => `<tr><td>${esc(name)}</td><td class="num">${m.leads}</td><td class="num">${m.withinPct}%</td><td class="num">${m.quotes}</td><td class="num"><b>${m.confirmed}</b></td><td class="num">${m.scheduled}</td><td class="num">${m.done}</td><td class="num">${m.lost}</td></tr>`;
+  const table = (first, rows) => `<div class="scroll"><table style="min-width:520px"><thead><tr><th>${first}</th><th class="num">Leads</th><th class="num">Called in ${n} min</th><th class="num">Quotes</th><th class="num">Confirmed</th><th class="num">Scheduled or done</th><th class="num">Done</th><th class="num">Lost</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+  const why = t.lostReasons.length ? t.lostReasons.map((x) => `<div class="b"><span>${esc(x.reason)}</span><b>${x.n}</b></div>`).join('') : '<p class="small muted">No lost leads.</p>';
+  return `<div class="card" style="margin-top:16px"><h3>Conversion (${esc(rl)})</h3><p class="tiny muted" style="margin:0 0 8px">Quotes means the lead reached the quote step or later. Junk is left out. Cost per booking is not shown: no ad spend is saved here.</p>
+    <h4>By vehicle</h4>${table('Vehicle', [...['bike', 'car', 'parts'].map((v) => row(VEHICLE_LABEL[v], rep.byVehicle[v])), row('All', t)])}
+    <h4>By source</h4>${table('Source', rep.bySource.map((x) => row(x.source, x)))}
+    <h4>By day</h4>${table('Day', rep.daily.map((x) => row(x.date, x)))}
+    <h4>Why leads were lost</h4>${why}</div>`;
 }
 function sourcesCard(week, rl = 'Last 7 days') {
   const r = sourceReport(week);
@@ -449,7 +475,7 @@ function filtered() {
 }
 function renderList() {
   const el = $('#list'); if (!el) return; const rows = filtered();
-  el.innerHTML = rows.length ? rows.map((l) => `<button class="row${S.selMode && S.sel.has(l.id) ? ' picked' : ''}" data-lead="${l.id}"${S.selMode ? ` aria-pressed="${S.sel.has(l.id)}"` : ''}><span class="ref">${S.selMode ? `<span class="chk" aria-hidden="true">${S.sel.has(l.id) ? '\u2611' : '\u2610'}</span> ` : ''}${esc(bid(l))}<br><span class="meta">${l.source === 'whatsapp' ? 'WhatsApp' : 'Website'}</span></span><span>${esc(l.name)} <span class="pill veh-${vehicleOf(l)}">${VEHICLE_LABEL[vehicleOf(l)]}</span> · <span class="meta">${esc(l.phone)}</span><br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')} · ${l.preferred_date ? esc(l.preferred_date) + ' ' + esc(SLOT[l.preferred_slot] ?? '') : ''}</span></span><span style="text-align:right"><span class="pill ${l.status}">${LABEL[l.status]}</span><br><span class="meta">${l.est_total ? rupee(l.est_total) : ''} · ${when(l.created_at)}</span></span></button>`).join('') : '<p class="muted" style="padding:16px">No bookings here yet.</p>';
+  el.innerHTML = rows.length ? rows.map((l) => `<button class="row${S.selMode && S.sel.has(l.id) ? ' picked' : ''}" data-lead="${l.id}"${S.selMode ? ` aria-pressed="${S.sel.has(l.id)}"` : ''}><span class="ref">${S.selMode ? `<span class="chk" aria-hidden="true">${S.sel.has(l.id) ? '\u2611' : '\u2610'}</span> ` : ''}${esc(bid(l))}<br><span class="meta">${l.source === 'whatsapp' ? 'WhatsApp' : 'Website'}</span></span><span>${esc(l.name)} <span class="pill veh-${vehicleOf(l)}">${VEHICLE_LABEL[vehicleOf(l)]}</span> · <span class="meta">${esc(l.phone)}</span><br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')} · ${l.preferred_date ? esc(l.preferred_date) + ' ' + esc(SLOT[l.preferred_slot] ?? '') : ''}</span><br>${stepBar(l, true)}</span><span style="text-align:right"><span class="pill ${l.status}">${LABEL[l.status]}</span><br><span class="meta">${l.est_total ? rupee(l.est_total) : ''} · ${when(l.created_at)}</span></span></button>`).join('') : '<p class="muted" style="padding:16px">No bookings here yet.</p>';
 }
 
 /* ---------- commission: one simple rule per job ---------- */
@@ -631,6 +657,7 @@ async function openLead(id, silent) {
   const customerEmail = S.customers.find((c) => c.id === l.customer_id)?.email || '';
   $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${esc(bid(l))}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
   <p style="margin:8px 0"><span class="pill ${l.status}">${LABEL[l.status]}</span> ${l.opted_out ? '<span class="pill lost">Opted out</span>' : ''} ${l.paid_amount ? `<span class="pill paid">Paid ${rupee(l.paid_amount)}</span>` : ''}</p>
+  ${stepBar(l)}${nextBtn(l)}
   ${summaryStrip(l)}
   <div class="qa"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button>${l.booking_id || ['lost', 'junk'].includes(l.status) ? '' : '<button class="btn btn-ghost btn-sm" type="button" data-act="giveId">Give booking ID</button>'}<button class="btn btn-ghost btn-sm" type="button" data-act="confirmBooking">Confirm and email customer</button>${!l.booking_id && !BOOKED_STATUSES.includes(l.status) && l.status !== 'junk' ? '<button class="btn btn-ghost btn-sm" type="button" data-act="markJunk">Mark as junk</button>' : ''}${l.status === 'junk' ? '<button class="btn btn-ghost btn-sm" type="button" data-act="restoreJunk">Restore</button>' : ''}<button class="btn btn-ghost btn-sm" type="button" data-act="issueFromLead">Log an issue</button></div>
   <div class="dtabs" role="tablist" aria-label="Booking sections">${dtab('booking', 'Booking')}${dtab('money', 'Money')}${dtab('customer', 'Customer')}${dtab('messages', 'Messages')}</div>
@@ -638,6 +665,8 @@ async function openLead(id, silent) {
     ${customerVehicleCard(l)}
     <div class="card" style="margin-top:12px"><h3>Update</h3>
       <label class="label" for="ls">Status</label><select id="ls">${STATUSES.map((s) => `<option value="${s}"${s === l.status ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
+      <div id="lostBox" hidden><label class="label" for="lr">Why was it lost? (required)</label><select id="lr"><option value="">Choose a reason</option>${LOST_REASONS.map((r) => `<option>${esc(r)}</option>`).join('')}</select>
+        <label class="label" for="lrn">Note (Other needs at least 5 characters)</label><input id="lrn" maxlength="200"></div>
       <label class="label" for="lm">Mechanic</label><select id="lm"><option value="">Not assigned</option>${MECH}</select>
       <label class="label" for="la">Garage or outside partner (if not on your mechanic list)</label><input id="la" value="${esc(l.assigned_to || '')}" maxlength="60">
       <label class="label" for="ln">Notes</label><textarea id="ln" rows="3" maxlength="1000">${esc(l.notes || '')}</textarea>
@@ -846,7 +875,10 @@ const ACT = {
   async saveBooking() {
     const l = S.leads.find((x) => x.id === S.open); if (!l) return;
     const mid = $('#lm').value || null, mech = S.mechanics.find((m) => m.id === mid);
+    const toLost = $('#ls').value === 'lost' && l.status !== 'lost', lostNote = (($('#lrn') || {}).value || '').trim();
+    if (toLost) { const g = stepGuard(l, 'lost'); if (!g.ok) return toast(g.error); const c = lostReasonCheck(($('#lr') || {}).value, lostNote); if (!c.ok) return toast(c.error); }
     const upd = { status: $('#ls').value, mechanic_id: mid, assigned_to: $('#la').value.trim() || (mech ? mech.name : null), notes: $('#ln').value.trim() || null, ai_enabled: $('#lai').checked };
+    if (toLost) upd.crm_lost_reason = $('#lr').value;
     // the service section is only applied when something in it was changed, so saving never reworks an old estimate by accident
     const bike = S.bikes.find((b) => b.id === l.bike_id);
     const f = { service: $('#es-service').value, addons: [...document.querySelectorAll('[data-es-addon]')].filter((c) => c.checked).map((c) => c.getAttribute('data-es-addon')), ...engineRead('es'),
@@ -869,7 +901,7 @@ const ACT = {
       toast(ce || !cf || cf.error ? 'Saved. Confirmation email could not be sent.' : cf.emailed ? 'Saved. Booking confirmation emailed to the customer.' : 'Saved. No customer email, so no confirmation email was sent.');
     }
     if (svc && svc.bike && l.bike_id) await sb.from('bikes').update(svc.bike).eq('id', l.bike_id);
-    await audit('lead_updated', { ref: l.ref, status: upd.status, mechanic_id: upd.mechanic_id, service_changed: !!svc, amount_due: upd.amount_due });
+    await audit('lead_updated', { ref: l.ref, status: upd.status, lost_reason: toLost ? upd.crm_lost_reason : undefined, lost_note: toLost && lostNote ? lostNote : undefined, mechanic_id: upd.mechanic_id, service_changed: !!svc, amount_due: upd.amount_due });
     toast(svc && svc.lead.est_total != null ? 'Saved. New estimate ' + rupee(svc.lead.est_total) : 'Saved'); await Promise.all([loadLeads(), loadPeople()]); renderList(); openLead(l.id, true);
   },
   async boardNext(btn) {
@@ -1271,6 +1303,30 @@ const ACT = {
     const { data, error } = await sb.functions.invoke('booking-notice', { body: { lead_id: l.id, kind: 'picked_up' } });
     if (error || !data || data.error) return toast('Could not send: ' + ((data && data.error) || (error && error.message) || 'try again'));
     toast(data.emailed ? 'Pickup email sent to the customer.' : data.has_email ? 'Pickup noted. The email could not be sent.' : 'Pickup noted. No customer email saved, so use Share pickup on WhatsApp.');
+  },
+  // The step bar's button. Each step uses the action the panel already had; stepGuard says why a jump is refused.
+  async stepCall() {
+    const l = leadOf(S.open); if (!l) return;
+    const upd = {}; if (!l.crm_first_contact_at) upd.crm_first_contact_at = new Date().toISOString(); if (l.status === 'new') upd.status = 'contacted';
+    if (!Object.keys(upd).length) return;
+    const { error } = await sb.from('leads').update(upd).eq('id', l.id);
+    if (error) return toast('Could not save the call: ' + error.message);
+    await audit('lead_step', { ref: l.ref, step: 'called' }); await loadLeads(); renderList(); openLead(l.id, true);
+  },
+  async stepNext(btn) {
+    const l = leadOf(S.open); if (!l) return;
+    const key = btn.getAttribute('data-key'), a = stepAction(l);
+    if (!a || a.key !== key) return toast('That is no longer the next step.');
+    const g = stepGuard(l, key); if (!g.ok) return toast(g.error);
+    if (key === 'confirm') return ACT.giveId();
+    if (key === 'schedule') return ACT.confirmBooking();
+    const upd = key === 'quote' ? { status: 'quoted' } : { status: 'completed', completed_at: new Date().toISOString() };
+    if (!l.crm_first_contact_at) upd.crm_first_contact_at = new Date().toISOString();
+    const { error } = await sb.from('leads').update(upd).eq('id', l.id);
+    if (error) return toast('Could not update: ' + error.message);
+    await audit('lead_step', { ref: l.ref, step: key });
+    if (key === 'quote') { S.dt = 'money'; toast('Marked quote sent. Send the payment link or WhatsApp the quote.'); } else toast(bid(l) + ': done');
+    await loadLeads(); render(); openLead(l.id, true);
   },
   // Give the booking ID without emailing anyone. The database gives the same ID again if it already has one, and writes who did it to the history.
   async giveId() {
@@ -1696,7 +1752,7 @@ function boardCard(l) {
   const m = S.mechanics.find((x) => x.id === l.mechanic_id), n = nextStep(l.status);
   const when = [l.preferred_slot ? ({ asap: 'As soon as possible', morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening' }[l.preferred_slot] || '') : '', l.preferred_time || ''].filter(Boolean).join(' · ');
   return `<article class="bcard"><div class="bhead"><button class="bref" type="button" data-lead="${l.id}">${esc(bid(l))}</button><span class="pill ${l.status}">${LABEL[l.status]}</span></div>
-    <p class="bname"><b>${esc(l.name)}</b> <span class="muted">${esc(svcName(l.service_id))}${l.est_total ? ' · ' + rupee(l.est_total) : ''}</span></p>
+    ${stepBar(l, true)}<p class="bname"><b>${esc(l.name)}</b> <span class="muted">${esc(svcName(l.service_id))}${l.est_total ? ' · ' + rupee(l.est_total) : ''}</span></p>
     <p class="meta" style="margin:2px 0 8px">${esc([when, l.area, l.pincode].filter(Boolean).join(' · ') || 'No time or place yet')}</p>
     <label class="tiny muted" for="bm-${l.id}">Mechanic</label>
     <select id="bm-${l.id}" class="bsel" data-board-mech="${l.id}"><option value="">Not assigned</option>${S.mechanics.filter((x) => x.active || x.id === l.mechanic_id).map((x) => `<option value="${x.id}"${x.id === l.mechanic_id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
