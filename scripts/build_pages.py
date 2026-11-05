@@ -1127,7 +1127,7 @@ def workshop_page():
 <ul class="ws-trust">
 <li><b>Where we are</b><span>{html.escape(addr_line)}</span><a class="inl" href="{maps}" target="_blank" rel="noopener">Open in Maps</a></li>
 <li><b>Who we are</b><span>Mechanix Pro is a brand of {html.escape(COMPANY['legalName'])}, GSTIN {html.escape(COMPANY['gstin'])}.</span></li>
-<li><b>You decide first</b><span>Quote first. Nothing starts without your OK and your one-time code.</span></li>
+<li><b>You decide first</b><span>Quote first. Nothing starts without your OK, and your bike leaves only after you share your one-time code.</span></li>
 <li><b>No surprise fee</b><span>The confirmation fee is adjusted in your final bill.</span></li>
 <li class="bike-only ws-nums"><b>On record</b><span>10,000+ services done. 1,300+ gated communities trust us.</span></li>
 </ul></div></section>

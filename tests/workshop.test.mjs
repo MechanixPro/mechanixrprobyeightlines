@@ -63,7 +63,7 @@ test('trust block uses company.json and only confirmed claims', () => {
   assert.ok(page.includes(company.legalName) && page.includes(company.gstin));
   assert.ok(page.includes(company.addressLines[0]) && page.includes(company.pincode));
   assert.match(page, /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&amp;query=Haralur/);
-  assert.ok(page.includes('Quote first. Nothing starts without your OK and your one-time code.'));
+  assert.ok(page.includes('Quote first. Nothing starts without your OK, and your bike leaves only after you share your one-time code.'));
   assert.ok(page.includes('The confirmation fee is adjusted in your final bill.'));
   { const tb = page.match(/<section class="band">[\s\S]*?<\/section>/)[0]; assert.doesNotMatch(tb, /rating|review|certified|stars|award|opening hours|open 24|₹/i); }
 });
