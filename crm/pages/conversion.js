@@ -10,6 +10,9 @@ export async function section(ctx) {
   const days = RANGES.find(([k]) => k === st.range)[2], r = lastDays(days);
   const rows = await rpc('crm_conversion_rows', { p_from: r.from, p_to: r.to });
   const rep = conversionReport(rows, { slaMin: (ctx.me && ctx.me.sla_minutes) || 15 }), t = rep.total, n = rep.slaMin;
+  // After the door: itemised quotes sent, approved, declined, work started, delivered. Counts only; an older database simply shows nothing here.
+  const qc = await rpc('crm_quote_counts', { p_from: r.from, p_to: r.to }).catch(() => null);
+  const quoteRow = qc && (qc.quotes_sent || qc.work_started || qc.delivered) ? `<h4>Quotes, work and delivery</h4><div class="stat-row"><div class="stat"><b>${qc.quotes_sent}</b><span>Quotes sent</span></div><div class="stat good"><b>${qc.approved}</b><span>Approved</span></div><div class="stat"><b>${qc.declined}</b><span>Declined</span></div><div class="stat"><b>${qc.work_started}</b><span>Work started</span></div><div class="stat"><b>${qc.delivered}</b><span>Delivered</span></div></div>` : '';
   const cell = (m) => `<td class="n">${m.leads}</td><td class="n">${m.withinPct}% <small class="muted">${m.within}/${m.leads}</small></td><td class="n">${m.quotes}</td><td class="n"><b>${m.confirmed}</b> <small class="muted">${m.confirmedPct}%</small></td><td class="n">${m.scheduled}</td><td class="n">${m.done}</td><td class="n">${m.lost}</td>`;
   const table = (first, list, all) => `<div class="table-wrap"><table><thead><tr><th>${first}</th><th class="n">Leads</th><th class="n">Called in ${n} min</th><th class="n">Quotes sent</th><th class="n">Confirmed</th><th class="n">Scheduled or done</th><th class="n">Done</th><th class="n">Lost</th></tr></thead><tbody>
     ${list.map(([name, m]) => `<tr><td>${esc(name)}</td>${cell(m)}</tr>`).join('')}${all ? `<tr><td><b>All</b></td>${cell(all)}</tr>` : ''}</tbody></table></div>`;
@@ -21,6 +24,7 @@ export async function section(ctx) {
     <h4>By vehicle</h4>${table('Vehicle', VEHICLES.map((v) => [VEHICLE_LABEL[v], rep.byVehicle[v]]), t)}
     <h4>By source</h4>${table('Source', rep.bySource.map((x) => [x.source, x]))}
     <h4>By day</h4>${table('Day', rep.daily.map((x) => [x.date, x]))}
+    ${quoteRow}
     <h4>Why leads were lost</h4>${t.lostReasons.length ? `<ul class="bars">${t.lostReasons.map((x) => `<li><span>${esc(x.reason)}</span><b>${x.n}</b><i style="width:${Math.round((x.n / max) * 100)}%"></i></li>`).join('')}</ul>` : '<p class="small muted">No lost leads in this range.</p>'}
     <p class="small muted">Cost per booking is not shown: no ad spend is saved in the desk.</p>` : empty('No leads in this range.')}</section>`;
 }
