@@ -74,6 +74,7 @@ Deno.serve(async (req) => {
       service: (svc.data as { name?: string } | null)?.name ?? null,
       when: lead.preferred_date ? formatWhen(String(lead.preferred_date), String(lead.preferred_slot ?? ''), lead.preferred_time ?? null) : null,
       notes: lead.notes && hidesIds(String(lead.notes)) ? String(lead.notes).slice(0, 300) : null,
+      navigate_url: navigateUrl({ lat: lead.lat, lng: lead.lng, address: [lead.address, lead.area, lead.pincode].filter(Boolean).join(', '), vehicle: lead.vehicle }),
       reported: false,
     });
   }

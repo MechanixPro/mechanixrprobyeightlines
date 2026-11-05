@@ -4,10 +4,10 @@
 //   action 'resend'      { lead_id, kind, n? }               forced resend of one logged message (confirmation email, receipt, WhatsApp, team alert, quote email or WhatsApp).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { adminDb, env, json, corsHeaders } from '../_shared/util.ts';
-import { resendKind, sendQuoteMessages, sendEtaMessages } from '../_shared/after-payment.ts';
+import { resendKind, sendQuoteMessages, sendEtaMessages, sendOnTheWay } from '../_shared/after-payment.ts';
 import { type Kind } from '../_shared/notify.ts';
 
-const RESENDABLE = ['confirm_email', 'receipt_email', 'confirm_whatsapp', 'team_paid', 'quote_email', 'quote_whatsapp', 'eta_email'];
+const RESENDABLE = ['confirm_email', 'receipt_email', 'confirm_whatsapp', 'team_paid', 'quote_email', 'quote_whatsapp', 'eta_email', 'ontheway_email'];
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
     await db.from('audit_log').insert({ actor: user.id, action: 'notification_resend', details: { lead: leadId, kind, n } });
     if (kind === 'quote_email' || kind === 'quote_whatsapp') { if (!n) return json(req, { error: 'Which quote version?' }, 400); const r = await sendQuoteMessages(db, leadId, n, n > 1, true, kind as 'quote_email' | 'quote_whatsapp'); return json(req, { ok: true, result: r[`${kind}:${n}`] ?? r }); }
     if (kind === 'eta_email') { if (!n) return json(req, { error: 'Which update?' }, 400); const r = await sendEtaMessages(db, leadId, n, true); return json(req, { ok: true, result: r }); }
+    if (kind === 'ontheway_email') return json(req, { ok: true, result: await sendOnTheWay(db, leadId, true) });
     return json(req, { ok: true, result: await resendKind(db, leadId, kind as Kind) });
   }
   return json(req, { error: 'Unknown action' }, 400);

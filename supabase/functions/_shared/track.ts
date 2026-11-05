@@ -119,6 +119,7 @@ export function journeyView(x: JourneyInput) {
     link: /^[0-9a-f]{32}$/.test(String(r.token ?? '')) ? `/track/?t=${r.token}` : null })) } : null;
   const again = { vehicle: l.vehicle === 'car' ? 'car' : 'bike', brand: x.vehicleName?.brand && x.vehicleName.brand !== 'Other' ? x.vehicleName.brand : null, model: x.vehicleName?.model ?? null };
   return {
+    stage: l.visit_stage ?? null,
     updates: x.details && x.details.ok ? { editable: !!x.details.editable, details: x.details.details ?? {}, photos: x.details.photos ?? { count: 0, max: 3 }, issues: x.details.issues ?? [] } : null,
     live, documents, history, again,
     rating: { can_rate: completed, done: !!x.rating, rating: x.rating?.rating ?? null },

@@ -1,0 +1,48 @@
+/* After payment: thank-you, tracking extras, details form, rating, documents, mechanic page extras. Uses the site tokens (site.css). Phone first. */
+.jy-thanks{padding:22px;border-top:4px solid var(--acc)}
+.jy-thanks h2{font-size:28px;line-height:1.15;margin:0 0 6px;letter-spacing:-.02em}.jy-thanks h2:focus{outline:none}
+.jy-id{font-size:18px;margin:0 0 6px}.jy-sub{color:var(--tx2);margin:0 0 12px}
+.jy-next{margin:14px 0 18px;padding-left:22px;display:grid;gap:8px;font-size:16px}
+.jy-thanks .wide{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;margin:10px 0;box-sizing:border-box;text-align:center}
+.jy-track{min-height:60px!important;font-size:19px}
+.jy-install-hint,.jy-install-note{margin:6px 0;padding:12px 14px;border-radius:var(--r-s);background:#F2F4F8;font-size:15px}
+.jy-help{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.jy-strip{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 16px 12px;padding:12px 16px;min-height:48px;border-radius:var(--r-s);background:var(--nv);color:#fff;text-decoration:none;box-sizing:border-box}
+.jy-strip b{color:var(--acc)}
+/* tracking page */
+.jy-sec{margin:16px 0}.jy-sec h3{margin:0 0 8px;font-size:20px}
+.jy-live{display:grid;gap:8px}.jy-live .jy-eta{font:700 26px/1.1 var(--font);margin:0}
+.jy-bar{height:10px;border-radius:999px;background:var(--hair);overflow:hidden}.jy-bar i{display:block;height:100%;background:var(--acc);border-radius:999px;transition:width .6s}
+.jy-meta{color:var(--tx2);font-size:14px;margin:0}
+.jy-form label{display:block;font-weight:600;margin:12px 0 4px}.jy-form input,.jy-form textarea,.jy-form select{width:100%;min-height:48px;font-size:16px;padding:10px 14px;border:1px solid var(--hair);border-radius:var(--r-s);box-sizing:border-box;font-family:inherit}
+.jy-form textarea{min-height:84px;resize:vertical}.jy-form .jy-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.jy-form .jy-hint{color:var(--tx2);font-size:14px;margin:4px 0 0}
+.jy-ok{color:var(--ok);font-weight:600}.jy-bad{color:var(--bad);font-weight:600}
+.jy-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.jy-photos span{display:grid;place-items:center;aspect-ratio:1;border-radius:10px;background:#F2F4F8;font-size:13px;color:var(--tx2)}
+.jy-photos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px}
+.jy-file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.jy-pick{display:flex;align-items:center;justify-content:center;min-height:48px;cursor:pointer;margin:8px 0}.jy-file:focus-visible+.jy-pick{outline:2px solid var(--acc)}
+.jy-issue{border-top:1px solid var(--hair);margin-top:16px;padding-top:6px}
+.jy-list{list-style:none;margin:8px 0;padding:0;display:grid;gap:8px}.jy-list li{padding:10px 12px;border:1px solid var(--hair);border-radius:var(--r-s);background:#fff;font-size:15px}
+.jy-chip{display:inline-block;padding:2px 10px;border-radius:999px;background:#F2F4F8;font-size:13px;margin-left:6px}.jy-chip.good{background:#E7F5EC;color:var(--ok)}
+.jy-stars{display:flex;gap:6px;border:0;padding:0;margin:8px 0}.jy-stars legend{font-weight:600;margin-bottom:6px;padding:0}
+.jy-stars label{position:relative;display:inline-block}.jy-stars input{position:absolute;opacity:0;width:44px;height:44px;margin:0;cursor:pointer}
+.jy-stars span{display:grid;place-items:center;width:48px;height:48px;border-radius:12px;border:1px solid var(--hair);background:#fff;font-size:26px;color:#A9B0BD}
+.jy-stars input:checked+span,.jy-stars label.on span{background:var(--acc);border-color:var(--acc);color:#fff}.jy-stars input:focus-visible+span{outline:2px solid var(--nv);outline-offset:2px}
+.jy-doc{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.jy-docview{padding:20px;background:#fff;border:1px solid var(--hair);border-radius:var(--r-s);margin:12px 0}.jy-docview table{width:100%;border-collapse:collapse}.jy-docview td{padding:6px 0;border-bottom:1px solid var(--hair);font-size:14px}.jy-docview td.r{text-align:right;white-space:nowrap}
+.jy-again{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+@media print{body *{visibility:hidden}.jy-docview,.jy-docview *{visibility:visible}.jy-docview{position:absolute;left:0;top:0;width:100%;border:0}}
+@media(max-width:380px){.jy-form .jy-two{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.jy-bar i{transition:none}}
+/* mechanic job page */
+.jm-card{border-left:4px solid var(--acc,#F2801F)}
+.jm-nav{display:flex;align-items:center;justify-content:center;min-height:56px;font-size:18px;text-align:center;text-decoration:none;margin:10px 0}
+.jm-share{margin:12px 0}.jm-consent{font-size:14px;color:#5b6478;margin:6px 0}
+.jm-live{display:flex;align-items:center;gap:8px;font-weight:600}.jm-dot{width:12px;height:12px;border-radius:50%;background:#067647;box-shadow:0 0 0 0 rgba(6,118,71,.5);animation:jmpulse 1.6s infinite}
+@keyframes jmpulse{70%{box-shadow:0 0 0 10px rgba(6,118,71,0)}100%{box-shadow:0 0 0 0 rgba(6,118,71,0)}}
+.jm-jobs{list-style:none;margin:8px 0;padding:0;display:grid;gap:10px}.jm-jobs li{border:1px solid var(--line,#d8dde8);border-radius:12px;padding:12px 14px;background:#fff}
+.jm-jobs li.now{border-color:var(--ember,#F2801F)}.jm-jobs .jm-row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.jm-jobs .btn{margin-top:8px;min-height:48px}
+.jm-quote table{width:100%;border-collapse:collapse}.jm-quote td{padding:7px 0;border-bottom:1px solid var(--line,#e3e6ec)}.jm-quote td.r{text-align:right;white-space:nowrap}.jm-quote tr.b td{font-weight:700}
+.jm-wait{background:#FFF7E6;border:1px solid #F5D78A;border-radius:12px;padding:10px 12px;margin:8px 0}.jm-go{background:#E7F5EC;border:1px solid #9AD3AE;border-radius:12px;padding:10px 12px;margin:8px 0;font-weight:600}
+@media(prefers-reduced-motion:reduce){.jm-dot{animation:none}}

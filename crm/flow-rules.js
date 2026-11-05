@@ -64,10 +64,26 @@ export function quoteCheck(lines, eta, today = new Date()) {
 /** Work may start only when the latest sent quote is approved. status is the latest quote's status (or null for none). */
 export function canStartWork(quoteStatus) { return quoteStatus === 'approved'; }
 /** Which Resend buttons to show: failed or skipped messages. rows come from crm_notifications. */
-export const NOTICE_LABEL = { confirm_email: 'Confirmation email', receipt_email: 'Fee receipt email', confirm_whatsapp: 'WhatsApp confirmation', team_paid: 'Team alert: paid', team_link_unpaid: 'Team alert: link unpaid', team_unassigned: 'Team alert: no mechanic', quote_email: 'Quote email', quote_whatsapp: 'Quote WhatsApp', team_quote_decision: 'Team alert: quote decision', eta_email: 'Delivery update email', eta_whatsapp: 'Delivery update WhatsApp' };
+export const NOTICE_LABEL = { confirm_email: 'Confirmation email', receipt_email: 'Fee receipt email', confirm_whatsapp: 'WhatsApp confirmation', team_paid: 'Team alert: paid', team_link_unpaid: 'Team alert: link unpaid', team_unassigned: 'Team alert: no mechanic', quote_email: 'Quote email', quote_whatsapp: 'Quote WhatsApp', team_quote_decision: 'Team alert: quote decision', eta_email: 'Delivery update email', eta_whatsapp: 'Delivery update WhatsApp', ontheway_email: 'On-the-way email', team_issue: 'Team alert: customer issue' };
 export const resendable = (rows) => (rows || []).filter((r) => ['failed', 'skipped'].includes(r.status) && !String(r.kind).startsWith('team_link') && !String(r.kind).startsWith('team_unass') && !String(r.kind).startsWith('team_quote'));
 /** Dispatch order: unassigned first, then day, then slot (as soon as possible first), then oldest. Mirrors crm_dispatch_list. */
 export const SLOT_RANK = { asap: 0, morning: 1, afternoon: 2, evening: 3 };
 export function dispatchOrder(rows) {
   return [...(rows || [])].sort((a, b) => (Number(!!a.mechanic_id) - Number(!!b.mechanic_id)) || String(a.preferred_date).localeCompare(String(b.preferred_date)) || ((SLOT_RANK[a.preferred_slot] ?? 4) - (SLOT_RANK[b.preferred_slot] ?? 4)) || String(a.created_at).localeCompare(String(b.created_at)));
+}
+
+/* ----- Customer journey (added details, issues, mechanic last seen) ----- */
+export const ISSUE_TYPES = { late: 'Running late', mechanic: 'About the mechanic', payment: 'Payment', safety: 'Safety', other: 'Other' };
+/** "Mechanic last seen 3 min ago": age in seconds in, words out. Over 10 minutes it says the point is old. */
+export function seenLine(ageSeconds) {
+  const a = ageSeconds == null ? NaN : Number(ageSeconds); if (!Number.isFinite(a) || a < 0) return null;
+  if (a < 45) return 'Mechanic last seen just now';
+  const m = Math.round(a / 60);
+  if (m < 60) return `Mechanic last seen ${m} min ago${m > 10 ? ' (old point)' : ''}`;
+  return `Mechanic last seen ${Math.round(m / 60)} h ago (old point)`;
+}
+export const mapsUrl = (lat, lng) => (Number.isFinite(Number(lat)) && Number.isFinite(Number(lng)) ? `https://www.google.com/maps/search/?api=1&query=${Number(lat).toFixed(6)},${Number(lng).toFixed(6)}` : null);
+/** Open issues first (oldest first), then resolved ones (newest first). */
+export function issueOrder(rows) {
+  return [...(rows || [])].sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || (a.status === 'open' ? String(a.created_at).localeCompare(String(b.created_at)) : String(b.resolved_at).localeCompare(String(a.resolved_at))));
 }

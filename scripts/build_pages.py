@@ -775,7 +775,7 @@ write('pay/index.html', _pay + '''<h1 style="font-size:40px">Pay for your bookin
 <p class="tiny muted">For a new booking the amount is the small confirmation fee for your vehicle, shown before you pay. It is adjusted in your final bill if you go ahead. Other bookings pay what is due on the booking, such as the {{fee:advance}} checkup and quote fee. We never see your card details. Need help? <a href="#" data-wa="general">Message us on WhatsApp</a>.</p>''' + foot(dock=False))
 
 # Track page: a customer looks up their booking with the reference and the mobile number they booked with.
-_tr = HEAD.format(title='Track Your Booking | Mechanix Pro', desc='Check the progress of your Mechanix Pro booking with your reference and mobile number.', url=f'{SITE}/track/', site=SITE, schema='', scripts=LEGAL_JS + '<link rel="stylesheet" href="/assets/css/book.css"><script src="/assets/js/track.js" defer></script>', body='', nav=NAV, main='page')
+_tr = HEAD.format(title='Track Your Booking | Mechanix Pro', desc='Check the progress of your Mechanix Pro booking with your reference and mobile number.', url=f'{SITE}/track/', site=SITE, schema='', scripts=LEGAL_JS + '<link rel="stylesheet" href="/assets/css/book.css"><link rel="stylesheet" href="/assets/css/journey.css"><script src="/assets/js/thanks.js" defer></script><script src="/assets/js/track.js" defer></script>', body='', nav=NAV, main='page')
 _tr = _tr.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
 write('track/index.html', _tr + '''<h1 style="font-size:40px">Track your booking.</h1>
 <p class="muted" style="font-size:18px">Open the link in your confirmation email to see your code, your mechanic and your quote. Or enter the reference from your confirmation (it looks like MP-26-27-0001) and the mobile number you booked with.</p>
@@ -785,8 +785,8 @@ write('track/index.html', _tr + '''<h1 style="font-size:40px">Track your booking
   <button class="btn btn-primary" type="submit" id="trGo" style="margin-top:14px">Check progress</button>
   <p class="small" id="trMsg" role="status" aria-live="polite"></p>
 </form>
-<div id="trResult" aria-live="polite"></div>
-<p class="tiny muted">Can't find it? Message us on WhatsApp with your name and number and we will tell you where it stands.</p>''' + foot(dock=False))
+<div id="trResult" data-company="{company_line}"></div>
+<p class="tiny muted">Can't find it? Message us on WhatsApp with your name and number and we will tell you where it stands.</p>'''.replace('{company_line}', html.escape(f"{COMPANY['legalName']}, {_ADDR}. GSTIN {COMPANY['gstin']}", quote=True)) + foot(dock=False))
 
 
 # Rate card: every price in one place, before GST and with 18% GST, built from src/site.json so it always matches the Services page.
@@ -960,7 +960,7 @@ def workshop_teaser_html():
             f'<p class="note">Real photos, HSR Layout, Bengaluru. Edited for privacy.</p>'
             f'<a class="ws-tz" href="/workshop/">{imgs}</a><p><a class="btn btn-ghost" href="/workshop/">Visit the workshop page</a></p></div></section>\n')
 
-BOOK_JS = '<link rel="stylesheet" href="/assets/css/book.css">\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/book-pay.js" defer></script>'
+BOOK_JS = '<link rel="stylesheet" href="/assets/css/book.css"><link rel="stylesheet" href="/assets/css/journey.css">\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/thanks.js" defer></script>\n<script src="/assets/js/book-pay.js" defer></script>'
 MAIN = [
   ('', 'home', 'Two Wheeler Doorstep Service in Bangalore | Mechanix Pro', 'Two wheeler service at home in Bangalore (Bengaluru) from {{text:basic}}. Servicing in as fast as 2 hours, scooty repair, EV and petrol bike care. Quote first.', 'home.jsonld', 'home', APP_JS, '1.0'),
   ('book', 'book-pay', 'Book a Doorstep Bike or Car Service | Mechanix Pro', 'Book a doorstep bike or car service in Bengaluru. Pay a small confirmation fee to lock your slot, adjusted in your final bill. Itemised quote first, nothing starts without your OK.', None, 'page-book', BOOK_JS, '0.9'),
