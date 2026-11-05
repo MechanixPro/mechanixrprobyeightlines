@@ -1,0 +1,41 @@
+{
+  "title": "Our Workshop in HSR Layout, Bengaluru | Mechanix Pro",
+  "description": "See the Mechanix Pro workshop in HSR Layout, Bengaluru: real photos of the front, the tool wall and bikes in for service, with our address and company details.",
+  "items": [
+    {
+      "id": "front",
+      "file": "workshop-front",
+      "kind": "photo",
+      "teaser": true,
+      "alt": "Front of the Mechanix Pro workshop in HSR Layout seen straight on: a shuttered unit with an open bay, a Mechanix Pro signboard above it and people working inside.",
+      "caption": "Workshop front, HSR Layout",
+      "edit": "Faces blurred. Signboard artwork added with the Mechanix Pro logo. Phone numbers painted on the wall pillars pixelated."
+    },
+    {
+      "id": "street",
+      "file": "workshop-street",
+      "kind": "photo",
+      "alt": "Wider view of the workshop front from the street, with several bikes and scooters parked outside and mechanics working in the open bay.",
+      "caption": "Workshop front with bikes outside",
+      "edit": "Faces blurred. Number plates replaced by plate-shaped Mechanix Pro labels. Signboard artwork added. Painted phone numbers and a car number plate behind the gate pixelated."
+    },
+    {
+      "id": "toolwall",
+      "file": "tool-wall",
+      "kind": "photo",
+      "teaser": true,
+      "alt": "Inside the workshop: a wooden board on the wall holding spanners, sockets and pullers, with shelves of oils and parts and bikes parked below.",
+      "caption": "Tool wall",
+      "edit": "Not edited apart from resizing and compression. One small plate label near the middle of the frame."
+    },
+    {
+      "id": "bikes",
+      "file": "bikes-in-service",
+      "kind": "photo",
+      "teaser": true,
+      "alt": "Inside the workshop: bikes and scooters parked in the bay while they are being serviced, with the tool wall and a workbench on the right.",
+      "caption": "Bikes in for service",
+      "edit": "Number plates replaced by plate-shaped Mechanix Pro labels. Two further plates at the back pixelated."
+    }
+  ]
+}

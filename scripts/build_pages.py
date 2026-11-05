@@ -22,7 +22,7 @@ NAV = (DIWALI_BAR if TODAY <= DIWALI_LAST_DAY else '') + '''<a class="skip" href
   <a class="call-top" href="#" data-call>Call us</a>
   <a class="pill bike-only" href="/book/">Book online</a><a class="pill car-only" href="/car-service-bangalore/">Book online</a>
   <details class="menu"><summary aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
-    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/major-bike-repair-pickup-and-drop-bangalore/">Major repairs with pickup and drop</a><a href="/join/">Join as a garage or mechanic</a><a href="/two-wheeler-service-at-home-bangalore/">Two wheeler service at home</a><a href="/scooty-repair-at-home-bangalore/">Scooty repair at home</a><a href="/ev-and-petrol-bike-care-bangalore/">EV and petrol bike care</a><a href="/verified-bike-garages-bangalore/">Verified garages</a><a href="/digital-service-records/">Digital service records</a><a href="/doorstep-bike-and-car-repair-near-me/">Doorstep bike and car repair</a><a href="/car-service-bangalore/">Car service</a><a href="/blog/">Blog</a><a href="/partners/axlio/">Car parts and service: Axlio</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
+    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/workshop/">Our workshop</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/major-bike-repair-pickup-and-drop-bangalore/">Major repairs with pickup and drop</a><a href="/join/">Join as a garage or mechanic</a><a href="/two-wheeler-service-at-home-bangalore/">Two wheeler service at home</a><a href="/scooty-repair-at-home-bangalore/">Scooty repair at home</a><a href="/ev-and-petrol-bike-care-bangalore/">EV and petrol bike care</a><a href="/verified-bike-garages-bangalore/">Verified garages</a><a href="/digital-service-records/">Digital service records</a><a href="/doorstep-bike-and-car-repair-near-me/">Doorstep bike and car repair</a><a href="/car-service-bangalore/">Car service</a><a href="/blog/">Blog</a><a href="/partners/axlio/">Car parts and service: Axlio</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
 </div></header>
 '''
 FOOTER = '''<footer class="foot">
@@ -34,7 +34,7 @@ FOOTER = '''<footer class="foot">
     </div>
     <div class="foot-cols">
       <div><b>Areas</b>{area_links}<a href="/areas/">All Bengaluru PIN codes</a></div>
-      <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
+      <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/workshop/">Our workshop</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
     </div>
     <p class="tiny">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Mechanix Pro is a brand of {company_name}, {company_addr}. GSTIN {company_gstin}</p><p class="tiny">Website developed by <a href="https://ziyam.me" target="_blank" rel="noopener" class="inl">ziyam.me</a></p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p>
   </div>
@@ -931,6 +931,35 @@ write('roadside/index.html', _road + f'''<section class="hero"><div class="wrap"
 <section><div class="wrap"><div class="final"><h2>Stuck right now?</h2><p>Message us with your location, or call.</p><div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{_road_wa}">Send my location on WhatsApp</a><a class="btn btn-ghost" href="#" data-call>Call us now</a></div></div></div></section>''' + foot())
 urls.append(('/roadside/', '0.8'))
 
+# ---- Workshop showcase: src/workshop.json drives the /workshop/ gallery and the home teaser. Add media there (see docs/ADD-WORKSHOP-MEDIA.md). ----
+WORKSHOP = json.load(open(os.path.join(ROOT, 'src', 'workshop.json'), encoding='utf-8'))
+WS_IMG = '/assets/img/workshop/'
+WS_VID = '/assets/video/workshop/'
+WS_DISCLOSE = 'Photos are edited for privacy: faces are blurred and number plates are covered with our label. Signboard artwork shows our branding.'
+WS_DISCLOSE_EXTRA = 'Phone numbers painted on the wall and any plates still visible in the background are pixelated.'
+def _ws_dims(it): return it.get('width', 1200), it.get('height', 675)
+def ws_item_html(it, first=False):
+    w, h = _ws_dims(it)
+    cap = html.escape(it['caption'])
+    if it['kind'] == 'video':
+        poster = f' poster="{WS_IMG}{it["poster"]}-1200.webp"' if it.get('poster') else ''
+        media = (f'<video controls muted playsinline preload="none" width="{w}" height="{h}"{poster} aria-label="{html.escape(it["alt"], quote=True)}">'
+                 f'<source src="{WS_VID}{it["file"]}.mp4" type="video/mp4">Your browser cannot play this video.</video>')
+    else:
+        f = it['file']
+        sizes = '(min-width: 1000px) 1100px, 100vw' if first else '(min-width: 1000px) 360px, (min-width: 600px) 50vw, 100vw'
+        load = 'fetchpriority="high"' if first else 'loading="lazy"'
+        media = (f'<a class="ws-a" href="{WS_IMG}{f}-1200.webp" data-lb aria-label="Enlarge photo: {cap}">'
+                 f'<img src="{WS_IMG}{f}-600.webp" srcset="{WS_IMG}{f}-600.webp 600w, {WS_IMG}{f}-1200.webp 1200w" sizes="{sizes}" width="{w}" height="{h}" {load} decoding="async" alt="{html.escape(it["alt"], quote=True)}"></a>')
+    return f'<figure class="ws-fig{" ws-first" if first else ""}" id="ws-{html.escape(it["id"])}">{media}<figcaption>{cap}</figcaption></figure>'
+def workshop_teaser_html():
+    its = [x for x in WORKSHOP['items'] if x.get('teaser') and x['kind'] == 'photo'][:3]
+    if not its: return ''
+    imgs = ''.join(f'<img src="{WS_IMG}{x["file"]}-600.webp" width="600" height="338" loading="lazy" alt="{html.escape(x["caption"], quote=True)}">' for x in its)
+    return (f'<section id="shop" class="bike-only" aria-labelledby="shop-h"><div class="wrap"><h2 id="shop-h">See our workshop</h2>'
+            f'<p class="note">Real photos, HSR Layout, Bengaluru. Edited for privacy.</p>'
+            f'<a class="ws-tz" href="/workshop/">{imgs}</a><p><a class="btn btn-ghost" href="/workshop/">Visit the workshop page</a></p></div></section>\n')
+
 MAIN = [
   ('', 'home', 'Two Wheeler Doorstep Service in Bangalore | Mechanix Pro', 'Two wheeler service at home in Bangalore (Bengaluru) from {{text:basic}}. Servicing in as fast as 2 hours, scooty repair, EV and petrol bike care. Quote first.', 'home.jsonld', 'home', APP_JS, '1.0'),
   ('book', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.9'),
@@ -953,7 +982,7 @@ for slug, src, title, desc, ld, body, scripts, prio in MAIN:
         _faq = [(_plain(q), _plain(a)) for q, a in re.findall(r'<details><summary>(.*?)</summary><p>(.*?)</p></details>', _src, re.S)]
         if _faq: schema += '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in _faq]}, ensure_ascii=False) + '</script>'
         schema += '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "WebSite", "name": "Mechanix Pro", "url": SITE + "/", "inLanguage": "en-IN"}, ensure_ascii=False) + '</script>'
-    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--AREA_LINKS-->', AREA_LINKS).replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
+    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--AREA_LINKS-->', AREA_LINKS).replace('<!--WORKSHOP_TEASER-->', workshop_teaser_html()).replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
     out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(dock=(src != 'book'), dock_home=(src == 'home'))
     if src == 'home':
         langs = i18n_build(out, url)
@@ -1082,6 +1111,32 @@ def landing_pages():
         urls.append((f"/{x['slug']}/", '0.8'))
 landing_pages()
 
+def workshop_page():
+    items = WORKSHOP['items']
+    url = SITE + '/workshop/'
+    addr_line = ', '.join(COMPANY['addressLines']) + f", {COMPANY['city']}, {COMPANY['state']} {COMPANY['pincode']}"
+    maps = 'https://www.google.com/maps/search/?api=1&amp;query=' + urllib.parse.quote(addr_line, safe='')
+    gallery = ''.join(ws_item_html(it, i == 0) for i, it in enumerate(items))
+    ld = crumbs(('Our workshop', '/workshop/')) + ld_tag({"@context": "https://schema.org", "@type": "AutoRepair", "@id": BUSINESS_ID, "name": "Mechanix Pro", "legalName": COMPANY['legalName'], "url": SITE + "/",
+        "address": {"@type": "PostalAddress", "streetAddress": ', '.join(COMPANY['addressLines']), "addressLocality": COMPANY['city'], "addressRegion": COMPANY['state'], "postalCode": COMPANY['pincode'], "addressCountry": "IN"}})
+    body = f"""<section class="page-head"><div class="wrap"><p class="breadcrumb"><a href="/">Home</a> &rsaquo; Our workshop</p><h1>Our workshop, HSR Layout.</h1>
+<p>This is the Mechanix Pro workshop in HSR Layout, Bengaluru. Most of our work happens at your door, and this is the base our mechanics work from. The photos below are real, and you are welcome to see the place for yourself.</p></div></section>
+<section><div class="wrap"><div class="ws-grid">{gallery}</div>
+<p class="note ws-note">{WS_DISCLOSE} {WS_DISCLOSE_EXTRA}</p></div></section>
+<section class="band"><div class="wrap"><div class="sec-head"><h2>What you can rely on.</h2></div>
+<ul class="ws-trust">
+<li><b>Where we are</b><span>{html.escape(addr_line)}</span><a class="inl" href="{maps}" target="_blank" rel="noopener">Open in Maps</a></li>
+<li><b>Who we are</b><span>Mechanix Pro is a brand of {html.escape(COMPANY['legalName'])}, GSTIN {html.escape(COMPANY['gstin'])}.</span></li>
+<li><b>You decide first</b><span>Quote first. Nothing starts without your OK and your one-time code.</span></li>
+<li><b>No surprise fee</b><span>The confirmation fee is adjusted in your final bill.</span></li>
+<li class="bike-only ws-nums"><b>On record</b><span>10,000+ services done. 1,300+ gated communities trust us.</span></li>
+</ul></div></section>
+<section><div class="wrap"><div class="final"><h2>Want a mechanic to look at your bike?</h2><p>Get a quote first. Nothing starts without your OK.</p><div class="row"><a class="btn btn-primary" href="/book/">Build your service</a><a class="btn btn-wa" href="#" data-wa="general">Message us on WhatsApp</a></div></div></div></section>
+"""
+    write('workshop/index.html', HEAD.format(title=html.escape(WORKSHOP['title']), desc=html.escape(WORKSHOP['description']), url=url, site=SITE, schema=ld, scripts='<script src="/assets/js/workshop.js" defer></script>', body='', nav=NAV, main='') + body + foot())
+    urls.append(('/workshop/', '0.7'))
+workshop_page()
+
 # ---- Blog: src/blog/posts.json. A post goes live on its date (India time) when the site is built; the daily deploy publishes the next one. ----
 def blog_pages():
     p = os.path.join(ROOT, 'src', 'blog', 'posts.json')
@@ -1129,7 +1184,7 @@ def llms_txt():
       '- Car service is live: periodic and brake service, jump start, flat tyre help, towing and fuel delivery, quote first. Spare parts come through our partner Axlio.',
       f"- Legal entity: {COMPANY['legalName']}, {_ADDR}. GSTIN {COMPANY['gstin']}.",
       '- Contact: +91 79652 95649 · hello@mechanixpro.in · WhatsApp from the website. Instagram: https://www.instagram.com/themechanixpro/', '',
-      '## Pages', f'- [Services and prices]({SITE}/services/)', f'- [Rate card]({SITE}/rate-card/)', f'- [How it works]({SITE}/help/)', f'- [Roadside help]({SITE}/roadside/)', f'- [Car service]({SITE}/car-service-bangalore/)', f'- [Areas we serve]({SITE}/areas/)', f'- [Guides]({SITE}/guides/how-often-to-service-your-bike/)', f'- [Blog]({SITE}/blog/)', f'- [Book a service]({SITE}/book/)', '']
+      '## Pages', f'- [Services and prices]({SITE}/services/)', f'- [Rate card]({SITE}/rate-card/)', f'- [How it works]({SITE}/help/)', f'- [Roadside help]({SITE}/roadside/)', f'- [Our workshop]({SITE}/workshop/)', f'- [Car service]({SITE}/car-service-bangalore/)', f'- [Areas we serve]({SITE}/areas/)', f'- [Guides]({SITE}/guides/how-often-to-service-your-bike/)', f'- [Blog]({SITE}/blog/)', f'- [Book a service]({SITE}/book/)', '']
     open(os.path.join(ROOT, 'llms.txt'), 'w', encoding='utf-8').write('\n'.join(lines))
 llms_txt()
 
