@@ -965,9 +965,10 @@ def workshop_teaser_html():
             f'<p class="note">Real photos, HSR Layout, Bengaluru. Edited for privacy.</p>'
             f'<a class="ws-tz" href="/workshop/">{imgs}</a><p><a class="btn btn-ghost" href="/workshop/">Visit the workshop page</a></p></div></section>\n')
 
+HERO_CSS = '<link rel="stylesheet" href="/assets/css/hero.css">\n'
 BOOK_JS = '<link rel="stylesheet" href="/assets/css/book.css">\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/book-pay.js" defer></script>'
 MAIN = [
-  ('', 'home', 'Two Wheeler Doorstep Service in Bangalore | Mechanix Pro', 'Two wheeler service at home in Bangalore (Bengaluru) from {{text:basic}}. Servicing in as fast as 2 hours, scooty repair, EV and petrol bike care. Quote first.', 'home.jsonld', 'home', APP_JS, '1.0'),
+  ('', 'home', 'Two Wheeler Doorstep Service in Bangalore | Mechanix Pro', 'Two wheeler service at home in Bangalore (Bengaluru) from {{text:basic}}. Servicing in as fast as 2 hours, scooty repair, EV and petrol bike care. Quote first.', 'home.jsonld', 'home', HERO_CSS + APP_JS, '1.0'),
   ('book', 'book-pay', 'Book a Doorstep Bike or Car Service | Mechanix Pro', 'Book a doorstep bike or car service in Bengaluru. Pay a small confirmation fee to lock your slot, adjusted in your final bill. Itemised quote first, nothing starts without your OK.', None, 'page-book', BOOK_JS, '0.9'),
   ('quote', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.7'),
   ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}}, excluding GST. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
