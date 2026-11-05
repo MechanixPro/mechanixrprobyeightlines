@@ -74,7 +74,7 @@ test('Crew and the Admin run the same code: the shared files are identical copie
   assert.doesNotMatch(read('crm/flow-core.js'), /<script|innerHTML = .*on(click|change)=|\bon(click|change)="/);   // strict CSP: no inline handlers
 });
 test('every database function the shared screens call lets an admin through (flow_ checks) and keeps agents and technicians to their rights', () => {
-  const core = read('crm/flow-core.js'), sql = read('supabase/migrations/20261228000000_paid_confirmation.sql');
+  const core = read('crm/flow-core.js'), sql = read('supabase/migrations/20261228000000_paid_confirmation.sql') + read('supabase/migrations/20261229000000_customer_updates.sql') + read('supabase/migrations/20261230000000_tech_location.sql');   // the journey migrations add crm_booking_updates, crm_issue_resolve, crm_tech_location (same flow_ guards)
   const names = [...new Set([...core.matchAll(/rpc\('([a-z_]+)'/g)].map((m) => m[1]))];
   const viaOldRpc = ['crm_mechanic_picker'];   // admin supplies its own mechanic list instead (deps.mechanics), checked below
   assert.ok(names.length >= 10, names.join());
