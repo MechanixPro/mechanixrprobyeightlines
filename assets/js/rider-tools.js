@@ -1,4 +1,4 @@
-/* Free rider tools on the home page: a service-due check and a "what is my bike telling me" guide.
+/* Free rider tools on the help page (/help/#rider-tools): a service-due check and a "what is my bike telling me" guide.
    Everything runs in the browser and nothing is sent anywhere. The guidance is general, hedged on purpose, and always ends with "a mechanic checks the real cause and quotes first". */
 (function (root, factory) {
   var api = factory();
@@ -123,7 +123,7 @@
       else {
         pout.appendChild(el('p', '', 'All eight look good. Ride safe.'));
         var sr = el('div', 'rt-row'), sh = el('a', 'btn btn-wa btn-sm', 'Tell a riding friend'); sh.rel = 'noopener'; sh.target = '_blank';
-        sh.href = 'https://wa.me/?text=' + encodeURIComponent('Ten-second pre-ride check done and I am good to ride. Try it before your next ride: https://mechanixpro.in/#rider-tools');
+        sh.href = 'https://wa.me/?text=' + encodeURIComponent('Ten-second pre-ride check done and I am good to ride. Try it before your next ride: https://mechanixpro.in/help/#rider-tools');
         sr.appendChild(sh); pout.appendChild(sr);
       }
       if (r.bookUrl) { var row = el('div', 'rt-row'), a = el('a', 'btn btn-primary btn-sm', 'Get it checked at your door'); a.href = r.bookUrl; row.appendChild(a); if (r.safetyFirst) { var s = el('a', 'btn btn-sos btn-sm', 'Stuck on the road? Get help'); s.href = '/roadside/'; row.appendChild(s); } pout.appendChild(row); }

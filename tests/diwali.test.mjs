@@ -8,8 +8,9 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 test('the Diwali banner shows only inside the festival window, by India date', () => {
   assert.equal(D.active(Date.parse('2026-10-22T12:00:00+05:30')), false);
   assert.equal(D.active(Date.parse('2026-11-08T09:00:00+05:30')), true);
-  assert.equal(D.active(Date.parse('2026-11-12T23:30:00+05:30')), true);
-  assert.equal(D.active(Date.parse('2026-11-13T00:30:00+05:30')), false);
+  assert.equal(D.active(Date.parse('2026-11-08T23:30:00+05:30')), true, 'last day is 8 November');
+  assert.equal(D.active(Date.parse('2026-11-09T00:30:00+05:30')), false);
+  assert.equal(D.active(Date.parse('2026-11-12T12:00:00+05:30')), false);
 });
 test('an offer line comes only from config, and is cleaned', () => {
   assert.equal(D.offerLine({}), '');
@@ -17,8 +18,12 @@ test('an offer line comes only from config, and is cleaned', () => {
 });
 test('every page keeps the Diwali banner, the join page exists, and no discount is invented', () => {
   const home = read('../index.html');
-  assert.match(home, /data-diwali-bar/); assert.match(home, /href="\/join\/"/);
-  assert.doesNotMatch(home.match(/<div class="diwali-bar"[\s\S]*?<\/div>/)[0], /\d+\s?%|₹\s?\d|flat|off\b/i);
+  assert.match(home, /href="\/join\/"/);
+  const built = /"dateModified": "(\d{4}-\d{2}-\d{2})"/.exec(read('../bike-service-hsr-layout/index.html'))[1];
+  if (built <= '2026-11-08') { // the banner is built into pages only until 8 November 2026; later builds carry none
+    assert.match(home, /data-diwali-bar/);
+    assert.doesNotMatch(home.match(/<div class="diwali-bar"[\s\S]*?<\/div>/)[0], /\d+\s?%|₹\s?\d|flat|off\b/i);
+  } else assert.doesNotMatch(home, /data-diwali-bar/);
   assert.match(read('../join/index.html'), /submit-partner|partner\.js/);
 });
 test('the fireworks respect reduced motion and the script has no inline code', () => {

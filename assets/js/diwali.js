@@ -6,7 +6,7 @@
   if (typeof module === 'object' && module.exports) module.exports = api; else { root.MXP_DIWALI = api; if (root.document) api.start(root); }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
-  var FROM = '2026-10-23', TO = '2026-11-12'; // inclusive, India date
+  var FROM = '2026-10-23', TO = '2026-11-08'; // inclusive, India date
   function istDay(now) { return new Date((now == null ? Date.now() : now) + 330 * 60000).toISOString().slice(0, 10); }
   function active(now) { var d = istDay(now); return d >= FROM && d <= TO; }
   function offerLine(cfg) { return String((cfg && cfg.diwaliOffer) || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 120); }

@@ -12,28 +12,32 @@ def crumbs(*items):
 
 TODAY = os.environ.get('BUILD_DATE') or datetime.date.today().isoformat()  # BUILD_DATE=YYYY-MM-DD pins the date (dateModified, sitemap lastmod) for a repeatable build
 
-NAV = '''<div class="diwali-bar" data-diwali-bar role="region" aria-label="Diwali"><a href="/offers/diwali-ready/"><span class="db-spark" aria-hidden="true">&#10024;</span><b>Diwali special.</b> <span data-diwali-line>Get your bike checked at your door before the festive rides. Quote first, open 24/7.</span><u> See how &rarr;</u></a><button type="button" class="db-x" aria-label="Close the Diwali banner">&times;</button></div>
-<a class="skip" href="#main">Skip to content</a>
-<header class="nav"><div class="wrap">
-  <a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="27"><img class="wm" src="/assets/img/logo-wordmark.webp" alt="" width="137" height="12"></a>
+DIWALI_LAST_DAY = '2026-11-08'  # the festive banner is built into pages only up to this date (India date); assets/js/diwali.js hides it on the same day for pages cached earlier
+DIWALI_BAR = '''<div class="diwali-bar" data-diwali-bar role="region" aria-label="Diwali"><a href="/offers/diwali-ready/"><span class="db-spark" aria-hidden="true">&#10024;</span><b>Diwali special.</b> <span data-diwali-line>Get your bike checked at your door before the festive rides. Quote first, open 24/7.</span><u> See how &rarr;</u></a><button type="button" class="db-x" aria-label="Close the Diwali banner">&times;</button></div>
+'''
+NAV = (DIWALI_BAR if TODAY <= DIWALI_LAST_DAY else '') + '''<a class="skip" href="#main">Skip to content</a>
+<header class="top"><div class="wrap bar">
+  <a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="27"><span>Mechanix Pro</span></a>
   <nav class="links" aria-label="Main"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track booking</a></nav>
+  <a class="call-top" href="#" data-call>Call us</a>
+  <a class="pill bike-only" href="/book/">Book online</a><a class="pill car-only" href="/car-service-bangalore/">Book online</a>
   <details class="menu"><summary aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
     <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/major-bike-repair-pickup-and-drop-bangalore/">Major repairs with pickup and drop</a><a href="/join/">Join as a garage or mechanic</a><a href="/two-wheeler-service-at-home-bangalore/">Two wheeler service at home</a><a href="/scooty-repair-at-home-bangalore/">Scooty repair at home</a><a href="/ev-and-petrol-bike-care-bangalore/">EV and petrol bike care</a><a href="/verified-bike-garages-bangalore/">Verified garages</a><a href="/digital-service-records/">Digital service records</a><a href="/doorstep-bike-and-car-repair-near-me/">Doorstep bike and car repair</a><a href="/car-service-bangalore/">Car service</a><a href="/blog/">Blog</a><a href="/partners/axlio/">Car parts and service: Axlio</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
-  <a class="btn btn-ghost btn-sm call-btn" href="#" data-call>Call us</a>
-  <a class="btn btn-primary btn-sm cta" href="/book/">Book online</a>
 </div></header>
 '''
-FOOTER = '''<footer>
-  <div class="wrap cols">
-    <div>
-      <a class="brand" href="/" aria-label="Mechanix Pro home" style="margin-bottom:8px"><img src="/assets/img/logo.svg" alt="" width="22" height="23"><img class="wm" src="/assets/img/logo-wordmark.webp" alt="" width="125" height="11"></a>
+FOOTER = '''<footer class="foot">
+  <div class="wrap">
+    <div class="foot-top">
+      <a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="27"><span>Mechanix Pro</span></a>
       <p>Your roadside first responders. Doorstep bike service and breakdown help in Bengaluru.</p>
-      <p><span data-phone>+91 79652 95649</span> · <a href="mailto:hello@mechanixpro.in" style="display:inline">hello@mechanixpro.in</a></p>
+      <p><a class="inl" href="#" data-call><span data-phone>+91 79652 95649</span></a> · <a class="inl" href="mailto:hello@mechanixpro.in">hello@mechanixpro.in</a></p>
     </div>
-    <div><b>Areas</b>{area_links}<a href="/areas/">All Bengaluru PIN codes</a></div>
-    <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
+    <div class="foot-cols">
+      <div><b>Areas</b>{area_links}<a href="/areas/">All Bengaluru PIN codes</a></div>
+      <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
+    </div>
+    <p class="tiny">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Mechanix Pro is a brand of {company_name}, {company_addr}. GSTIN {company_gstin}</p><p class="tiny">Website developed by <a href="https://ziyam.me" target="_blank" rel="noopener" class="inl">ziyam.me</a></p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p>
   </div>
-  <div class="wrap"><p class="tiny" style="margin-top:20px">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Mechanix Pro is a brand of {company_name}, {company_addr}. GSTIN {company_gstin}</p><p class="tiny">Website developed by <a href="https://ziyam.me" target="_blank" rel="noopener" style="display:inline;text-decoration:underline">ziyam.me</a></p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p></div>
 </footer>
 '''
 HEAD = '''<!doctype html>
@@ -44,13 +48,11 @@ HEAD = '''<!doctype html>
 <title>{title}</title>
 <meta name="description" content="{desc}">
 <link rel="canonical" href="{url}">
-<meta name="theme-color" content="#14295A">
+<meta name="theme-color" content="#0B1220">
 <meta property="og:title" content="{title}"><meta property="og:description" content="{desc}"><meta property="og:url" content="{url}"><meta property="og:image" content="{site}/assets/img/og.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Mechanix Pro: doorstep bike service in Bengaluru. Quote first, pay after you say yes. Open 24/7."><meta property="og:type" content="website"><meta property="og:site_name" content="Mechanix Pro"><meta property="og:locale" content="en_IN"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="{site}/assets/img/og.png">
 <link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32"><link rel="icon" href="/assets/img/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="/assets/css/style.css">
-<link rel="stylesheet" href="/assets/css/theme.css">
-<link rel="stylesheet" href="/assets/css/bento.css">
-<link rel="stylesheet" href="/assets/css/simple.css">
+<link rel="stylesheet" href="/assets/css/site.css">
 {schema}
 <script src="/assets/js/config.js" defer></script>
 <script src="/assets/js/tags.js" defer></script>
@@ -109,11 +111,18 @@ PRICES = [(k, v['name']) for k, v in json.load(open(os.path.join(os.path.dirname
 
 AREA_LINKS = ''.join(f'<a href="/bike-service-{slug}/">{name}</a>' for slug, name, *_ in AREAS[:10])
 ALL_AREA_LINKS = ''.join(f'<a href="/bike-service-{slug}/">{name}</a>' for slug, name, *_ in AREAS)
-DOCK = '''<nav class="dock" aria-label="Message or call Mechanix Pro"><a class="btn btn-wa" href="#" data-wa="general"{wa_text}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp</a><a class="btn btn-call" href="#" data-call><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call</a></nav>
-'''
-def foot(extra='', dock=True, dock_text=None):
-    """Footer and scripts. The phone-only WhatsApp and Call bar is on every page unless dock=False (payment, rating and other one-task pages)."""
-    _dk = DOCK.format(wa_text=(f' data-wa-text="{html.escape(dock_text, quote=True).replace(chr(10), '&#10;')}"' if dock_text else '')) if dock else ''
+_WA_I = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>'
+_PH_I = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>'
+DOCK = '<nav class="dock" aria-label="Message or call Mechanix Pro"><a class="btn btn-wa" href="#" data-wa="general"{wa_text}>' + _WA_I + 'WhatsApp</a><a class="btn btn-call" href="#" data-call>' + _PH_I + 'Call</a></nav>\n'
+# Home: the Bike / Car switch also decides which WhatsApp message the bar sends (the other button is hidden by CSS).
+BIKE_WA = 'Hi Mechanix Pro, I need a service for my bike in Bengaluru.\nBike model: \nArea: '
+CAR_WA = 'Hi Mechanix Pro, I need a car service in Bangalore.\nCar make and model: \nArea: '
+def _wa_attr(t): return f' data-wa-text="{html.escape(t, quote=True).replace(chr(10), "&#10;")}"'
+DOCK_HOME = ('<nav class="dock" aria-label="Message or call Mechanix Pro"><a class="btn btn-wa bike-only" href="#" data-wa="general"' + _wa_attr(BIKE_WA) + '>' + _WA_I + 'WhatsApp</a>'
+             '<a class="btn btn-wa car-only" href="#" data-wa="general"' + _wa_attr(CAR_WA) + '>' + _WA_I + 'WhatsApp</a><a class="btn btn-call" href="#" data-call>' + _PH_I + 'Call</a></nav>\n')
+def foot(extra='', dock=True, dock_text=None, dock_home=False):
+    """Footer and scripts. The phone-only WhatsApp and Call bar is on every page unless dock=False (booking, payment, tracking, rating, warranty, unsubscribe: one-task pages)."""
+    _dk = (DOCK_HOME if dock_home else DOCK.format(wa_text=_wa_attr(dock_text) if dock_text else '')) if dock else ''
     return FOOT.format(dock=_dk, footer=FOOTER.format(area_links=AREA_LINKS, company_name=COMPANY['legalName'], company_addr=', '.join(COMPANY['addressLines']) + f", {COMPANY['city']} {COMPANY['pincode']}", company_gstin=COMPANY['gstin']), extra=extra)
 
 COMPANY = json.load(open(os.path.join(ROOT, 'src', 'company.json'), encoding='utf-8'))
@@ -195,12 +204,77 @@ def seo_fit(page):
             page = page.replace('</head>', ld + '</head>', 1)
     return page
 OG_BY_PAGE = {'services/index.html': 'services', 'roadside/index.html': 'roadside', 'join/index.html': 'join', 'partners/axlio/index.html': 'axlio', 'offers/diwali-ready/index.html': 'diwali', 'areas/index.html': 'areas', 'help/index.html': 'how'}
+# ---- Page shape: every inner page gets the same two-tone layout. A navy stage (breadcrumb, H1, lead, actions) and a light sheet with the rest. Text, links and structured data are not touched; only wrappers and classes are added. ----
+_VOID = {'img', 'br', 'input', 'hr', 'source', 'link', 'meta', 'wbr', 'area', 'col'}
+_TAG = re.compile(r'<(/?)([a-zA-Z][a-zA-Z0-9]*)\b([^>]*?)(/?)>')
+def top_nodes(s):
+    """Splits an HTML fragment into its top-level elements: a list of (tag, attributes, source)."""
+    nodes, depth, start, i = [], 0, 0, 0
+    cur = None
+    while True:
+        m = _TAG.search(s, i)
+        if not m: break
+        close, name, attrs, selfc = m.group(1), m.group(2).lower(), m.group(3), m.group(4)
+        i = m.end()
+        if name in ('script', 'style') and not close:
+            e = s.find('</' + name, i); e = s.find('>', e) + 1 if e != -1 else len(s)
+            if depth == 0: nodes.append((name, attrs, s[m.start():e]))
+            i = e; continue
+        if name in _VOID or selfc:
+            if depth == 0: nodes.append((name, attrs, m.group(0)))
+            continue
+        if close:
+            depth -= 1
+            if depth == 0: nodes.append((cur[0], cur[1], s[start:m.end()]))
+        else:
+            if depth == 0: start, cur = m.start(), (name, attrs)
+            depth += 1
+    return nodes
+BIKE_ART_PAGES = ('two-wheeler-service-at-home-bangalore', 'scooty-repair-at-home-bangalore', 'ev-and-petrol-bike-care-bangalore', 'major-bike-repair-pickup-and-drop-bangalore')
+def _add_class(tag_src, cls):
+    return re.sub(r'class="([^"]*)"', lambda m: f'class="{m.group(1)} {cls}"', tag_src, count=1) if 'class="' in tag_src else tag_src.replace('>', f' class="{cls}">', 1)
+def shape(page, path=''):
+    m = re.search(r'<main id="main" class="([^"]*)">(.*?)</main>', page, re.S)
+    if not m: return page
+    cls, inner = m.group(1), m.group(2).strip()
+    art = re.fullmatch(r'<article class="page"[^>]*>(.*)</article>', inner, re.S)
+    if art: inner = art.group(1).strip()
+    nodes = top_nodes(inner)
+    if not nodes: return page
+    has_art = path.startswith(('bike-service-', 'bike-service/')) or path.split('/')[0] in BIKE_ART_PAGES
+    first = nodes[0]
+    if first[0] == 'section' and re.search(r'class="(page-head|hero|soon-hero)[ "]', first[1]):
+        hero = re.sub(r'^<section([^>]*)>', lambda mm: '<section' + _add_class(mm.group(1) + '>', 'stage' + (' art' if has_art else ''))[:-1] + '>', first[2], count=1)
+        new = hero + '\n<div class="sheet">' + ''.join(n[2] for n in nodes[1:]) + '</div>'
+        main_cls = cls
+    elif cls.split()[:1] in (['page'], []) and ((first[0] == 'p' and 'breadcrumb' in first[1]) or first[0] == 'h1'):
+        hero, held, i, ps, done = [], [], 0, 0, False
+        while i < len(nodes) and not done:
+            t, a, src = nodes[i]
+            if t == 'h1' or (t == 'p' and 'breadcrumb' in a):
+                hero.append(src); i += 1
+            elif t == 'p' and hero and ps < 3:
+                hero.append(src); i += 1; ps += 1; done = 'class="btn' in src  # the lead, then at most one row of actions
+            elif t == 'figure' and i + 1 < len(nodes) and nodes[i + 1][0] == 'p' and 'class="btn' in nodes[i + 1][2]:
+                held.append(src); i += 1
+            else: break
+        strip = lambda x: re.sub(r'\sstyle="[^"]*"', '', x)
+        hero = [strip(h) for h in hero]
+        hero = [h.replace('<p>', '<p class="actions">', 1) if h.startswith('<p>') and 'class="btn' in h else h for h in hero]
+        crumb = [h for h in hero if h.startswith('<p class="breadcrumb')]; rest_h = [h for h in hero if h not in crumb]
+        new = ('<section class="page-head stage' + (' art' if has_art else '') + '"><div class="wrap">' + ''.join(crumb + rest_h) + '</div></section>\n'
+               '<div class="sheet"><div class="wrap prose">' + ''.join(held) + ''.join(n[2] for n in nodes[i:]) + '</div></div>')
+        main_cls = 'pg'
+    else:
+        return page
+    return page[:m.start()] + f'<main id="main" class="{main_cls}">\n' + new + '\n</main>' + page[m.end():]
+
 def write(path, content):
     full = os.path.join(ROOT, path); os.makedirs(os.path.dirname(full), exist_ok=True)
     if path in OG_BY_PAGE and path.endswith('.html'):
         # a card of its own for the link preview on WhatsApp, Instagram and search (the structured-data image stays the shared one)
         content = content.replace('<meta property="og:image" content="' + SITE + '/assets/img/og.png">', '<meta property="og:image" content="' + SITE + '/assets/img/og/' + OG_BY_PAGE[path] + '.jpg">').replace('<meta name="twitter:image" content="' + SITE + '/assets/img/og.png">', '<meta name="twitter:image" content="' + SITE + '/assets/img/og/' + OG_BY_PAGE[path] + '.jpg">')
-    open(full, 'w', encoding='utf-8').write(seo_fit(tok(content)) if path.endswith('.html') else content)
+    open(full, 'w', encoding='utf-8').write(seo_fit(tok(shape(content, path))) if path.endswith('.html') else content)
 
 _pc = json.load(open(os.path.join(ROOT, 'src', 'model-photos.json'), encoding='utf-8'))
 POPULAR = ''.join(f'<a href="/bike-service/{k}/">{html.escape(_pc[k]["brand"] + " " + _pc[k]["model"])}</a>' for k in ['honda-activa-6g', 'honda-dio', 'tvs-jupiter', 'hero-splendor-plus', 'bajaj-pulsar-ns160', 'royal-enfield-classic-350', 'ola-electric-s1-pro'] if k in _pc)
@@ -880,7 +954,7 @@ for slug, src, title, desc, ld, body, scripts, prio in MAIN:
         if _faq: schema += '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in _faq]}, ensure_ascii=False) + '</script>'
         schema += '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "WebSite", "name": "Mechanix Pro", "url": SITE + "/", "inLanguage": "en-IN"}, ensure_ascii=False) + '</script>'
     content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--AREA_LINKS-->', AREA_LINKS).replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
-    out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(dock=(src != 'book'))
+    out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(dock=(src != 'book'), dock_home=(src == 'home'))
     if src == 'home':
         langs = i18n_build(out, url)
         if langs:

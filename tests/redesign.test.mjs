@@ -4,12 +4,13 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const home = read('index.html');
 const main = home.slice(home.indexOf('<main'), home.indexOf('</main>'));
-const css = read('assets/css/simple.css');
+const css = read('assets/css/site.css');
 const SAMPLE = ['index.html', 'bike-service-hsr-layout/index.html', 'bike-service/honda-activa-6g/index.html', 'car-service-bangalore/index.html', 'services/index.html', 'roadside/index.html'];
 
 test('the home page has six sections, in the order a visitor decides', () => {
   const ids = [...main.matchAll(/<section[^>]*id="([a-z-]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(ids, ['hero', 'actions', 'brief', 'prices', 'trust', 'areas']);
+  assert.deepEqual(ids, ['hero', 'brief', 'prices', 'trust', 'areas', 'faq', 'tools']);
+  assert.ok(main.indexOf('class="stage"') < main.indexOf('class="sheet"'), 'a navy stage first, then the light sheet');
   assert.equal((main.match(/<h1[ >]/g) || []).length, 1);
 });
 test('the hero says the offer in one line, and the quote-first promise in the next', () => {
@@ -20,17 +21,18 @@ test('the Bike / Car toggle works without scripts: two radios, two labels, CSS d
   assert.match(main, /<input class="veh-in" type="radio" name="vehicle" id="veh-bike" checked>/);
   assert.match(main, /<input class="veh-in" type="radio" name="vehicle" id="veh-car">/);
   assert.match(main, /<label for="veh-bike">Bike<\/label><label for="veh-car">Car<\/label>/);
-  assert.match(css, /#veh-car:checked ~ section \.bike-only\{display:none\}/);
+  assert.match(css, /#veh-car:checked ~ \* \.bike-only\{display:none!important\}/);
+  assert.match(css, /#veh-car:checked ~ \* \.car-only\{display:var\(--d,block\)!important\}/);
   assert.ok(main.indexOf('id="veh-bike"') < main.indexOf('class="veh"'), 'the toggle sits above the buttons');
   assert.ok(main.indexOf('class="veh"') < main.indexOf('class="bike-only btns"'));
 });
 test('three buttons in order: WhatsApp quote (main, green), Call now, Book online; the car set swaps wording and links', () => {
-  const bike = main.match(/<div class="bike-only btns">([\s\S]*?)<\/div>/)[1];
+  const bike = main.match(/<div class="bike-only btns">([\s\S]*?)<\/div><\/div>/)[1];
   const wa = bike.indexOf('btn btn-wa btn-xl'), call = bike.indexOf('data-call'), book = bike.indexOf('href="/book/"');
   assert.ok(wa > -1 && wa < call && call < book, 'WhatsApp, then Call now, then Book online');
   assert.match(bike, /data-wa="general" data-wa-text="Hi Mechanix Pro, I need a service for my bike in Bengaluru\./);
   assert.match(bike, />Book online</); assert.match(bike, />Call now</);
-  const car = main.match(/<div class="car-only btns">([\s\S]*?)<\/div>/)[1];
+  const car = main.match(/<div class="car-only btns">([\s\S]*?)<\/div><\/div>/)[1];
   assert.match(car, /data-wa-text="Hi Mechanix Pro, I need a car service in Bangalore\./);
   assert.match(car, /href="\/car-service-bangalore\/"/);
   assert.ok(car.indexOf('btn-wa') < car.indexOf('data-call'));
@@ -55,7 +57,7 @@ test('the trust line is exactly the two owner-confirmed numbers, and only on bik
   assert.doesNotMatch(main.replace(t, ''), /10,000\+|1,300\+/, 'the numbers appear nowhere else on the home page');
   assert.doesNotMatch(home, /rated|\bstars?\b|testimonial|\breviews?\b/i);
   for (const f of ['car-service-bangalore/index.html', 'partners/axlio/index.html', 'roadside/index.html']) assert.doesNotMatch(read(f), /10,000\+|1,300\+/, f);
-  assert.match(css, /#veh-car:checked ~ \.bike-only/, 'hidden in the car view');
+  assert.match(css, /#veh-car:checked ~ \* \.bike-only/, 'hidden in the car view');
 });
 test('areas link to the existing area pages, and the FAQ shows five questions with the rest behind "More questions"', () => {
   const a = main.slice(main.indexOf('id="areas"'));
@@ -78,18 +80,21 @@ test('the phone bar has WhatsApp and Call only, on home, service, area, car and 
   for (const f of SAMPLE) {
     const h = read(f); const m = h.match(/<nav class="dock"[^>]*>([\s\S]*?)<\/nav>/); assert.ok(m, f + ' has the bar');
     const links = [...m[1].matchAll(/<a [^>]*>/g)].map((x) => x[0]);
-    assert.equal(links.length, 2, f); assert.match(links[0], /data-wa=/); assert.match(links[1], /data-call/); assert.doesNotMatch(m[1], /\/book\//);
+    const home2 = f === 'index.html'; // the home bar carries a bike and a car WhatsApp button; CSS shows one
+    assert.equal(links.length, home2 ? 3 : 2, f); assert.match(links[0], /data-wa=/); assert.match(links[links.length - 1], /data-call/); assert.doesNotMatch(m[1], /\/book\//);
+    if (home2) { assert.match(links[0], /bike-only/); assert.match(links[1], /car-only/); assert.match(links[1], /car service in Bangalore/); }
     assert.doesNotMatch(h, /class="mbar"|wa-fab/, f + ' old floating buttons are gone');
   }
   assert.match(read('car-service-bangalore/index.html'), /class="dock"[^>]*><a [^>]*data-wa-text="Hi Mechanix Pro, I need a car service/);
-  for (const f of ['book', 'pay', 'track', 'rate', 'warranty', 'unsubscribe']) assert.doesNotMatch(read(f + '/index.html'), /class="dock"/, f + ' stays free of the bar (one-task page)');
-  assert.match(css, /\.dock\{position:fixed;[^}]*bottom:0/); assert.match(css, /@media\(min-width:900px\)\{\.dock\{display:none\}\}/);
+  for (const f of ['book', 'pay', 'track', 'rate', 'warranty', 'unsubscribe', 'job']) assert.doesNotMatch(read(f + '/index.html'), /class="dock"/, f + ' stays free of the bar (one-task page)');
+  assert.match(css, /\.dock\{position:fixed;[^}]*bottom:0/); assert.match(css, /@media\(min-width:960px\)\{[^]*?\.dock\{display:none\}/);
 });
-test('every built page shares the same header and the simple layer', () => {
-  const nav = (h) => h.slice(h.indexOf('<header class="nav">'), h.indexOf('</header>'));
+test('every built page shares the same header and the one site stylesheet', () => {
+  const nav = (h) => h.slice(h.indexOf('<header class="top">'), h.indexOf('</header>'));
   const ref = nav(home);
-  for (const f of SAMPLE) { const h = read(f); assert.equal(nav(h), ref, f); assert.match(h, /assets\/css\/simple\.css/, f); }
-  assert.match(ref, />Book online</);
+  for (const f of SAMPLE) { const h = read(f); assert.equal(nav(h), ref, f); assert.match(h, /assets\/css\/site\.css/, f); assert.doesNotMatch(h, /simple\.css|theme\.css|bento\.css/, f); }
+  assert.match(ref, />Book online</); assert.match(ref, /class="menu"/);
+  assert.ok(!existsSync(new URL('../assets/css/simple.css', import.meta.url)), 'the weak simple.css layer is gone');
 });
 test('no inline scripts or inline event handlers on any sampled page', () => {
   for (const f of [...SAMPLE, 'book/index.html', 'help/index.html']) {
@@ -98,18 +103,21 @@ test('no inline scripts or inline event handlers on any sampled page', () => {
     assert.doesNotMatch(h, /\son(click|load|change|submit|error)=/i, f);
   }
 });
-test('one font, one green, one accent; tap targets and focus states are kept', () => {
+test('one font, one accent; tap targets, focus, reduced motion and contrast tokens are kept', () => {
   assert.match(css, /--display:var\(--font\)/);
   assert.equal([...new Set((css.match(/font-family:[^;}]+/g) || []).map((x) => x.replace(/\s+/g, '')))].length, 1, 'only var(--font) is used for families');
-  assert.match(css, /--green:#25D366/); assert.match(css, /--accent:#F2801F/);
-  assert.match(css, /\.btn\{min-height:52px/); assert.match(css, /:focus-visible\{outline:3px solid/);
-  assert.match(css, /\.veh label\{[^}]*min-height:48px/); assert.match(css, /summary\{[^}]*min-height:60px/);
+  assert.match(css, /--acc:#F2801F/); assert.match(css, /--nv:#0B1220/); assert.match(css, /--tx2:#556075/); assert.match(css, /--on-acc:#1A0E03/);
+  assert.match(css, /\.btn\{[^}]*min-height:52px/); assert.match(css, /:focus-visible\{outline:3px solid/);
+  assert.match(css, /\.veh label\{[^}]*min-height:44px/); assert.match(css, /summary\{[^}]*min-height:60px/);
+  assert.match(css, /\.pill\{[^}]*min-height:44px/); assert.match(css, /\.menu summary\{[^}]*width:44px;height:44px/); assert.match(css, /\.foot-cols a\{[^}]*min-height:44px/);
+  assert.match(css, /prefers-reduced-motion:reduce/);
+  assert.doesNotMatch(css, /animation-timeline/, 'no scroll-driven opacity: content is never hidden until scrolled');
 });
-test('the home page stays light: no hero image, no chat script, no slideshow; the page is smaller than before', () => {
+test('the home page stays light: one hero photo, no chat script, no slideshow', () => {
   assert.doesNotMatch(home, /hero-rain|chatstart\.js|hero\.js|showcase\.js|class="ticker"/);
-  assert.ok(Buffer.byteLength(home) < 30000, 'home HTML is ' + Buffer.byteLength(home) + ' bytes');
-  assert.ok(readdirSync(new URL('../assets/css/', import.meta.url)).includes('simple.css'));
-  assert.ok(Buffer.byteLength(css) < 12000, 'simple.css is ' + Buffer.byteLength(css) + ' bytes');
+  assert.ok(Buffer.byteLength(home) < 40000, 'home HTML is ' + Buffer.byteLength(home) + ' bytes');
+  assert.ok(readdirSync(new URL('../assets/css/', import.meta.url)).includes('site.css'));
+  assert.ok(Buffer.byteLength(css) < 28000, 'site.css is ' + Buffer.byteLength(css) + ' bytes');
 });
 test('prefilled WhatsApp messages carry no phone numbers or personal details', () => {
   for (const m of main.matchAll(/data-wa-text="([^"]+)"/g)) assert.doesNotMatch(m[1], /\d{6,}|@/);
@@ -124,4 +132,61 @@ test('the money and service promises the old trust block made are still on the h
 test('the home page still links to roadside help, fleets and apartments (header menu) and every WhatsApp message asks for model and area', () => {
   for (const h of ['/roadside/', '/fleet/', '/societies/', '/services/', '/help/']) assert.ok(home.includes(`href="${h}"`), h);
   for (const m of main.matchAll(/data-wa-text="([^"]+)"/g)) { assert.match(m[1], /^Hi Mechanix Pro/); assert.match(m[1], /Area/); assert.match(m[1], /Bike model|Car make and model/); }
+});
+
+test('every inner page is a navy stage with the H1, then a light sheet; text, canonicals and JSON-LD are untouched', () => {
+  for (const f of [...SAMPLE.slice(1), 'book/index.html', 'track/index.html', 'blog/index.html', 'help/index.html', 'areas/index.html', 'contact/index.html', 'terms/index.html', 'rate-card/index.html', 'warranty/index.html']) {
+    const h = read(f), m = h.slice(h.indexOf('<main'), h.indexOf('</main>'));
+    assert.match(m, /<section[^>]*class="(page-head|hero|soon-hero)[^"]* stage/, f + ' has a stage');
+    assert.ok(m.indexOf(' stage') < m.indexOf('class="sheet"'), f + ' sheet follows the stage');
+    assert.equal((m.match(/<h1[ >]/g) || []).length, 1, f + ' keeps exactly one H1');
+    assert.equal((h.match(/rel="canonical"/g) || []).length, 1, f);
+  }
+  const hsr = read('bike-service-hsr-layout/index.html');
+  assert.match(hsr, /<h1>Doorstep bike service in HSR Layout\.<\/h1>/); assert.match(hsr, /"@type": "FAQPage"/); assert.match(hsr, /<link rel="canonical" href="https:\/\/mechanixpro\.in\/bike-service-hsr-layout\/">/);
+  assert.match(hsr, /<section class="page-head stage art">/, 'bike area pages get the hero photo on large screens');
+});
+test('the shared hero photo is on bike pages only: car, roadside, Axlio and partner pages have a plain navy stage', () => {
+  for (const f of ['car-service-bangalore/index.html', 'partners/axlio/index.html', 'roadside/index.html', 'doorstep-bike-and-car-repair-near-me/index.html', 'book/index.html']) assert.doesNotMatch(read(f), /stage[^"]* art"|hero-minimal/, f);
+  for (const f of ['bike-service/honda-activa-6g/index.html', 'scooty-repair-at-home-bangalore/index.html']) assert.match(read(f), /stage art"/, f);
+  assert.match(css, /\.page-head\.stage\.art::after\{[^}]*hero-minimal\.webp/);
+  assert.ok(existsSync(new URL('../assets/img/hero-minimal.webp', import.meta.url)));
+  assert.match(main, /<img src="\/assets\/img\/hero-minimal\.webp"[^>]*fetchpriority="high"/);
+});
+test('the footer keeps the company line and GSTIN from company.json, and the Areas links', () => {
+  const co = JSON.parse(read('src/company.json'));
+  for (const f of SAMPLE) {
+    const h = read(f), ft = h.slice(h.indexOf('<footer'), h.indexOf('</footer>'));
+    assert.ok(ft.includes(`Mechanix Pro is a brand of ${co.legalName}, ${co.addressLines.join(', ')}, ${co.city} ${co.pincode}. GSTIN ${co.gstin}`), f);
+    assert.match(ft, /<b>Areas<\/b>/); assert.match(ft, /href="\/bike-service-hsr-layout\/"/); assert.match(ft, /data-phone/);
+  }
+});
+test('the home phone and WhatsApp numbers come from config.js hooks, never typed into the page', () => {
+  for (const f of ['index.html', ...SAMPLE]) { const h = read(f); assert.doesNotMatch(h, /wa\.me\/\d|tel:\+?\d/, f); }
+  assert.match(main, /data-call/); assert.match(main, /data-wa="general"/);
+});
+test('the handy tools row links to real tools: the rider tools now live on the help page', () => {
+  const t = main.slice(main.indexOf('id="tools"'));
+  for (const h of ['/help/#rt-due', '/help/#rt-sym', '/areas/', '/roadside/']) assert.ok(t.includes(`href="${h}"`), h);
+  const help = read('help/index.html');
+  for (const id of ['id="rider-tools"', 'id="rt-due"', 'id="rt-sym"', 'id="rt-pre"', 'id="due-type"', 'id="sym-out"']) assert.ok(help.includes(id), id);
+  assert.match(help, /assets\/js\/rider-tools\.js/);
+  assert.ok(read('areas/index.html').includes('data-pincheck'), 'the PIN check is on the areas page');
+});
+test('the Diwali banner is one slim closable line, with no inline script, built only until 8 November 2026', () => {
+  assert.match(read('scripts/build_pages.py'), /DIWALI_LAST_DAY = '2026-11-08'/);
+  assert.match(read('assets/js/diwali.js'), /TO = '2026-11-08'/);
+  assert.match(css, /\.diwali-bar a\{[^}]*white-space:nowrap/); assert.match(css, /\.diwali-bar \.db-x\{[^}]*width:44px;height:44px/);
+  const h = read('index.html'); const bar = h.match(/<div class="diwali-bar"[\s\S]*?<\/div>/);
+  if (bar) { assert.match(bar[0], /<button type="button" class="db-x"/); assert.ok(h.indexOf('diwali-bar') < h.indexOf('<header class="top">'), 'the banner sits above the header, not inside it'); }
+  assert.match(h, /assets\/js\/diwali\.js/);
+});
+test('the booking page shows its form below the stage and has no phone bar over it', () => {
+  const b = read('book/index.html');
+  assert.ok(b.indexOf('id="build-head"') < b.indexOf('id="builder"')); assert.doesNotMatch(b, /<nav class="dock"/);
+  assert.match(b, /<h1 id="build-h">Build your service\.<\/h1>/);
+});
+test('pages that pin the WhatsApp text keep it: car pages send the car message', () => {
+  const car = read('car-service-bangalore/index.html'); assert.match(car, /<nav class="dock"[^>]*><a [^>]*data-wa-text="Hi Mechanix Pro, I need a car service in Bangalore/);
+  assert.doesNotMatch(car, /10,000\+|1,300\+/);
 });

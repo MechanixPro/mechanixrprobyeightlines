@@ -15,7 +15,7 @@ test('the WhatsApp conversion is counted once per visit, not on every tap', () =
 test('the ad landing pages start with the WhatsApp chat starter, before any other button', () => {
   for (const s of ['bike-service', 'monsoon-check', 'ev-check', 'pre-trip-check']) {
     const h = read(`offers/${s}/index.html`);
-    const hero = h.slice(h.indexOf('<section class="hero">'), h.indexOf('</section>', h.indexOf('<section class="hero">')));
+    const hero = h.slice(h.indexOf('<section class="hero stage'), h.indexOf('</section>', h.indexOf('<section class="hero stage')));
     assert.ok(hero.indexOf('id="chat"') > -1 && hero.indexOf('id="chat"') < hero.indexOf('Build your service'), s);
   }
 });

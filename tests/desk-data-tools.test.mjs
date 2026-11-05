@@ -76,11 +76,12 @@ test('the desk and the admin load the minimal theme and the builds ship it', () 
 test('desk, admin and site load the maximalist bento layers and the builds ship them', () => {
   assert.match(rd('crm/index.html'), /assets\/css\/maxi\.css/); assert.match(rd('admin/index.html'), /assets\/css\/maxi\.css/);
   assert.match(rd('scripts/build_crm.sh'), /maxi\.css/); assert.match(rd('scripts/build_admin.sh'), /maxi\.css/);
-  assert.match(rd('scripts/build_pages.py'), /assets\/css\/bento\.css/); assert.match(rd('assets/css/maxi.css'), /@media print/);
+  assert.match(rd('assets/css/maxi.css'), /@media print/);
+  assert.match(rd('scripts/build_pages.py'), /assets\/css\/site\.css/, 'the public site loads its own layer, site.css, in place of the bento and theme overrides');
 });
 
-test('site, desk and admin share one theme file', () => {
-  for (const f of ['crm/index.html', 'admin/index.html', 'scripts/build_pages.py', 'scripts/build_crm.sh', 'scripts/build_admin.sh']) assert.match(rd(f), /theme\.css/);
+test('desk and admin share one theme file (the public site now has site.css instead)', () => {
+  for (const f of ['crm/index.html', 'admin/index.html', 'scripts/build_crm.sh', 'scripts/build_admin.sh']) assert.match(rd(f), /theme\.css/);
 });
 
 test('the desk date range has an All time option that reads back as All time', async () => {

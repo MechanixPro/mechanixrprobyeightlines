@@ -34,6 +34,50 @@
     <details><summary>Is there a warranty?</summary><p>Our service work is covered for {{days}} days from the service date. Parts also carry the manufacturer's warranty.</p></details>
   </div>
 </section>
+<section id="rider-tools" aria-labelledby="rt-h">
+  <div class="wrap">
+    <div class="sec-head"><h2 id="rt-h">Free tools for riders.</h2><p>Two things worth a minute before your next ride. No sign-up, nothing is sent anywhere.</p></div>
+    <div class="rt-grid">
+      <div class="rt-card" id="rt-due">
+        <span class="rt-tag">Service due check</span>
+        <h3>Is your bike due for a service?</h3>
+        <div class="rt-garage" id="garage" hidden aria-label="Your garage"></div>
+        <div class="rt-fields">
+          <div class="rt-name"><label class="label" for="due-name">Name your bike (optional)</label><input id="due-name" maxlength="24" placeholder="e.g. Raja" autocomplete="off"></div>
+          <div><label class="label" for="due-type">Your bike</label><select id="due-type"><option value="scooter">Scooter</option><option value="commuter">Commuter motorcycle</option><option value="perf">Performance or cruiser</option><option value="ev">Electric scooter or bike</option></select></div>
+          <div><label class="label" for="due-date">Last service on</label><input id="due-date" type="date"></div>
+          <div id="due-km-wrap"><label class="label" for="due-km">Km since then</label><input id="due-km" inputmode="numeric" maxlength="5" placeholder="e.g. 2500"></div>
+        </div>
+        <div class="rt-out" id="due-out" role="status" aria-live="polite"><p class="rt-hint">Pick the date of your last service to see where you stand.</p></div>
+        <p class="tiny muted">Typical gaps for most bikes. Your owner&rsquo;s manual has the exact number for yours.</p>
+      </div>
+      <div class="rt-card" id="rt-sym">
+        <span class="rt-tag">What is my bike telling me?</span>
+        <h3>Tap what you notice.</h3>
+        <div class="rt-chips" role="group" aria-label="Symptoms">
+          <button type="button" data-s="start" aria-pressed="false">Hard to start</button><button type="button" data-s="pickup" aria-pressed="false">Low pickup or mileage</button><button type="button" data-s="brake" aria-pressed="false">Weak or noisy brakes</button><button type="button" data-s="chain" aria-pressed="false">Chain noise</button><button type="button" data-s="clutch" aria-pressed="false">Clutch hard or slipping</button><button type="button" data-s="battery" aria-pressed="false">Battery or self-start</button><button type="button" data-s="tyre" aria-pressed="false">Puncture or worn tyre</button><button type="button" data-s="heat" aria-pressed="false">Engine heating</button><button type="button" data-s="leak" aria-pressed="false">Oil leak</button>
+        </div>
+        <div class="rt-out" id="sym-out" role="status" aria-live="polite"><p class="rt-hint">Pick up to three. We show the usual causes and what to do.</p></div>
+        <p class="tiny muted">General guidance, not a diagnosis. A mechanic checks the real cause and quotes first.</p>
+      </div>
+      <div class="rt-card rt-wide" id="rt-pre">
+        <span class="rt-tag">Pre-ride check</span>
+        <h3>Ten seconds before you ride.</h3>
+        <ul class="rt-list" id="pre-list">
+          <li><label><input type="checkbox" data-k="tyre"><span><b>Tyres</b> Look for nails and cracks. Press a thumb on each: firm, not soft.</span></label></li>
+          <li><label><input type="checkbox" data-k="brake"><span><b>Brakes</b> Squeeze both levers. They should bite early, not touch the grip.</span></label></li>
+          <li><label><input type="checkbox" data-k="chain"><span><b>Chain</b> Not dry or rusty, and about a finger of play in the middle.</span></label></li>
+          <li><label><input type="checkbox" data-k="leak"><span><b>Oil and leaks</b> No fresh drips under the bike, and the oil level in range.</span></label></li>
+          <li><label><input type="checkbox" data-k="elec"><span><b>Lights and horn</b> Headlight, brake light, indicators and horn all work.</span></label></li>
+          <li><label><input type="checkbox" data-k="battery"><span><b>Starting</b> It starts in a try or two without struggling.</span></label></li>
+          <li><label><input type="checkbox" data-k="fuel"><span><b>Fuel</b> Enough for the trip, with a little spare.</span></label></li>
+          <li><label><input type="checkbox" data-k="gear"><span><b>You</b> Helmet fastened, and your documents with you.</span></label></li>
+        </ul>
+        <div class="rt-out" id="pre-out" role="status" aria-live="polite"><p class="rt-hint">Tick what looks good. We tell you what to get checked.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
 <section id="areas" class="reveal">
   <div class="wrap">
     <div class="sec-head"><h2>All of Bengaluru.</h2><p>We come to every PIN code in the city, 560001 to 560110. Type yours to check.</p></div>
