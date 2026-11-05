@@ -89,3 +89,7 @@ test('the add-media guide exists and covers privacy', () => {
   const g = read('docs/ADD-WORKSHOP-MEDIA.md');
   assert.match(g, /workshop\.json/); assert.match(g, /faces/i); assert.match(g, /number plates/i);
 });
+
+test('the site build copies the workshop page into the deploy folder', () => {
+  assert.match(readFileSync(new URL('../scripts/build_site.sh', import.meta.url), 'utf8'), /for d in workshop /);
+});
