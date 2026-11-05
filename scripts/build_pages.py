@@ -269,11 +269,16 @@ def shape(page, path=''):
         return page
     return page[:m.start()] + f'<main id="main" class="{main_cls}">\n' + new + '\n</main>' + page[m.end():]
 
+# Mechu appears on the home, model, area, car, services, help and workshop pages. Never on the single-task pages (book, pay, track, job, rate, warranty, unsubscribe).
+MECHU_PAGE = re.compile(r'^(index\.html|bike-service-[a-z0-9-]+/index\.html|bike-service/[a-z0-9-]+/index\.html|car-service-bangalore/index\.html|services/index\.html|help/index\.html|workshop/index\.html)$')
+MECHU_TAG = '<script src="/assets/js/mechu.js" defer></script>'
 def write(path, content):
     full = os.path.join(ROOT, path); os.makedirs(os.path.dirname(full), exist_ok=True)
     if path in OG_BY_PAGE and path.endswith('.html'):
         # a card of its own for the link preview on WhatsApp, Instagram and search (the structured-data image stays the shared one)
         content = content.replace('<meta property="og:image" content="' + SITE + '/assets/img/og.png">', '<meta property="og:image" content="' + SITE + '/assets/img/og/' + OG_BY_PAGE[path] + '.jpg">').replace('<meta name="twitter:image" content="' + SITE + '/assets/img/og.png">', '<meta name="twitter:image" content="' + SITE + '/assets/img/og/' + OG_BY_PAGE[path] + '.jpg">')
+    if path.endswith('.html') and MECHU_PAGE.match(path) and '</body>' in content:
+        content = content.replace('</body>', MECHU_TAG + '</body>', 1)   # Mechu, the virtual assistant button (see the Mechu section near the end)
     open(full, 'w', encoding='utf-8').write(seo_fit(tok(shape(content, path))) if path.endswith('.html') else content)
 
 _pc = json.load(open(os.path.join(ROOT, 'src', 'model-photos.json'), encoding='utf-8'))
@@ -1063,16 +1068,17 @@ def axlio_page():
 axlio_page()
 
 # ---- Car service in Bengaluru: Mechanix Pro takes the request and connects it with our partner Axlio, which lists the car services. No prices or warranty are claimed here: Axlio confirms the help, the price and the time. ----
+CAR_FAQ = (('Do you service cars in Bangalore?', 'Yes. Car service is live at Mechanix Pro: periodic service, brake service, jump start, flat tyre help, towing and fuel delivery. Message us with your car and what it needs and you get a quote first.'),
+           ('How much does a car service cost?', 'The price depends on your car and what it needs, so it is confirmed before any work starts. Send your car make, model and area on WhatsApp and you will be told the price first.'),
+           ('Do I pay before the work?', 'No. You see the work and the price first, and work starts only after you say yes.'),
+           ('Where do the parts come from?', 'Parts come through Axlio, our partner for car and bike spare parts in Bengaluru. You can read about Axlio on its partner page.'))
 def car_page():
     kicker, slug = 'Car service in Bengaluru', 'car-service-bangalore'
     title = 'Car Service in Bangalore, Quote First | Mechanix Pro'
     desc = 'Car service and car help in Bangalore from Mechanix Pro: periodic and brake service, jump start, flat tyre, towing and fuel delivery. Message us for a quote first.'
     tiles = (('Periodic service', 'Routine car service at your car\'s interval, with the right parts for your make, model, year and fuel type.'), ('Brake service', 'For thin or noisy pads, or a soft pedal. The kit is matched to your car.'), ('Jump start and flat tyre', 'Dead battery or a flat tyre on the road. Share your location and we send help.'), ('Towing and fuel delivery', 'Stuck with a breakdown or an empty tank. Help is arranged for you, with the price confirmed first.'))
     steps = ('Message us on WhatsApp with your car make, model, area and what you need.', 'We confirm the work, the price and the time, with the right parts from Axlio.', 'Work starts only after you say yes.')
-    faq = (('Do you service cars in Bangalore?', 'Yes. Car service is live at Mechanix Pro: periodic service, brake service, jump start, flat tyre help, towing and fuel delivery. Message us with your car and what it needs and you get a quote first.'),
-           ('How much does a car service cost?', 'The price depends on your car and what it needs, so it is confirmed before any work starts. Send your car make, model and area on WhatsApp and you will be told the price first.'),
-           ('Do I pay before the work?', 'No. You see the work and the price first, and work starts only after you say yes.'),
-           ('Where do the parts come from?', 'Parts come through Axlio, our partner for car and bike spare parts in Bengaluru. You can read about Axlio on its partner page.'))
+    faq = CAR_FAQ
     ti = ''.join(f'<li class="reveal" style="--i:{i}"><h3>{html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for i, (t, d) in enumerate(tiles))
     st = ''.join(f'<li class="soon-step reveal" style="--i:{i}"><span class="soon-n">{i + 1}</span><span>{html.escape(t)}</span></li>' for i, t in enumerate(steps))
     fq = ''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in faq)
@@ -1167,6 +1173,33 @@ def blog_pages():
     write('blog/index.html', HEAD.format(title='Bike and Scooter Care Blog, Bengaluru | Mechanix Pro', desc='Practical bike and scooter care advice for Bengaluru riders: brakes, chains, oil, monsoon care and more. A new post every day.', url=SITE + '/blog/', site=SITE, schema=ld, scripts=LEGAL_JS, body='', nav=NAV, main='page') + bi + foot())
     urls.append(('/blog/', '0.7'))
 blog_pages()
+
+# ---- Mechu, the virtual assistant: its facts, written from the source files so prices, fees, areas and FAQ wording never go stale. It is a guided script, not an AI model. ----
+def mechu_data():
+    def plain(x): return html.unescape(re.sub(r'<[^>]+>', '', tok(x))).strip()
+    home = open(os.path.join(ROOT, 'src', 'home.html'), encoding='utf-8').read()
+    sec = home[home.index('id="faq"'):]
+    sec = sec[:sec.index('</section>')]
+    faq = []
+    for q, a in re.findall(r'<details><summary>(.*?)</summary><p>(.*?)</p></details>', sec, re.S):
+        q, a = plain(q), plain(a)
+        # Mechu answers prices and cancellation from the structured price list and by linking to the refund policy, never by paraphrasing them
+        if q in ('What does it cost?', 'Can I cancel?'): continue
+        faq.append({'id': re.sub(r'[^a-z0-9]+', '-', q.lower()).strip('-'), 'q': q, 'a': a})
+    car_faq = [{'id': re.sub(r'[^a-z0-9]+', '-', q.lower()).strip('-'), 'q': q, 'a': a} for q, a in CAR_FAQ]
+    trust = [plain(x) for x in re.findall(r'<li><b>(.*?)</b></li>', home[home.index('id="trust"'):home.index('id="trust"') + 400])]
+    bp = open(os.path.join(ROOT, 'assets', 'js', 'book-pay.js'), encoding='utf-8').read()
+    fm = re.search(r'DEFAULTS = \{ confirm_std: (\d+), confirm_mid: (\d+), confirm_big: (\d+), confirm_car: (\d+) \}', bp)
+    tiers = dict(zip(('std', 'mid', 'big', 'car'), map(int, fm.groups())))
+    bk = open(os.path.join(ROOT, 'assets', 'js', 'bikes.js'), encoding='utf-8').read()
+    brands = []
+    for b, rows in re.findall(r"^  '([^']+)': \[(.*?)\],?\s*$", bk, re.M):
+        models = re.findall(r"\['([^']+)',", rows)[:6]
+        if models: brands.append({'b': b, 'm': models})
+    return {'prices': {k: {'n': v['name'], 'p': int(v['price'])} for k, v in SITE_DATA['services'].items()}, 'tiers': tiers, 'faq': faq, 'carFaq': car_faq, 'trust': trust,
+            'areas': [{'n': name, 'u': f'/bike-service-{slug}/'} for slug, name, *_ in AREAS], 'brands': brands}
+with open(os.path.join(ROOT, 'assets', 'js', 'mechu-data.js'), 'w', encoding='utf-8') as _f:
+    _f.write('/* Facts for Mechu, the virtual assistant. Written by scripts/build_pages.py from src/site.json, src/home.html, src/pincodes.json (the PIN names come from pincodes.js, which every page with Mechu loads), the area list, assets/js/bikes.js and the fee sizes in assets/js/book-pay.js. Do not edit by hand. */\nwindow.MXP_MECHU = ' + json.dumps(mechu_data(), ensure_ascii=False, separators=(',', ':')) + ';\n')
 
 # ---- llms.txt: a plain-text summary for AI assistants (ChatGPT, Claude, Perplexity, Google AI). Built from site.json so the prices match the site. ----
 def llms_txt():

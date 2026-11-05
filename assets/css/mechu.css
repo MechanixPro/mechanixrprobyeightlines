@@ -1,0 +1,50 @@
+/* Mechu, the Mechanix Pro virtual assistant (a guided script, not a person). Uses the site tokens from site.css (--nv, --acc, --on). Loaded by assets/js/mechu.js. */
+.mechu-btn{position:fixed;z-index:45;right:14px;bottom:calc(84px + env(safe-area-inset-bottom,0px));width:58px;height:58px;padding:0;border:3px solid var(--nv,#0B1220);border-radius:50%;background:var(--acc,#F2801F);box-shadow:0 6px 18px rgba(11,18,32,.35);cursor:pointer;display:grid;place-items:center;overflow:visible;transition:transform .2s var(--ease,ease)}
+.mechu-btn img{width:100%;height:100%;border-radius:50%;display:block}
+.mechu-btn:hover{transform:scale(1.06)}
+.mechu-btn:focus-visible{outline:3px solid var(--on,#F4F6FA);outline-offset:3px;box-shadow:0 0 0 6px var(--nv,#0B1220)}
+.mechu-btn[aria-expanded=true]{visibility:hidden}
+.mechu-shade{position:fixed;inset:0;z-index:69;background:rgba(11,18,32,.5)}
+.mechu-shade[hidden],.mechu-panel[hidden]{display:none}
+.mechu-panel{position:fixed;z-index:70;left:0;right:0;bottom:0;max-height:min(86vh,640px);max-height:min(86dvh,640px);display:flex;flex-direction:column;background:var(--paper,#FAFAF8);color:var(--tx,#0B1220);border-radius:20px 20px 0 0;box-shadow:0 -10px 40px rgba(11,18,32,.35);font:400 16px/1.45 var(--font,sans-serif);letter-spacing:0;animation:mechu-up .25s var(--ease,ease)}
+.mechu-head{display:flex;align-items:center;gap:10px;padding:12px 12px 10px 14px;background:var(--nv,#0B1220);color:var(--on,#F4F6FA);border-radius:20px 20px 0 0}
+.mechu-head img{width:40px;height:40px;border-radius:50%;flex:none}
+.mechu-head h2{margin:0;font:700 17px/1.15 var(--font,sans-serif);color:var(--on,#F4F6FA)}
+.mechu-head p{margin:2px 0 0;font-size:13px;line-height:1.2;color:var(--on2,#A9B4C8)}
+.mechu-head div{flex:1;min-width:0}
+.mechu-ic{flex:none;min-width:44px;min-height:44px;padding:0 8px;border:0;border-radius:12px;background:rgba(255,255,255,.1);color:var(--on,#F4F6FA);font:600 14px/1 var(--font,sans-serif);cursor:pointer}
+.mechu-ic:hover{background:rgba(255,255,255,.2)}
+.mechu-ic:focus-visible,.mechu-chip:focus-visible,.mechu-send:focus-visible,.mechu-in:focus-visible,.mechu-log a:focus-visible{outline:3px solid var(--acc,#F2801F);outline-offset:2px}
+.mechu-note{margin:0;padding:6px 14px;background:var(--nv2,#121C30);color:var(--on2,#A9B4C8);font-size:13px;line-height:1.3;border-top:1px solid var(--hair-d,rgba(255,255,255,.16))}
+.mechu-log{flex:1;min-height:120px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;overscroll-behavior:contain}
+.mechu-m{max-width:92%;padding:10px 13px;border-radius:16px;font-size:16px;word-wrap:break-word;overflow-wrap:anywhere}
+.mechu-hero{float:right;width:56px;height:70px;margin:0 0 4px 10px}
+.mechu-m p{margin:0 0 6px}.mechu-m p:last-child{margin-bottom:0}
+.mechu-bot{align-self:flex-start;background:#fff;border:1px solid var(--hair,#E3E6EC);border-bottom-left-radius:4px}
+.mechu-me{align-self:flex-end;background:var(--nv,#0B1220);color:var(--on,#F4F6FA);border-bottom-right-radius:4px}
+.mechu-m ul{margin:4px 0 6px;padding-left:18px}
+.mechu-m a{color:var(--nv,#0B1220);font-weight:600;text-underline-offset:3px}
+.mechu-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.mechu-link{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border-radius:999px;background:var(--nv,#0B1220);color:var(--on,#F4F6FA)!important;text-decoration:none!important;font-weight:600;font-size:15px}
+.mechu-link.go{background:var(--acc,#F2801F);color:var(--on-acc,#1A0E03)!important}
+.mechu-chips{display:flex;flex-wrap:wrap;gap:8px;padding:0 14px 10px}
+.mechu-chips:empty{display:none}
+.mechu-chip{min-height:44px;padding:0 14px;border:1.5px solid var(--nv,#0B1220);border-radius:999px;background:#fff;color:var(--nv,#0B1220);font:600 15px/1.1 var(--font,sans-serif);cursor:pointer}
+.mechu-chip:hover{background:var(--nv,#0B1220);color:var(--on,#F4F6FA)}
+.mechu-form{display:flex;gap:8px;padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--hair,#E3E6EC);background:#fff}
+.mechu-in{flex:1;min-width:0;min-height:44px;padding:0 12px;border:1.5px solid var(--hair,#E3E6EC);border-radius:12px;font:400 16px var(--font,sans-serif);color:var(--tx,#0B1220);background:#fff}
+.mechu-send{min-height:44px;padding:0 16px;border:0;border-radius:12px;background:var(--acc,#F2801F);color:var(--on-acc,#1A0E03);font:700 15px var(--font,sans-serif);cursor:pointer}
+.mechu-card{display:grid;gap:6px}.mechu-card label{font-size:14px;font-weight:600}
+.mechu-card input{min-height:44px;padding:0 12px;border:1.5px solid var(--hair,#E3E6EC);border-radius:12px;font:400 16px var(--font,sans-serif);color:var(--tx,#0B1220)}
+.mechu-card input:focus-visible{outline:3px solid var(--acc,#F2801F);outline-offset:2px}
+.mechu-err{color:#9B1C1C;font-size:14px}
+.mechu-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media(min-width:960px){
+  .mechu-btn{right:24px;bottom:24px}
+  .mechu-shade{display:none}
+  .mechu-panel{left:auto;right:24px;bottom:24px;width:360px;max-height:min(600px,calc(100vh - 48px));border-radius:20px;box-shadow:0 18px 50px rgba(11,18,32,.38)}
+  .mechu-head{border-radius:20px 20px 0 0}
+}
+@keyframes mechu-up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.mechu-panel{animation:none}.mechu-btn{transition:none}.mechu-btn:hover{transform:none}}
+@media print{.mechu-btn,.mechu-panel,.mechu-shade{display:none!important}}
