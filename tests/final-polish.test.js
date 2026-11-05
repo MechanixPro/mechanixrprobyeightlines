@@ -20,14 +20,14 @@ function py(sliceFrom, sliceTo, files, code) {
   return r.stdout.trim();
 }
 
-test('home shows real prices from the price source, GST apart, and the checkup fee stays explained in the FAQ', () => {
+test('home shows real prices from the price source, GST apart, and the confirmation fee stays explained in the FAQ', () => {
   const h = read('index.html');
   assert.match(h, /id="prices"/);
   const p = h.slice(h.indexOf('id="prices"'), h.indexOf('id="trust"'));
   for (const n of ['Basic service', 'Standard service', 'Full service', 'Repair or problem check']) assert.ok(p.includes('<b>' + n + '</b>'), n);
   for (const k of ['basic', 'general', 'full', 'repair']) assert.ok(p.includes('data-price="' + k + '"'), k);
   assert.match(p, /Prices exclude GST\. GST at 18%/);
-  assert.match(h, /New customers pay only .{0,60}to lock a slot after approving the quote, returning customers pay .{0,60}349/);
+  assert.match(h, /To confirm your slot you pay a small confirmation fee, ₹49 to ₹99 depending on your vehicle's engine size/);
   assert.doesNotMatch(h, /\{\{/);
 });
 test('home shows no reviews or mechanics block while there is no real content', () => {

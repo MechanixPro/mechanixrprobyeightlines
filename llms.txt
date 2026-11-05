@@ -7,7 +7,7 @@
 - How it works: message on WhatsApp or build a service on the website, receive an itemised quote, approve it, the mechanic comes to your door.
 - Prices for bikes and scooters up to 149cc (before GST; 18% GST is added): Basic service ₹499, Standard service ₹799, Full service ₹1,299, Repair or problem check from ₹599, puncture ₹599, roadside emergency visit ₹1,299.
 - Bikes of 150 to 250cc and 251 to 500cc have their own prices: Basic ₹799 and ₹999, Standard ₹999 and ₹1,499, Full ₹1,799 and ₹2,199.
-- Booking: a ₹349 checkup and quote fee (₹99 for new customers) holds the slot and is adjusted in the final bill.
+- Booking: a small confirmation fee, ₹49 to ₹99 depending on your vehicle's engine size, shown before you pay and adjusted in your final bill (₹49 up to 149cc, ₹69 for 150 to 250cc, ₹99 for 251cc and above and for cars) holds the slot.
 - Open 24/7 for requests. A basic service can be done in as fast as 2 hours once the mechanic arrives.
 - 10,000+ services done. 1,300+ gated communities trust us.
 - Safety: certified mechanics (visited, document-checked, trained, trial jobs), itemised WhatsApp quote before work, OTP before the bike leaves, GST invoice for every job.

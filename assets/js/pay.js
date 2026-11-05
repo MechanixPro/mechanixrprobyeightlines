@@ -37,7 +37,7 @@
       if (!x.ok) { go.disabled = false; msg.textContent = (x.d && x.d.error) || 'Something went wrong. Please try again.'; return; }
       return loadCheckout().then(function () {
         var o = x.d, rzp = new window.Razorpay({
-          key: o.key_id, amount: o.amount, currency: o.currency, order_id: o.order_id, name: 'Mechanix Pro', description: o.booking_id ? 'Booking ' + o.booking_id : 'Mechanix Pro slot fee',
+          key: o.key_id, amount: o.amount, currency: o.currency, order_id: o.order_id, name: 'Mechanix Pro', description: o.booking_id ? 'Booking ' + o.booking_id : 'Mechanix Pro confirmation fee',
           prefill: { name: o.name, contact: '+91' + phone.replace(/\D/g, '').slice(-10) }, theme: { color: '#F2801F' },
           handler: function (resp) { verify(resp, o.booking_id); },
           modal: { ondismiss: function () { go.disabled = false; msg.textContent = 'Payment cancelled. Nothing was charged. You can try again.'; } },

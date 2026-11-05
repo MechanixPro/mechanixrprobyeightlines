@@ -30,9 +30,9 @@ test('a returning customer means an earlier completed job on the same phone, nev
   assert.match(s, /\.eq\('phone'/); assert.match(s, /'completed'/); assert.match(s, /\.neq\('id'/);
 });
 test('the website tells customers the real fees', () => {
+  // The Rs 349 fee and the Rs 99 new-customer fee are retired on the public pages (see tests/fee-retired.test.mjs). The old rows stay in data for old leads.
   const h = read('index.html'), app = read('assets/js/app.js');
-  const nf = '₹' + Number(site.newCustomerFee).toLocaleString('en-IN');
-  assert.ok(h.includes(nf)); assert.match(h, /new customers?/i);
-  assert.match(app, /newfee/); assert.ok(read('refund-policy/index.html').includes(nf));
-  assert.ok(read('terms/index.html').includes(nf));
+  assert.match(h, /confirmation fee, ₹49 to ₹99/); assert.doesNotMatch(h, /new customers? pay/i);
+  assert.match(app, /newfee/); assert.match(read('refund-policy/index.html'), /confirmation fee/);
+  assert.match(read('terms/index.html'), /₹49 up to 149cc, ₹69 for 150 to 250cc, ₹99 for 251cc and above and for cars/);
 });

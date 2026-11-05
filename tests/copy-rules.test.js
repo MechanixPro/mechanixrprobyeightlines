@@ -14,12 +14,14 @@ test('the checkup and quote fee is set in the admin and is a positive number', (
 test('the old "booking advance" wording is gone everywhere: it is the checkup and quote fee', () => {
   for (const f of [...pages(), ...sources]) assert.doesNotMatch(read(f), /booking advance|₹\s?199 advance|Advance and final payments/i, f);
 });
-test('customers are told the fee is for the checkup and quote and is adjusted in the final bill if they go ahead', () => {
-  const h = read('help/index.html');
-  assert.match(h, /checkup and quote fee/i); assert.match(h, /adjusted in your final bill if you go ahead/i);
-  assert.match(read('terms/index.html'), /checkup and quote fee[\s\S]{0,90}adjusted in your final bill if you go ahead/i);
-  assert.match(read('refund-policy/index.html'), /checkup and quote/i);
-  assert.match(read('assets/js/app.js'), /checkup and quote fee/i);
+test('customers are told about the small confirmation fee (Rs 49 to Rs 99 by engine size), shown before paying and adjusted in the final bill', () => {
+  const rule = /a small confirmation fee, ₹49 to ₹99 depending on your vehicle's engine size, shown before you pay and adjusted in your final bill/;
+  assert.match(read('help/index.html'), rule);
+  assert.match(read('index.html'), rule);
+  assert.match(read('terms/index.html'), /confirmation fee is a small amount, ₹49 to ₹99 depending on your vehicle's engine size[\s\S]{0,160}adjusted in your final bill if you go ahead/i);
+  assert.match(read('refund-policy/index.html'), /Your confirmation fee is refunded in full/i);
+  assert.match(read('assets/js/app.js'), /a small confirmation fee, ₹49 to ₹99/);
+  // backend wording (the WhatsApp assistant prompt) is outside the public pages; it still names the old fee and is tracked in docs/LEGAL-REVIEW-FEE-WORDING.md
   assert.match(read('supabase/functions/_shared/ai.ts'), /checkup and quote fee/i);
 });
 test('the confirmation email explains the fee when it is known', () => {

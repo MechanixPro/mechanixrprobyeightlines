@@ -25,7 +25,7 @@ test('no GST or phone contradictions in the built pages, and llms.txt carries th
     const t = read(p); assert.doesNotMatch(t, /Prices include GST|prices include GST|up to 180cc/, p); assert.doesNotMatch(t, /XXXXX XXXXX/, p);
   }
   const l = read('llms.txt');
-  for (const s of ['10,000+ services done', '1,300+ gated communities', 'roadside emergency visit ₹1,299', '₹99 for new customers', '560001 to 560110', '+91 79652 95649']) assert.ok(l.includes(s), s);
+  for (const s of ['10,000+ services done', '1,300+ gated communities', 'roadside emergency visit ₹1,299', 'a small confirmation fee, ₹49 to ₹99 depending on your vehicle', '560001 to 560110', '+91 79652 95649']) assert.ok(l.includes(s), s);
   assert.match(read('robots.txt'), /Content-Signal: search=yes, ai-input=yes, ai-train=no/);
 });
 
