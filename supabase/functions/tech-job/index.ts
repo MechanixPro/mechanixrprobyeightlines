@@ -225,10 +225,9 @@ async function handover(req: Request, db: ReturnType<typeof adminDb>, link: any,
 async function visit(req: Request, db: ReturnType<typeof adminDb>, link: any, lead: any, action: string, body: any): Promise<Response> {
   const [{ data: rows }, { data: q }, { data: mech }] = await Promise.all([
     db.from('handovers').select('id,kind,code_hash,code_expires_at,attempts,locked_at,verified_at,photo_paths,created_at').eq('lead_id', lead.id).order('created_at', { ascending: false }),
-    db.from('job_quotes').select('status,version,eta_text,lines,subtotal,gst,total,fee_credit,balance').eq('lead_id', lead.id).in('status', ['sent', 'approved', 'declined']).order('version', { ascending: false }).limit(1).maybeSingle(),
+    db.from('job_quotes').select('status,version,eta_text').eq('lead_id', lead.id).in('status', ['sent', 'approved', 'declined']).order('version', { ascending: false }).limit(1).maybeSingle(),
     db.from('mechanics').select('name').eq('id', link.mechanic_id).maybeSingle(),
   ]);
-  const qfull = q as any;
   const all = rows ?? [], stage = lead.visit_stage ?? null, door = doorState(all), pol = photoPolicy(lead.vehicle), approved = q?.status === 'approved';
   const paid = lead.confirm_fee == null || !!lead.confirm_paid_at;
   const set = async (to: string, line: string, extra: Record<string, unknown> = {}) => {
@@ -245,9 +244,9 @@ async function visit(req: Request, db: ReturnType<typeof adminDb>, link: any, le
     return json(req, { vehicle: lead.vehicle === 'car' ? 'car' : 'bike', paid, stage, door, next: allowedStages(stage).filter((x) => x !== 'repair_doorstep' && x !== 'picked_up'),
       quote: q ? { status: q.status, version: q.version, eta_text: q.eta_text } : null, can_start_work: stage === 'started' && approved, place: lead.job_place === 'garage' ? 'garage' : 'doorstep',
       photos: { min: pol.min, labels: pol.labels, hint: pol.hint }, first_name: String(lead.name ?? '').split(' ')[0], address: lead.address ?? null, area: lead.area ?? null, pincode: lead.pincode ?? null,
-      // Journey: the Navigate link, the quote read-only (lines, total, balance, delivery), what the customer added (not their complaints about the mechanic), and whether live location may be shared now.
+      // Journey: the Navigate link, the quote read-only (from quoteView below), what the customer added (not their complaints about the mechanic), and whether live location may be shared now.
       navigate_url: navigateUrl({ lat: lead.lat, lng: lead.lng, address: [lead.address, lead.area, lead.pincode].filter(Boolean).join(', '), vehicle: lead.vehicle }),
-      share_ok: stage === 'on_the_way' || stage === 'arrived', quote_view: quoteView(qfull), customer_note: await customerNote(db, lead.id) });
+      share_ok: stage === 'on_the_way' || stage === 'arrived', quote_view: await quoteView(db, lead.id), customer_note: await customerNote(db, lead.id) });
   }
   if (!paid) return json(req, { error: 'This booking is not paid yet. Ask the desk.' }, 409);
   if (action === 'visit_status') {
@@ -329,7 +328,11 @@ async function journey(req: Request, db: ReturnType<typeof adminDb>, link: any, 
   if (!r) return json(req, { error: HANDOVER_ERR }, 500);
   return json(req, r, r.ok ? 200 : r.stopped ? 409 : 400);
 }
-const quoteView = (q: any) => !q ? null : { status: q.status, version: q.version, eta_text: q.eta_text ?? null, lines: q.lines ?? [], subtotal: q.subtotal, gst: q.gst, total: q.total, fee_credit: q.fee_credit, balance: q.balance };
+/** The latest sent, approved or declined quote, read-only on the mechanic's screen (lines, total, balance, delivery). The mechanic cannot change it; Start work stays blocked until it is approved. */
+async function quoteView(db: ReturnType<typeof adminDb>, leadId: string) {
+  const { data: q } = await db.from('job_quotes').select('status,version,eta_text,lines,subtotal,gst,total,fee_credit,balance').eq('lead_id', leadId).in('status', ['sent', 'approved', 'declined']).order('version', { ascending: false }).limit(1).maybeSingle();
+  return !q ? null : { status: q.status, version: q.version, eta_text: q.eta_text ?? null, lines: q.lines ?? [], subtotal: q.subtotal, gst: q.gst, total: q.total, fee_credit: q.fee_credit, balance: q.balance };
+}
 /** What the customer added to the booking, for the mechanic: address note, vehicle details, what they say is wrong, and photos as links that last 10 minutes. Their complaints are never included. */
 async function customerNote(db: ReturnType<typeof adminDb>, leadId: string) {
   const [{ data: d }, { data: ph }] = await Promise.all([db.from('booking_details').select('landmark,access_note,reg_no,kms,vehicle_note,issue_text').eq('lead_id', leadId).maybeSingle(), db.from('booking_photos').select('path').eq('lead_id', leadId).order('created_at').limit(3)]);
