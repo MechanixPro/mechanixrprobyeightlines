@@ -59,12 +59,12 @@ export function afterWrongTry(attempts: number) {
 }
 
 /** Photo paths must be this lead's own, in the folder for this kind, one file each: <lead id>/<kind>/<uuid>.<jpg|png|webp>. Returns the clean list or an error. */
-export function cleanPhotos(paths: unknown, leadId: string, kind: HandoverKind): { ok: true; value: string[] } | { ok: false; error: string } {
-  if (!Array.isArray(paths)) return { ok: false, error: `Take at least ${MIN_PHOTOS} photos.` };
+export function cleanPhotos(paths: unknown, leadId: string, kind: HandoverKind, min = MIN_PHOTOS, hint = "front, back, left and right"): { ok: true; value: string[] } | { ok: false; error: string } {
+  if (!Array.isArray(paths)) return { ok: false, error: `Take at least ${min} photos.` };
   const list = [...new Set(paths.map((p) => String(p ?? '')))];
   const shape = new RegExp(`^${leadId}/${kind}/[0-9a-f-]{36}\\.(jpg|png|webp)$`);
   if (!list.every((p) => shape.test(p))) return { ok: false, error: 'A photo is not valid. Take the photos again.' };
-  if (list.length < MIN_PHOTOS) return { ok: false, error: `Take at least ${MIN_PHOTOS} photos: front, back, left and right.` };
+  if (list.length < min) return { ok: false, error: `Take at least ${min} photos: ${hint}.` };
   if (list.length > MAX_PHOTOS) return { ok: false, error: `Send at most ${MAX_PHOTOS} photos.` };
   return { ok: true, value: list };
 }
@@ -85,3 +85,32 @@ export function purgeCutoff(now: Date | number = new Date(), months = HANDOVER_K
   d.setUTCDate(Math.min(day, last));
   return d;
 }
+
+/* ---------- Door code and the visit (every job, bike and car). Migration 20261228000000_paid_confirmation.sql ---------- */
+/** The code the customer gives the technician at the door to START the job. Same hash, 5-try lock and expiry rules as the pickup and return codes. Stored as handovers.kind = 'start'. */
+export const DOOR_KIND = 'start';
+/** Photos for a pickup, by vehicle. Bikes: the existing 4. Cars: 4 sides plus the odometer and the dashboard. */
+export const PHOTO_POLICY = {
+  bike: { min: 4, labels: ['front', 'back', 'left', 'right'], hint: 'front, back, left and right' },
+  car: { min: 6, labels: ['front', 'back', 'left', 'right', 'odometer', 'dashboard'], hint: 'front, back, left, right, the odometer and the dashboard' },
+} as const;
+export const photoPolicy = (vehicle: unknown) => (vehicle === 'car' ? PHOTO_POLICY.car : PHOTO_POLICY.bike);
+
+/** The visit stages the technician sets, in order. The tracking page reads them. */
+export const VISIT_STAGES = ['on_the_way', 'arrived', 'started', 'repair_doorstep', 'picked_up', 'ready', 'returned'] as const;
+export type VisitStage = (typeof VISIT_STAGES)[number];
+/** What the technician may set next from the current stage. 'started' only comes from the door code; the outcome only after it. */
+export function allowedStages(current: string | null | undefined): string[] {
+  switch (current ?? null) {
+    case null: case '': return ['on_the_way', 'arrived'];
+    case 'on_the_way': return ['arrived'];
+    case 'arrived': return [];                                  // the next step is the door code
+    case 'started': return ['repair_doorstep', 'picked_up'];    // the outcome; picked_up also needs the photos
+    case 'picked_up': return ['ready'];
+    default: return [];
+  }
+}
+/** The door code for this job: where it stands. rows are the lead's handovers, newest first. */
+export function doorState(rows: any[], now: Date | number = new Date()) { const mine = (rows ?? []).filter((r) => r.kind === DOOR_KIND), done = mine.find((r) => r.verified_at); return done ? 'verified' : codeState(mine[0], now); }
+/** Repair at the door or pick-up are open only after the door code is verified. */
+export const canChooseOutcome = (rows: any[]) => (rows ?? []).some((r) => r.kind === DOOR_KIND && r.verified_at);

@@ -1,0 +1,27 @@
+/* Paid-confirmation screens in Crew and the Admin (crm/flow-core.js). Admin has an identical copy at admin/flow.css. Phone first. */
+.flow-card{margin:14px 0;padding:14px;border:1px solid #d8dee9;border-radius:14px;background:#fff;color:#0b1220}
+.flow-card h3{margin:0 0 8px;font-size:17px}.flow-card h4{margin:14px 0 6px;font-size:14px}
+.flow-chip{display:inline-block;padding:2px 9px;border-radius:999px;background:#eef1f6;font-size:12px;font-weight:600;vertical-align:middle;color:#26324a}
+.flow-chip.good{background:#e3f6e8;color:#14612c}.flow-chip.warn{background:#fff1da;color:#8a4b00}.flow-chip.bad{background:#fde6e4;color:#a32018}
+.flow-row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.flow-btn{min-height:44px;padding:8px 14px;border-radius:12px;border:1px solid #c5cddc;background:#fff;color:#0b1220;font:600 14px/1.2 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.flow-btn:focus-visible,.flow-box input:focus-visible,.flow-box select:focus-visible{outline:3px solid #f2801f;outline-offset:2px}
+.flow-primary{background:#f2801f;border-color:#f2801f;color:#1a0e03}.flow-ghost{background:transparent}.flow-sm{min-height:36px;padding:4px 10px;font-size:13px}
+.flow-btn[disabled]{opacity:.5;cursor:not-allowed}
+.flow-muted{color:#556075;font-size:13px}.flow-bad{color:#a32018}.flow-ok{color:#14612c}
+.flow-script{margin:10px 0;padding:10px 12px;border-radius:12px;background:#f6f8fb}.flow-script summary{cursor:pointer;font-weight:600}
+.flow-list{list-style:none;padding:0;margin:6px 0}.flow-list li{padding:6px 0;border-bottom:1px solid #eef1f6;font-size:14px}
+.flow-modal{position:fixed;inset:0;background:rgba(11,18,32,.55);display:flex;align-items:flex-end;justify-content:center;z-index:1000;padding:0}
+.flow-box{background:#fff;color:#0b1220;width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px}
+@media(min-width:700px){.flow-modal{align-items:center}.flow-box{border-radius:18px}}
+.flow-box h3{margin:0 0 6px}.flow-label{display:block;font-weight:600;font-size:14px;margin:12px 0 4px}
+.flow-box input:not([type=radio]):not([type=checkbox]),.flow-box select{width:100%;min-height:44px;padding:8px 12px;border:1px solid #c5cddc;border-radius:10px;font-size:16px;font-family:inherit;background:#fff;color:#0b1220;margin:4px 0}
+.flow-check{display:flex;gap:8px;align-items:center;min-height:44px;font-size:14px}.flow-check input{width:20px;height:20px}
+.flow-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}.flow-err{color:#a32018;font-size:14px;margin:8px 0 0;min-height:0}.flow-err:empty{display:none}
+.flow-line{display:grid;grid-template-columns:96px 1fr 96px 40px;gap:6px;align-items:center}
+@media(max-width:480px){.flow-line{grid-template-columns:1fr 1fr 40px}.flow-line [name=k]{order:1}.flow-line [name=a]{order:2}.flow-line [data-rm]{order:3}.flow-line [name=n]{order:4;grid-column:1/-1}}
+.flow-sum{margin:10px 0;padding:10px;background:#f6f8fb;border-radius:10px;font-size:14px}
+.flow-eta{border:1px solid #d8dee9;border-radius:12px;margin:12px 0;padding:8px 12px}.flow-eta legend{font-weight:600;font-size:14px;padding:0 6px}
+.flow-code{font:700 44px/1 inherit;letter-spacing:.3em;text-align:center;margin:12px 0}.flow-box2{word-break:break-all;background:#f6f8fb;padding:10px;border-radius:10px;font-size:13px}
+.flow-dispatch{list-style:none;margin:0;padding:0;display:grid;gap:10px}.flow-d{color:#0b1220;padding:12px;border:1px solid #d8dee9;border-radius:14px;background:#fff;display:grid;gap:4px}.flow-d-open{border-color:#f2801f;box-shadow:0 0 0 2px #fde3c8 inset}
+.flow-empty{padding:18px;color:#c5cddc}.flow-chips{margin:6px 0 0}

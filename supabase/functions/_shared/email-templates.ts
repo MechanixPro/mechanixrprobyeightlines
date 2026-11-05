@@ -206,3 +206,71 @@ ${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}${button('Call us', '
   const text = `We have your ${d.bike}, ${firstText(d.name)}.\n\nYour vehicle has been picked up by the Mechanix Pro team and is on its way for service. We will share an update and the quote for any extra work before we start it.\n\n${d.ref ? `Reference: ${d.ref}\n` : ''}Vehicle: ${d.bike}${d.reg ? ' (' + d.reg + ')' : ''}\nService: ${d.service}${d.mechanicName ? '\nYour mechanic: ' + d.mechanicName : ''}\n\nWhatsApp: ${d.whatsappUrl}\nCall: ${d.phoneDisplay}`;
   return { subject, html: layout({ preheader: d.ref ? `Picked up for service: ${d.ref}` : 'Picked up for service', title: subject, body, site: d }), text };
 }
+
+// Sent once payment of the confirmation fee is verified. Carries the address we captured, the slot, the fee and what it is adjusted against, the secret tracking link and the customer's door code.
+export type PaidConfirmationData = Site & {
+  name: string; ref?: string | null; vehicle: 'bike' | 'car'; vehicleName: string; service: string; address: string; whenText: string;
+  amount: number; gstBase: number; gst: number; trackUrl: string; code?: string | null;
+};
+export const DOOR_CODE_LINE = 'Give this code to the mechanic when they arrive. Do not share it before.';
+export function paidConfirmation(d: PaidConfirmationData): Mail {
+  const subject = `Your slot is confirmed${d.ref ? ' ' + d.ref : ''}`;
+  const money = (n: number) => '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const pairs: Array<[string, string]> = [...(d.ref ? [['Booking ID', d.ref] as [string, string]] : []), [d.vehicle === 'car' ? 'Car' : 'Bike', d.vehicleName], ['Service', d.service], ['Address', d.address], ['Slot', d.whenText],
+    ['Paid', `${rupee(d.amount)} (${money(d.gstBase)} + ${money(d.gst)} GST)`], ['Adjusted against', 'your final bill']];
+  const codeBlock = d.code ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 10px"><tr><td bgcolor="#F2F4F8" style="padding:16px 26px;border-radius:14px;border:1px solid ${LINE};font:700 34px ${FONT};letter-spacing:10px;color:${NAVY}">${escapeHtml(d.code)}</td></tr></table>
+<p style="margin:0 0 18px;font:700 15px/1.5 ${FONT};color:${INK}">${DOOR_CODE_LINE}</p>` : '';
+  const body = `${h1(`Your slot is confirmed, ${firstText(d.name)}.`)}
+${p(`We got your confirmation fee. Your mechanic will come to the address below. You see an itemised quote first, and nothing starts without your OK and your code.`)}
+${rows(pairs)}
+${heading('Your code')}${codeBlock || p('Your code is on your tracking page.')}
+${button('Track your booking', d.trackUrl, EMBER, '#1F1206')}${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}
+<p style="margin:18px 0 0;font:13px/1.5 ${FONT};color:${MUTED}">This tracking link is private to you. Do not forward this email: it holds your code.</p>`;
+  const text = `Your slot is confirmed, ${firstText(d.name)}.\n\n${pairs.map(([k, v]) => `${k}: ${v}`).join('\n')}\n\n${d.code ? `Your code: ${d.code}\n${DOOR_CODE_LINE}\n\n` : ''}Track your booking: ${d.trackUrl}\n\nYou see an itemised quote first. Nothing starts without your OK and your code. The fee is adjusted against your final bill.\n\nMechanix Pro, Bengaluru · ${d.email}`;
+  return { subject, html: layout({ preheader: `Confirmed: ${d.whenText}`, title: subject, body, site: d }), text };
+}
+
+// Receipt for the confirmation fee (an advance). Same layout and company block as the invoice email; GST shown separately; says it is adjusted in the final bill.
+export type FeeReceiptData = Site & { name: string; ref?: string | null; number: string; dateLabel: string; amount: number; gstBase: number; gst: number; vehicleName: string; service: string; company: InvoiceMailData['company'] };
+export function feeReceipt(d: FeeReceiptData): Mail {
+  const c = d.company, addr = [...c.addressLines, [c.city, c.state, c.pincode].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  const inr = (n: number) => '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const cgst = Math.round((d.gst / 2) * 100) / 100, sgst = Math.round((d.gst - cgst) * 100) / 100;
+  const subject = `Receipt for your confirmation fee${d.ref ? ' ' + d.ref : ''}`;
+  const line = (k: string, v: string, bold = false) => `<tr><td style="padding:8px 0;font:${bold ? '700 16px' : '14px'} ${FONT};color:${bold ? INK : MUTED}">${escapeHtml(k)}</td><td align="right" style="padding:8px 0;font:${bold ? '700 16px' : '600 15px'} ${FONT};color:${INK}">${escapeHtml(v)}</td></tr>`;
+  const body = `${h1('Receipt for your confirmation fee')}
+${p(`Hi ${first(d.name)}, we received your confirmation fee${d.ref ? ' for booking <b>' + escapeHtml(d.ref) + '</b>' : ''}. Receipt <b>${escapeHtml(d.number)}</b>, dated ${escapeHtml(d.dateLabel)}.`)}
+${p(`${escapeHtml(d.vehicleName)} · ${escapeHtml(d.service)}`)}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:2px solid ${EMBER};margin:6px 0 18px">${line('Confirmation fee (taxable value)', inr(d.gstBase))}${line('CGST @ 9%', inr(cgst))}${line('SGST @ 9%', inr(sgst))}${line('Total paid', inr(d.amount), true)}</table>
+<p style="margin:0 0 16px;font:700 15px/1.5 ${FONT};color:${INK}">This fee is adjusted in your final bill.</p>
+<p style="margin:18px 0 6px;font:13px/1.55 ${FONT};color:${MUTED}">Issued by <b>${escapeHtml(c.legalName)}</b> (trading as Mechanix Pro), ${escapeHtml(addr)}. GSTIN ${escapeHtml(c.gstin)}. The amount includes 18% GST. This is a receipt for an advance; your tax invoice follows when the job is done.</p>
+${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}`;
+  const text = `Receipt for your confirmation fee ${d.number} (${d.dateLabel})\n\nConfirmation fee (taxable value): ${inr(d.gstBase)}\nCGST @ 9%: ${inr(cgst)}\nSGST @ 9%: ${inr(sgst)}\nTotal paid: ${inr(d.amount)}\n\nThis fee is adjusted in your final bill.\n\nIssued by ${c.legalName} (trading as Mechanix Pro), ${addr}. GSTIN ${c.gstin}.`;
+  return { subject, html: layout({ preheader: `Receipt ${d.number}: ${inr(d.amount)} paid`, title: subject, body, site: d }), text };
+}
+
+// The itemised quote the customer approves on the tracking page. GST shown separately, the confirmation fee shown as already paid, the balance, and the estimated delivery.
+export type QuoteMailData = Site & { name: string; ref?: string | null; version: number; lines: { kind: string; name: string; amount: number }[]; subtotal: number; gst: number; total: number; feeCredit: number; balance: number; etaText: string; trackUrl: string; revised?: boolean };
+export function quoteMail(d: QuoteMailData): Mail {
+  const inr = (n: number) => '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const subject = `${d.revised ? 'Revised quote' : 'Your quote'}${d.ref ? ' ' + d.ref : ''}: approve to start the work`;
+  const KIND: Record<string, string> = { parts: 'Parts', labour: 'Labour', other: 'Other' };
+  const items = d.lines.map((l) => `<tr><td style="padding:10px 0;border-bottom:1px solid ${LINE};font:15px ${FONT};color:${INK}">${escapeHtml(l.name)} <span style="color:${MUTED};font-size:12px">${escapeHtml(KIND[l.kind] ?? l.kind)}</span></td><td align="right" style="padding:10px 0;border-bottom:1px solid ${LINE};font:600 15px ${FONT};color:${INK}">${inr(l.amount)}</td></tr>`).join('');
+  const sum = (k: string, v: string, bold = false) => `<tr><td style="padding:6px 0;font:${bold ? '700 16px' : '14px'} ${FONT};color:${bold ? INK : MUTED}">${escapeHtml(k)}</td><td align="right" style="padding:6px 0;font:${bold ? '700 16px' : '600 15px'} ${FONT};color:${INK}">${escapeHtml(v)}</td></tr>`;
+  const body = `${h1(d.revised ? 'Your revised quote' : 'Your quote')}
+${p(`Hi ${first(d.name)}, the mechanic has checked your vehicle. ${d.revised ? 'Extra work was found, so this quote replaces the earlier one.' : ''} Nothing starts until you approve.`)}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:2px solid ${EMBER};margin:6px 0 14px">${items}</table>
+<table role="presentation" width="70%" align="right" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px">${sum('Subtotal (before GST)', inr(d.subtotal))}${sum('GST @ 18%', inr(d.gst))}${sum('Total', inr(d.total), true)}${d.feeCredit ? sum('Confirmation fee already paid', '− ' + inr(d.feeCredit)) : ''}${sum('Balance to pay', inr(d.balance), true)}</table>
+<div style="clear:both"></div>
+${p(`<b>Estimated delivery:</b> ${escapeHtml(d.etaText)}`)}
+${button('Review and approve', d.trackUrl, EMBER, '#1F1206')}
+<p style="margin:14px 0 0;font:13px/1.5 ${FONT};color:${MUTED}">You can also decline on that page. This link is private to you.</p>`;
+  const text = `${d.revised ? 'Revised quote' : 'Your quote'}${d.ref ? ' ' + d.ref : ''}\n\n${d.lines.map((l) => `${l.name} (${KIND[l.kind] ?? l.kind}): ${inr(l.amount)}`).join('\n')}\n\nSubtotal (before GST): ${inr(d.subtotal)}\nGST @ 18%: ${inr(d.gst)}\nTotal: ${inr(d.total)}\n${d.feeCredit ? `Confirmation fee already paid: -${inr(d.feeCredit)}\n` : ''}Balance to pay: ${inr(d.balance)}\n\nEstimated delivery: ${d.etaText}\n\nReview and approve: ${d.trackUrl}\nNothing starts until you approve.`;
+  return { subject, html: layout({ preheader: `Total ${inr(d.total)}. Estimated delivery: ${d.etaText}`, title: subject, body, site: d }), text };
+}
+// Short email when the delivery estimate changes.
+export function etaChanged(d: Site & { name: string; ref?: string | null; etaText: string; trackUrl: string }): Mail {
+  const subject = `New delivery estimate${d.ref ? ' for ' + d.ref : ''}`;
+  const body = `${h1('Delivery estimate updated')}${p(`Hi ${first(d.name)}, your estimated delivery is now <b>${escapeHtml(d.etaText)}</b>. Sorry for the change.`)}${button('Track your booking', d.trackUrl, EMBER, '#1F1206')}`;
+  return { subject, html: layout({ preheader: `Estimated delivery: ${d.etaText}`, title: subject, body, site: d }), text: `Hi ${firstText(d.name)}, your estimated delivery is now ${d.etaText}.\nTrack: ${d.trackUrl}` };
+}

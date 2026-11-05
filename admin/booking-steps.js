@@ -1,3 +1,5 @@
+import { confirmPending, confirmPaid, visitSub } from './flow-rules.js';
+export * from './flow-rules.js';
 // admin/booking-steps.js — the booking steps, lost reasons and conversion numbers for the admin panel (no DOM, no Supabase), so Node can test them.
 // The same rules as crm/crm-rules.js. The admin and the desk are built and deployed separately, so this is a small copy, not an import; tests/booking-steps.test.mjs checks the two give the same answers.
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'], BOOKED = ['paid', 'scheduled', 'completed'], VEHICLES = ['bike', 'car', 'parts'];
@@ -31,13 +33,17 @@ export function bookingStep(lead) {
   else if (s === 'paid' || bookingLabel(l)) index = 3;
   else if (s === 'quoted' || s === 'payment_sent') index = 2;
   else if (s === 'contacted' || firstContact(l)) index = 1;
-  const steps = STEPS.map(([key, label], i) => ({ key, label, state: i < index ? 'done' : i > index ? 'todo' : closed ? 'stopped' : index === 5 ? 'done' : 'current' }));
-  return { index, key: STEPS[index][0], label: STEPS[index][1], closed, steps, next: closed || index === 5 ? null : STEPS[index + 1][1] };
+  // "Payment link sent" is how step 3 reads while a confirmation payment link waits to be paid (same step, same index: nothing else moves).
+  const linkSent = index === 2 && s === 'payment_sent';
+  const steps = STEPS.map(([key, label], i) => ({ key, label: i === 2 && linkSent ? 'Payment link sent' : label, state: i < index ? 'done' : i > index ? 'todo' : closed ? 'stopped' : index === 5 ? 'done' : 'current' }));
+  return { index, key: STEPS[index][0], label: linkSent ? 'Payment link sent' : STEPS[index][1], closed, steps, next: closed || index === 5 ? null : STEPS[index + 1][1], sub: visitSub(l) };
 }
 /** The admin's one button for a lead. An admin may take every step. */
 export function nextAction(lead) {
   const st = bookingStep(lead);
   if (st.closed || st.index === 5) return null;
+  if (st.index === 2 && confirmPending(lead)) return { key: 'resend_link', label: 'Resend payment link' };
+  if (st.index === 3 && confirmPaid(lead) && !lead.mechanic_name && !lead.mechanic_id) return { key: 'assign', label: 'Assign mechanic' };
   return [{ key: 'call', label: 'Call now' }, { key: 'quote', label: 'Send quote' }, { key: 'confirm', label: 'Confirm booking' }, { key: 'schedule', label: 'Schedule' }, { key: 'done', label: 'Mark done' }][st.index];
 }
 export function stepGuard(lead, target) {
@@ -45,6 +51,7 @@ export function stepGuard(lead, target) {
   if (st.closed === 'junk') return no('This lead is junk. Restore it first.');
   if (st.closed === 'lost') return no('This lead is lost. Reopen it first.');
   if (target === 'quote' && st.index >= 2) return no('This lead is already past the quote step.');
+  if ((target === 'confirm' || target === 'schedule') && confirmPending(lead)) return no('Waiting for the confirmation fee. The booking is confirmed when it is paid.');
   if (target === 'confirm' && st.index >= 3) return no('This booking is already confirmed.');
   if (target === 'schedule') {
     if (!bookingLabel(lead) && st.index < 4) return no('Confirm the booking first. Scheduling needs the booking ID.');

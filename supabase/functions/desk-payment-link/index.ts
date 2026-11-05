@@ -7,6 +7,7 @@ import { sendCampaign } from '../_shared/aisensy-send.ts';
 import { slotFee } from '../_shared/checkout.ts';
 import { isReturningCustomer } from '../_shared/customer.ts';
 import { forBooking, idParam } from '../_shared/booking-id.ts';
+import { prepareConfirmationLink, linkText, CALL_SCRIPT } from '../_shared/confirm-link.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
@@ -19,11 +20,28 @@ Deno.serve(async (req) => {
   // Permission, ownership and status are checked by the database as this person.
   const { data: ctx, error: ce } = await userClient.rpc('crm_payment_context', { p_lead: String(b.lead_id ?? '') });
   if (ce) return json(req, { error: ce.message }, ce.code === '42501' ? 403 : 400);
-  if (!razorpayReady()) return json(req, { error: 'Payments are not connected yet' }, 503);
-
   const db = adminDb();
   const { data: lead } = await db.from('leads').select('*').eq('id', ctx.lead_id).maybeSingle();
   if (!lead) return json(req, { error: 'Booking not found' }, 404);
+
+  // Confirmation fee link (the sales call): the website pay page with the reference filled in. The fee is worked out here from the vehicle and model, never typed.
+  if (b.purpose === 'confirm') {
+    try {
+      const c = await prepareConfirmationLink(db, lead, { email: b.email, actor: user.id });
+      const first = String(lead.name).split(' ')[0];
+      let sent = false, why: string | null = null;
+      if (b.send_whatsapp !== false) {
+        if (!env('AISENSY_API_KEY')) why = 'not_connected';
+        else { const r = await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: env('AISENSY_CAMPAIGN_PAYMENT', 'mxp_desk_payment_link'), phone: lead.phone, name: lead.name, params: [first, String(c.amount), idParam(lead), c.url], source: 'mechanix-desk' }); sent = r.ok; if (!r.ok) why = r.error ?? 'failed'; }
+      }
+      await db.from('crm_activities').insert({ lead_id: lead.id, actor: user.id, kind: 'whatsapp', body: `Payment link sent: ₹${c.amount} confirmation fee${sent ? ' on WhatsApp' : ' (created, not sent on WhatsApp)'}${c.review ? '. Fee needs a check: engine size not clear.' : ''}` });
+      if (sent) await db.from('messages').insert({ lead_id: lead.id, phone: lead.phone, direction: 'out', sender: 'staff', body: `Confirmation fee link ₹${c.amount}: ${c.url}` });
+      if (!lead.crm_first_contact_at && sent) await db.from('leads').update({ crm_first_contact_at: new Date().toISOString() }).eq('id', lead.id);
+      await db.from('audit_log').insert({ actor: user.id, action: 'confirm_link_sent', details: { lead: lead.ref, amount: c.amount, sent, review: c.review } });
+      return json(req, { ok: true, url: c.url, amount: c.amount, suggested: c.amount, whatsapp_sent: sent, whatsapp_note: why, whatsapp_text: linkText(first, c.amount, c.url), fee_line: c.feeLine, call_script: CALL_SCRIPT(c.amount), review: c.review, has_email: c.hasEmail, nudge_minutes: c.nudgeMinutes });
+    } catch (e) { return json(req, { error: (e as Error).message }, 400); }
+  }
+  if (!razorpayReady()) return json(req, { error: 'Payments are not connected yet' }, 503);
 
   const { data: fees } = await db.from('services').select('id,price').eq('kind', 'fee').eq('active', true);
   const feeOf = (id: string, d: number) => Number((fees ?? []).find((r) => r.id === id)?.price ?? d);

@@ -7,10 +7,12 @@ import { createPaymentLink } from '../_shared/razorpay.ts';
 import { sha256Hex, techPct, companyShare, cleanReport } from '../_shared/tech-job.ts';
 import { formatWhen } from '../_shared/when.ts';
 import { buildInvoice } from '../_shared/invoice.ts';
-import { isKind, isCode, isPickupJob, handoverHash, sameHash, stepState, afterWrongTry, cleanPhotos, cleanUploadRequest, HANDOVER_KINDS, MAX_ATTEMPTS } from '../_shared/handover.ts';
+import { isKind, isCode, isPickupJob, handoverHash, sameHash, stepState, afterWrongTry, cleanPhotos, cleanUploadRequest, HANDOVER_KINDS, MAX_ATTEMPTS, DOOR_KIND, photoPolicy, allowedStages, doorState, canChooseOutcome } from '../_shared/handover.ts';
 
 const NOT_VALID = 'This link is not valid.', EXPIRED = 'This link has expired. Ask the desk for a new one.', DONE = 'This job is already reported.';
 const HANDOVER_ACTIONS = ['handover_state', 'handover_upload_url', 'handover_verify'];
+// The visit: on the way, arrived, the customer's door code, then repair at the door or pick-up, ready, delivered. No prices here.
+const VISIT_ACTIONS = ['visit_state', 'visit_status', 'visit_start', 'visit_outcome', 'visit_ready', 'visit_deliver'];
 const hidesIds = (t: string) => !(/[A-Z]{5}[0-9]{4}[A-Z]/i.test(t) || /[0-9]{12,}/.test(t.replace(/[ -]/g, '')));
 
 Deno.serve(async (req) => {
@@ -24,7 +26,7 @@ Deno.serve(async (req) => {
   if ((count ?? 0) >= 20) return json(req, { error: 'Too many tries. Wait a few minutes.' }, 429);
 
   const body = await req.json().catch(() => ({}));
-  const action = body?.action === 'report' ? 'report' : HANDOVER_ACTIONS.includes(body?.action) ? String(body.action) : 'get';
+  const action = body?.action === 'report' ? 'report' : HANDOVER_ACTIONS.includes(body?.action) || VISIT_ACTIONS.includes(body?.action) ? String(body.action) : 'get';
   const t = String(body?.t ?? '');
   if (!/^[0-9a-f]{64}$/.test(t)) { await db.from('audit_log').insert({ action: 'tech_job_hit', details: { ip: ipHash, action } }); return json(req, { error: NOT_VALID }, 404); }
   const tokHash = await sha256Hex(t), tok16 = tokHash.slice(0, 16);
@@ -37,9 +39,9 @@ Deno.serve(async (req) => {
   const { data: lead } = await db.from('leads').select('*').eq('id', link.lead_id).maybeSingle();
   if (!lead || lead.deleted_at || lead.status === 'lost' || lead.mechanic_id !== link.mechanic_id) return json(req, { error: EXPIRED }, 410);
   // The handover steps work on the same link, and the return step comes after the job is reported, so they look at the link's own life (7 days, or 30 after the report) instead of the report.
-  if (HANDOVER_ACTIONS.includes(action)) {
+  if (HANDOVER_ACTIONS.includes(action) || VISIT_ACTIONS.includes(action)) {
     if (Date.parse(link.reported_at ?? link.expires_at) + (link.reported_at ? 30 * 864e5 : 0) <= Date.now()) return json(req, { error: EXPIRED }, 410);
-    return await handover(req, db, link, lead, action, body);
+    return VISIT_ACTIONS.includes(action) ? await visit(req, db, link, lead, action, body) : await handover(req, db, link, lead, action, body);
   }
   // Once reported, the link shows only the payment (for 30 more days), never the customer's details.
   if (link.reported_at) {
@@ -123,17 +125,21 @@ async function handover(req: Request, db: ReturnType<typeof adminDb>, link: any,
   if (!isPickupJob(lead)) return json(req, { pickup: false, steps: [] }, action === 'handover_state' ? 200 : 400);
   const { data: rows } = await db.from('handovers').select('id,kind,code_hash,code_expires_at,attempts,locked_at,verified_at,photo_paths,created_at').eq('lead_id', lead.id).order('created_at', { ascending: false });
   const all = rows ?? [];
-  if (action === 'handover_state') return json(req, { pickup: true, booking_id: lead.booking_id ?? null, steps: HANDOVER_KINDS.map((k) => stepState(all, k)) });
+  const pol = photoPolicy(lead.vehicle), doorOk = canChooseOutcome(all);
+  // After the door code is verified, the pickup needs the photos only (the customer already gave the code at the door): its step is open with no code.
+  const stepOf = (k: 'pickup' | 'return') => { const st = stepState(all, k); return k === 'pickup' && st.state !== 'verified' && doorOk ? { ...st, state: 'open', code_needed: false } : { ...st, code_needed: true }; };
+  if (action === 'handover_state') return json(req, { pickup: true, booking_id: lead.booking_id ?? null, vehicle: lead.vehicle === 'car' ? 'car' : 'bike', photos: { min: pol.min, labels: pol.labels, hint: pol.hint }, steps: HANDOVER_KINDS.map((k) => stepOf(k)) });
 
   const kind = body?.kind;
   if (!isKind(kind)) return json(req, { error: 'Choose pickup or return.' }, 400);
-  const step = stepState(all, kind);
+  const step = stepOf(kind);
   if (step.state === 'verified') return json(req, { error: kind === 'pickup' ? 'The pickup is already verified.' : 'The return is already verified.' }, 409);
   if (step.state === 'waiting') return json(req, { error: 'Verify the pickup first.' }, 409);
   if (step.state === 'locked') return json(req, { error: 'Too many wrong codes. The desk will send a new code.' }, 423);
   if (step.state === 'no_code') return json(req, { error: 'The desk has not sent a code yet. Ask the desk.' }, 409);
   if (step.state === 'expired') return json(req, { error: 'The code has expired. Ask the desk for a new one.' }, 410);
-  const row = all.find((r) => r.kind === kind)!;
+  const row = all.find((r) => r.kind === kind) ?? null;
+  const noCode = kind === 'pickup' && doorOk && !step.code_needed;
 
   if (action === 'handover_upload_url') {
     const v = cleanUploadRequest(body);
@@ -148,14 +154,29 @@ async function handover(req: Request, db: ReturnType<typeof adminDb>, link: any,
     return json(req, { uploads });
   }
 
-  // handover_verify: photos first (a photo problem does not use up a try), then the code.
-  if (!isCode(body?.code)) return json(req, { error: 'Enter the 4-digit code.' }, 400);
-  const photos = cleanPhotos(body?.photos, lead.id, kind);
+  // handover_verify: photos first (a photo problem does not use up a try), then the code (not needed for a pickup once the door code is verified).
+  if (!noCode && !isCode(body?.code)) return json(req, { error: 'Enter the 4-digit code.' }, 400);
+  const photos = cleanPhotos(body?.photos, lead.id, kind, pol.min, pol.hint);
   if (!photos.ok) return json(req, { error: photos.error }, 400);
   const { data: files } = await db.storage.from('handover').list(`${lead.id}/${kind}`, { limit: 200 });
   const there = new Set((files ?? []).map((f: { name: string }) => `${lead.id}/${kind}/${f.name}`));
   if (!photos.value.every((p) => there.has(p))) return json(req, { error: 'A photo did not upload. Take it again.' }, 400);
 
+  if (noCode) {
+    // No work before approval: a pickup is the start of the workshop job, so the quote must be approved first (the database enforces the same).
+    const { data: latest } = await db.from('job_quotes').select('status').eq('lead_id', lead.id).in('status', ['sent', 'approved']).order('version', { ascending: false }).limit(1).maybeSingle();
+    if (lead.confirm_fee != null && latest?.status !== 'approved') return json(req, { error: 'The customer has not approved the quote yet. Ask the desk to record a phone approval.', blocked: 'quote' }, 409);
+    const now0 = new Date().toISOString();
+    const { error: e0 } = await db.from('handovers').insert({ lead_id: lead.id, kind: 'pickup', code_hash: 'door-verified', code_expires_at: now0, verified_at: now0, mechanic_id: link.mechanic_id, photo_paths: photos.value });
+    if (e0 && e0.code === '23505') return json(req, { error: 'This handover is already verified.' }, 409);
+    if (e0) { console.error('tech-job pickup', e0); return json(req, { error: HANDOVER_ERR }, 500); }
+    const { error: e1 } = await db.from('leads').update({ visit_stage: 'picked_up', visit_stage_at: now0, job_place: 'garage' }).eq('id', lead.id);
+    if (e1) { console.error('tech-job stage', e1); return json(req, { error: 'The customer has not approved the quote yet.', blocked: 'quote' }, 409); }
+    await db.from('crm_activities').insert({ lead_id: lead.id, actor: null, kind: 'note', body: `Pickup verified (door code already verified), ${photos.value.length} photos. Picked up for the workshop.` }).then(() => {}, () => {});
+    await db.from('audit_log').insert({ action: 'handover_verified', details: { lead: lead.ref, kind, photos: photos.value.length, mechanic: link.mechanic_id, via: 'door_code' } });
+    return json(req, { ok: true, kind, verified_at: now0, photos: photos.value.length });
+  }
+  if (!row) return json(req, { error: 'The desk has not sent a code yet. Ask the desk.' }, 409);
   // Count the try before comparing, so two quick requests cannot both get a free guess.
   const { data: tried } = await db.from('handovers').update({ attempts: row.attempts + 1 }).eq('id', row.id).eq('attempts', row.attempts).is('verified_at', null).is('locked_at', null).select('id').maybeSingle();
   if (!tried) return json(req, { error: 'Please try again.' }, 409);
@@ -181,5 +202,92 @@ async function handover(req: Request, db: ReturnType<typeof adminDb>, link: any,
   const label = kind === 'pickup' ? 'Pickup' : 'Return';
   await db.from('crm_activities').insert({ lead_id: lead.id, actor: null, kind: 'note', body: `${label} verified by ${name}, ${photos.value.length} photos.` }).then(() => {}, () => {});
   await db.from('audit_log').insert({ action: 'handover_verified', details: { lead: lead.ref, kind, photos: photos.value.length, mechanic: link.mechanic_id } });
+  // The visit stage follows the handover: a verified return is "Delivered", a verified pickup is "Picked up" (the quote gate in the database applies).
+  if (lead.confirm_fee != null) {
+    const to = kind === 'return' ? 'returned' : 'picked_up';
+    const { error: se } = await db.from('leads').update({ visit_stage: to, visit_stage_at: now }).eq('id', lead.id);
+    if (se && kind === 'pickup') return json(req, { error: 'The customer has not approved the quote yet. Ask the desk to record a phone approval.', blocked: 'quote' }, 409);
+  }
   return json(req, { ok: true, kind, verified_at: now, photos: photos.value.length });
+}
+
+// ---------- The visit (every job, bike and car) ----------
+async function visit(req: Request, db: ReturnType<typeof adminDb>, link: any, lead: any, action: string, body: any): Promise<Response> {
+  const [{ data: rows }, { data: q }, { data: mech }] = await Promise.all([
+    db.from('handovers').select('id,kind,code_hash,code_expires_at,attempts,locked_at,verified_at,photo_paths,created_at').eq('lead_id', lead.id).order('created_at', { ascending: false }),
+    db.from('job_quotes').select('status,version,eta_text').eq('lead_id', lead.id).in('status', ['sent', 'approved', 'declined']).order('version', { ascending: false }).limit(1).maybeSingle(),
+    db.from('mechanics').select('name').eq('id', link.mechanic_id).maybeSingle(),
+  ]);
+  const all = rows ?? [], stage = lead.visit_stage ?? null, door = doorState(all), pol = photoPolicy(lead.vehicle), approved = q?.status === 'approved';
+  const paid = lead.confirm_fee == null || !!lead.confirm_paid_at;
+  const set = async (to: string, line: string, extra: Record<string, unknown> = {}) => {
+    const now = new Date().toISOString();
+    const upd = db.from('leads').update({ visit_stage: to, visit_stage_at: now, ...extra }).eq('id', lead.id);
+    const { data: ok, error } = await (stage ? upd.eq('visit_stage', stage) : upd.is('visit_stage', null)).select('id').maybeSingle();   // only from the stage we read: a double tap changes nothing
+    if (error) { console.error('tech-job visit stage', error); return json(req, { error: /approved/.test(error.message) ? 'Start work is blocked: the customer has not approved the quote yet.' : HANDOVER_ERR, blocked: /approved/.test(error.message) ? 'quote' : undefined }, /approved/.test(error.message) ? 409 : 500); }
+    if (!ok) return json(req, { error: 'This step was already done. Reload the page.' }, 409);
+    await db.from('crm_activities').insert({ lead_id: lead.id, actor: null, kind: 'note', body: line.replace('{who}', (mech as { name?: string } | null)?.name?.split(' ')[0] ?? 'The mechanic') }).then(() => {}, () => {});
+    await db.from('audit_log').insert({ action: 'visit_' + to, details: { lead: lead.ref, mechanic: link.mechanic_id } });
+    return json(req, { ok: true, stage: to });
+  };
+  if (action === 'visit_state') {
+    return json(req, { vehicle: lead.vehicle === 'car' ? 'car' : 'bike', paid, stage, door, next: allowedStages(stage).filter((x) => x !== 'repair_doorstep' && x !== 'picked_up'),
+      quote: q ? { status: q.status, version: q.version, eta_text: q.eta_text } : null, can_start_work: stage === 'started' && approved, place: lead.job_place === 'garage' ? 'garage' : 'doorstep',
+      photos: { min: pol.min, labels: pol.labels, hint: pol.hint }, first_name: String(lead.name ?? '').split(' ')[0], address: lead.address ?? null, area: lead.area ?? null, pincode: lead.pincode ?? null });
+  }
+  if (!paid) return json(req, { error: 'This booking is not paid yet. Ask the desk.' }, 409);
+  if (action === 'visit_status') {
+    const to = String(body?.stage ?? '');
+    if (!['on_the_way', 'arrived'].includes(to) || !allowedStages(stage).includes(to)) return json(req, { error: 'That step is not available now.' }, 409);
+    return await set(to, to === 'on_the_way' ? '{who} is on the way.' : '{who} has arrived.');
+  }
+  if (action === 'visit_start') {
+    if (['started', 'repair_doorstep', 'picked_up', 'ready', 'returned'].includes(stage ?? '') || door === 'verified') return json(req, { error: 'The job has already started.' }, 409);
+    if (!isCode(body?.code)) return json(req, { error: 'Enter the 4-digit code.' }, 400);
+    if (door === 'none') return json(req, { error: 'The customer has no code yet. Ask the desk to send one.' }, 409);
+    if (door === 'locked') return json(req, { error: 'Too many wrong codes. The desk will send a new code.' }, 423);
+    if (door === 'expired') return json(req, { error: 'The code has expired. Ask the desk for a new one.' }, 410);
+    const row = all.find((r) => r.kind === DOOR_KIND)!;
+    // Count the try before comparing, so two quick requests cannot both get a free guess.
+    const { data: tried } = await db.from('handovers').update({ attempts: row.attempts + 1 }).eq('id', row.id).eq('attempts', row.attempts).is('verified_at', null).is('locked_at', null).select('id').maybeSingle();
+    if (!tried) return json(req, { error: 'Please try again.' }, 409);
+    if (!sameHash(await handoverHash(row.id, String(body.code)), row.code_hash)) {
+      const w = afterWrongTry(row.attempts);
+      if (w.locked) {
+        await db.from('handovers').update({ locked_at: new Date().toISOString() }).eq('id', row.id);
+        await db.from('crm_activities').insert({ lead_id: lead.id, actor: null, kind: 'note', body: `The door code was entered wrong ${MAX_ATTEMPTS} times and is locked. Send a new code.` }).then(() => {}, () => {});
+        await db.from('audit_log').insert({ action: 'handover_locked', details: { lead: lead.ref, kind: DOOR_KIND } });
+        return json(req, { error: 'Too many wrong codes. The desk will send a new code.', locked: true }, 423);
+      }
+      return json(req, { error: `That code is not right. ${w.left} ${w.left === 1 ? 'try' : 'tries'} left.`, left: w.left }, 400);
+    }
+    const now = new Date().toISOString();
+    const { data: done, error } = await db.from('handovers').update({ verified_at: now, mechanic_id: link.mechanic_id }).eq('id', row.id).is('verified_at', null).select('id').maybeSingle();
+    if (error && error.code === '23505') return json(req, { error: 'The job has already started.' }, 409);
+    if (error || !done) { console.error('tech-job start', error); return json(req, { error: HANDOVER_ERR }, error ? 500 : 409); }
+    await db.from('leads').update({ visit_stage: 'started', visit_stage_at: now }).eq('id', lead.id);
+    await db.from('booking_secrets').update({ door_code: null }).eq('lead_id', lead.id);   // the code is spent: it is no longer shown anywhere
+    await db.from('crm_activities').insert({ lead_id: lead.id, actor: null, kind: 'note', body: 'Door code verified. Job started.' }).then(() => {}, () => {});
+    await db.from('audit_log').insert({ action: 'door_code_verified', details: { lead: lead.ref, mechanic: link.mechanic_id } });
+    return json(req, { ok: true, stage: 'started' });
+  }
+  if (action === 'visit_outcome') {
+    const o = String(body?.outcome ?? '');
+    if (!['repair_doorstep', 'pickup'].includes(o)) return json(req, { error: 'Choose repair at the door or pick-up.' }, 400);
+    if (stage !== 'started') return json(req, { error: stage ? 'The outcome is already set.' : 'Enter the customer\'s code first.' }, 409);
+    // No work before approval. The database trigger enforces the same.
+    if (lead.confirm_fee != null && !approved) return json(req, { error: q?.status === 'declined' ? 'The customer declined the quote. Do not start. Ask the desk.' : q ? 'Start work is blocked: the customer has not approved the quote yet. Ask the desk to record a phone approval.' : 'Start work is blocked: there is no approved quote yet. Ask the desk to send the quote.', blocked: 'quote' }, 409);
+    if (o === 'pickup') { await db.from('leads').update({ job_place: 'garage' }).eq('id', lead.id); return json(req, { ok: true, stage: 'started', pickup: true }); }   // the pickup photos step now opens; the stage moves when they are verified
+    return await set('repair_doorstep', '{who} started the repair at the customer\'s place (quote approved).', { job_place: 'doorstep' });
+  }
+  if (action === 'visit_ready') {
+    if (!['repair_doorstep', 'picked_up'].includes(stage ?? '')) return json(req, { error: 'Mark ready after the work has started.' }, 409);
+    return await set('ready', 'Vehicle ready.');
+  }
+  if (action === 'visit_deliver') {
+    if (stage !== 'ready') return json(req, { error: 'Mark ready first.' }, 409);
+    if (lead.job_place === 'garage') return json(req, { error: 'A pickup job is delivered with the return code and photos.' }, 409);
+    return await set('returned', 'Vehicle handed back to the customer.');
+  }
+  return json(req, { error: NOT_VALID }, 400);
 }

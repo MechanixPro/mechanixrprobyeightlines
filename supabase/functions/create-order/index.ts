@@ -24,10 +24,15 @@ Deno.serve(async (req) => {
   if ((count ?? 0) >= 20) return json(req, { error: 'Too many tries. Please wait a few minutes.' }, 429);
   await db.from('track_attempts').insert({ ip_hash: ipHash });
 
-  const { data: lead } = await db.from('leads').select('id,ref,booking_id,name,phone,status,amount_due,paid_amount').or(refFilter(v.ref)).eq('phone', v.phone).maybeSingle();
+  const { data: lead } = await db.from('leads').select('id,ref,booking_id,name,phone,status,amount_due,paid_amount,confirm_fee,confirm_paid_at,rzp_order_id').or(refFilter(v.ref)).eq('phone', v.phone).maybeSingle();
   if (!lead) return json(req, { error: 'We could not find that booking. Check the reference and the number you booked with.' }, 404);
   if (lead.status === 'paid' || lead.status === 'completed') return json(req, { error: 'This booking is already paid. Thank you!' }, 409);
   if (lead.status === 'lost') return json(req, { error: 'This booking is closed. Message us on WhatsApp to start again.' }, 409);
+  if (lead.confirm_paid_at) return json(req, { error: 'This booking is already paid. Thank you!' }, 409);
+  // A confirmation-fee booking has one order: a second tap, a reload or a second device gets the same order, so it can only be paid once.
+  if (lead.confirm_fee && lead.rzp_order_id && Number(lead.amount_due) === Number(lead.confirm_fee)) {
+    return json(req, { order_id: lead.rzp_order_id, amount: Number(lead.confirm_fee) * 100, currency: 'INR', key_id: keyId, name: lead.name, booking_id: lead.booking_id ?? null, reused: true });
+  }
 
   const { data: fees } = await db.from('services').select('id,price').in('id', ['advance', 'newfee']);
   const feeOf = (id: string) => Number(fees?.find((f: { id: string }) => f.id === id)?.price ?? 0);
@@ -41,5 +46,6 @@ Deno.serve(async (req) => {
   const j = await r.json().catch(() => ({}));
   if (r.status === 401) { console.error('razorpay auth failed'); return json(req, { error: 'Online payment is not set up correctly. Please pay through the link on WhatsApp.' }, 401); }
   if (!r.ok || !j.id) { console.error('razorpay order error', r.status, j?.error?.description); return json(req, { error: 'Could not start the payment. Please try again.' }, 500); }
+  if (lead.confirm_fee) await db.from('leads').update({ rzp_order_id: j.id }).eq('id', lead.id).is('confirm_paid_at', null);
   return json(req, { order_id: j.id, amount: j.amount, currency: j.currency, key_id: keyId, name: lead.name, booking_id: lead.booking_id ?? null });
 });

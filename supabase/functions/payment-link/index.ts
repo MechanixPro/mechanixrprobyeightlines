@@ -6,6 +6,7 @@ import { sendSmart, TPL } from '../_shared/whatsapp.ts';
 import { paymentLinkEmail } from '../_shared/email-templates.ts';
 import { sendEmail, FROM_BOOKING } from '../_shared/resend.ts';
 import { forBooking, idParam } from '../_shared/booking-id.ts';
+import { prepareConfirmationLink, linkText } from '../_shared/confirm-link.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
@@ -19,6 +20,19 @@ Deno.serve(async (req) => {
   if (!admin) return json(req, { error: 'Not allowed' }, 403);
 
   const b = await req.json().catch(() => ({}));
+  if (b.purpose === 'confirm') {
+    // Same code path as the desk: the website pay page for the confirmation fee, amount from the fee function.
+    const { data: lead } = await db.from('leads').select('*').eq('id', String(b.lead_id ?? '')).maybeSingle();
+    if (!lead) return json(req, { error: 'Booking not found' }, 404);
+    try {
+      const c = await prepareConfirmationLink(db, lead, { email: b.email, actor: user.id });
+      const first = String(lead.name).split(' ')[0];
+      const sent = b.send_whatsapp === false ? null : await sendSmart(db, lead, linkText(first, c.amount, c.url), { name: TPL.payment(), params: [first, String(c.amount), idParam(lead), c.url] }, 'staff');
+      await db.from('crm_activities').insert({ lead_id: lead.id, actor: user.id, kind: 'whatsapp', body: `Payment link sent: ₹${c.amount} confirmation fee${sent ? ' on WhatsApp' : ' (not sent on WhatsApp)'}` });
+      await db.from('audit_log').insert({ actor: user.id, action: 'confirm_link_sent', details: { lead: lead.ref, amount: c.amount, by: 'admin' } });
+      return json(req, { ok: true, url: c.url, amount: c.amount, whatsapp_sent: !!sent, whatsapp_text: linkText(first, c.amount, c.url), fee_line: c.feeLine, review: c.review, has_email: c.hasEmail });
+    } catch (e) { return json(req, { error: (e as Error).message }, 400); }
+  }
   const amount = Math.round(Number(b.amount));
   if (!(amount >= 1 && amount <= 100000)) return json(req, { error: 'Amount must be between ₹1 and ₹1,00,000' }, 400);
   const { data: lead } = await db.from('leads').select('*').eq('id', String(b.lead_id ?? '')).maybeSingle();

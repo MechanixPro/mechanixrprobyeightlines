@@ -16,6 +16,7 @@ import { formatWhen } from '../_shared/when.ts';
 import { runWatchdog } from '../_shared/desk-health.ts';
 import { issueCard, cardUrl } from '../_shared/warranty.ts';
 import { idParam, leadLabel } from '../_shared/booking-id.ts';
+import { sweepConfirmations } from '../_shared/after-payment.ts';
 
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
 const MIN = 60_000;
@@ -185,6 +186,10 @@ Deno.serve(async (req) => {
       result.warranty = { made, sent: sentN }; if (made || sentN) await log('warranty', true, { made, sent: sentN });
     }
   } catch (e) { result.warranty = { error: String((e as Error).message) }; await log('warranty', false, { error: String((e as Error).message) }); }
+
+  /* 7. paid confirmation: retry failed customer messages, tell the team about unpaid links and paid bookings with no mechanic. Each item once (booking_notifications). */
+  try { const r = await sweepConfirmations(db); result.confirmations = r; if (r.retried || r.link_nudges || r.unassigned) await log('confirmations', true, r); }
+  catch (e) { result.confirmations = { error: String((e as Error).message) }; await log('confirmations', false, { error: String((e as Error).message) }); }
 
   /* 5. watchdog: email the supervisors if the reply checker, AiSensy or the templates need attention */
   try { result.health = await runWatchdog(db, DESK_URL, 'automation'); } catch (e) { result.health = { error: String((e as Error).message) }; }

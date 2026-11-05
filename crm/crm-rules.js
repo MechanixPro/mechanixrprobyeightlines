@@ -1,3 +1,5 @@
+import { confirmPending, confirmPaid, visitSub } from './flow-rules.js';
+export * from './flow-rules.js';
 // Pure rules for the Mechanix CRM screens. They mirror what the database enforces (supabase/migrations/20261108000000_crm.sql),
 // so an agent sees the problem before saving, and the database still refuses anything that slips past.
 export const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
@@ -258,8 +260,10 @@ export function bookingStep(lead) {
   else if (s === 'paid' || bookingLabel(l)) index = 3;
   else if (s === 'quoted' || s === 'payment_sent') index = 2;
   else if (s === 'contacted' || firstContact(l)) index = 1;
-  const steps = STEPS.map(([key, label], i) => ({ key, label, state: i < index ? 'done' : i > index ? 'todo' : closed ? 'stopped' : index === 5 ? 'done' : 'current' }));
-  return { index, key: STEPS[index][0], label: STEPS[index][1], closed, steps, next: closed || index === 5 ? null : STEPS[index + 1][1] };
+  // "Payment link sent" is how step 3 reads while a confirmation payment link waits to be paid (same step, same index: nothing else moves).
+  const linkSent = index === 2 && s === 'payment_sent';
+  const steps = STEPS.map(([key, label], i) => ({ key, label: i === 2 && linkSent ? 'Payment link sent' : label, state: i < index ? 'done' : i > index ? 'todo' : closed ? 'stopped' : index === 5 ? 'done' : 'current' }));
+  return { index, key: STEPS[index][0], label: linkSent ? 'Payment link sent' : STEPS[index][1], closed, steps, next: closed || index === 5 ? null : STEPS[index + 1][1], sub: visitSub(l) };
 }
 /** The one button to show for a lead. role is agent, supervisor or admin; me ({ canCreate, userId, boss }) is optional and only decides whether Confirm booking is allowed. Returns null when there is nothing to do. */
 export function nextAction(lead, role = 'agent', me = null) {
@@ -269,8 +273,10 @@ export function nextAction(lead, role = 'agent', me = null) {
   switch (st.index) {
     case 0: return { key: 'call', label: 'Call now', allowed: true, reason: '' };
     case 1: return { key: 'quote', label: 'Send quote', allowed: true, reason: '' };
-    case 2: { const ok = me ? canConfirmBooking(lead, me) : true; return { key: 'confirm', label: 'Confirm booking', allowed: ok, reason: ok ? '' : 'You cannot confirm this booking. Ask a supervisor.' }; }
-    case 3: return { key: 'schedule', label: 'Schedule', allowed: true, reason: '' };
+    case 2: { if (confirmPending(lead)) return { key: 'resend_link', label: 'Resend payment link', allowed: true, reason: '' };
+      const ok = me ? canConfirmBooking(lead, me) : true; return { key: 'confirm', label: 'Confirm booking', allowed: ok, reason: ok ? '' : 'You cannot confirm this booking. Ask a supervisor.' }; }
+    case 3: if (confirmPaid(lead) && !lead.mechanic_name && !lead.mechanic_id) return { key: 'assign', label: 'Assign mechanic', allowed: true, reason: '' };
+      return { key: 'schedule', label: 'Schedule', allowed: true, reason: '' };
     default: return role === 'admin' ? { key: 'done', label: 'Mark done', allowed: true, reason: '' } : { key: 'done', label: 'Mark done', allowed: false, reason: 'An admin marks the job done after the technician reports and payment is checked.' };
   }
 }
@@ -280,6 +286,7 @@ export function stepGuard(lead, target) {
   if (st.closed === 'junk') return no('This lead is junk. An admin must restore it first.');
   if (st.closed === 'lost') return no('This lead is lost. A supervisor must reopen it first.');
   if (target === 'quote' && st.index >= 2) return no('This lead is already past the quote step.');
+  if ((target === 'confirm' || target === 'schedule') && confirmPending(lead)) return no('Waiting for the confirmation fee. The booking is confirmed when it is paid.');
   if (target === 'confirm' && st.index >= 3) return no('This booking is already confirmed.');
   if (target === 'schedule') {
     if (!bookingLabel(lead) && st.index < 4) return no('Confirm the booking first. Scheduling needs the booking ID.');

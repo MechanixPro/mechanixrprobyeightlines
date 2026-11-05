@@ -19,7 +19,8 @@ import { filterAccounts, salesCsv, ledgerCsv, entryLabel } from './sales-view.js
 import { effectiveRate, jobSplit, cleanCommission, payoutShareText, statementShareText, PLACES } from './commission.js';
 import { customerList, bookingRows, summarize } from './customer-bookings.js';
 import { adsConversions } from './ads-export.js';
-import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport } from './booking-steps.js';
+import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge } from './booking-steps.js';
+import { createFlow } from './flow-core.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
 const C = window.MXP || {};
@@ -36,7 +37,8 @@ const bkg = (l) => (l && l.booking_id ? 'booking ' + l.booking_id : 'booking');
 // The step bar: Lead, Called, Quote sent, Confirmed, Scheduled, Done (worked out from the status, first contact and booking ID). Spans, because it also sits inside list buttons.
 const stepBar = (l, compact) => {
   const st = bookingStep(l), note = st.closed ? (st.closed === 'junk' ? 'Junk' : 'Lost') + ' at ' + st.label : 'Step ' + (st.index + 1) + ' of 6: ' + st.label;
-  return `<span class="steps${compact ? ' compact' : ''}${st.closed ? ' closed' : ''}" role="img" aria-label="Booking steps. ${esc(note)}">${st.steps.map((x) => `<span class="step ${x.state}"><span>${esc(x.label)}</span></span>`).join('')}</span>`;
+  const pb = paidBadge(l), chips = (pb ? ` <span class="pill ${pb.tone === 'good' ? 'paid' : 'lost'}">${esc(pb.text)}</span>` : '') + (st.sub ? ` <span class="pill">${esc(st.sub.label)}</span>` : '');
+  return `<span class="steps${compact ? ' compact' : ''}${st.closed ? ' closed' : ''}" role="img" aria-label="Booking steps. ${esc(note)}">${st.steps.map((x) => `<span class="step ${x.state}"><span>${esc(x.label)}</span></span>`).join('')}</span>${chips}`;
 };
 // The one button for the next step. Call now is a phone link that also marks the lead contacted.
 const nextBtn = (l) => {
@@ -199,6 +201,8 @@ document.addEventListener('change', (e) => { const id = e.target.id; if (id === 
 document.addEventListener('input', (e) => { if (e.target.id === 'sf-q') { S.sf.q = e.target.value; clearTimeout(S.sfT); S.sfT = setTimeout(() => { render(); const q = $('#sf-q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if ($('#inv')) $('#inv').remove(); else if (!$('#sheet').hidden) closeSheet(); } });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
+flow.bind($('#sheetPanel'), () => leadOf(S.open), () => S.flow);
+flow.bindDispatch($('#view'), () => S.dispatchRows || []);
 
 
 // The top bar shows five sections; the row under it shows the pages of the section you are in. The last page used in each section is remembered.
@@ -210,7 +214,7 @@ function syncNav() {
   const bd = navBadges({ leads: S.leads, issues: S.issues });
   document.querySelectorAll('[data-badge]').forEach((el) => { const n = bd[el.dataset.badge] || 0; el.textContent = n > 99 ? '99+' : String(n); el.hidden = !n; });
 }
-function render() { syncNav(); const v = $('#view'); v.innerHTML = ({ dash, board, leads, customers, mechanics, coupons, issues, pins, waitlist, offers, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function render() { syncNav(); const v = $('#view'); v.innerHTML = ({ dash, dispatch, board, leads, customers, mechanics, coupons, issues, pins, waitlist, offers, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -643,7 +647,21 @@ function moneyCardBody(l) {
     ${l.status === 'completed' && a.outstanding <= 0.005 && a.collected > 0.005 ? `<div class="remit-box"><b>Fully paid. Warranty card ready to issue.</b><span class="tiny muted">Choose the number of days and what the warranty covers, then send the card (vehicle, dates, cover, terms and a QR code) on WhatsApp.</span><button class="btn btn-wa btn-sm" type="button" data-act="warrantyCard" data-id="${l.id}">Issue warranty card</button></div>` : ''}
     ${entryRows(entries, true)}${btn}</div>`;
 }
-async function openLead(id, silent) {
+// The paid-confirmation card (payment link, call script, dispatch, quote, Resend) is the same code as in Crew: admin/flow-core.js. Every admin passes its checks.
+const flow = createFlow({
+  rpc: async (n, a) => { const { data, error } = await sb.rpc(n, a); if (error) throw error; return data; },
+  invoke: async (fn, body) => { const { data, error } = await sb.functions.invoke(fn, { body }); if (error) { let m = null; try { m = (await error.context.json()).error; } catch (x) { /* no body */ } throw new Error(m || error.message); } return data; },
+  toast, can: () => true, paymentFn: 'payment-link',
+  reload: async () => { await loadLeads(); if (S.tab === 'dispatch') loadDispatch(); else render(); if (S.open) openLead(S.open, true); },
+  openLead: (id) => { S.tab = 'leads'; render(); openLead(id); },
+  mechanics: async () => { const { data } = await sb.from('mechanics').select('id,name,area').eq('active', true).in('onboarding_status', ['live', 'pilot']).order('name'); return data || []; },
+});
+async function openLead(id, silent) { await openLeadBase(id, silent); await paintFlow(id); }
+async function paintFlow(id) {
+  const el = $('#flowCard'), l = leadOf(id); if (!el || !l) return;
+  try { S.flow = await flow.load(id); el.innerHTML = flow.card(flow.withFlow(l, S.flow), S.flow); } catch (e) { el.innerHTML = ''; }
+}
+async function openLeadBase(id, silent) {
   if (!silent && S.open !== id) S.dt = 'booking';
   S.open = id; const l = leadOf(id); if (!l) return;
   const { data: msgs } = await sb.from('messages').select('*').eq('lead_id', id).order('created_at').limit(200);
@@ -658,6 +676,7 @@ async function openLead(id, silent) {
   $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${esc(bid(l))}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
   <p style="margin:8px 0"><span class="pill ${l.status}">${LABEL[l.status]}</span> ${l.opted_out ? '<span class="pill lost">Opted out</span>' : ''} ${l.paid_amount ? `<span class="pill paid">Paid ${rupee(l.paid_amount)}</span>` : ''}</p>
   ${stepBar(l)}${nextBtn(l)}
+  <div id="flowCard"></div>
   ${summaryStrip(l)}
   <div class="qa"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button>${l.booking_id || ['lost', 'junk'].includes(l.status) ? '' : '<button class="btn btn-ghost btn-sm" type="button" data-act="giveId">Give booking ID</button>'}<button class="btn btn-ghost btn-sm" type="button" data-act="confirmBooking">Confirm and email customer</button>${!l.booking_id && !BOOKED_STATUSES.includes(l.status) && l.status !== 'junk' ? '<button class="btn btn-ghost btn-sm" type="button" data-act="markJunk">Mark as junk</button>' : ''}${l.status === 'junk' ? '<button class="btn btn-ghost btn-sm" type="button" data-act="restoreJunk">Restore</button>' : ''}<button class="btn btn-ghost btn-sm" type="button" data-act="issueFromLead">Log an issue</button></div>
   <div class="dtabs" role="tablist" aria-label="Booking sections">${dtab('booking', 'Booking')}${dtab('money', 'Money')}${dtab('customer', 'Customer')}${dtab('messages', 'Messages')}</div>
@@ -1318,6 +1337,8 @@ const ACT = {
     const key = btn.getAttribute('data-key'), a = stepAction(l);
     if (!a || a.key !== key) return toast('That is no longer the next step.');
     const g = stepGuard(l, key); if (!g.ok) return toast(g.error);
+    if (key === 'resend_link') return flow.actions.payLink(l);
+    if (key === 'assign') return flow.actions.assign(l);
     if (key === 'confirm') return ACT.giveId();
     if (key === 'schedule') return ACT.confirmBooking();
     const upd = key === 'quote' ? { status: 'quoted' } : { status: 'completed', completed_at: new Date().toISOString() };
@@ -1757,6 +1778,11 @@ function boardCard(l) {
     <label class="tiny muted" for="bm-${l.id}">Mechanic</label>
     <select id="bm-${l.id}" class="bsel" data-board-mech="${l.id}"><option value="">Not assigned</option>${S.mechanics.filter((x) => x.active || x.id === l.mechanic_id).map((x) => `<option value="${x.id}"${x.id === l.mechanic_id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
     <div class="bbtns"><a class="btn btn-wa btn-sm" href="https://wa.me/91${esc(l.phone)}" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a>${n ? `<button class="btn btn-primary btn-sm" type="button" data-act="boardNext" data-id="${l.id}">${n.label}</button>` : ''}<button class="btn btn-ghost btn-sm" type="button" data-lead="${l.id}">Open</button></div></article>`;
+}
+function dispatch() { return '<div class="view-head"><h2>Dispatch</h2><p class="muted">Paid bookings for the next days. Unassigned first, by slot time. Assign or reassign a mechanic here.</p></div><div id="dpWrap" aria-live="polite"><p class="muted">Loading…</p></div>'; }
+async function loadDispatch() {
+  const w = $('#dpWrap'); if (!w) return;
+  try { const { data, error } = await sb.rpc('crm_dispatch_list', { p_days: 7 }); if (error) throw error; S.dispatchRows = data || []; w.innerHTML = flow.dispatchHtml(S.dispatchRows); } catch (e) { w.innerHTML = '<p class="err">Could not load Dispatch: ' + esc(e.message || e) + '</p>'; }
 }
 function board() {
   const g = boardGroups(S.leads), total = Object.values(g).reduce((t, a) => t + a.length, 0);

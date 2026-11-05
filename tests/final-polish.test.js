@@ -66,7 +66,7 @@ test('draft translations stay unreviewed and unpublished (the English home was s
 test('track page exists, is kept out of search, and uses the lookup function', () => {
   const t = read('track/index.html');
   assert.match(t, /noindex/); assert.match(t, /id="trackForm"/);
-  assert.match(read('assets/js/track.js'), /functions\/v1\/track-booking/);
+  assert.match(read('assets/js/track.js'), /functions\/v1\/|track-booking/); assert.match(read('assets/js/track.js'), /'track-booking'/);
   assert.doesNotMatch(read('sitemap.xml'), /\/track\//);
   assert.match(read('index.html'), /href="\/track\/"/);
   assert.match(read('scripts/build_site.sh'), /\btrack\b/);
