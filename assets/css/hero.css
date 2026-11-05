@@ -1,0 +1,37 @@
+/* Home hero: "a workshop made for you". Real workshop photos only (assets/img/workshop). Pure CSS: no script.
+   The first photo is the page's LCP image and sits at the bottom, always fully visible. The other two fade in over it, then fade out together. */
+.hs{position:relative;z-index:1;margin:28px 0 44px;max-width:560px}
+.hs-main{position:relative;overflow:hidden;aspect-ratio:4/3;max-height:45vh;width:100%;border-radius:24px;background:var(--nv2);border:1px solid rgba(255,255,255,.24);box-shadow:0 26px 50px -22px rgba(0,0,0,.7)}
+.hs-main::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--acc)}
+.hs-z{position:absolute;inset:0;animation:hs-kb 20s ease-in-out infinite alternate}
+.hs-z img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hs-z .b,.hs-z .c{opacity:0}
+.hs-z .b{animation:hs-b 15s ease-in-out infinite}
+.hs-z .c{animation:hs-c 15s ease-in-out infinite}
+.hs-t,.hs-c{position:absolute;z-index:2;display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(11,18,32,.74);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid var(--hair-d);color:var(--on);font-size:13px;line-height:1.2;font-weight:600;letter-spacing:-.01em}
+.hs-t{top:-12px;left:10px;padding-left:8px;box-shadow:0 8px 20px -6px rgba(0,0,0,.6)}
+.hs-t img{width:20px;height:21px}
+.hs-c{left:12px;bottom:16px}
+.hs-s{display:none}
+.hs figcaption{margin:10px 2px 0;font-size:13px;line-height:1.4;color:var(--on2)}
+@keyframes hs-kb{from{transform:scale(1)}to{transform:scale(1.06)}}
+@keyframes hs-b{0%,33%{opacity:0}40%,92%{opacity:1}100%{opacity:0}}
+@keyframes hs-c{0%,66%{opacity:0}72%,92%{opacity:1}100%{opacity:0}}
+@media(min-width:960px){
+  .hs{margin:0 0 72px auto;width:100%;max-width:540px;padding-bottom:44px}
+  .hs-main{max-height:none;width:92%;margin-left:auto;transform:rotate(1.2deg);border-radius:28px;box-shadow:0 36px 64px -24px rgba(0,0,0,.75),0 0 0 7px rgba(255,255,255,.04)}
+  .hs-s{display:block;position:absolute;left:0;bottom:0;width:46%;aspect-ratio:4/3;object-fit:cover;border-radius:20px;border:1px solid rgba(255,255,255,.4);box-shadow:0 22px 40px -14px rgba(0,0,0,.75);transform:rotate(-2deg);z-index:3}
+  .hs-t{top:-14px;left:calc(8% - 12px);font-size:14px}
+  .hs-c{left:auto;right:16px;bottom:18px;font-size:14px}
+  .hs figcaption{position:absolute;right:0;bottom:4px;width:54%;margin:0;text-align:right;padding-left:12px}
+}
+@media(prefers-reduced-motion:reduce),(prefers-reduced-data:reduce){
+  .hs-z,.hs-z .b,.hs-z .c{animation:none!important;transform:none!important}
+  .hs-z .b,.hs-z .c{display:none}
+}
+@media(prefers-reduced-data:reduce){.hs-s{display:none!important}}
+@media(max-width:959px){
+  #veh-car:checked ~ * .hero-list.car-only{margin:24px 0 0;padding:4px 20px;border:1px solid var(--hair-d);border-radius:20px;background:rgba(255,255,255,.05)}
+  .hero-list li{padding:14px 0;font-size:18px;font-weight:600;color:var(--on)}
+  .hero-list li+li{border-top:1px solid var(--hair-d)}
+}

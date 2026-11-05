@@ -113,7 +113,7 @@ test('one font, one accent; tap targets, focus, reduced motion and contrast toke
   assert.match(css, /prefers-reduced-motion:reduce/);
   assert.doesNotMatch(css, /animation-timeline/, 'no scroll-driven opacity: content is never hidden until scrolled');
 });
-test('the home page stays light: one hero photo, no chat script, no slideshow', () => {
+test('the home page stays light: one eager hero photo (lazy extras), no chat script, no script slideshow', () => {
   assert.doesNotMatch(home, /hero-rain|chatstart\.js|hero\.js|showcase\.js|class="ticker"/);
   assert.ok(Buffer.byteLength(home) < 41000, 'home HTML is ' + Buffer.byteLength(home) + ' bytes');
   assert.ok(readdirSync(new URL('../assets/css/', import.meta.url)).includes('site.css'));
@@ -151,7 +151,9 @@ test('the shared hero photo is on bike pages only: car, roadside, Axlio and part
   for (const f of ['bike-service/honda-activa-6g/index.html', 'scooty-repair-at-home-bangalore/index.html']) assert.match(read(f), /stage art"/, f);
   assert.match(css, /\.page-head\.stage\.art::after\{[^}]*hero-minimal\.webp/);
   assert.ok(existsSync(new URL('../assets/img/hero-minimal.webp', import.meta.url)));
-  assert.match(main, /<img src="\/assets\/img\/hero-minimal\.webp"[^>]*fetchpriority="high"/);
+  // Changed on purpose (hero redesign): the home hero no longer uses the hero-minimal cut-out (hard right edge). Its first photo is the workshop front, eager and high priority. See tests/hero.test.mjs.
+  assert.match(main, /<img src="\/assets\/img\/workshop\/workshop-front-1200\.webp"[^>]*fetchpriority="high"/);
+  assert.doesNotMatch(main.slice(0, main.indexOf('id="brief"')), /hero-minimal/);
 });
 test('the footer keeps the company line and GSTIN from company.json, and the Areas links', () => {
   const co = JSON.parse(read('src/company.json'));
