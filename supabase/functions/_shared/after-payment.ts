@@ -110,7 +110,7 @@ export async function resendKind(db: Db, leadId: string, kind: Kind): Promise<st
 }
 
 /* ---------- quote and delivery messages (sent by quote-send) ---------- */
-export async function sendQuoteMessages(db: Db, leadId: string, version: number, revised: boolean, force = false): Promise<Record<string, string>> {
+export async function sendQuoteMessages(db: Db, leadId: string, version: number, revised: boolean, force = false, only: 'quote_email' | 'quote_whatsapp' | null = null): Promise<Record<string, string>> {
   const { data: lead } = await db.from('leads').select('*').eq('id', leadId).maybeSingle();
   const { data: q } = await db.from('job_quotes').select('*').eq('lead_id', leadId).eq('version', version).maybeSingle();
   if (!lead || !q) return { error: 'not found' };
@@ -125,7 +125,10 @@ export async function sendQuoteMessages(db: Db, leadId: string, version: number,
     if (!ready[t.campaign]) return { ok: false, skipped: true, error: 'the Quote ready template is not approved yet' };
     return await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: t.campaign, phone: lead.phone, name: lead.name, params: [String(lead.name).split(' ')[0], idParam(lead), String(Math.round(Number(q.total)))], source: 'mechanix-quote' });
   };
-  return await deliverAll(dbStore(db), leadId, { [`quote_email:${version}`]: email, [`quote_whatsapp:${version}`]: wa } as any, force);
+  const jobs: Record<string, () => Promise<Result>> = {};
+  if (!only || only === 'quote_email') jobs[`quote_email:${version}`] = email;
+  if (!only || only === 'quote_whatsapp') jobs[`quote_whatsapp:${version}`] = wa;
+  return await deliverAll(dbStore(db), leadId, jobs as any, force);
 }
 export async function sendEtaMessages(db: Db, leadId: string, rev: number, force = false): Promise<Record<string, string>> {
   const { data: lead } = await db.from('leads').select('*').eq('id', leadId).maybeSingle();

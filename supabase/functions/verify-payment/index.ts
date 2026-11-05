@@ -4,6 +4,7 @@ import { adminDb, env, json, corsHeaders, rupee } from '../_shared/util.ts';
 import { cleanVerify, validSignature, paymentState } from '../_shared/checkout.ts';
 import { sendSmart, TPL } from '../_shared/whatsapp.ts';
 import { bookingId } from '../_shared/booking-id.ts';
+import { afterConfirmationPaid } from '../_shared/after-payment.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
@@ -35,7 +36,7 @@ Deno.serve(async (req) => {
   const { data: seen } = await db.from('audit_log').select('id').eq('action', 'payment_received').eq('details->>payment_id', v.payment_id).limit(1);
   const { data: lead } = await db.from('leads').select('*').eq('id', leadId).maybeSingle();
   if (!lead) return json(req, { error: 'Booking not found.' }, 404);
-  if (seen && seen.length) return json(req, { ok: true, status: 'paid', booking_id: bookingId(lead), already: true }); // the same payment verified twice counts once
+  if (seen && seen.length) { await afterConfirmationPaid(db, lead.id); return json(req, { ok: true, status: 'paid', booking_id: bookingId(lead), already: true }); } // the same payment verified twice counts once; a retry also re-runs any message that failed
 
   const amount = Math.round(Number(pay.amount) / 100);
   // The ledger row is the record of the money; a trigger keeps leads.paid_amount equal to it. The unique gateway id makes a repeat harmless.
@@ -47,5 +48,7 @@ Deno.serve(async (req) => {
   const bid = bookingId(ided) ?? bookingId(lead);
   await db.from('audit_log').insert({ actor: null, action: 'payment_received', details: { lead: lead.ref, amount, payment_id: v.payment_id, order_id: v.order_id, via: 'checkout' } });
   try { await sendSmart(db, lead, `Payment of ${rupee(amount)} received for ${bid ? 'booking ' + bid : 'your request'}. Your slot is confirmed. We will share your mechanic's details before the visit. Thank you!`, { name: TPL.paid(), params: [String(amount), bid ?? 'request'] }, 'system'); } catch (e) { console.error('whatsapp confirm failed', e); }
+  // Confirmation-fee bookings: email, receipt, WhatsApp and team alert. Each is independent and logged; none can fail the payment.
+  await afterConfirmationPaid(db, lead.id);
   return json(req, { ok: true, status: 'paid', booking_id: bid, amount });
 });
