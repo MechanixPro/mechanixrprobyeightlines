@@ -17,6 +17,8 @@ import * as inbox from './pages/inbox.js';
 import * as callnow from './pages/callnow.js';
 import { newBooking, editBooking } from './pages/booking.js';
 import { sendPaymentLink } from './pages/payment.js';
+import { createFlow } from './flow-core.js';
+import * as dispatch from './pages/dispatch.js';
 import { findByPin } from './pages/pinsearch.js';
 
 const C = window.MXP || {};
@@ -36,6 +38,7 @@ const SCREENS = [
   { id: 'inbox', title: 'Inbox', page: 'inbox', mod: inbox },
   { id: 'callnow', title: 'Call now', page: 'leads', mod: callnow },
   { id: 'mine', title: 'My day', page: 'leads' },
+  { id: 'dispatch', title: 'Dispatch', page: 'leads', tech: true, mod: dispatch },
   { id: 'unassigned', title: 'Unassigned', page: 'leads', action: 'take_leads' },
   { id: 'leads', title: 'Leads', page: 'leads', mod: leads },
   { id: 'web', title: 'Web leads', page: 'leads', mod: webleads },
@@ -53,7 +56,7 @@ const can = (a) => !!S.me?.permissions?.actions?.[a];
 const pageOk = (p) => !!S.me?.permissions?.pages?.[p];
 // Technician work (board, picker, unstaffed alert, any booking's technician): supervisors with assign_leads, or the Technician lead with manage_technicians.
 const canTech = () => can('assign_leads') || can('manage_technicians');
-const screens = () => SCREENS.filter((s) => pageOk(s.page) && (!s.action || can(s.action) || can('assign_leads')));
+const screens = () => SCREENS.filter((s) => pageOk(s.page) && (!s.action || can(s.action) || can('assign_leads')) && (!s.tech || canTech()));
 
 const ctx = {
   get me() { return S.me; }, can, page: pageOk,
@@ -63,7 +66,15 @@ const ctx = {
   addLead: () => addDialog(),
   users: async () => { if (!S.users || Date.now() - (S.usersAt || 0) > 20000) { try { S.users = await rpc('crm_users_list'); S.usersAt = Date.now(); } catch (e) { S.users ||= []; } } return S.users; },
   showPlaybook: (id) => knowledge.showPlaybook(id),
+  get flow() { return flow; },
 };
+// The paid-confirmation screens (payment link, call script, door code, quote, Resend, Dispatch) are shared with the Admin: crm/flow-core.js. Same database functions, same checks.
+const flow = createFlow({
+  rpc, toast, can,
+  invoke: async (fn, body) => { const { data, error } = await sb.functions.invoke(fn, { body }); if (error) { let m = null; try { m = (await error.context.json()).error; } catch (x) { /* no body */ } throw new Error(m || error.message); } return data; },
+  reload: () => afterChange(false), openLead: (id) => openLead(id),
+});
+flow.bind($('#sheetPanel'), () => S.detail && S.detail.lead, () => S.flow);
 
 /* ---------- sign in (emailed 6-digit code) ---------- */
 let codeEmail = '';
@@ -113,7 +124,7 @@ async function boot() {
   startAlerts();
 }
 /* ---------- fast alerts: a new lead or a customer reply makes a sound, a pop-up, a vibration and a number in the tab title ---------- */
-let audioCtx = null, titleBase = document.title; const seen = { leads: null, replies: null, due: null, unstaffed: null };
+let audioCtx = null, titleBase = document.title; const seen = { leads: null, replies: null, due: null, unstaffed: null, dispatch: null };
 function beep() {
   try {
     audioCtx ||= new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -159,7 +170,15 @@ async function pulse() {
       seen.unstaffed = new Set(S.unstaffed.map((j) => j.id));
     } catch (e) { /* next time */ }
   }
-  const n = (unassigned ? unassigned.length : 0) + (replies ? replies.length : 0) + dueNow + S.unstaffed.length; document.title = (n ? '(' + n + ') ' : '') + titleBase;
+  // A booking was paid and nobody is assigned yet: sound and pop-up once per booking, and a number on the Dispatch tab.
+  if (canTech()) {
+    try {
+      const d = (await rpc('crm_dispatch_list', { p_days: 3 })).filter((r) => !r.mechanic_id); S.dispatchOpen = d.length;
+      if (seen.dispatch) { const fresh = d.filter((r) => !seen.dispatch.has(r.id)); if (fresh.length) alertUser(fresh.length === 1 ? 'New paid booking' : fresh.length + ' new paid bookings', fresh.slice(0, 2).map((r) => (r.booking_id || 'Booking') + ' ' + (r.area || '')).join(', ') + '. Assign a mechanic.'); }
+      seen.dispatch = new Set(d.map((r) => r.id)); const db = $('#dpBadge'); if (db) { db.textContent = S.dispatchOpen; db.hidden = !S.dispatchOpen; }
+    } catch (e) { /* next time */ }
+  }
+  const n = (unassigned ? unassigned.length : 0) + (S.dispatchOpen || 0) + (replies ? replies.length : 0) + dueNow + S.unstaffed.length; document.title = (n ? '(' + n + ') ' : '') + titleBase;
 }
 function startAlerts() {
   const who = $('#who');
@@ -179,7 +198,7 @@ async function refresh() {
 }
 
 function renderTabs() {
-  $('#tabs').innerHTML = screens().map((s) => `<button type="button" data-view="${s.id}" aria-current="false">${esc(s.title)}${s.id === 'unassigned' ? ' <span class="badge" id="unBadge" hidden></span>' : ''}${s.id === 'inbox' ? ' <span class="badge" id="inBadge" hidden></span>' : ''}${s.id === 'callnow' ? ' <span class="badge" id="cqBadge" hidden></span>' : ''}</button>`).join('');
+  $('#tabs').innerHTML = screens().map((s) => `<button type="button" data-view="${s.id}" aria-current="false">${esc(s.title)}${s.id === 'unassigned' ? ' <span class="badge" id="unBadge" hidden></span>' : ''}${s.id === 'dispatch' ? ' <span class="badge" id="dpBadge" hidden></span>' : ''}${s.id === 'inbox' ? ' <span class="badge" id="inBadge" hidden></span>' : ''}${s.id === 'callnow' ? ' <span class="badge" id="cqBadge" hidden></span>' : ''}</button>`).join('');
   $$('#tabs [data-view]').forEach((b) => b.addEventListener('click', () => go(b.dataset.view)));
 }
 
@@ -290,7 +309,7 @@ function card(l) {
 const rupee2 = (n) => '₹' + (Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: Number.isInteger(Number(n) || 0) ? 0 : 2, maximumFractionDigits: 2 });
 async function openLead(id, kind) {
   S.open = id; S.busy = true;
-  try { S.detail = await rpc('crm_lead', { p_id: id }); S.rating = await rpc('crm_lead_rating', { p_lead: id }).catch(() => null); S.money = await rpc('crm_lead_money', { p_lead: id }).catch(() => null); S.handover = await rpc('crm_handovers', { p_lead: id }).catch(() => null); if (can('assign_leads')) S.users = await ctx.users(); } catch (e) { toast(clean(e), true); S.busy = false; return; }
+  try { S.detail = await rpc('crm_lead', { p_id: id }); S.rating = await rpc('crm_lead_rating', { p_lead: id }).catch(() => null); S.money = await rpc('crm_lead_money', { p_lead: id }).catch(() => null); S.handover = await rpc('crm_handovers', { p_lead: id }).catch(() => null); S.flow = await flow.load(id); S.detail.lead = flow.withFlow(S.detail.lead, S.flow); if (can('assign_leads')) S.users = await ctx.users(); } catch (e) { toast(clean(e), true); S.busy = false; return; }
   S.busy = false; S.kind = kind || 'note'; renderSheet();
 }
 function renderSheet() {
@@ -320,11 +339,12 @@ function renderSheet() {
       ${canConfirmBooking(l, { canCreate: can('create_bookings'), userId: S.me.user_id, boss: canTech() }) ? '<button class="btn primary" type="button" data-act="confirmBooking">Confirm booking</button>' : ''}
       ${can('edit_leads') && mineOrBoss && !l.crm_won_at && !['lost', 'junk'].includes(l.status) ? '<button class="btn" type="button" data-act="editBooking">Edit booking</button>' : ''}
       ${l.mechanic_phone && canAct && l.status !== 'lost' ? `<button class="btn wa" type="button" data-act="sendJob">Send job to ${esc(String(l.mechanic_name || 'technician').split(' ')[0])}</button>` : ''}
-      ${can('send_payment_link') && l.crm_owner && !BOOKED.includes(l.status) && !['lost', 'junk'].includes(l.status) ? '<button class="btn" type="button" data-act="payLink">Send payment link</button>' : ''}
+      ${can('assign_leads') && !BOOKED.includes(l.status) && !['lost', 'junk'].includes(l.status) ? '<button class="btn ghost" type="button" data-act="payLink">Custom amount link</button>' : ''}
       ${can('create_tickets') ? '<button class="btn ghost" type="button" data-act="ticket">Raise a ticket</button>' : ''}
       ${canMarkJunk(l, S.me.is_admin) ? '<button class="btn ghost" type="button" data-act="junkOpen">Mark as junk</button>' : ''}${canRestoreJunk(l, S.me.is_admin) ? '<button class="btn" type="button" data-act="junkRestore">Restore</button>' : ''}</div>
     ${l.status === 'junk' ? `<p class="alert">Junk${l.junk_reason ? ': ' + esc(l.junk_reason) : ''}. It is kept as data and left out of follow-ups, reminders and totals.</p>` : ''}
     ${handoverCard(l, canAct)}
+    ${flow.card(l, S.flow)}
     ${!l.crm_owner && !can('assign_leads') ? '<p class="alert">Take this lead first. Then you can log what happened.</p>' : ''}
     ${canAct && l.crm_owner && (moves.length || OPEN.includes(l.status)) ? logForm(l, moves) : (BOOKED.includes(l.status) ? '<p class="alert good">This booking is confirmed.</p>' : '')}
     ${canAct && (l.crm_owner || can('assign_leads')) && !BOOKED.includes(l.status) && !['lost', 'junk'].includes(l.status) ? outcomeBox() : ''}
@@ -563,7 +583,7 @@ async function afterChange(close) {
   S.me = await rpc('crm_me'); renderHeader();
   if (close) closeSheet();
   await go(S.view, true);
-  if (!close && open && !$('#sheet').hidden) { S.open = open; S.detail = await rpc('crm_lead', { p_id: open }); renderSheet(); }
+  if (!close && open && !$('#sheet').hidden) { S.open = open; S.detail = await rpc('crm_lead', { p_id: open }); S.flow = await flow.load(open); S.detail.lead = flow.withFlow(S.detail.lead, S.flow); renderSheet(); }
 }
 function closeSheet() { $('#sheet').hidden = true; document.body.classList.remove('noscroll'); S.open = null; }
 

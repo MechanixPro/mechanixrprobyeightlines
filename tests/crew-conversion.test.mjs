@@ -77,7 +77,7 @@ test('the admin copy adds up the same as the desk', () => {
 
 test('the migration is the next one, one file, and can be run twice', () => {
   const files = readdirSync(new URL('../supabase/migrations', import.meta.url)).filter((f) => f.endsWith('.sql')).sort();
-  assert.equal(files.at(-1), '20261227000000_crew_conversion.sql');
+  assert.ok(files.includes('20261227000000_crew_conversion.sql') && files.indexOf('20261227000000_crew_conversion.sql') >= files.length - 2, 'crew conversion is one of the last two (paid confirmation follows it)');
   assert.match(sql, /drop trigger if exists leads_lost_reason_guard_tr on public\.leads;\ncreate trigger leads_lost_reason_guard_tr/);
   assert.equal((sql.match(/\ndrop function if exists /g) || []).length, 3);   // only the three list functions that gain a column (crm_web_leads keeps its signature)
   assert.doesNotMatch(sql, /insert into public\.leads|delete from public\.leads|update public\.leads set crm_lost_reason/i);   // old data is not rewritten

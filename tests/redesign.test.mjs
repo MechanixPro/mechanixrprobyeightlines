@@ -181,8 +181,8 @@ test('the Diwali banner is one slim closable line, with no inline script, built 
   if (bar) { assert.match(bar[0], /<button type="button" class="db-x"/); assert.ok(h.indexOf('diwali-bar') < h.indexOf('<header class="top">'), 'the banner sits above the header, not inside it'); }
   assert.match(h, /assets\/js\/diwali\.js/);
 });
-test('the booking page shows its form below the stage and has no phone bar over it', () => {
-  const b = read('book/index.html');
+test('the quote builder page shows its form below the stage and has no phone bar over it', () => {
+  const b = read('quote/index.html');
   assert.ok(b.indexOf('id="build-head"') < b.indexOf('id="builder"')); assert.doesNotMatch(b, /<nav class="dock"/);
   assert.match(b, /<h1 id="build-h">Build your service\.<\/h1>/);
 });

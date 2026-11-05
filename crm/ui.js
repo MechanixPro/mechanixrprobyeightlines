@@ -1,5 +1,5 @@
 // Shared helpers for the desk screens. Nothing here talks to the database except rpc().
-import { bookingStep } from './crm-rules.js';
+import { bookingStep, paidBadge } from './crm-rules.js';
 let client = null;
 export const setClient = (c) => { client = c; };
 export const supabase = () => client;
@@ -13,9 +13,19 @@ export const day = (d) => (d ? new Date(d).toLocaleDateString('en-IN', { day: '2
 export const clean = (e) => String(e?.message || e || 'Something went wrong').replace(/^Error:\s*/, '');
 export const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
+// Lead lists get the "Paid" badge and the quote and visit state: one extra call for the page of leads, never a reason for the list to fail.
+const WITH_BADGES = new Set(['crm_queue', 'crm_my_leads', 'crm_leads_list', 'crm_web_leads', 'crm_call_queue']);
+async function addBadges(rows) {
+  const ids = rows.map((r) => r && r.id).filter(Boolean).slice(0, 300); if (!ids.length) return;
+  try {
+    const { data } = await client.rpc('crm_paid_badges', { p_ids: ids });
+    if (data) for (const r of rows) { const b = data[r.id]; if (b) { r.confirm_fee = b.fee; r.confirm_paid_at = b.paid ? 'paid' : null; r.visit_stage = b.stage; r.quote_state = b.quote; r.confirm_review = b.review; } }
+  } catch (e) { /* the badge is optional */ }
+}
 export async function rpc(name, args) {
   const { data, error } = await client.rpc(name, args);
   if (error) throw error;
+  if (WITH_BADGES.has(name) && Array.isArray(data)) await addBadges(data);
   return data;
 }
 
@@ -84,9 +94,11 @@ export const empty = (t) => `<div class="empty">${t}</div>`;
 /** BIKE / CAR / PARTS badge for a lead row or sheet. */
 export const vehicleTag = (v) => { const k = ['bike', 'car', 'parts'].includes(v) ? v : 'bike'; return `<span class="chip veh veh-${k}" title="Vehicle: ${k}">${k.toUpperCase()}</span>`; };
 /** The step bar on every lead: Lead, Called, Quote sent, Confirmed, Scheduled, Done. compact is the one-line version for tables. */
+/** The Paid badge and the quote or visit state, shown with the step bar. Nothing for a lead with no confirmation fee. */
+const paidChips = (lead, st) => { const b = paidBadge(lead); return b || (st && st.sub) ? `<p class="flow-chips">${b ? `<span class="chip ${b.tone === 'good' ? 'good' : 'late'}">${esc(b.text)}</span>` : ''}${st && st.sub ? ` <span class="chip">${esc(st.sub.label)}</span>` : ''}</p>` : ''; };
 export function stepper(lead, compact = false) {
   const st = bookingStep(lead), note = st.closed ? (st.closed === 'junk' ? 'Junk' : 'Lost') + ' at ' + st.label : 'Step ' + (st.index + 1) + ' of 6: ' + st.label;
-  return `<ol class="steps${compact ? ' compact' : ''}${st.closed ? ' closed' : ''}" aria-label="Booking steps. ${esc(note)}">${st.steps.map((x) => `<li class="step ${x.state}"${x.state === 'current' ? ' aria-current="step"' : ''}><span>${esc(x.label)}</span></li>`).join('')}</ol>`;
+  return `<ol class="steps${compact ? ' compact' : ''}${st.closed ? ' closed' : ''}" aria-label="Booking steps. ${esc(note)}">${st.steps.map((x) => `<li class="step ${x.state}"${x.state === 'current' ? ' aria-current="step"' : ''}><span>${esc(x.label)}</span></li>`).join('')}</ol>${paidChips(lead, st)}`;
 }
 export const tag = (text, tone = '') => `<span class="chip ${tone}">${esc(text)}</span>`;
 export const bar = (done, target) => { const p = target > 0 ? Math.min(100, Math.round((done / target) * 100)) : 0; return `<div class="bar dark" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100"><span style="width:${p}%"></span></div>`; };

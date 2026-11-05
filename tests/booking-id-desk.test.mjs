@@ -119,5 +119,5 @@ test('the migration is the newest and in order', () => {
   const i = files.indexOf('20261225000000_booking_id_after_confirmation.sql');
   assert.ok(i > 0, 'the booking ID migration exists');
   assert.equal(files[i - 1], '20261224000002_handover_purge_api.sql');   // nothing slipped in before it
-  assert.deepEqual(files.slice(i + 1), ['20261226000000_lead_vehicle.sql', '20261227000000_crew_conversion.sql']);   // only the vehicle tag and the crew conversion steps come after (each carries its own tests)
+  assert.deepEqual(files.slice(i + 1), ['20261226000000_lead_vehicle.sql', '20261227000000_crew_conversion.sql', '20261228000000_paid_confirmation.sql']);   // only the vehicle tag, the crew conversion steps and the paid confirmation come after (each carries its own tests)
 });

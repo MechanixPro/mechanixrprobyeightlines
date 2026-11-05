@@ -581,3 +581,24 @@ begin
 end; $$;
 revoke all on function public.crm_resend_guard(uuid) from public, anon;
 grant execute on function public.crm_resend_guard(uuid) to authenticated;
+
+-- Crew or an admin marks the job Ready, or Delivered when the vehicle was handed back at the door (a pickup job is delivered only through the return code and photos).
+create or replace function public.crm_visit_mark(p_lead uuid, p_stage text) returns jsonb language plpgsql security definer set search_path = public as $$
+declare l public.leads; who text;
+begin
+  l := public.quote_guard(p_lead);
+  if p_stage not in ('ready','returned') then raise exception 'choose ready or delivered' using errcode = 'P0001'; end if;
+  if p_stage = 'ready' and coalesce(l.visit_stage, '') not in ('repair_doorstep','picked_up') then raise exception 'the work has not started yet' using errcode = 'P0001'; end if;
+  if p_stage = 'returned' then
+    if coalesce(l.visit_stage, '') <> 'ready' then raise exception 'mark it ready first' using errcode = 'P0001'; end if;
+    if l.job_place = 'garage' then raise exception 'a pickup job is delivered with the return code and photos' using errcode = 'P0001'; end if;
+  end if;
+  if l.visit_stage = p_stage then return jsonb_build_object('ok', true, 'already', true); end if;
+  who := coalesce(public.crm_name(auth.uid()), 'a team member');
+  update public.leads set visit_stage = p_stage, visit_stage_at = now() where id = p_lead;
+  insert into public.crm_activities (lead_id, actor, kind, body) values (p_lead, auth.uid(), 'note', case p_stage when 'ready' then 'Vehicle marked ready by ' else 'Vehicle marked delivered by ' end || who);
+  insert into public.audit_log (actor, action, details) values (auth.uid(), 'visit_' || p_stage, jsonb_build_object('lead', l.ref, 'by', auth.uid()));
+  return jsonb_build_object('ok', true, 'stage', p_stage);
+end; $$;
+revoke all on function public.crm_visit_mark(uuid, text) from public, anon;
+grant execute on function public.crm_visit_mark(uuid, text) to authenticated;
