@@ -127,7 +127,27 @@
     $('#bk-geo').addEventListener('click', function () {
       var m = $('#bk-geomsg'); if (!win.navigator.geolocation) { m.textContent = 'Your phone does not share its location here. Type the address instead.'; return; }
       m.textContent = 'Getting your location…';
-      win.navigator.geolocation.getCurrentPosition(function (p) { $('#bk-lat').value = p.coords.latitude.toFixed(5); $('#bk-lng').value = p.coords.longitude.toFixed(5); m.textContent = 'Location added. Please still check the address above.'; }, function () { m.textContent = 'Could not get your location. Type the address instead.'; }, { enableHighAccuracy: false, timeout: 10000 });
+      win.navigator.geolocation.getCurrentPosition(function (p) {
+        var lat = p.coords.latitude, lng = p.coords.longitude;
+        $('#bk-lat').value = lat.toFixed(5); $('#bk-lng').value = lng.toFixed(5);
+        // Work out the PIN code and area from the pin on the map, using the site's own PIN outlines (no outside service).
+        var geo = win.MXP_PIN_GEO || {}, names = win.MXP_PINS || {}, best = '', bestD = Infinity;
+        Object.keys(geo).forEach(function (pin) {
+          var g = geo[pin], inside = lat >= g[2] && lat <= g[3] && lng >= g[4] && lng <= g[5], d = Math.pow(lat - g[0], 2) + Math.pow(lng - g[1], 2);
+          if (inside) d -= 1; // a box that contains the point wins over one that only has a close centre
+          if (d < bestD) { bestD = d; best = pin; }
+        });
+        var pinEl = $('#bk-pin'), areaEl = $('#bk-area'), filled = [];
+        if (best && bestD < 0.0016) { // within about 4 km of a PIN centre, or inside its box
+          pinEl.value = best; filled.push('PIN code ' + best);
+          if (names[best] && !String(areaEl.value || '').trim()) { areaEl.value = names[best]; filled.push('area ' + names[best]); }
+          [pinEl, areaEl].forEach(function (el) { el.dispatchEvent(new win.Event('input', { bubbles: true })); });
+          ['pincode', 'area'].forEach(function (k) { var e = form.querySelector('[data-err="' + k + '"]'); if (e) e.textContent = ''; });
+        }
+        m.textContent = (filled.length ? 'Location added and filled in ' + filled.join(' and ') + '. ' : 'Location added, but it is outside our PIN list, so type your PIN code and area. ') + 'Please check the address above.';
+        m.appendChild(win.document.createTextNode(' ')); var a = win.document.createElement('a'); a.href = 'https://www.google.com/maps?q=' + lat.toFixed(5) + ',' + lng.toFixed(5); a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'See it on the map'; m.appendChild(a);
+        save(); showFee();
+      }, function (err) { m.textContent = err && err.code === 1 ? 'Location is blocked for this site. Allow it in your browser settings, or type the address instead.' : 'Could not get your location. Type the address instead.'; }, { enableHighAccuracy: true, timeout: 12000 });
     });
 
     /* restore saved progress and the link's prefill */

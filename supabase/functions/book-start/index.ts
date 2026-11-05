@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
     const extra = cleanLeadFields({ note: b.note, lat: b.lat, lng: b.lng, utm: undefined, ref_code: b.ref_code, campaign: b.campaign });
     const { data: ins, error } = await db.from('leads').insert({
       customer_id: cust.id, bike_id: bike?.id ?? null, name: b.name, phone: b.phone, email: b.email, ...vehicleCols(b.vehicle), place: 'home', contact_pref: 'whatsapp',
-      address: b.address, area: b.area, pincode: b.pincode, lat: extra.lat, lng: extra.lng, note: b.vehicle === 'car' ? [`Car: ${b.brand} ${b.model}`.trim(), b.need_text, extra.note].filter(Boolean).join('. ').slice(0, 300) : extra.note,
+      address: b.address, area: b.area, pincode: b.pincode, lat: extra.lat, lng: extra.lng, note: [b.vehicle === 'car' ? `Car: ${b.brand} ${b.model}`.trim() : '', b.vehicle === 'car' ? b.need_text : '', extra.note, (extra.lat != null && extra.lng != null) ? `Map: https://www.google.com/maps?q=${extra.lat},${extra.lng}` : ''].filter(Boolean).join('. ').slice(0, 300) || null,
       ref_code: extra.ref_code, campaign: extra.campaign, service_id: serviceId, est_total: est, addons: [], preferred_date: b.preferred_date, preferred_slot: b.preferred_slot,
       source: 'website', page: '/book/', utm: b.utm, consent_whatsapp: b.consent_whatsapp, ip_hash: ipHash, status: 'payment_sent',
       confirm_fee: fee.amount, confirm_fee_review: fee.review, amount_due: fee.amount, client_key: b.client_key,
