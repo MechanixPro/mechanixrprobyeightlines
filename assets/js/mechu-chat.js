@@ -170,8 +170,11 @@
         else if (p.links) { var w = el('div', 'mechu-links'); p.links.forEach(function (l) { w.appendChild(link(l)); }); m.appendChild(w); }
         else if (p.node) m.appendChild(p.node);
       });
-      log.scrollTop = m.offsetHeight + 24 > log.clientHeight ? Math.max(0, m.offsetTop - log.offsetTop - 8) : log.scrollHeight;   // a long answer is read from its top
-      return m;
+      reveal(); return m;
+    }
+    function reveal() {   // show the newest answer: from its top when it is long, else the end of the chat (called again once the quick replies are drawn, as they take room)
+      var m = log.lastChild; if (!m) return;
+      log.scrollTop = m.offsetHeight + 24 > log.clientHeight ? Math.max(0, m.offsetTop - log.offsetTop - 8) : log.scrollHeight;
     }
     function link(l) {
       var a = el('a', 'mechu-link' + (l.go ? ' go' : ''), l.t);
@@ -270,7 +273,7 @@
     function run(name, arg, echo, fresh) {
       if (fresh !== false) hist.push({ n: name, a: arg, e: echo, len: log.children.length, S: JSON.parse(JSON.stringify(S)) });
       if (echo) { bubble('me').appendChild(el('p', '', echo)); }
-      (SCREENS[name] || SCREENS.home)(arg);
+      (SCREENS[name] || SCREENS.home)(arg); reveal();
       var first = chips.querySelector('button'); if (first && !awaiting) first.focus();
       bBack.disabled = hist.length < 2;
     }
