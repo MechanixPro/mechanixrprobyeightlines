@@ -50,5 +50,7 @@ Deno.serve(async (req) => {
   try { await sendSmart(db, lead, `Payment of ${rupee(amount)} received for ${bid ? 'booking ' + bid : 'your request'}. Your slot is confirmed. We will share your mechanic's details before the visit. Thank you!`, { name: TPL.paid(), params: [String(amount), bid ?? 'request'] }, 'system'); } catch (e) { console.error('whatsapp confirm failed', e); }
   // Confirmation-fee bookings: email, receipt, WhatsApp and team alert. Each is independent and logged; none can fail the payment.
   await afterConfirmationPaid(db, lead.id);
-  return json(req, { ok: true, status: 'paid', booking_id: bid, amount });
+  // The payer's own browser (it holds a valid payment signature) gets the private tracking token so the page can link to it. Only for confirmation-fee bookings.
+  const { data: sec } = lead.confirm_fee != null ? await db.from('booking_secrets').select('track_token').eq('lead_id', lead.id).maybeSingle() : { data: null };
+  return json(req, { ok: true, status: 'paid', booking_id: bid, amount, track_token: (sec as { track_token?: string } | null)?.track_token ?? null });
 });
