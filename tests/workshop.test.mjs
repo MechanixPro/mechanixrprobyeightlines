@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const M = JSON.parse(read('src/workshop.json'));
 const company = JSON.parse(read('src/company.json'));
 const page = read('workshop/index.html');
 const home = read('index.html');
-const gallery = page.match(/<div class="ws-grid">[\s\S]*?<\/p>\s*<\/div><\/section>/)[0];
+const gallery = page.match(/<div class="ws-layout[\s\S]*?<\/p>\s*<\/div><\/section>/)[0];
 
 test('manifest entries are complete and every file exists', () => {
   assert.ok(M.items.length >= 4);
@@ -55,9 +55,43 @@ test('captions and alt text carry no phone numbers or other business names', () 
   assert.doesNotMatch(text, /honda|yamaha|hero|suzuki|bajaj|aprilia|royal enfield|bike ?bazar|garage/i);
   for (const it of M.items) assert.ok(it.caption.length <= 45, 'captions stay short and descriptive');
 });
-test('the edit disclosure is under the gallery', () => {
+test('the edit disclosure is under the gallery and says videos are edited for privacy too', () => {
   assert.ok(page.includes('Photos are edited for privacy: faces are blurred and number plates are covered with our label. Signboard artwork shows our branding.'));
+  assert.ok(page.includes('Videos are edited for privacy too: faces are blurred, number plates are covered and the sound is removed.'));
   assert.ok(page.indexOf('Photos are edited for privacy') > page.indexOf('ws-grid'));
+  assert.ok(page.indexOf('Videos are edited for privacy too') > page.indexOf('ws-grid'));
+});
+test('only the reviewed videos are published: the custom paint video leads, then the engine rebuild; V1, V3 and V5 are absent', () => {
+  const vids = M.items.filter((i) => i.kind === 'video');
+  assert.deepEqual(vids.map((v) => v.file), ['custom-paint-finishes', 'engine-frame-rebuild']);
+  assert.equal(M.items[0].file, 'custom-paint-finishes'); // first in the manifest
+  assert.ok(page.indexOf('custom-paint-finishes.mp4') < page.indexOf('class="ws-a"'), 'the lead video is before every photo');
+  assert.ok(page.indexOf('custom-paint-finishes.mp4') < page.indexOf('engine-frame-rebuild.mp4'));
+  const dir = readdirSync(new URL('../assets/video/workshop/', import.meta.url));
+  assert.deepEqual(dir.filter((f) => /\.mp4$/.test(f)).sort(), ['custom-paint-finishes.mp4', 'engine-frame-rebuild.mp4']);
+  assert.ok(!dir.concat(readdirSync(new URL('../assets/img/workshop/', import.meta.url))).some((f) => /workshop-video-[135]/.test(f)));
+  assert.doesNotMatch(page, /workshop-video-/);
+});
+test('videos have controls, muted, playsinline, preload none, a poster, real dimensions, a label and a visible caption, and never autoplay', () => {
+  const tags = page.match(/<video [^>]*>/g); assert.equal(tags.length, 2);
+  const dims = { 'custom-paint-finishes': [480, 854], 'engine-frame-rebuild': [720, 1280] };
+  for (const [name, [w, h]] of Object.entries(dims)) {
+    const i = page.indexOf(name + '.mp4'), tag = page.slice(page.lastIndexOf('<video ', i), page.indexOf('>', page.lastIndexOf('<video ', i)) + 1);
+    for (const a of ['controls', 'muted', 'playsinline', 'preload="none"']) assert.ok(tag.includes(a), name + ' ' + a);
+    assert.ok(tag.includes(`width="${w}" height="${h}"`), name + ' size'); assert.ok(tag.includes(`poster="/assets/img/workshop/${name}-1200.webp"`));
+    assert.match(tag, /aria-label="[^"]{20,}"/); assert.doesNotMatch(tag, /autoplay|loop/);
+    assert.match(page.slice(i, i + 400), /<figcaption>[^<]{8,}<\/figcaption>/);
+  }
+});
+test('video, poster and page weights stay sensible: each mp4 under 8 MB, posters under 150 KB, the page HTML under 60 KB, the workshop stylesheet under 6 KB', () => {
+  const sz = (p) => statSync(new URL('../' + p, import.meta.url)).size;
+  for (const f of ['custom-paint-finishes', 'engine-frame-rebuild']) {
+    assert.ok(sz(`assets/video/workshop/${f}.mp4`) < 8 * 1024 * 1024, f);
+    for (const w of [600, 1200]) assert.ok(sz(`assets/img/workshop/${f}-${w}.webp`) < 150 * 1024, f + w);
+  }
+  assert.ok(Buffer.byteLength(page) < 60000); assert.ok(sz('assets/css/workshop.css') < 6000);
+  assert.doesNotMatch(page, /<video[^>]*preload="(auto|metadata)"/); // nothing downloads until a viewer taps play
+  assert.match(page, /<link rel="stylesheet" href="\/assets\/css\/workshop\.css">/);
 });
 test('trust block uses company.json and only confirmed claims', () => {
   assert.ok(page.includes(company.legalName) && page.includes(company.gstin));

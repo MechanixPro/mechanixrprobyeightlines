@@ -1,7 +1,29 @@
 {
   "title": "Our Workshop in HSR Layout, Bengaluru | Mechanix Pro",
-  "description": "See the Mechanix Pro workshop in HSR Layout, Bengaluru: real photos of the front, the tool wall and bikes in for service, with our address and company details.",
+  "description": "See the Mechanix Pro workshop in HSR Layout, Bengaluru: real photos and short videos of the front, the tool wall, custom paint and bikes in for service, with our address and company details.",
   "items": [
+    {
+      "id": "custom-paint",
+      "file": "custom-paint-finishes",
+      "kind": "video",
+      "poster": "custom-paint-finishes",
+      "width": 480,
+      "height": 854,
+      "alt": "Vertical video of white and red scooter body panels laid out on a workshop floor, showing custom paint finishes.",
+      "caption": "Custom paint finishes on scooters",
+      "edit": "Faces blurred, number plates covered, sound removed."
+    },
+    {
+      "id": "engine-frame",
+      "file": "engine-frame-rebuild",
+      "kind": "video",
+      "poster": "engine-frame-rebuild",
+      "width": 720,
+      "height": 1280,
+      "alt": "Vertical video inside a workshop bay of a cruiser motorcycle with its engine and frame being rebuilt, other bikes parked behind it.",
+      "caption": "Engine and frame rebuild on a cruiser",
+      "edit": "Faces blurred, number plates covered, sound removed."
+    },
     {
       "id": "front",
       "file": "workshop-front",

@@ -146,8 +146,23 @@ def _inr(n): return 'Free' if n == 0 else '₹' + format(int(n), ',')
 def _price(key):
     d = SITE_DATA['services'].get(key)
     return d['price'] if d else SITE_DATA['addons'][key]
+def _confirm_tiers():
+    """The confirmation-fee tiers, read from the one place the booking flow keeps them (DEFAULTS in assets/js/book-pay.js, mirrored by supabase/functions/_shared/confirm-fee.ts)."""
+    bp = open(os.path.join(ROOT, 'assets', 'js', 'book-pay.js'), encoding='utf-8').read()
+    fm = re.search(r'DEFAULTS = \{ confirm_std: (\d+), confirm_mid: (\d+), confirm_big: (\d+), confirm_car: (\d+) \}', bp)
+    return dict(zip(('std', 'mid', 'big', 'car'), map(int, fm.groups())))
+CONFIRM_TIERS = _confirm_tiers()
+CONFIRM_RANGE = f"₹{min(CONFIRM_TIERS.values())} to ₹{max(CONFIRM_TIERS.values())}"
+CONFIRM_RULE = f"a small confirmation fee, {CONFIRM_RANGE} depending on your vehicle's engine size, shown before you pay and adjusted in your final bill"
+CONFIRM_TIERS_TEXT = f"₹{CONFIRM_TIERS['std']} up to 149cc, ₹{CONFIRM_TIERS['mid']} for 150 to 250cc, ₹{CONFIRM_TIERS['big']} for 251cc and above and for cars"
+def _write_confirm_rule_into_app_js():
+    """app.js (the older builder) shows the confirmation-fee sentence too. It is written between markers from the same tiers, so there is no third copy."""
+    f = os.path.join(ROOT, 'assets', 'js', 'app.js'); t = open(f, encoding='utf-8').read()
+    t2 = re.sub(r"(/\* confirm-rule:start[^\n]*\*/\n  var CONFIRM_RULE = )[^\n]*;(\n  /\* confirm-rule:end \*/)", lambda m: m.group(1) + json.dumps(CONFIRM_RULE, ensure_ascii=False) + ';' + m.group(2), t)
+    if t2 != t: open(f, 'w', encoding='utf-8').write(t2)
+_write_confirm_rule_into_app_js()
 def tok(s):
-    """Fills {{price:id}} (a span the browser can refresh), {{text:id}}, {{fee:advance|newfee|bigbike}}, {{feetext:..}}, {{days}} and {{includes_li:id}} from src/site.json."""
+    """Fills {{price:id}} (a span the browser can refresh), {{text:id}}, {{fee:bigbike}}, {{confirmrule}}, {{confirmrange}}, {{confirmtiers}}, {{days}} and {{includes_li:id}} from src/site.json."""
     def rep(m):
         kind, key = m.group(1), m.group(2)
         if kind == 'price': return f'<span data-price="{key}">{_inr(_price(key))}</span>'
@@ -159,7 +174,7 @@ def tok(s):
         if kind == 'includes_li': return ''.join(f'<li>{html.escape(x)}</li>' for x in SITE_DATA['services'][key]['includes'])
         return m.group(0)
     s = re.sub(r'\{\{(price|text|num|fee|feetext|includes_li):([a-z0-9]+)\}\}', rep, s)
-    return s.replace('{{days}}', str(SITE_DATA['warrantyDays']))
+    return s.replace('{{confirmrule}}', CONFIRM_RULE).replace('{{confirmrange}}', CONFIRM_RANGE).replace('{{confirmtiers}}', CONFIRM_TIERS_TEXT).replace('{{days}}', str(SITE_DATA['warrantyDays']))
 def _unesc(x): return html.unescape(x)
 def fit_title(t, limit=65):
     """Search results cut titles at about 60 characters. Try shorter wordings that keep the area or model and the brand."""
@@ -315,7 +330,7 @@ for slug, name, pins, locs, why in AREAS:
     book = f'/book/?area={urllib.parse.quote(name)}'
     faq = [
       (f'Do you come to my home in {name}?', f'Yes. Our mechanics cover {locs} (PIN codes {pins}). We service your bike at home, in your office or society parking, or at the roadside. We take requests 24/7, and you get your quote on WhatsApp before any work starts.'),
-      (f'How much is a bike service in {name}?', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}} for bikes up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices, excluding GST. A {{feetext:advance}} checkup and quote fee ({{feetext:newfee}} for new customers) holds your slot and is adjusted in your bill. Your exact quote comes on WhatsApp, and parts only after your approval.'),
+      (f'How much is a bike service in {name}?', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}} for bikes up to 149cc; 150 to 250cc and 251 to 500cc bikes have their own prices, excluding GST. To hold your slot you pay {{confirmrule}}. Your exact quote comes on WhatsApp, and parts only after your approval.'),
       ('How long does a doorstep service take?', 'Scheduled services are done in the slot you choose, and a basic service can be done in as fast as 2 hours once the mechanic arrives. The time depends on the package and on what the mechanic finds. For a breakdown, send your location on WhatsApp and we send the nearest available mechanic; arrival depends on traffic and location.'),
       ('What is included in a Standard service?', STD_ANSWER),
       ('Is doorstep bike service safe?', SAFE_ANSWER),
@@ -346,7 +361,7 @@ for slug, name, pins, locs, why in AREAS:
 <h2>Other areas we serve</h2>
 <p class="areas">{''.join(f'<a href="/bike-service-{s2}/">{n2}</a>' for s2, n2, *_ in AREAS if s2 != slug)}</p>
 <h2>How it works</h2>
-<ol><li>Build your service on the website and send it on WhatsApp.</li><li>Our expert checks what is needed, confirms if it can be done at home, and sends your quote.</li><li>You approve, we lock your slot ({{{{fee:advance}}}} checkup and quote fee, {{{{fee:newfee}}}} for new customers, adjusted in your bill if you go ahead), and the mechanic arrives.</li></ol>
+<ol><li>Build your service on the website and send it on WhatsApp.</li><li>Our expert checks what is needed, confirms if it can be done at home, and sends your quote.</li><li>You approve, we lock your slot ({{{{confirmrule}}}}), and the mechanic arrives.</li></ol>
 <h2>Questions from {name} riders</h2>
 {''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in faq)}
 <p class="tiny muted" style="margin-top:24px">Helpful reads: {GUIDE_LINKS}. See all <a href="/services/">service prices</a> and <a href="/roadside/">roadside help</a>.</p>
@@ -370,9 +385,9 @@ LEGAL = {
  'terms': ('Terms & Conditions', 'Terms for booking and using Mechanix Pro doorstep bike services.', '''
 <p class="muted">Last updated: [date]. Draft — to be reviewed by a lawyer before launch.</p>
 <h2>1. Service</h2><p>Mechanix Pro, operated by [Registered business name] (GSTIN [GSTIN]), provides two-wheeler service and repair at your location in our service areas in Bengaluru, through trained mechanics from our partner workshops.</p>
-<h2>2. Booking</h2><p>You can request a booking on our website or WhatsApp. A booking is confirmed when we confirm your slot and you pay the checkup and quote fee (currently {{fee:advance}}). The fee is adjusted in your final bill if you go ahead with the service. New customers, meaning a mobile number with no earlier completed job, pay a reduced slot fee of {{fee:newfee}} instead, on the same terms.</p>
+<h2>2. Booking</h2><p>You can request a booking on our website or WhatsApp. A booking is confirmed when you pay the confirmation fee and we confirm your slot. The confirmation fee is a small amount, {{confirmrange}} depending on your vehicle's engine size ({{confirmtiers}}), shown before you pay. It is adjusted in your final bill if you go ahead with the service.</p>
 <h2>3. Prices and extra work</h2><p>Listed prices are before GST (18% GST is added on your invoice) and cover the labour and items described for each package. Parts are OEM or aftermarket, sourced from our partner Axlio, and each part is labelled in your quote so you can choose. Parts, oil above standard grade and work outside the package are charged only after you approve an itemised estimate. Packages are priced by engine size (up to 149cc, 150 to 250cc and 251 to 500cc). Engine oil is replaced in Full service for bikes up to 250cc, and in Standard and Full service for 251 to 500cc. Air and oil filters are checked, and replacing them is not included. Minor repairs are limited to basic adjustments and small fixes. Pickup and drop is free in our serviceable area.</p>
-<h2>4. Payment</h2><p>The checkup and quote fee and final payments are made through Razorpay (UPI, cards, wallets, net banking) or as agreed with us. Invoices show GST separately.</p>
+<h2>4. Payment</h2><p>The confirmation fee and final payments are made through Razorpay (UPI, cards, wallets, net banking) or as agreed with us. Invoices show GST separately.</p>
 <h2>5. Cancellation</h2><p>See our <a href="/refund-policy/">Refund & Cancellation Policy</a>.</p>
 <h2>6. Vehicle handover</h2><p>If your bike must go to a workshop, it goes to a Mechanix Pro Certified garage, pickup and drop is free in our serviceable area, and the repair is quoted first and starts only after you approve. The bike leaves only after you share a one-time code with the mechanic, and returns the same way. The mechanic photographs the bike (front, back and both sides) at pickup and again at return, so there is a record of its condition; we keep these photos for 12 months. Please remove valuables. Keep your registration and insurance documents valid.</p>
 <h2>7. Warranty</h2><p><b>Service warranty:</b> Our service work is covered for {{days}} days from the service date. If the same work fails in that time, we redo it free.</p><p><b>Parts warranty:</b> parts carry a limited warranty on the terms of the part's manufacturer or supplier, which we show on your quote or invoice. We do not give a separate warranty on parts beyond those terms.</p><p><b>Not covered:</b> accidents, misuse, normal wear, damage from work done by others after our service, and parts you supplied yourself.</p>
@@ -382,7 +397,7 @@ LEGAL = {
 <h2>11. Contact</h2><p>hello@mechanixpro.in · <span data-phone>+91 79652 95649</span></p>'''),
  'refund-policy': ('Refund & Cancellation Policy', 'How cancellations and refunds work for Mechanix Pro bookings.', '''
 <p class="muted">Last updated: [date].</p>
-<h2>Cancelling a booking</h2><ul><li><b>More than 2 hours before your slot:</b> free. Your {{fee:advance}} checkup and quote fee is refunded in full.</li><li><b>Less than 2 hours before, or after the mechanic has left:</b> the {{fee:advance}} checkup and quote fee covers the visit and is not refunded.</li><li><b>New customers:</b> the {{fee:newfee}} slot fee follows the same rules, so it is refunded in full if you cancel more than 2 hours before your slot.</li><li><b>Emergency (SOS) visits:</b> cancellable free until a mechanic is assigned.</li></ul>
+<h2>Cancelling a booking</h2><ul><li><b>More than 2 hours before your slot:</b> free. Your confirmation fee is refunded in full.</li><li><b>Less than 2 hours before, or after the mechanic has left:</b> the confirmation fee covers the visit and is not refunded.</li><li><b>Emergency (SOS) visits:</b> cancellable free until a mechanic is assigned.</li></ul>
 <h2>If we cancel</h2><p>If we cannot reach you in your slot, we offer another slot or a full refund — your choice.</p>
 <h2>Service issues</h2><p>If something we fixed fails within {{days}} days, we redo that work free. If we cannot fix it, we refund the charge for that item. Parts are covered by the limited warranty of the part's manufacturer or supplier, as shown on your invoice.</p>
 <h2>How refunds are paid</h2><p>Refunds go to your original payment method through Razorpay within 5–7 working days of approval.</p>
@@ -470,7 +485,7 @@ for brand, name, t, big in load_bikes():
       (f'How much does a {full} {"problem check" if t == "e" else "service"} cost in Bengaluru?', ('A problem check starts from {{text:repair}}.' if t == 'e' else 'Basic service from {{text:basic}}, Standard from {{text:general}} and Full from {{text:full}}.') + (' This bike is usually 150cc or more, so its 150 to 250cc or 251 to 500cc prices on the Services page apply.' if big and t != 'e' else '') + ' excluding GST. Your exact quote comes on WhatsApp before any work starts.'),
       (f'Can you service my {full} at home?', f'Yes. A Mechanix Pro certified mechanic comes to your home or office in Bengaluru. {timing}'),
       ('Is there a warranty on the work?', 'Yes, {{days}} days on the work, with OEM and aftermarket parts.'),
-      ('Do I pay before the work starts?', 'You approve the quote first. A {{feetext:advance}} checkup and quote fee ({{feetext:newfee}} for new customers) holds your slot and is adjusted in your final bill if you go ahead.'),
+      ('Do I pay before the work starts?', 'You approve the quote first. To hold your slot you pay {{confirmrule}}.'),
     ]
     schema = '<script type="application/ld+json">' + json.dumps({
       "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]}, ensure_ascii=False) + '</script>\n<script type="application/ld+json">' + json.dumps({
@@ -492,7 +507,7 @@ for brand, name, t, big in load_bikes():
 <div class="card">{price_rows}</div>
 <p class="tiny muted" style="margin-top:8px">Starting from {{{{text:{first}}}}} for the {first_name}, excluding GST.{surcharge} Your exact quote comes on WhatsApp.</p>
 <h2>How it works</h2>
-<ol><li>Build your service and send it on WhatsApp.</li><li>Our expert checks what is needed and sends your quote.</li><li>You approve, we confirm your slot, and the mechanic arrives. The {{{{fee:advance}}}} checkup and quote fee ({{{{fee:newfee}}}} for new customers) is adjusted in your bill if you go ahead.</li></ol>
+<ol><li>Build your service and send it on WhatsApp.</li><li>Our expert checks what is needed and sends your quote.</li><li>You approve, we confirm your slot, and the mechanic arrives. You pay {{{{confirmrule}}}}.</li></ol>
 <h2>Questions about servicing a {html.escape(full)}</h2>
 {''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in faq)}
 <h2>Other {html.escape(brand)} models we service</h2>
@@ -536,7 +551,7 @@ GUIDE_PAGES = {
     ('What a garage can still do better', '<p>Some jobs need a lift, special tools or a longer stay, such as major engine work. If a job cannot be done properly at your doorstep, we tell you before starting, and you can then take it to a workshop.</p>'),
     ('Which should you pick?', '<p>For regular services, brakes, chain care, oil changes and routine checks, doorstep service saves time. For a major repair, a workshop may be the right place. When in doubt, send us your bike\'s problem on WhatsApp and we will say honestly what can be done at home.</p>')],
    [('Is doorstep bike service as good as a garage?', 'For routine services and common checks, yes, when the mechanic is certified and uses proper parts. For major engine work, a workshop may be the better place, and we say so before starting.'),
-    ('Do I pay before the work?', 'You approve the quote first. A {{feetext:advance}} checkup and quote fee ({{feetext:newfee}} for new customers) holds your slot and is adjusted in your final bill if you go ahead.'),
+    ('Do I pay before the work?', 'You approve the quote first. To hold your slot you pay {{confirmrule}}.'),
     ('Which areas do you cover?', 'We service across Bengaluru. See the list of areas and PIN codes on our areas page.')]),
 }
 for gslug, (gtitle, gdesc, gh1, glead, gsecs, gfaq) in GUIDE_PAGES.items():
@@ -777,7 +792,7 @@ write('pay/index.html', _pay + '''<h1 style="font-size:40px">Pay for your bookin
   <p class="small" id="payMsg" role="status" aria-live="polite"></p>
 </form>
 <div id="payResult" aria-live="polite"></div>
-<p class="tiny muted">For a new booking the amount is the small confirmation fee for your vehicle, shown before you pay. It is adjusted in your final bill if you go ahead. Other bookings pay what is due on the booking, such as the {{fee:advance}} checkup and quote fee. We never see your card details. Need help? <a href="#" data-wa="general">Message us on WhatsApp</a>.</p>''' + foot(dock=False))
+<p class="tiny muted">For a new booking the amount is the small confirmation fee for your vehicle ({{confirmrange}} by engine size), shown before you pay. It is adjusted in your final bill if you go ahead. Other bookings pay what is due on the booking, such as the confirmation fee. We never see your card details. Need help? <a href="#" data-wa="general">Message us on WhatsApp</a>.</p>''' + foot(dock=False))
 
 # Track page: a customer looks up their booking with the reference and the mobile number they booked with.
 _tr = HEAD.format(title='Track Your Booking | Mechanix Pro', desc='Check the progress of your Mechanix Pro booking with your reference and mobile number.', url=f'{SITE}/track/', site=SITE, schema='', scripts=LEGAL_JS + '<link rel="stylesheet" href="/assets/css/book.css"><link rel="stylesheet" href="/assets/css/journey.css"><script src="/assets/js/thanks.js" defer></script><script src="/assets/js/track.js" defer></script>', body='', nav=NAV, main='page')
@@ -815,7 +830,7 @@ def rate_card_page():
     write('rate-card/index.html', page + f'''<section class="page-head"><div class="wrap"><p class="breadcrumb"><a href="/">Home</a> &rsaquo; Rate card</p><h1>Bangalore bike rate card.</h1><p class="lead">Every price is shown <b>excluding GST</b>. GST at 18% is added on your final invoice, and your mechanic or our team will tell you the total before any work starts.</p></div></section>
 <section><div class="wrap">{body}<h3>Other services</h3><div class="scroll"><table class="rate-table">{head}<tbody>{other}</tbody></table></div>
 <h3>Add-ons</h3><div class="scroll"><table class="rate-table">{head}<tbody>{adds}</tbody></table></div>
-<p class="tiny muted" style="margin-top:14px">Parts and consumables are charged separately after you approve them, and are OEM or aftermarket as labelled in your quote. Pickup and drop is free in our serviceable area. The checkup and quote fee is adjusted in your final bill if you go ahead.</p>
+<p class="tiny muted" style="margin-top:14px">Parts and consumables are charged separately after you approve them, and are OEM or aftermarket as labelled in your quote. Pickup and drop is free in our serviceable area. The confirmation fee ({{{{confirmrange}}}}, by engine size) is adjusted in your final bill if you go ahead.</p>
 <div class="row" style="margin-top:14px"><a class="btn btn-primary" href="/book/">Build your service</a><a class="btn btn-wa" href="#" data-wa="general">Get a quote on WhatsApp</a></div></div></section>''' + foot())
     urls.append(('/rate-card/', '0.8'))
 rate_card_page()
@@ -902,7 +917,7 @@ def offer_page(o):
 {PROMISES}
 <section><div class="wrap pricing"><div class="sec-head"><h2>{html.escape(o['checks_title'])}.</h2><p>Parts and oil above standard grade are quoted first and fitted only after you approve.</p></div><ul class="tick">{checks}</ul></div></section>
 <section class="band"><div class="wrap"><div class="sec-head"><h2>How it works.</h2></div>
-<ol class="steps3"><li><b>Build</b><span>Pick your bike and what it needs. See a starting price right away.</span></li><li><b>Get your quote</b><span>Our expert checks the details and sends your quote on WhatsApp.</span></li><li><b>We come to you</b><span>Approve the quote, pick a slot, and a Mechanix Pro-certified mechanic services your bike at your door. The {{{{fee:advance}}}} checkup and quote fee is adjusted in your bill if you go ahead.</span></li></ol></div></section>
+<ol class="steps3"><li><b>Build</b><span>Pick your bike and what it needs. See a starting price right away.</span></li><li><b>Get your quote</b><span>Our expert checks the details and sends your quote on WhatsApp.</span></li><li><b>We come to you</b><span>Approve the quote, pick a slot, and a Mechanix Pro-certified mechanic services your bike at your door. The confirmation fee ({{{{confirmrange}}}}, by engine size) is adjusted in your bill if you go ahead.</span></li></ol></div></section>
 <section><div class="wrap"><div class="final"><h2>Ready when your bike is.</h2><p>Build your service in under a minute, or just message us.</p><div class="row"><a class="btn btn-primary" href="{book}">Build your service</a><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{wa}">Get a quote on WhatsApp</a></div></div></div></section>'''
     page = HEAD.format(title=html.escape(o['title'] + ' | Mechanix Pro'), desc=html.escape(o['lead']), url=f'{SITE}/offers/{slug}/', site=SITE, schema='', scripts=LEGAL_JS + CHAT_JS, body='page-offer', nav=NAV, main='')
     page = page.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
@@ -941,6 +956,7 @@ WORKSHOP = json.load(open(os.path.join(ROOT, 'src', 'workshop.json'), encoding='
 WS_IMG = '/assets/img/workshop/'
 WS_VID = '/assets/video/workshop/'
 WS_DISCLOSE = 'Photos are edited for privacy: faces are blurred and number plates are covered with our label. Signboard artwork shows our branding.'
+WS_DISCLOSE_VIDEO = 'Videos are edited for privacy too: faces are blurred, number plates are covered and the sound is removed.'
 WS_DISCLOSE_EXTRA = 'Phone numbers painted on the wall and any plates still visible in the background are pixelated.'
 def _ws_dims(it): return it.get('width', 1200), it.get('height', 675)
 def ws_item_html(it, first=False):
@@ -948,7 +964,7 @@ def ws_item_html(it, first=False):
     cap = html.escape(it['caption'])
     if it['kind'] == 'video':
         poster = f' poster="{WS_IMG}{it["poster"]}-1200.webp"' if it.get('poster') else ''
-        media = (f'<video controls muted playsinline preload="none" width="{w}" height="{h}"{poster} aria-label="{html.escape(it["alt"], quote=True)}">'
+        media = (f'<video controls muted playsinline preload="none" width="{it.get("width", 720)}" height="{it.get("height", 1280)}"{poster} aria-label="{html.escape(it["alt"], quote=True)}">'
                  f'<source src="{WS_VID}{it["file"]}.mp4" type="video/mp4">Your browser cannot play this video.</video>')
     else:
         f = it['file']
@@ -956,7 +972,7 @@ def ws_item_html(it, first=False):
         load = 'fetchpriority="high"' if first else 'loading="lazy"'
         media = (f'<a class="ws-a" href="{WS_IMG}{f}-1200.webp" data-lb aria-label="Enlarge photo: {cap}">'
                  f'<img src="{WS_IMG}{f}-600.webp" srcset="{WS_IMG}{f}-600.webp 600w, {WS_IMG}{f}-1200.webp 1200w" sizes="{sizes}" width="{w}" height="{h}" {load} decoding="async" alt="{html.escape(it["alt"], quote=True)}"></a>')
-    return f'<figure class="ws-fig{" ws-first" if first else ""}" id="ws-{html.escape(it["id"])}">{media}<figcaption>{cap}</figcaption></figure>'
+    return f'<figure class="ws-fig{" ws-vid" if it["kind"] == "video" else ""}{" ws-first" if first and it["kind"] == "photo" else ""}" id="ws-{html.escape(it["id"])}">{media}<figcaption>{cap}</figcaption></figure>'
 def workshop_teaser_html():
     its = [x for x in WORKSHOP['items'] if x.get('teaser') and x['kind'] == 'photo'][:3]
     if not its: return ''
@@ -1124,13 +1140,20 @@ def workshop_page():
     url = SITE + '/workshop/'
     addr_line = ', '.join(COMPANY['addressLines']) + f", {COMPANY['city']}, {COMPANY['state']} {COMPANY['pincode']}"
     maps = 'https://www.google.com/maps/search/?api=1&amp;query=' + urllib.parse.quote(addr_line, safe='')
-    gallery = ''.join(ws_item_html(it, i == 0) for i, it in enumerate(items))
+    # The lead item (first in the manifest) may be a tall video: it is shown first, next to the photo grid on desktop and height-capped on phones. Photos follow; any other videos close the grid.
+    lead = items[0] if items[0]['kind'] == 'video' else None
+    photos = [it for it in items if it['kind'] == 'photo']
+    others = [it for it in items[1:] if it['kind'] == 'video'] if lead else [it for it in items if it['kind'] == 'video']
+    gallery = ''.join(ws_item_html(it, i == 0) for i, it in enumerate(photos)) + ''.join(ws_item_html(it) for it in others)
+    lead_html = ws_item_html(lead).replace('class="ws-fig ws-vid"', 'class="ws-fig ws-vid ws-lead"', 1) if lead else ''
+    has_video = any(it['kind'] == 'video' for it in items)
+    disclose = WS_DISCLOSE + ' ' + WS_DISCLOSE_EXTRA + ((' ' + WS_DISCLOSE_VIDEO) if has_video else '')
     ld = crumbs(('Our workshop', '/workshop/')) + ld_tag({"@context": "https://schema.org", "@type": "AutoRepair", "@id": BUSINESS_ID, "name": "Mechanix Pro", "legalName": COMPANY['legalName'], "url": SITE + "/",
         "address": {"@type": "PostalAddress", "streetAddress": ', '.join(COMPANY['addressLines']), "addressLocality": COMPANY['city'], "addressRegion": COMPANY['state'], "postalCode": COMPANY['pincode'], "addressCountry": "IN"}})
     body = f"""<section class="page-head"><div class="wrap"><p class="breadcrumb"><a href="/">Home</a> &rsaquo; Our workshop</p><h1>Our workshop, HSR Layout.</h1>
 <p>This is the Mechanix Pro workshop in HSR Layout, Bengaluru. Most of our work happens at your door, and this is the base our mechanics work from. The photos below are real, and you are welcome to see the place for yourself.</p></div></section>
-<section><div class="wrap"><div class="ws-grid">{gallery}</div>
-<p class="note ws-note">{WS_DISCLOSE} {WS_DISCLOSE_EXTRA}</p></div></section>
+<section><div class="wrap"><div class="ws-layout{' ws-has-lead' if lead else ''}">{lead_html}<div class="ws-grid">{gallery}</div></div>
+<p class="note ws-note">{disclose}</p></div></section>
 <section class="band"><div class="wrap"><div class="sec-head"><h2>What you can rely on.</h2></div>
 <ul class="ws-trust">
 <li><b>Where we are</b><span>{html.escape(addr_line)}</span><a class="inl" href="{maps}" target="_blank" rel="noopener">Open in Maps</a></li>
@@ -1141,7 +1164,7 @@ def workshop_page():
 </ul></div></section>
 <section><div class="wrap"><div class="final"><h2>Want a mechanic to look at your bike?</h2><p>Get a quote first. Nothing starts without your OK.</p><div class="row"><a class="btn btn-primary" href="/book/">Build your service</a><a class="btn btn-wa" href="#" data-wa="general">Message us on WhatsApp</a></div></div></div></section>
 """
-    write('workshop/index.html', HEAD.format(title=html.escape(WORKSHOP['title']), desc=html.escape(WORKSHOP['description']), url=url, site=SITE, schema=ld, scripts='<script src="/assets/js/workshop.js" defer></script>', body='', nav=NAV, main='') + body + foot())
+    write('workshop/index.html', HEAD.format(title=html.escape(WORKSHOP['title']), desc=html.escape(WORKSHOP['description']), url=url, site=SITE, schema=ld, scripts='<link rel="stylesheet" href="/assets/css/workshop.css">\n<script src="/assets/js/workshop.js" defer></script>', body='', nav=NAV, main='') + body + foot())
     urls.append(('/workshop/', '0.7'))
 workshop_page()
 
@@ -1188,9 +1211,7 @@ def mechu_data():
         faq.append({'id': re.sub(r'[^a-z0-9]+', '-', q.lower()).strip('-'), 'q': q, 'a': a})
     car_faq = [{'id': re.sub(r'[^a-z0-9]+', '-', q.lower()).strip('-'), 'q': q, 'a': a} for q, a in CAR_FAQ]
     trust = [plain(x) for x in re.findall(r'<li><b>(.*?)</b></li>', home[home.index('id="trust"'):home.index('id="trust"') + 400])]
-    bp = open(os.path.join(ROOT, 'assets', 'js', 'book-pay.js'), encoding='utf-8').read()
-    fm = re.search(r'DEFAULTS = \{ confirm_std: (\d+), confirm_mid: (\d+), confirm_big: (\d+), confirm_car: (\d+) \}', bp)
-    tiers = dict(zip(('std', 'mid', 'big', 'car'), map(int, fm.groups())))
+    tiers = dict(CONFIRM_TIERS)
     bk = open(os.path.join(ROOT, 'assets', 'js', 'bikes.js'), encoding='utf-8').read()
     brands = []
     for b, rows in re.findall(r"^  '([^']+)': \[(.*?)\],?\s*$", bk, re.M):
@@ -1210,7 +1231,7 @@ def llms_txt():
       '- How it works: message on WhatsApp or build a service on the website, receive an itemised quote, approve it, the mechanic comes to your door.',
       f"- Prices for bikes and scooters up to 149cc (before GST; 18% GST is added): {sv['basic']['name']} {_inr(_price('basic'))}, {sv['general']['name']} {_inr(_price('general'))}, {sv['full']['name']} {_inr(_price('full'))}, {sv['repair']['name']} from {_inr(_price('repair'))}, puncture {_inr(_price('puncture'))}, roadside emergency visit {_inr(_price('sos'))}.",
       f"- Bikes of 150 to 250cc and 251 to 500cc have their own prices: Basic {_inr(_price('basic250'))} and {_inr(_price('basic500'))}, Standard {_inr(_price('general250'))} and {_inr(_price('general500'))}, Full {_inr(_price('full250'))} and {_inr(_price('full500'))}.",
-      f"- Booking: a {_inr(SITE_DATA['advance'])} checkup and quote fee ({_inr(SITE_DATA['newCustomerFee'])} for new customers) holds the slot and is adjusted in the final bill.",
+      f"- Booking: {CONFIRM_RULE} ({CONFIRM_TIERS_TEXT}) holds the slot.",
       '- Open 24/7 for requests. A basic service can be done in as fast as 2 hours once the mechanic arrives.',
       '- 10,000+ services done. 1,300+ gated communities trust us.',
       '- Safety: certified mechanics (visited, document-checked, trained, trial jobs), itemised WhatsApp quote before work, OTP before the bike leaves, GST invoice for every job.',

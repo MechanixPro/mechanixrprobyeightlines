@@ -67,8 +67,8 @@ Book a small bike ("Activa 125") on `/book/` with the owner's own email and phon
 - Crew: supervisors and the Technician lead (`assign_leads` or `manage_technicians`) can dispatch, assign, build quotes and record phone approvals. A lead's owner can use these on their own lead. Sales agents cannot touch other agents' leads, and technicians have no Crew login (they use the job link).
 
 ## 9. Words that need the owner's or the lawyer's approval (not changed)
-- `/refund-policy/` and `/terms/` still describe the Rs 349 checkup and quote fee and the new-customer slot fee. The new Rs 49 to Rs 99 confirmation fee is described only on `/book/`, in the emails and on the tracking page ("adjusted in your final bill"). Lines to review: refund-policy "More than 2 hours before your slot: free. Your Rs 349 checkup and quote fee is refunded in full" and the two lines under it; terms section 2 "Booking" (a booking is confirmed when we confirm your slot and you pay the checkup and quote fee).
-- `llms.txt`, the home FAQ, the area pages, `/offers/*` and `/pay/` mention the Rs 349 and Rs 99 fees. Only `/pay/` was changed (it now says the amount for a new booking is the small confirmation fee shown before paying). The others are left as they are until the owner decides whether the Rs 349 fee is retired.
+- UPDATED on branch `site-cleanup`: `/refund-policy/`, `/terms/`, help, home, area and model pages, `/offers/*`, `/rate-card/`, `/pay/` and `llms.txt` now describe the Rs 49 to Rs 99 confirmation fee. Every changed legal line is in `docs/LEGAL-REVIEW-FEE-WORDING.md` and needs the lawyer's approval before deploy.
+- The Rs 349 and Rs 99 fees no longer appear on any public page (test `tests/fee-retired.test.mjs`).
 - GST: the confirmation fee is treated as including 18% GST. The receipt shows the taxable value, CGST 9% and SGST 9% and calls itself a receipt for an advance. Please have the accountant confirm this is the right document for an advance.
 - The quote email and tracking page say "Nothing starts until you approve", "The fee is adjusted in your final bill" and "Your code protects your vehicle". These are the system's behaviour, not new legal terms.
 
