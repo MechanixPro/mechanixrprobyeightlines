@@ -5,12 +5,12 @@ import { sendEmail, FROM_BOOKING } from './resend.ts';
 import { sendCampaign } from './aisensy-send.ts';
 import { DESK_TEMPLATES } from './desk-templates.ts';
 import { teamEmails } from './desk-notify.ts';
-import { paidConfirmation, feeReceipt, quoteMail, etaChanged } from './email-templates.ts';
+import { paidConfirmation, feeReceipt, quoteMail, etaChanged, mechanicOnTheWay } from './email-templates.ts';
 import { COMPANY } from './company.ts';
 import { gstSplit } from './confirm-fee.ts';
 import { formatWhen } from './when.ts';
 import { idParam } from './booking-id.ts';
-import { deliver, deliverAll, dueKinds, olderThan, teamPaidMessage, teamNudgeMessage, type Kind, type Result, type Store } from './notify.ts';
+import { deliver, deliverAll, dueKinds, olderThan, teamPaidMessage, teamNudgeMessage, teamIssueMessage, type Kind, type Result, type Store } from './notify.ts';
 
 type Db = ReturnType<typeof adminDb>;
 const FROM_DESK = 'Mechanix Pro Desk <no-reply@mechanixpro.in>';
@@ -169,4 +169,23 @@ export async function sweepConfirmations(db: Db): Promise<Record<string, number>
     if (r === 'sent') out.unassigned++;
   }
   return out;
+}
+
+/** The mechanic marked On the way: one email to the customer with the private live link, once per booking (booking_notifications ontheway_email). There is no approved WhatsApp template for this yet, so WhatsApp is not sent. Never throws. */
+export async function sendOnTheWay(db: Db, leadId: string, force = false): Promise<string> {
+  try {
+    const { data: lead } = await db.from('leads').select('*').eq('id', leadId).is('deleted_at', null).maybeSingle();
+    if (!lead || lead.confirm_fee == null || !lead.confirm_paid_at) return 'not a paid confirmation';
+    const c = await contextOf(db, lead);
+    return await deliver(dbStore(db), leadId, 'ontheway_email', async () => c.token ? mailTo(db, leadId, c.email, 'mechanic_on_the_way', mechanicOnTheWay({ ...siteInfo(), name: lead.name, ref: lead.booking_id ?? null, mechanicFirst: c.mechanicFirst, trackUrl: c.trackUrl })) : { ok: false, skipped: true, error: 'no tracking link yet' }, force);
+  } catch (e) { console.error('sendOnTheWay', (e as Error).message); return 'failed'; }
+}
+/** A customer reported a problem: one team email per issue (team_issue:N), plus the issue itself in the desk. Never throws. */
+export async function notifyTeamIssue(db: Db, leadId: string, n: number, category: string): Promise<string> {
+  try {
+    const { data: lead } = await db.from('leads').select('booking_id,vehicle,area').eq('id', leadId).maybeSingle();
+    if (!lead) return 'not found';
+    const k = `team_issue:${Math.max(1, Math.min(999, n || 1))}` as Kind;
+    return await deliver(dbStore(db), leadId, k, () => mailTeam(db, teamIssueMessage({ bookingId: lead.booking_id, vehicle: lead.vehicle ?? 'bike', area: lead.area, category, deskUrl: deskUrl() }), 'team_issue'));
+  } catch (e) { console.error('notifyTeamIssue', (e as Error).message); return 'failed'; }
 }

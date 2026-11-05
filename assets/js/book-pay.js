@@ -179,10 +179,13 @@
     var msg = $('#bk-msg'), payBtn = $('#bk-pay');
     var free = function () { busy = false; payBtn.disabled = false; showFee(); };
     var done = function (d, email) {
-      store.clear(); form.hidden = true; $('.bk-steps').hidden = true;
-      var link = d.track_token ? '<a class="btn btn-primary wide" href="/track/?t=' + esc(d.track_token) + '">Track your booking</a>' : '';
-      doc.getElementById('bkDone').innerHTML = '<div class="card bk-card bk-done"><h2>Your slot is confirmed.</h2><p>' + (d.booking_id ? 'Booking ID <b>' + esc(d.booking_id) + '</b>. ' : '') + 'We sent your confirmation and your one-time code to <b>' + esc(email) + '</b>' + ' and on WhatsApp. Give the code to the mechanic when they arrive. Do not share it before.</p>' + link + '<p class="tiny muted">The fee is adjusted in your final bill. You get an itemised quote before any work, and nothing starts without your OK.</p></div>';
-      doc.getElementById('bkDone').scrollIntoView({ block: 'start' });
+      store.clear(); form.hidden = true; var steps = doc.querySelector('.bk-steps'); if (steps) { steps.hidden = true; steps.style.display = 'none'; }   // the step list sits outside the form: the old $() lookup returned null and threw after a successful payment
+      var box = doc.getElementById('bkDone'), T = win.MXP_THANKS, I = win.MXP_INSTALL;
+      // Keep the private tracking link on this phone (token and booking ID only) so the home page and an installed app can show "Your booking".
+      if (I && d.track_token) I.saveBooking(win, { t: d.track_token, id: d.booking_id });
+      var o = { bookingId: d.booking_id, email: email, token: d.track_token, name: val('name'), whatsapp: !!val('consent_whatsapp') };
+      if (T) T.render(box, win, o);
+      else box.innerHTML = '<div class="card bk-card bk-done"><h2>Your slot is confirmed.</h2><p>' + (d.booking_id ? 'Booking ID <b>' + esc(d.booking_id) + '</b>. ' : '') + 'We sent your confirmation and your one-time code to <b>' + esc(email) + '</b>.</p>' + (d.track_token ? '<a class="btn btn-primary wide" href="/track/?t=' + esc(d.track_token) + '&paid=1">Track your booking</a>' : '') + '</div>';
     };
     var verify = function (resp, email) {
       msg.textContent = 'Confirming your payment…';

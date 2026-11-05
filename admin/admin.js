@@ -203,6 +203,8 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if ($('#
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 flow.bind($('#sheetPanel'), () => leadOf(S.open), () => S.flow);
 flow.bindDispatch($('#view'), () => S.dispatchRows || []);
+flow.bindIssues($('#view'), () => loadCustIssues());
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-ci]'); if (b) { S.ciFilter = b.dataset.ci; loadCustIssues(); } });
 
 
 // The top bar shows five sections; the row under it shows the pages of the section you are in. The last page used in each section is remembered.
@@ -214,7 +216,7 @@ function syncNav() {
   const bd = navBadges({ leads: S.leads, issues: S.issues });
   document.querySelectorAll('[data-badge]').forEach((el) => { const n = bd[el.dataset.badge] || 0; el.textContent = n > 99 ? '99+' : String(n); el.hidden = !n; });
 }
-function render() { syncNav(); const v = $('#view'); v.innerHTML = ({ dash, dispatch, board, leads, customers, mechanics, coupons, issues, pins, waitlist, offers, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function render() { syncNav(); const v = $('#view'); v.innerHTML = ({ dash, dispatch, board, leads, customers, mechanics, coupons, issues, pins, waitlist, offers, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -654,6 +656,7 @@ const flow = createFlow({
   toast, can: () => true, paymentFn: 'payment-link',
   reload: async () => { await loadLeads(); if (S.tab === 'dispatch') loadDispatch(); else render(); if (S.open) openLead(S.open, true); },
   openLead: (id) => { S.tab = 'leads'; render(); openLead(id); },
+  photoUrl: async (path) => { const { data, error } = await sb.storage.from('booking-updates').createSignedUrl(path, 600); if (error) throw error; return data.signedUrl; },   // customer photos: private bucket, 10-minute links
   mechanics: async () => { const { data } = await sb.from('mechanics').select('id,name,area').eq('active', true).in('onboarding_status', ['live', 'pilot']).order('name'); return data || []; },
 });
 async function openLead(id, silent) { await openLeadBase(id, silent); await paintFlow(id); }
@@ -1519,7 +1522,8 @@ function offerForm() {
 const WARRANTY_DAYS = 30;
 function issues() {
   const rows = issueRows(S.issues, S.leads, S.ifilter);
-  return `<div class="toolbar"><p class="small muted" style="margin:0;flex:1">Log complaints, refund requests and warranty redo jobs against a booking. Refund money is still paid back through Razorpay; this is the record.</p>
+  return `<section class="cust-issues" aria-label="Reported by customers"><h3>Reported by customers</h3><div class="flow-seg" role="group" aria-label="Show">${[['open', 'Open'], ['resolved', 'Resolved'], ['all', 'All']].map(([k, t]) => `<button class="flow-btn" type="button" data-ci="${k}" aria-pressed="${(S.ciFilter || 'open') === k}">${t}</button>`).join('')}</div><div id="ciList" aria-live="polite"><p class="muted">Loading…</p></div></section>`
+  + `<div class="toolbar"><p class="small muted" style="margin:0;flex:1">Log complaints, refund requests and warranty redo jobs against a booking. Refund money is still paid back through Razorpay; this is the record.</p>
   <select id="ifs" aria-label="Show">${[['open', 'Open'], ['resolved', 'Resolved'], ['all', 'All']].map(([v, t]) => `<option value="${v}"${S.ifilter === v ? ' selected' : ''}>${t}</option>`).join('')}</select>
   <button class="btn btn-primary btn-sm" type="button" data-act="newIssue">Log an issue</button></div>
   <div class="list">${rows.length ? rows.map((i) => `<button class="row mrow" data-issue="${i.id}"><span><b>${esc(i.ref)}</b> ${esc(i.customer)}<br><span class="meta">${esc(KIND_LABEL[i.kind])}${i.amount ? ' · ' + rupee(i.amount) : ''} · ${when(i.created_at)}</span></span><span class="meta">${esc((i.note || '').slice(0, 60))}</span><span class="pill ${i.status === 'resolved' ? 'paid' : 'new'}">${esc(STATUS_LABEL[i.status])}</span></button>`).join('') : '<p class="muted" style="padding:16px">Nothing here. Good.</p>'}</div>`;
@@ -1780,9 +1784,14 @@ function boardCard(l) {
     <div class="bbtns"><a class="btn btn-wa btn-sm" href="https://wa.me/91${esc(l.phone)}" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a>${n ? `<button class="btn btn-primary btn-sm" type="button" data-act="boardNext" data-id="${l.id}">${n.label}</button>` : ''}<button class="btn btn-ghost btn-sm" type="button" data-lead="${l.id}">Open</button></div></article>`;
 }
 function dispatch() { return '<div class="view-head"><h2>Dispatch</h2><p class="muted">Paid bookings for the next days. Unassigned first, by slot time. Assign or reassign a mechanic here.</p></div><div id="dpWrap" aria-live="polite"><p class="muted">Loading…</p></div>'; }
+async function loadCustIssues() {
+  const w = $('#ciList'); if (!w) return;
+  try { const { data, error } = await sb.rpc('crm_open_issues', { p_status: S.ciFilter || 'open', p_limit: 100 }); if (error) throw error; w.innerHTML = flow.issuesHtml(data || []); document.querySelectorAll('[data-ci]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ci === (S.ciFilter || 'open')))); }
+  catch (e) { w.innerHTML = '<p class="err">Could not load customer issues: ' + esc(e.message || e) + '</p>'; }
+}
 async function loadDispatch() {
   const w = $('#dpWrap'); if (!w) return;
-  try { const { data, error } = await sb.rpc('crm_dispatch_list', { p_days: 7 }); if (error) throw error; S.dispatchRows = data || []; w.innerHTML = flow.dispatchHtml(S.dispatchRows); } catch (e) { w.innerHTML = '<p class="err">Could not load Dispatch: ' + esc(e.message || e) + '</p>'; }
+  try { const { data, error } = await sb.rpc('crm_dispatch_list', { p_days: 7 }); if (error) throw error; S.dispatchRows = data || []; let seen = {}; try { const r = await sb.rpc('crm_tech_seen', { p_ids: S.dispatchRows.filter((x) => x.mechanic_id).map((x) => x.id) }); seen = r.data || {}; } catch (x) { /* older database: no last seen */ } w.innerHTML = flow.dispatchHtml(S.dispatchRows, seen); } catch (e) { w.innerHTML = '<p class="err">Could not load Dispatch: ' + esc(e.message || e) + '</p>'; }
 }
 function board() {
   const g = boardGroups(S.leads), total = Object.values(g).reduce((t, a) => t + a.length, 0);

@@ -86,5 +86,5 @@ test('the /job/ page walks the visit: on the way, arrived, code, then repair or 
   assert.match(html, /id="jbVisit"/); assert.match(js, /d\.photos\) \{ MIN_PHOTOS = d\.photos\.min; HINT = d\.photos\.hint/); assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)[^>]*>[^<]/);
   assert.match(f, /A pickup job is delivered with the return code and photos/);   // the existing return OTP is kept
   assert.match(f, /eq\('attempts', row\.attempts\)/);   // the try is counted before comparing, as in the pickup code
-  assert.doesNotMatch(f.slice(f.indexOf('async function visit')), /amount|price|total/i);   // no prices on the mechanic's screen
+  assert.doesNotMatch(f.slice(f.indexOf('async function visit'), f.indexOf('// ---------- Journey')), /amount|price|total/i);   // the visit logic itself handles no prices; the read-only quote comes from quoteView (journey section, tested in journey-functions.test.mjs)
 });

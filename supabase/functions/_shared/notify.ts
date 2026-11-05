@@ -1,6 +1,6 @@
 // Delivery of the paid-confirmation messages, one kind at a time. Pure (no Deno APIs): the store is injected so Node can test idempotency and failure isolation.
 // Every kind runs on its own: it is claimed first (so a retry or a duplicate webhook cannot send twice), the send is wrapped (a throw becomes "failed"), and the result is recorded.
-export const KINDS = ['confirm_email', 'receipt_email', 'confirm_whatsapp', 'team_paid', 'team_link_unpaid', 'team_unassigned'] as const;
+export const KINDS = ['confirm_email', 'receipt_email', 'confirm_whatsapp', 'team_paid', 'team_link_unpaid', 'team_unassigned', 'ontheway_email', 'team_issue'] as const;
 export type Kind = (typeof KINDS)[number];
 export const CUSTOMER_KINDS: Kind[] = ['confirm_email', 'receipt_email', 'confirm_whatsapp'];
 export type Result = { ok: boolean; skipped?: boolean; error?: string };
@@ -47,3 +47,12 @@ export function dueKinds(rows: { kind: string; status: string; attempts?: number
 }
 /** True when the minutes since `since` have passed. */
 export const olderThan = (since: string | null | undefined, minutes: number, now: number | Date = Date.now()) => !!since && new Date(now).getTime() - Date.parse(since) >= minutes * 60_000;
+
+export const ISSUE_LABEL: Record<string, string> = { late: 'Running late', mechanic: 'About the mechanic', payment: 'Payment', safety: 'Safety', other: 'Other' };
+/** The staff alert for a new customer issue. Booking ID, vehicle tag, area and the type only: the customer's own words stay in the desk (Issues), not in email. */
+export function teamIssueMessage(d: { bookingId?: string | null; vehicle: string; area?: string | null; category: string; deskUrl: string }): { subject: string; text: string; html: string } {
+  const type = ISSUE_LABEL[d.category] ?? 'Other';
+  const line = `${d.bookingId ?? 'Booking'} (${String(d.vehicle).toUpperCase()}${d.area ? ', ' + d.area : ''}): the customer reported a problem. Type: ${type}.`;
+  const esc = (x: string) => x.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+  return { subject: `Customer problem${d.bookingId ? ' ' + d.bookingId : ''}: ${type}`, text: `${line}\nOpen Issues in the desk: ${d.deskUrl}#issues`, html: `<p><b>Customer problem.</b> ${esc(line)}</p><p><a href="${esc(d.deskUrl)}#issues">Open Issues</a> to read it and resolve it.</p>` };
+}

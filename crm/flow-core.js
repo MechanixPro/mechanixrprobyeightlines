@@ -1,7 +1,7 @@
 // The paid-confirmation flow screens, shared by Crew and the Admin: Send payment link, the Call script, door code, mechanic assignment, the itemised quote with delivery estimate,
 // phone approval, Ready and Delivered, the notification log with Resend, and the Dispatch list. ONE file: crm/flow-core.js is the source and admin/flow-core.js is a copy (a test checks they are identical).
 // It holds no business rules of its own. Every action calls the same database functions and Edge Functions, which check who may do what (admins pass, agents and technicians keep their limits).
-import { paidBadge, visitSub, callScript, quoteTotals, quoteCheck, QUOTE_KINDS, NOTICE_LABEL, resendable, dispatchOrder, confirmPending, confirmPaid } from './flow-rules.js';
+import { paidBadge, visitSub, callScript, quoteTotals, quoteCheck, QUOTE_KINDS, NOTICE_LABEL, resendable, dispatchOrder, confirmPending, confirmPaid, ISSUE_TYPES, seenLine, mapsUrl, issueOrder } from './flow-rules.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const inr = (n) => '₹' + (Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -38,8 +38,9 @@ export function createFlow(deps) {
   /* ----- what the card needs, fetched in one go. Each part may fail on its own (an older database) without breaking the sheet. ----- */
   async function load(leadId) {
     const safe = (p) => p.then((x) => x, () => null);
-    const [conf, notes, quote] = await Promise.all([safe(rpc('crm_confirmation', { p_lead: leadId })), safe(rpc('crm_notifications', { p_lead: leadId })), safe(rpc('crm_quote_get', { p_lead: leadId }))]);
-    return { conf, notes: notes || [], quote };
+    const [conf, notes, quote, updates, seen] = await Promise.all([safe(rpc('crm_confirmation', { p_lead: leadId })), safe(rpc('crm_notifications', { p_lead: leadId })), safe(rpc('crm_quote_get', { p_lead: leadId })),
+      safe(rpc('crm_booking_updates', { p_lead: leadId })), safe(rpc('crm_tech_location', { p_lead: leadId }))]);
+    return { conf, notes: notes || [], quote, updates, seen };
   }
   /** Fold the confirmation fields into the lead the step bar reads. */
   const withFlow = (lead, flow) => (flow && flow.conf ? { ...lead, confirm_fee: flow.conf.fee, confirm_paid_at: flow.conf.paid ? (flow.conf.paid_at || 'paid') : null, visit_stage: flow.conf.stage, quote_state: flow.conf.quote ? flow.conf.quote.status : null } : lead);
@@ -71,11 +72,32 @@ export function createFlow(deps) {
       if (row.length) h += `<div class="flow-row">${row.join('')}</div>`;
       h += quoteBlock(l, flow);
     }
+    h += seenBlock(l, flow) + customerBlock(flow);
     const rs = resendable(flow && flow.notes);
     if (flow && flow.notes && flow.notes.length) {
       h += `<h4>Messages</h4><ul class="flow-list">${flow.notes.map((n) => { const k = String(n.kind).split(':'); return `<li><span class="flow-chip ${n.status === 'sent' ? 'good' : n.status === 'failed' ? 'bad' : n.status === 'skipped' ? 'warn' : ''}">${esc(n.status)}</span> ${esc(NOTICE_LABEL[k[0]] || n.kind)}${k[1] ? ' v' + esc(k[1]) : ''} <small class="flow-muted">${esc(when(n.at))}${n.error ? ' · ' + esc(n.error) : ''}</small>${rs.includes(n) ? ` <button class="flow-btn flow-sm" type="button" data-flow="resend" data-kind="${esc(k[0])}" data-n="${esc(k[1] || '')}">Resend</button>` : ''}</li>`; }).join('')}</ul>`;
     }
     return h + '</section>';
+  }
+  /* Mechanic last seen: only while On the way or Arrived. The same line is in the Dispatch list. */
+  function seenBlock(l, flow) {
+    const sn = flow && flow.seen, stage = flow && flow.conf && flow.conf.stage;
+    if (!l.mechanic_name || !['on_the_way', 'arrived'].includes(stage)) return '';
+    if (!sn || !sn.seen) return stage === 'on_the_way' ? '<p class="flow-muted" data-seen>No live location shared yet. The mechanic taps Share my live location on the job page.</p>' : '';
+    const line = seenLine(sn.age_s), url = mapsUrl(sn.lat, sn.lng);
+    return `<p data-seen><b>${esc(line)}</b>${url ? ` · <a href="${esc(url)}" target="_blank" rel="noopener">Open in Maps</a>` : ''}</p>`;
+  }
+  /* What the customer added (details, photos) and the issues they reported, with Resolve. */
+  function customerBlock(flow) {
+    const u = flow && flow.updates; if (!u) return '';
+    const d = u.details || {}, rows = [['Landmark', d.landmark], ['Gate or parking', d.access_note], ['Registration', d.reg_no], ['Kilometres', d.kms != null ? String(d.kms) : null], ['About the vehicle', d.vehicle_note], ['What the customer says is wrong', d.issue_text]].filter((r) => r[1]);
+    const issues = u.issues || [], open = issues.filter((i) => i.status === 'open').length;
+    if (!rows.length && !u.photo_count && !issues.length) return '';
+    let h = `<h4>Added by customer ${open ? `<span class="flow-chip bad">${open} open ${open === 1 ? 'issue' : 'issues'}</span>` : ''}</h4>`;
+    if (rows.length) h += `<dl class="flow-kv">${rows.map((r) => `<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>`;
+    if (u.photo_count) h += u.photos && u.photos.length ? `<div class="flow-row"><button class="flow-btn" type="button" data-flow="showPhotos">See ${esc(u.photos.length)} customer ${u.photos.length === 1 ? 'photo' : 'photos'}</button></div>` : `<p class="flow-muted">${esc(u.photo_count)} customer ${u.photo_count === 1 ? 'photo' : 'photos'} (supervisors and the Technician lead can open them).</p>`;
+    if (issues.length) h += `<ul class="flow-list">${issues.map((i) => `<li><span class="flow-chip ${i.status === 'open' ? 'bad' : 'good'}">${i.status === 'open' ? 'Open' : 'Resolved'}</span> <b>${esc(ISSUE_TYPES[i.category] || i.category)}</b>: ${esc(i.body)}<br><span class="flow-muted">${esc(when(i.created_at))}${i.status === 'resolved' ? ` · resolved by ${esc(i.resolved_by || 'the team')} ${esc(when(i.resolved_at))}${i.note ? ' · ' + esc(i.note) : ''}` : ''}</span>${i.status === 'open' ? ` <button class="flow-btn flow-sm" type="button" data-flow="resolveIssue" data-id="${esc(i.id)}">Resolve</button>` : ''}</li>`).join('')}</ul>`;
+    return h;
   }
   function quoteBlock(l, flow) {
     const q = flow && flow.quote, latest = q && q.latest, c = flow && flow.conf, can = deps.can;
@@ -119,6 +141,16 @@ export function createFlow(deps) {
     async markReady(lead) { await rpc('crm_visit_mark', { p_lead: lead.id, p_stage: 'ready' }); toast('Marked ready.'); deps.reload(); },
     async markDelivered(lead) { await rpc('crm_visit_mark', { p_lead: lead.id, p_stage: 'returned' }); toast('Marked delivered.'); deps.reload(); },
     async resend(lead, flow, btn) { const body = { action: 'resend', lead_id: lead.id, kind: btn.dataset.kind }; if (btn.dataset.n) body.n = Number(btn.dataset.n); const r = await call('booking-notify', body); toast(r.result === 'sent' ? 'Sent.' : 'Tried again: ' + (r.result || 'done')); deps.reload(); },
+    async showPhotos(lead, flow) {
+      const list = (flow.updates && flow.updates.photos) || []; if (!list.length) return;
+      const urls = (await Promise.all(list.map((p) => (deps.photoUrl ? deps.photoUrl(p.path) : null).catch(() => null)))).filter(Boolean);
+      dialog({ title: 'Customer photos', intro: 'Private. These links stop working after 10 minutes.', body: urls.length ? `<div class="flow-photos">${urls.map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="Customer photo ${i + 1}"></a>`).join('')}</div>` : '<p class="flow-muted">The photos could not be opened. You may not have access.</p>', submit: 'Close', onSubmit: async (f, d) => d.close() });
+    },
+    async resolveIssue(lead, flow, btn, after) {
+      const id = btn.dataset.id;
+      dialog({ title: 'Resolve this issue', intro: 'Your name and the time are saved with it. The customer is not messaged automatically.', body: '<label class="flow-label" for="fl-rn">What was done (optional)</label><input id="fl-rn" name="note" maxlength="200" autocomplete="off">',
+        submit: 'Mark resolved', onSubmit: async (f, d) => { await rpc('crm_issue_resolve', { p_issue: id, p_note: f.note.value.trim() || null }); toast('Issue resolved.'); d.close(); if (after) after(); else deps.reload(); } });
+    },
     async phoneApprove(lead) {
       dialog({ title: 'Record phone approval', intro: 'Only after the customer clearly said yes on the call. Your name goes on the record.', body: '<label class="flow-label" for="fl-n">Note (optional)</label><input id="fl-n" name="note" maxlength="200" autocomplete="off" placeholder="Like: said yes at 11:40">',
         submit: 'Record approval', onSubmit: async (f, d) => { await rpc('crm_quote_phone_approve', { p_lead: lead.id, p_note: f.note.value.trim() || null }); toast('Approval recorded. The mechanic can start.'); d.close(); deps.reload(); } });
@@ -164,13 +196,31 @@ export function createFlow(deps) {
   }
 
   /* ----- Dispatch ----- */
-  function dispatchHtml(rows) {
+  const seenRow = (s) => (s ? `<div class="flow-muted" data-seen>${esc(seenLine(s.age_s) || '')}${mapsUrl(s.lat, s.lng) ? ` · <a href="${esc(mapsUrl(s.lat, s.lng))}" target="_blank" rel="noopener">Open in Maps</a>` : ''}</div>` : '');
+  function dispatchHtml(rows, seen) {
     const list = dispatchOrder(rows || []);
     if (!list.length) return '<p class="flow-empty">No paid bookings waiting. New paid bookings appear here first.</p>';
     return `<ul class="flow-dispatch">${list.map((r) => `<li class="flow-d ${r.mechanic_id ? '' : 'flow-d-open'}" data-id="${esc(r.id)}"><div><b>${esc(r.booking_id || 'Booking')}</b> <span class="flow-chip">${esc(String(r.vehicle || 'bike').toUpperCase())}</span> ${r.confirm_fee != null ? `<span class="flow-chip good">Paid ₹${esc(r.confirm_fee)}</span>` : ''} ${r.review ? '<span class="flow-chip warn">Fee needs a check</span>' : ''}</div>
       <div>${esc(r.first_name || '')} · ${esc([r.area, r.pincode].filter(Boolean).join(' ') || 'No area')}</div><div class="flow-muted">${esc(r.preferred_date || '')} · ${esc(SLOT[r.preferred_slot] || r.preferred_slot || '')}${r.bike ? ' · ' + esc(r.bike) : ''}${r.service_name ? ' · ' + esc(r.service_name) : ''}</div>
-      <div>${r.mechanic_name ? `Mechanic: <b>${esc(r.mechanic_name)}</b>${r.visit_stage ? ' · ' + esc(STAGE[r.visit_stage] || r.visit_stage) : ''}` : '<b class="flow-bad">Unassigned</b>'}</div>
+      <div>${r.mechanic_name ? `Mechanic: <b>${esc(r.mechanic_name)}</b>${r.visit_stage ? ' · ' + esc(STAGE[r.visit_stage] || r.visit_stage) : ''}` : '<b class="flow-bad">Unassigned</b>'}</div>${seenRow(seen && seen[r.id])}
       <div class="flow-row"><button class="flow-btn ${r.mechanic_id ? '' : 'flow-primary'}" type="button" data-dispatch="assign">${r.mechanic_id ? 'Reassign' : 'Assign mechanic'}</button><button class="flow-btn flow-ghost" type="button" data-dispatch="open">Open</button></div></li>`).join('')}</ul>`;
+  }
+  /* ----- Issues: what customers reported, open first, with who resolved the others ----- */
+  function issuesHtml(rows) {
+    const list = issueOrder(rows || []);
+    if (!list.length) return '<p class="flow-empty">No issues here. When a customer reports a problem it appears here and the team is emailed.</p>';
+    return `<ul class="flow-dispatch" data-issues>${list.map((i) => `<li class="flow-d ${i.status === 'open' ? 'flow-d-open' : ''}" data-id="${esc(i.id)}" data-lead="${esc(i.lead_id)}"><div><b>${esc(i.booking_id || 'Booking')}</b> <span class="flow-chip ${i.status === 'open' ? 'bad' : 'good'}">${i.status === 'open' ? 'Open' : 'Resolved'}</span> <span class="flow-chip">${esc(ISSUE_TYPES[i.category] || i.category)}</span></div>
+      <div>${esc(i.first_name || '')} · ${esc(i.area || 'No area')}</div><div>${esc(i.body)}</div><div class="flow-muted">Reported ${esc(when(i.created_at))}${i.status === 'resolved' ? ` · resolved by ${esc(i.resolved_by || 'the team')} ${esc(when(i.resolved_at))}${i.note ? ' · ' + esc(i.note) : ''}` : ''}</div>
+      <div class="flow-row">${i.status === 'open' ? '<button class="flow-btn flow-primary" type="button" data-issue="resolve">Resolve</button>' : ''}<button class="flow-btn flow-ghost" type="button" data-issue="open">Open booking</button></div></li>`).join('')}</ul>`;
+  }
+  function bindIssues(root, reload) {
+    root.addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-issue]'); if (!b) return; const li = b.closest('[data-id]');
+      try {
+        if (b.dataset.issue === 'open' && deps.openLead) return deps.openLead(li.dataset.lead);
+        if (b.dataset.issue === 'resolve') await actions.resolveIssue(null, null, { dataset: { id: li.dataset.id } }, reload);
+      } catch (x) { toast(cleanErr(x), true); }
+    });
   }
   function bindDispatch(root, getRows) {
     root.addEventListener('click', async (e) => {
@@ -178,5 +228,5 @@ export function createFlow(deps) {
       try { if (b.dataset.dispatch === 'open' && deps.openLead) return deps.openLead(id); if (b.dataset.dispatch === 'assign') await actions.assign({ id, name: row.first_name, area: row.area, pincode: row.pincode, mechanic_name: row.mechanic_name }); } catch (x) { toast(cleanErr(x), true); }
     });
   }
-  return { load, withFlow, card, bind, dispatchHtml, bindDispatch, actions, dialog };
+  return { load, withFlow, card, bind, dispatchHtml, bindDispatch, issuesHtml, bindIssues, actions, dialog };
 }

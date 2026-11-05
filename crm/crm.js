@@ -19,6 +19,7 @@ import { newBooking, editBooking } from './pages/booking.js';
 import { sendPaymentLink } from './pages/payment.js';
 import { createFlow } from './flow-core.js';
 import * as dispatch from './pages/dispatch.js';
+import * as issues from './pages/issues.js';
 import { findByPin } from './pages/pinsearch.js';
 
 const C = window.MXP || {};
@@ -39,6 +40,7 @@ const SCREENS = [
   { id: 'callnow', title: 'Call now', page: 'leads', mod: callnow },
   { id: 'mine', title: 'My day', page: 'leads' },
   { id: 'dispatch', title: 'Dispatch', page: 'leads', tech: true, mod: dispatch },
+  { id: 'issues', title: 'Issues', page: 'leads', mod: issues },
   { id: 'unassigned', title: 'Unassigned', page: 'leads', action: 'take_leads' },
   { id: 'leads', title: 'Leads', page: 'leads', mod: leads },
   { id: 'web', title: 'Web leads', page: 'leads', mod: webleads },
@@ -69,10 +71,12 @@ const ctx = {
   get flow() { return flow; },
 };
 // The paid-confirmation screens (payment link, call script, door code, quote, Resend, Dispatch) are shared with the Admin: crm/flow-core.js. Same database functions, same checks.
+const PHOTO_BUCKET = 'booking-updates';   // private storage bucket (not a table); the database decides who may read it
 const flow = createFlow({
   rpc, toast, can,
   invoke: async (fn, body) => { const { data, error } = await sb.functions.invoke(fn, { body }); if (error) { let m = null; try { m = (await error.context.json()).error; } catch (x) { /* no body */ } throw new Error(m || error.message); } return data; },
   reload: () => afterChange(false), openLead: (id) => openLead(id),
+  photoUrl: async (path) => { const { data, error } = await sb.storage.from(PHOTO_BUCKET).createSignedUrl(path, 600); if (error) throw error; return data.signedUrl; },   // customer photos: private bucket, 10-minute links, only for the roles the database allows
 });
 flow.bind($('#sheetPanel'), () => S.detail && S.detail.lead, () => S.flow);
 

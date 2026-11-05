@@ -10,7 +10,9 @@
 <link rel="stylesheet" href="/assets/css/style.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
 <link rel="stylesheet" href="/assets/css/job.css">
+<link rel="stylesheet" href="/assets/css/journey.css">
 <script src="/assets/js/config.js" defer></script>
+<script src="/assets/js/job-geo.js" defer></script>
 <script src="/assets/js/job.js" defer></script>
 </head>
 <body>
@@ -19,7 +21,9 @@
 <main id="main" class="page job-page">
 <h1>Your job</h1>
 <p class="muted" id="jbLead" role="status">Loading the job…</p>
+<section id="jbMine" hidden></section>
 <section class="card" id="jbJob" hidden><dl class="job-facts" id="jbFacts"></dl></section>
+<section id="jbNote" hidden></section>
 <section id="jbVisit" aria-live="polite" hidden></section>
 <section id="jbHand" aria-live="polite" hidden></section>
 <form class="card" id="jbForm" novalidate hidden>

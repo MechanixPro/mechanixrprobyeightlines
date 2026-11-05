@@ -56,7 +56,7 @@ test('track-booking takes the secret token as well as the reference and number, 
   const f = read('supabase/functions/track-booking/index.ts');
   assert.match(f, /\[0-9a-f\]\{32\}/); assert.match(f, /from\('booking_secrets'\)/); assert.match(f, /track_attempts/); assert.match(f, /429/);
   assert.equal((f.match(/This link is not valid\./g) || []).length >= 2, true); assert.match(f, /NOT_FOUND/);
-  const js = read('assets/js/track.js'); assert.match(js, /\[0-9a-f\]\{32\}/); assert.match(js, /quote-decision/); assert.match(js, /setInterval/);
+  const js = read('assets/js/track.js'); assert.match(js, /\[0-9a-f\]\{32\}/); assert.match(js, /quote-decision/); assert.match(js, /setTimeout\(function \(\) \{ if \(!doc\.hidden\)/);   // follows the mechanic only while the page is visible
   assert.doesNotMatch(read('track/index.html'), /<script(?![^>]*\bsrc=)[^>]*>[^<]/);
 });
 test('the customer\'s Approve and Decline are recorded once, with the time, and the team hears about it', () => {

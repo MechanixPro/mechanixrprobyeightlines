@@ -98,7 +98,7 @@ test('the tracking request is the one /track/ sends', () => {
   const r = chat.trackRequest(C, 'MP-AB12CD', '9876543210');
   assert.equal(r.url, C.supabaseUrl + '/functions/v1/track-booking');
   assert.match(t, /C\.supabaseUrl \+ '\/functions\/v1\/' \+ fn/); assert.match(t, /post\('track-booking', body\)/);
-  assert.match(t, /\{ ref: document\.getElementById\('tr-ref'\)\.value\.trim\(\), phone: document\.getElementById\('tr-phone'\)\.value\.trim\(\) \}/);
+  assert.match(t, /\{ ref: (?:document|doc)\.getElementById\('tr-ref'\)\.value\.trim\(\), phone: (?:document|doc)\.getElementById\('tr-phone'\)\.value\.trim\(\) \}/);
   assert.match(t, /method: 'POST', headers: \{ 'Content-Type': 'application\/json', apikey: C\.supabaseAnonKey, Authorization: 'Bearer ' \+ C\.supabaseAnonKey \}/);
   assert.equal(r.init.method, 'POST'); assert.deepEqual(r.init.headers, { 'Content-Type': 'application/json', apikey: 'anon', Authorization: 'Bearer anon' });
   assert.deepEqual(JSON.parse(r.init.body), { ref: 'MP-AB12CD', phone: '9876543210' });

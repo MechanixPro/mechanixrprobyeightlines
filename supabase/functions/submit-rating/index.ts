@@ -1,7 +1,7 @@
-// POST /functions/v1/submit-rating  { ref, k, rating, comment? } — a customer rates a completed job from the link we sent. Public, but the link signature (k) must match.
+// POST /functions/v1/submit-rating  { ref, k, rating, comment? } or { t, rating, comment? } — a customer rates a completed job. Public. Proof is either the signed link (ref + k) or the private tracking token (t, from the tracking page).
 // A rating of 3 or less opens a ticket for the Care Buddy and tells the supervisors by email.
 import { adminDb, env, json, corsHeaders } from '../_shared/util.ts';
-import { cleanRating, ratingTokenOk } from '../_shared/rating.ts';
+import { cleanRating, cleanRatingBody, ratingTokenOk } from '../_shared/rating.ts';
 import { sendEmail } from '../_shared/resend.ts';
 import { supervisorEmails } from '../_shared/desk-notify.ts';
 import { refFilter, leadLabel } from '../_shared/booking-id.ts';
@@ -9,12 +9,26 @@ import { refFilter, leadLabel } from '../_shared/booking-id.ts';
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
   if (req.method !== 'POST') return json(req, { error: 'Method not allowed' }, 405);
-  const v = cleanRating(await req.json().catch(() => ({})));
-  if (!v.ok) return json(req, { error: v.error }, 400);
-  const x = v.value;
-  if (!(await ratingTokenOk(env('RATING_SECRET'), x.ref, x.k))) return json(req, { error: 'This rating link is not valid.' }, 403);
+  const raw = await req.json().catch(() => ({}));
   const db = adminDb();
-  const { data: lead } = await db.from('leads').select('id,ref,booking_id,name,crm_owner,status').or(refFilter(x.ref)).is('deleted_at', null).maybeSingle();
+  const tt = String(raw?.t ?? '').toLowerCase();
+  let x: { ref: string; k: string; rating: number; comment: string | null }, lead: any;
+  if (tt) {
+    // The tracking page: the private link proves it is this customer's booking. Same rating and comment rules as the signed link.
+    const r = cleanRatingBody(raw);
+    if (!r.ok) return json(req, { error: r.error }, 400);
+    if (!/^[0-9a-f]{32}$/.test(tt)) return json(req, { error: 'This link is not valid.' }, 403);
+    const { data: sec } = await db.from('booking_secrets').select('lead_id').eq('track_token', tt).maybeSingle();
+    if (!sec) return json(req, { error: 'This link is not valid.' }, 403);
+    ({ data: lead } = await db.from('leads').select('id,ref,booking_id,name,crm_owner,status').eq('id', sec.lead_id).is('deleted_at', null).maybeSingle());
+    x = { ref: lead?.ref ?? '', k: '', rating: r.value.rating, comment: r.value.comment };
+  } else {
+    const v = cleanRating(raw);
+    if (!v.ok) return json(req, { error: v.error }, 400);
+    x = v.value;
+    if (!(await ratingTokenOk(env('RATING_SECRET'), x.ref, x.k))) return json(req, { error: 'This rating link is not valid.' }, 403);
+    ({ data: lead } = await db.from('leads').select('id,ref,booking_id,name,crm_owner,status').or(refFilter(x.ref)).is('deleted_at', null).maybeSingle());
+  }
   if (!lead || lead.status !== 'completed') return json(req, { error: 'You can rate a booking after the job is done.' }, 400);
 
   const { data: old } = await db.from('lead_ratings').select('rating,created_at').eq('lead_id', lead.id).maybeSingle();
