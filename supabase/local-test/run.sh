@@ -17,6 +17,9 @@ for f in $(ls "$mig"/*.sql | sort); do
   out="$($P -d t -f "$f" 2>&1 | grep -i 'error' | grep -vi 'pg_cron\|pg_net\|authenticator\|o.created_at\|handover_orphan_photos' || true)"
   [ -n "$out" ] && { echo "MIGRATION PROBLEM in $(basename "$f"): $out"; exit 1; }
 done
-# run the paid confirmation migration a second time: it must be safe to repeat
-out="$($P -d t -f "$mig/20261228000000_paid_confirmation.sql" 2>&1 | grep -i error || true)"; [ -n "$out" ] && { echo "NOT IDEMPOTENT: $out"; exit 1; }
+# run the paid confirmation and journey migrations a second time: they must be safe to repeat
+for f in 20261228000000_paid_confirmation 20261229000000_customer_updates 20261230000000_tech_location 20261231000000_customer_documents; do
+  out="$($P -d t -f "$mig/$f.sql" 2>&1 | grep -i error || true)"; [ -n "$out" ] && { echo "NOT IDEMPOTENT ($f): $out"; exit 1; }
+done
 $P -d t -v ON_ERROR_STOP=1 -f "$here/paid-confirmation.sql"
+$P -d t -v ON_ERROR_STOP=1 -f "$here/journey.sql"
