@@ -24,3 +24,11 @@ export function cleanRating(b: Record<string, unknown>): { ok: true; value: { re
   const comment = String(b?.comment ?? '').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500) || null;
   return { ok: true, value: { ref, k: String(b?.k ?? ''), rating, comment } };
 }
+
+/** The rating and comment only (the tracking page proves the booking with its private token instead of a signed link). Same limits as cleanRating. */
+export function cleanRatingBody(b: Record<string, unknown>): { ok: true; value: { rating: number; comment: string | null } } | { ok: false; error: string } {
+  const rating = Number(b?.rating);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return { ok: false, error: 'Choose a rating from 1 to 5.' };
+  const comment = String(b?.comment ?? '').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500) || null;
+  return { ok: true, value: { rating, comment } };
+}

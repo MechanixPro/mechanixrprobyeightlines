@@ -1,11 +1,14 @@
 // POST /functions/v1/tech-job  { action: 'get' | 'report', t, amount?, note? }
 // Public, for the /job/ page the desk sends a technician. The token (t) is the only key: only its SHA-256 hash is stored, it is for one booking, expires and takes one report.
 // get: the job (no prices). report: the amount the technician collected; records it in the ledger, works out the company's share and makes its Razorpay link.
+// Journey actions on the same link: my_jobs (this mechanic's other open jobs), my_job_open (a link for one of them), location_update (live location, only while On the way or Arrived).
 // Pickup jobs also take handover_state (which steps are open: no prices, no customer details), handover_upload_url (signed upload URLs for the photos) and handover_verify (photos + the code the customer gave).
 import { adminDb, env, json, corsHeaders, sha256Hex as ipHashOf, getSetting } from '../_shared/util.ts';
 import { createPaymentLink } from '../_shared/razorpay.ts';
 import { sha256Hex, techPct, companyShare, cleanReport } from '../_shared/tech-job.ts';
 import { formatWhen } from '../_shared/when.ts';
+import { navigateUrl } from '../_shared/eta.ts';
+import { sendOnTheWay } from '../_shared/after-payment.ts';
 import { buildInvoice } from '../_shared/invoice.ts';
 import { isKind, isCode, isPickupJob, handoverHash, sameHash, stepState, afterWrongTry, cleanPhotos, cleanUploadRequest, HANDOVER_KINDS, MAX_ATTEMPTS, DOOR_KIND, photoPolicy, allowedStages, doorState, canChooseOutcome } from '../_shared/handover.ts';
 
@@ -13,6 +16,7 @@ const NOT_VALID = 'This link is not valid.', EXPIRED = 'This link has expired. A
 const HANDOVER_ACTIONS = ['handover_state', 'handover_upload_url', 'handover_verify'];
 // The visit: on the way, arrived, the customer's door code, then repair at the door or pick-up, ready, delivered. No prices here.
 const VISIT_ACTIONS = ['visit_state', 'visit_status', 'visit_start', 'visit_outcome', 'visit_ready', 'visit_deliver'];
+const JOURNEY_ACTIONS = ['my_jobs', 'my_job_open', 'location_update'];
 const hidesIds = (t: string) => !(/[A-Z]{5}[0-9]{4}[A-Z]/i.test(t) || /[0-9]{12,}/.test(t.replace(/[ -]/g, '')));
 
 Deno.serve(async (req) => {
@@ -26,21 +30,27 @@ Deno.serve(async (req) => {
   if ((count ?? 0) >= 20) return json(req, { error: 'Too many tries. Wait a few minutes.' }, 429);
 
   const body = await req.json().catch(() => ({}));
-  const action = body?.action === 'report' ? 'report' : HANDOVER_ACTIONS.includes(body?.action) || VISIT_ACTIONS.includes(body?.action) ? String(body.action) : 'get';
+  const action = body?.action === 'report' ? 'report' : HANDOVER_ACTIONS.includes(body?.action) || VISIT_ACTIONS.includes(body?.action) || JOURNEY_ACTIONS.includes(body?.action) ? String(body.action) : 'get';
   const t = String(body?.t ?? '');
   if (!/^[0-9a-f]{64}$/.test(t)) { await db.from('audit_log').insert({ action: 'tech_job_hit', details: { ip: ipHash, action } }); return json(req, { error: NOT_VALID }, 404); }
   const tokHash = await sha256Hex(t), tok16 = tokHash.slice(0, 16);
-  const { count: perTok } = await db.from('audit_log').select('id', { count: 'exact', head: true }).eq('action', 'tech_job_hit').eq('details->>tok', tok16).gte('created_at', new Date(Date.now() - 10 * 60_000).toISOString());
-  if ((perTok ?? 0) >= 30) return json(req, { error: 'Too many tries. Wait a few minutes.' }, 429);
-  await db.from('audit_log').insert({ action: 'tech_job_hit', details: { ip: ipHash, tok: tok16, action } });
+  // A live-location ping comes every 15 to 20 seconds while the mechanic shares, so it is not counted against the 30-per-10-minutes budget and writes no audit row; the database ignores points less than 10 seconds apart,
+  // and a ping with a wrong token is counted above like any other bad try.
+  const ping = action === 'location_update';
+  if (!ping) {
+    const { count: perTok } = await db.from('audit_log').select('id', { count: 'exact', head: true }).eq('action', 'tech_job_hit').eq('details->>tok', tok16).gte('created_at', new Date(Date.now() - 10 * 60_000).toISOString());
+    if ((perTok ?? 0) >= 30) return json(req, { error: 'Too many tries. Wait a few minutes.' }, 429);
+    await db.from('audit_log').insert({ action: 'tech_job_hit', details: { ip: ipHash, tok: tok16, action } });
+  }
 
   const { data: link } = await db.from('tech_job_links').select('*').eq('token_hash', tokHash).maybeSingle();
-  if (!link) return json(req, { error: NOT_VALID }, 404);
+  if (!link) { if (ping) await db.from('audit_log').insert({ action: 'tech_job_hit', details: { ip: ipHash, action } }); return json(req, { error: NOT_VALID }, 404); }
   const { data: lead } = await db.from('leads').select('*').eq('id', link.lead_id).maybeSingle();
   if (!lead || lead.deleted_at || lead.status === 'lost' || lead.mechanic_id !== link.mechanic_id) return json(req, { error: EXPIRED }, 410);
   // The handover steps work on the same link, and the return step comes after the job is reported, so they look at the link's own life (7 days, or 30 after the report) instead of the report.
-  if (HANDOVER_ACTIONS.includes(action) || VISIT_ACTIONS.includes(action)) {
+  if (HANDOVER_ACTIONS.includes(action) || VISIT_ACTIONS.includes(action) || JOURNEY_ACTIONS.includes(action)) {
     if (Date.parse(link.reported_at ?? link.expires_at) + (link.reported_at ? 30 * 864e5 : 0) <= Date.now()) return json(req, { error: EXPIRED }, 410);
+    if (JOURNEY_ACTIONS.includes(action)) return await journey(req, db, link, tokHash, action, body);
     return VISIT_ACTIONS.includes(action) ? await visit(req, db, link, lead, action, body) : await handover(req, db, link, lead, action, body);
   }
   // Once reported, the link shows only the payment (for 30 more days), never the customer's details.
@@ -215,9 +225,10 @@ async function handover(req: Request, db: ReturnType<typeof adminDb>, link: any,
 async function visit(req: Request, db: ReturnType<typeof adminDb>, link: any, lead: any, action: string, body: any): Promise<Response> {
   const [{ data: rows }, { data: q }, { data: mech }] = await Promise.all([
     db.from('handovers').select('id,kind,code_hash,code_expires_at,attempts,locked_at,verified_at,photo_paths,created_at').eq('lead_id', lead.id).order('created_at', { ascending: false }),
-    db.from('job_quotes').select('status,version,eta_text').eq('lead_id', lead.id).in('status', ['sent', 'approved', 'declined']).order('version', { ascending: false }).limit(1).maybeSingle(),
+    db.from('job_quotes').select('status,version,eta_text,lines,subtotal,gst,total,fee_credit,balance').eq('lead_id', lead.id).in('status', ['sent', 'approved', 'declined']).order('version', { ascending: false }).limit(1).maybeSingle(),
     db.from('mechanics').select('name').eq('id', link.mechanic_id).maybeSingle(),
   ]);
+  const qfull = q as any;
   const all = rows ?? [], stage = lead.visit_stage ?? null, door = doorState(all), pol = photoPolicy(lead.vehicle), approved = q?.status === 'approved';
   const paid = lead.confirm_fee == null || !!lead.confirm_paid_at;
   const set = async (to: string, line: string, extra: Record<string, unknown> = {}) => {
@@ -233,13 +244,18 @@ async function visit(req: Request, db: ReturnType<typeof adminDb>, link: any, le
   if (action === 'visit_state') {
     return json(req, { vehicle: lead.vehicle === 'car' ? 'car' : 'bike', paid, stage, door, next: allowedStages(stage).filter((x) => x !== 'repair_doorstep' && x !== 'picked_up'),
       quote: q ? { status: q.status, version: q.version, eta_text: q.eta_text } : null, can_start_work: stage === 'started' && approved, place: lead.job_place === 'garage' ? 'garage' : 'doorstep',
-      photos: { min: pol.min, labels: pol.labels, hint: pol.hint }, first_name: String(lead.name ?? '').split(' ')[0], address: lead.address ?? null, area: lead.area ?? null, pincode: lead.pincode ?? null });
+      photos: { min: pol.min, labels: pol.labels, hint: pol.hint }, first_name: String(lead.name ?? '').split(' ')[0], address: lead.address ?? null, area: lead.area ?? null, pincode: lead.pincode ?? null,
+      // Journey: the Navigate link, the quote read-only (lines, total, balance, delivery), what the customer added (not their complaints about the mechanic), and whether live location may be shared now.
+      navigate_url: navigateUrl({ lat: lead.lat, lng: lead.lng, address: [lead.address, lead.area, lead.pincode].filter(Boolean).join(', '), vehicle: lead.vehicle }),
+      share_ok: stage === 'on_the_way' || stage === 'arrived', quote_view: quoteView(qfull), customer_note: await customerNote(db, lead.id) });
   }
   if (!paid) return json(req, { error: 'This booking is not paid yet. Ask the desk.' }, 409);
   if (action === 'visit_status') {
     const to = String(body?.stage ?? '');
     if (!['on_the_way', 'arrived'].includes(to) || !allowedStages(stage).includes(to)) return json(req, { error: 'That step is not available now.' }, 409);
-    return await set(to, to === 'on_the_way' ? '{who} is on the way.' : '{who} has arrived.');
+    const res = await set(to, to === 'on_the_way' ? '{who} is on the way.' : '{who} has arrived.');
+    if (res.ok && to === 'on_the_way') await sendOnTheWay(db, lead.id);   // one email with the live link, once per booking; never blocks the step
+    return res;
   }
   if (action === 'visit_start') {
     if (['started', 'repair_doorstep', 'picked_up', 'ready', 'returned'].includes(stage ?? '') || door === 'verified') return json(req, { error: 'The job has already started.' }, 409);
@@ -290,4 +306,35 @@ async function visit(req: Request, db: ReturnType<typeof adminDb>, link: any, le
     return await set('returned', 'Vehicle handed back to the customer.');
   }
   return json(req, { error: NOT_VALID }, 400);
+}
+
+// ---------- Journey: My jobs and live location (same job link) ----------
+const rpcOf = async (db: ReturnType<typeof adminDb>, fn: string, args: Record<string, unknown>) => { const { data, error } = await db.rpc(fn, args); if (error) { console.error('tech-job', fn, error.code); return null; } return data as any; };
+async function journey(req: Request, db: ReturnType<typeof adminDb>, link: any, tokHash: string, action: string, body: any): Promise<Response> {
+  if (action === 'my_jobs') {
+    const r = await rpcOf(db, 'tech_my_jobs', { p_token_hash: tokHash });
+    return r ? json(req, r, r.ok ? 200 : 404) : json(req, { error: HANDOVER_ERR }, 500);
+  }
+  if (action === 'my_job_open') {
+    const lead = String(body?.job ?? '');
+    if (!/^[0-9a-f-]{36}$/.test(lead)) return json(req, { error: 'Choose a job.' }, 400);
+    const r = await rpcOf(db, 'tech_open_job', { p_token_hash: tokHash, p_lead: lead });
+    return r ? json(req, r, r.ok ? 200 : 403) : json(req, { error: HANDOVER_ERR }, 500);
+  }
+  // location_update: only a number pair inside India; the database checks the link, the job's mechanic and the stage (On the way or Arrived), ignores a point under 10 s after the last, and keeps the last 20.
+  const lat = Number(body?.lat), lng = Number(body?.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 6 || lat > 38 || lng < 68 || lng > 98) return json(req, { error: 'That location does not look right.' }, 400);
+  const num = (v: unknown) => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Math.round(Number(v))), acc = num(body?.accuracy), head = num(body?.heading);
+  const r = await rpcOf(db, 'tech_location_put', { p_token_hash: tokHash, p_lat: lat, p_lng: lng, p_acc: acc, p_heading: head });
+  if (!r) return json(req, { error: HANDOVER_ERR }, 500);
+  return json(req, r, r.ok ? 200 : r.stopped ? 409 : 400);
+}
+const quoteView = (q: any) => !q ? null : { status: q.status, version: q.version, eta_text: q.eta_text ?? null, lines: q.lines ?? [], subtotal: q.subtotal, gst: q.gst, total: q.total, fee_credit: q.fee_credit, balance: q.balance };
+/** What the customer added to the booking, for the mechanic: address note, vehicle details, what they say is wrong, and photos as links that last 10 minutes. Their complaints are never included. */
+async function customerNote(db: ReturnType<typeof adminDb>, leadId: string) {
+  const [{ data: d }, { data: ph }] = await Promise.all([db.from('booking_details').select('landmark,access_note,reg_no,kms,vehicle_note,issue_text').eq('lead_id', leadId).maybeSingle(), db.from('booking_photos').select('path').eq('lead_id', leadId).order('created_at').limit(3)]);
+  const photos: string[] = [];
+  for (const p of ph ?? []) { const { data: u } = await db.storage.from('booking-updates').createSignedUrl(String((p as any).path), 600); if (u?.signedUrl) photos.push(u.signedUrl); }
+  if (!d && !photos.length) return null;
+  return { landmark: (d as any)?.landmark ?? null, access_note: (d as any)?.access_note ?? null, reg_no: (d as any)?.reg_no ?? null, kms: (d as any)?.kms ?? null, vehicle_note: (d as any)?.vehicle_note ?? null, issue_text: (d as any)?.issue_text ?? null, photos };
 }

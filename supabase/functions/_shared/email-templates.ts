@@ -274,3 +274,10 @@ export function etaChanged(d: Site & { name: string; ref?: string | null; etaTex
   const body = `${h1('Delivery estimate updated')}${p(`Hi ${first(d.name)}, your estimated delivery is now <b>${escapeHtml(d.etaText)}</b>. Sorry for the change.`)}${button('Track your booking', d.trackUrl, EMBER, '#1F1206')}`;
   return { subject, html: layout({ preheader: `Estimated delivery: ${d.etaText}`, title: subject, body, site: d }), text: `Hi ${firstText(d.name)}, your estimated delivery is now ${d.etaText}.\nTrack: ${d.trackUrl}` };
 }
+
+export function mechanicOnTheWay(d: Site & { name: string; ref?: string | null; mechanicFirst?: string | null; trackUrl: string }): Mail {
+  const who = d.mechanicFirst ? escapeHtml(d.mechanicFirst) : 'Your mechanic';
+  const subject = `Your mechanic is on the way${d.ref ? ' ' + d.ref : ''}`;
+  const body = `${h1('Your mechanic is on the way')}${p(`Hi ${first(d.name)}, <b>${who}</b> has left for your address. Please keep your code ready: you give it to the mechanic when they arrive, before any work starts.`)}${button('Track live', d.trackUrl, EMBER, '#1F1206')}<p style="margin:18px 0 0;font:13px/1.5 ${FONT};color:${MUTED}">The live distance on the page is an estimate. This link is private to you.</p>`;
+  return { subject, html: layout({ preheader: 'Track your mechanic live', title: subject, body, site: d }), text: `Hi ${firstText(d.name)}, ${d.mechanicFirst ?? 'your mechanic'} is on the way to your address. Keep your code ready.\nTrack live: ${d.trackUrl}\n\nThe live distance is an estimate.` };
+}

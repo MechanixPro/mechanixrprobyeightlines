@@ -1,6 +1,8 @@
 // What a customer may see when they look up a booking: progress only, never contact details, address or notes. No Deno APIs, so Node can test it.
 import { formatWhen } from './when.ts';
 import { REF_RE } from './booking-id.ts';
+import { gstSplit } from './confirm-fee.ts';
+import { etaMinutes, etaLine, mapsPointUrl } from './eta.ts';
 export const STAGES = ['Request received', 'Quote shared', 'Slot confirmed', 'Mechanic booked', 'Service done'];
 const BY_STATUS: Record<string, { index: number; note: string; closed?: boolean }> = {
   new: { index: 0, note: 'We have your request. Our expert will message or call you soon.' },
@@ -88,5 +90,37 @@ function confirmationExtras(l: Record<string, any>, x: Extra) {
     visit: v, confirmation: { fee: l.confirm_fee, paid, adjusted: 'Adjusted in your final bill.' }, vehicle: x.vehicle === 'car' ? 'car' : 'bike',
     quote: x.quote ? (x.secret ? { ...x.quote, can_decide: x.quote.status === 'sent' } : { status: x.quote.status, version: x.quote.version, eta_text: x.quote.eta_text ?? null }) : null,
     door_code: showCode ? x.secret!.code : null, door_line: showCode ? DOOR_LINE : null, address: x.secret?.address ?? null, secret_link: !!x.secret,
+  };
+}
+
+/** Everything the private tracking page adds after payment (token mode only): details and issues, the mechanic's live point, documents, earlier bookings, book again, rating.
+ *  Pure: raw database answers in, what the customer may see out. No address, phone or mechanic details of other bookings; the live point only when the database said it is allowed. */
+export type JourneyInput = {
+  lead: Record<string, any>; token: string; mechanicFirst?: string | null;
+  details?: any; live?: { live?: boolean; lat?: number; lng?: number; age_s?: number; accuracy_m?: number | null } | null;
+  documents?: { receipt?: any; invoice?: any } | null; history?: { enabled?: boolean; rows?: any[] } | null;
+  vehicleName?: { brand?: string | null; model?: string | null } | null; rating?: { rating: number; comment?: string | null } | null;
+};
+export function journeyView(x: JourneyInput) {
+  const l = x.lead, completed = l.status === 'completed';
+  const live = x.live && x.live.live && Number.isFinite(Number(x.live.lat)) && Number.isFinite(Number(x.live.lng)) && ['on_the_way', 'arrived'].includes(String(l.visit_stage ?? ''))
+    ? (() => {
+        const eta = l.visit_stage === 'on_the_way' ? etaMinutes({ lat: Number(x.live!.lat), lng: Number(x.live!.lng) }, { lat: l.lat ?? null, lng: l.lng ?? null }) : null;
+        return { live: true, mechanic: x.mechanicFirst ?? null, age_s: Number(x.live!.age_s ?? 0), eta_line: etaLine(eta), eta_minutes: eta?.minutes ?? null, km: eta?.km ?? null, maps_url: mapsPointUrl(Number(x.live!.lat), Number(x.live!.lng)) };
+      })()
+    : { live: false };
+  const rc = x.documents?.receipt;
+  const documents = {
+    receipt: rc ? { number: rc.number ?? null, amount: Number(rc.amount), paid_at: rc.paid_at, ...(() => { const g = gstSplit(Number(rc.amount)); return { base: g.base, gst: g.gst }; })() } : null,
+    invoice: x.documents?.invoice ?? null,
+  };
+  const h = x.history;
+  const history = h && h.enabled ? { rows: (h.rows ?? []).slice(0, 10).map((r: any) => ({ date: r.date, vehicle: r.vehicle === 'car' ? 'car' : 'bike', brand: r.brand ?? null, model: r.model ?? null, service: r.service ?? null, status: r.status, invoice_no: r.invoice_no ?? null,
+    link: /^[0-9a-f]{32}$/.test(String(r.token ?? '')) ? `/track/?t=${r.token}` : null })) } : null;
+  const again = { vehicle: l.vehicle === 'car' ? 'car' : 'bike', brand: x.vehicleName?.brand && x.vehicleName.brand !== 'Other' ? x.vehicleName.brand : null, model: x.vehicleName?.model ?? null };
+  return {
+    updates: x.details && x.details.ok ? { editable: !!x.details.editable, details: x.details.details ?? {}, photos: x.details.photos ?? { count: 0, max: 3 }, issues: x.details.issues ?? [] } : null,
+    live, documents, history, again,
+    rating: { can_rate: completed, done: !!x.rating, rating: x.rating?.rating ?? null },
   };
 }

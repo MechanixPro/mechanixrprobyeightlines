@@ -191,6 +191,10 @@ Deno.serve(async (req) => {
   try { const r = await sweepConfirmations(db); result.confirmations = r; if (r.retried || r.link_nudges || r.unassigned) await log('confirmations', true, r); }
   catch (e) { result.confirmations = { error: String((e as Error).message) }; await log('confirmations', false, { error: String((e as Error).message) }); }
 
+  /* 8. live location: the database removes points when a job moves on; this is the 24-hour backstop (a few rows at most) */
+  try { const { data: n } = await db.rpc('tech_locations_purge'); result.locations_purged = n ?? 0; }
+  catch (e) { result.locations_purged = { error: String((e as Error).message) }; }
+
   /* 5. watchdog: email the supervisors if the reply checker, AiSensy or the templates need attention */
   try { result.health = await runWatchdog(db, DESK_URL, 'automation'); } catch (e) { result.health = { error: String((e as Error).message) }; }
 
