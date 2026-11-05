@@ -3,15 +3,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 
-test('the home page leads with what we offer, then the entry points, in a clear order', () => {
-  const home = read('../index.html');
-  const ids = [...home.matchAll(/<section[^>]*id="([^"]+)"/g)].map((m) => m[1]);
-  const at = (id) => ids.indexOf(id);
-  assert.deepEqual(['diwali', 'why', 'needs', 'rsa', 'prices', 'brief', 'rider-tools', 'trust', 'home-faq', 'areas', 'partners'].map(at).every((v, i, a) => v > -1 && (i === 0 || v > a[i - 1])), true, ids.join(','));
-  const why = home.match(/<div class="promo-grid">[\s\S]*?<\/section>/)[0];
-  for (const href of ['/two-wheeler-service-at-home-bangalore/', '/scooty-repair-at-home-bangalore/', '/ev-and-petrol-bike-care-bangalore/', '/verified-bike-garages-bangalore/', '/digital-service-records/', '/doorstep-bike-and-car-repair-near-me/']) assert.ok(why.includes(`href="${href}"`), href);
-  assert.ok(!ids.includes('services-all'), 'the duplicate services tiles are gone');
-});
 test('the Axlio page says what Axlio does, attributes it, and links out safely', () => {
   const p = read('../partners/axlio/index.html');
   assert.match(p, /run separately from Mechanix Pro/);
@@ -32,13 +23,6 @@ test('key pages have a link-preview card of their own, and the files exist', () 
     assert.match(read(`../${page}/index.html`), new RegExp(`og:image" content="https://mechanixpro.in/assets/img/og/${card}\\.jpg"`), page);
     assert.ok(readFileSync(new URL(`../assets/img/og/${card}.jpg`, import.meta.url)).length > 10000, card);
   }
-});
-test('the hero has one cut-out picture, not a grid of tiles', () => {
-  const h = read('../index.html');
-  const hero = h.slice(h.indexOf('<section class="hero">'), h.indexOf('</section>'));
-  assert.equal((hero.match(/<img [^>]*>/g) || []).filter((i) => /hero-rain/.test(i)).length, 1);
-  assert.doesNotMatch(hero, /mo-grid|hero-strip/);
-  assert.ok(readFileSync(new URL('../assets/img/hero-rain-p.webp', import.meta.url)).length > 20000);
 });
 test('the site pictures use the plate-covered versions only', () => {
   const home = read('../index.html');

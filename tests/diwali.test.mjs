@@ -15,10 +15,10 @@ test('an offer line comes only from config, and is cleaned', () => {
   assert.equal(D.offerLine({}), '');
   assert.equal(D.offerLine({ diwaliOffer: ' Use <b>DIWALI</b> ' }), 'Use bDIWALI/b');
 });
-test('the home page has the Diwali card, the join page exists, and no discount is invented', () => {
+test('every page keeps the Diwali banner, the join page exists, and no discount is invented', () => {
   const home = read('../index.html');
-  assert.match(home, /data-diwali-bar/); assert.match(home, /id="diwali"/); assert.match(home, /axlio\.in/); assert.match(home, /href="\/join\/"/);
-  assert.doesNotMatch(home.match(/<section id="diwali"[\s\S]*?<\/section>/)[0], /\d+\s?%|₹\s?\d|flat|off\b/i);
+  assert.match(home, /data-diwali-bar/); assert.match(home, /href="\/join\/"/);
+  assert.doesNotMatch(home.match(/<div class="diwali-bar"[\s\S]*?<\/div>/)[0], /\d+\s?%|₹\s?\d|flat|off\b/i);
   assert.match(read('../join/index.html'), /submit-partner|partner\.js/);
 });
 test('the fireworks respect reduced motion and the script has no inline code', () => {

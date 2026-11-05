@@ -10,7 +10,7 @@ def crumbs(*items):
     return ld_tag({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": i + 1, "name": n, "item": SITE + pth} for i, (n, pth) in enumerate((("Home", "/"),) + items)]})
 
 
-TODAY = datetime.date.today().isoformat()
+TODAY = os.environ.get('BUILD_DATE') or datetime.date.today().isoformat()  # BUILD_DATE=YYYY-MM-DD pins the date (dateModified, sitemap lastmod) for a repeatable build
 
 NAV = '''<div class="diwali-bar" data-diwali-bar role="region" aria-label="Diwali"><a href="/offers/diwali-ready/"><span class="db-spark" aria-hidden="true">&#10024;</span><b>Diwali special.</b> <span data-diwali-line>Get your bike checked at your door before the festive rides. Quote first, open 24/7.</span><u> See how &rarr;</u></a><button type="button" class="db-x" aria-label="Close the Diwali banner">&times;</button></div>
 <a class="skip" href="#main">Skip to content</a>
@@ -18,9 +18,9 @@ NAV = '''<div class="diwali-bar" data-diwali-bar role="region" aria-label="Diwal
   <a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="27"><img class="wm" src="/assets/img/logo-wordmark.webp" alt="" width="137" height="12"></a>
   <nav class="links" aria-label="Main"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track booking</a></nav>
   <details class="menu"><summary aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
-    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/major-bike-repair-pickup-and-drop-bangalore/">Major repairs with pickup and drop</a><a href="/join/">Join as a garage or mechanic</a><a href="/two-wheeler-service-at-home-bangalore/">Two wheeler service at home</a><a href="/scooty-repair-at-home-bangalore/">Scooty repair at home</a><a href="/ev-and-petrol-bike-care-bangalore/">EV and petrol bike care</a><a href="/verified-bike-garages-bangalore/">Verified garages</a><a href="/car-service-bangalore/">Car service</a><a href="/blog/">Blog</a><a href="/partners/axlio/">Car parts and service: Axlio</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
-  <a class="btn btn-ghost btn-sm call-btn" href="#" data-call><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call us</a>
-  <a class="btn btn-primary btn-sm cta" href="/book/">Get a quote</a>
+    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/major-bike-repair-pickup-and-drop-bangalore/">Major repairs with pickup and drop</a><a href="/join/">Join as a garage or mechanic</a><a href="/two-wheeler-service-at-home-bangalore/">Two wheeler service at home</a><a href="/scooty-repair-at-home-bangalore/">Scooty repair at home</a><a href="/ev-and-petrol-bike-care-bangalore/">EV and petrol bike care</a><a href="/verified-bike-garages-bangalore/">Verified garages</a><a href="/digital-service-records/">Digital service records</a><a href="/doorstep-bike-and-car-repair-near-me/">Doorstep bike and car repair</a><a href="/car-service-bangalore/">Car service</a><a href="/blog/">Blog</a><a href="/partners/axlio/">Car parts and service: Axlio</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
+  <a class="btn btn-ghost btn-sm call-btn" href="#" data-call>Call us</a>
+  <a class="btn btn-primary btn-sm cta" href="/book/">Book online</a>
 </div></header>
 '''
 FOOTER = '''<footer>
@@ -50,27 +50,24 @@ HEAD = '''<!doctype html>
 <link rel="stylesheet" href="/assets/css/style.css">
 <link rel="stylesheet" href="/assets/css/theme.css">
 <link rel="stylesheet" href="/assets/css/bento.css">
+<link rel="stylesheet" href="/assets/css/simple.css">
 {schema}
-<script src="/assets/js/loader.js"></script>
 <script src="/assets/js/config.js" defer></script>
 <script src="/assets/js/tags.js" defer></script>
 <script src="/assets/js/adref.js" defer></script>
 {scripts}
 </head>
 <body class="{body}">
-<div class="loader" aria-hidden="true"><div class="ld-stage"><div class="ld-mark"><img src="/assets/img/logo-mark.webp" alt="" width="124" height="129"><u class="ld-shine"></u></div><img class="ld-word" src="/assets/img/logo-wordmark.webp" alt="" width="260" height="23"><img class="ld-tag" src="/assets/img/logo-tagline.webp" alt="" width="260" height="15"></div><i class="ld-road"></i></div>
 {nav}<main id="main" class="{main}">
 '''
 FOOT = '''</main>
-{footer}{extra}<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pingeo.js" defer></script><script src="/assets/js/pinmap.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script><script src="/assets/js/motion.js" defer></script><script src="/assets/js/stories.js" defer></script><script src="/assets/js/watch.js" defer></script><script src="/assets/js/perf.js" defer></script><script src="/assets/js/rider-tools.js" defer></script><script src="/assets/js/install.js" defer></script><script src="/assets/js/diwali.js" defer></script><script src="/assets/js/reveal.js" defer></script><script src="/assets/js/media.js" defer></script><script src="/assets/js/apollo.js" defer></script></body>
+{footer}{extra}{dock}<script src="/assets/js/pincodes.js" defer></script><script src="/assets/js/pins-live.js" defer></script><script src="/assets/js/pingeo.js" defer></script><script src="/assets/js/pinmap.js" defer></script><script src="/assets/js/pincheck.js" defer></script><script src="/assets/js/waitlist.js" defer></script><script src="/assets/js/motion.js" defer></script><script src="/assets/js/stories.js" defer></script><script src="/assets/js/watch.js" defer></script><script src="/assets/js/perf.js" defer></script><script src="/assets/js/rider-tools.js" defer></script><script src="/assets/js/install.js" defer></script><script src="/assets/js/diwali.js" defer></script><script src="/assets/js/reveal.js" defer></script><script src="/assets/js/media.js" defer></script><script src="/assets/js/apollo.js" defer></script></body>
 </html>
 '''
 LEGAL_JS = '<script src="/assets/js/page.js" defer></script>'
 CHAT_JS = '<script src="/assets/js/chatstart.js" defer></script>'
 APP_JS = '<script src="/assets/js/pincodes.js" defer></script>\n<script src="/assets/js/pingeo.js" defer></script>\n<script src="/assets/js/pins-live.js" defer></script>\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/model-photos.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/gmaps.js" defer></script>\n<script src="/assets/js/app.js" defer></script>'
-FLOAT = '''<a class="wa-fab" href="#" data-wa="general" aria-label="Chat on WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp us</a>
-<div class="mbar" id="mbar"><a class="btn btn-ghost" href="#" data-call aria-label="Call us"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call</a><a class="btn btn-wa" href="#" data-wa="general">WhatsApp</a><a class="btn btn-primary" href="/book/">Quote</a></div>
-'''
+FLOAT = ''  # the old floating WhatsApp button and Quote/Call/WhatsApp bar are replaced by the phone-only DOCK that every page gets from foot()
 
 AREAS = [
   ('hsr-layout', 'HSR Layout', '560102', 'Sectors 1 to 7, Agara, Parangi Palya and Somasundarapalya', 'Short hops to Koramangala and the Outer Ring Road add up: stop-start traffic wears brakes, clutch plates and chains faster than highway riding.'),
@@ -112,8 +109,12 @@ PRICES = [(k, v['name']) for k, v in json.load(open(os.path.join(os.path.dirname
 
 AREA_LINKS = ''.join(f'<a href="/bike-service-{slug}/">{name}</a>' for slug, name, *_ in AREAS[:10])
 ALL_AREA_LINKS = ''.join(f'<a href="/bike-service-{slug}/">{name}</a>' for slug, name, *_ in AREAS)
-def foot(extra=''):
-    return FOOT.format(footer=FOOTER.format(area_links=AREA_LINKS, company_name=COMPANY['legalName'], company_addr=', '.join(COMPANY['addressLines']) + f", {COMPANY['city']} {COMPANY['pincode']}", company_gstin=COMPANY['gstin']), extra=extra)
+DOCK = '''<nav class="dock" aria-label="Message or call Mechanix Pro"><a class="btn btn-wa" href="#" data-wa="general"{wa_text}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp</a><a class="btn btn-call" href="#" data-call><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call</a></nav>
+'''
+def foot(extra='', dock=True, dock_text=None):
+    """Footer and scripts. The phone-only WhatsApp and Call bar is on every page unless dock=False (payment, rating and other one-task pages)."""
+    _dk = DOCK.format(wa_text=(f' data-wa-text="{html.escape(dock_text, quote=True).replace(chr(10), '&#10;')}"' if dock_text else '')) if dock else ''
+    return FOOT.format(dock=_dk, footer=FOOTER.format(area_links=AREA_LINKS, company_name=COMPANY['legalName'], company_addr=', '.join(COMPANY['addressLines']) + f", {COMPANY['city']} {COMPANY['pincode']}", company_gstin=COMPANY['gstin']), extra=extra)
 
 COMPANY = json.load(open(os.path.join(ROOT, 'src', 'company.json'), encoding='utf-8'))
 _ADDR = ', '.join(COMPANY['addressLines']) + f", {COMPANY['city']}, {COMPANY['state']} {COMPANY['pincode']}"
@@ -348,7 +349,7 @@ for slug, (title, desc, body) in LEGAL.items():
 # Unsubscribe page: linked from marketing emails, kept out of search results and the sitemap.
 _ub = HEAD.format(title='Unsubscribe from offer emails | Mechanix Pro', desc='Stop offer emails from Mechanix Pro.', url=f'{SITE}/unsubscribe/', site=SITE, schema='', scripts='<script src="/assets/js/unsub.js" defer></script>', body='', nav=NAV, main='page')
 _ub = _ub.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
-write('unsubscribe/index.html', _ub + '<h1 style="font-size:40px">Unsubscribe from offer emails</h1>\n<p class="muted" style="font-size:18px">Tap the button to stop offer emails from Mechanix Pro. Updates about a booking you made will still reach you.</p>\n<p><button class="btn btn-primary" type="button" id="unsubGo">Stop offer emails</button></p><p role="status" id="unsubMsg" class="small"></p>' + foot())
+write('unsubscribe/index.html', _ub + '<h1 style="font-size:40px">Unsubscribe from offer emails</h1>\n<p class="muted" style="font-size:18px">Tap the button to stop offer emails from Mechanix Pro. Updates about a booking you made will still reach you.</p>\n<p><button class="btn btn-primary" type="button" id="unsubGo">Stop offer emails</button></p><p role="status" id="unsubMsg" class="small"></p>' + foot(dock=False))
 
 # ---- Model pages: one per photographed model, with content that differs by type, engine class and price ----
 def load_bikes():
@@ -471,7 +472,7 @@ for gslug, (gtitle, gdesc, gh1, glead, gsecs, gfaq) in GUIDE_PAGES.items():
 <p class="tiny muted" style="margin-top:24px">More: {GUIDE_LINKS} · <a href="/areas/">Areas we serve</a> · <a href="/services/">Service prices</a></p>
 <div class="final" style="margin-top:32px"><h2>Want a mechanic to look at your bike?</h2><p>Get a quote on WhatsApp first. Nothing starts without your OK.</p><a class="btn btn-wa" href="#" data-wa="Bengaluru">Get a quote on WhatsApp</a> <a class="btn btn-primary" href="/book/">Build your service</a></div>
 """
-    write(f'guides/{gslug}/index.html', HEAD.format(title=html.escape(gtitle), desc=html.escape(gdesc), url=gurl, site=SITE, schema=gschema, scripts=LEGAL_JS, body='', nav=NAV, main='page') + gbody + foot(FLOAT))
+    write(f'guides/{gslug}/index.html', HEAD.format(title=html.escape(gtitle), desc=html.escape(gdesc), url=gurl, site=SITE, schema=gschema, scripts=LEGAL_JS, body='', nav=NAV, main='page') + gbody + foot())
     urls.append((f'/guides/{gslug}/', '0.6'))
 
 # ---- Fleet and societies pages: group requests that open WhatsApp with a ready message ----
@@ -697,7 +698,7 @@ write('pay/index.html', _pay + '''<h1 style="font-size:40px">Pay for your bookin
   <p class="small" id="payMsg" role="status" aria-live="polite"></p>
 </form>
 <div id="payResult" aria-live="polite"></div>
-<p class="tiny muted">The amount is what is due on your booking, such as the {{fee:advance}} checkup and quote fee ({{fee:newfee}} for new customers), which is adjusted in your final bill if you go ahead. We never see your card details. Need help? <a href="#" data-wa="general">Message us on WhatsApp</a>.</p>''' + foot())
+<p class="tiny muted">The amount is what is due on your booking, such as the {{fee:advance}} checkup and quote fee ({{fee:newfee}} for new customers), which is adjusted in your final bill if you go ahead. We never see your card details. Need help? <a href="#" data-wa="general">Message us on WhatsApp</a>.</p>''' + foot(dock=False))
 
 # Track page: a customer looks up their booking with the reference and the mobile number they booked with.
 _tr = HEAD.format(title='Track Your Booking | Mechanix Pro', desc='Check the progress of your Mechanix Pro booking with your reference and mobile number.', url=f'{SITE}/track/', site=SITE, schema='', scripts=LEGAL_JS + '<script src="/assets/js/track.js" defer></script>', body='', nav=NAV, main='page')
@@ -711,7 +712,7 @@ write('track/index.html', _tr + '''<h1 style="font-size:40px">Track your booking
   <p class="small" id="trMsg" role="status" aria-live="polite"></p>
 </form>
 <div id="trResult" aria-live="polite"></div>
-<p class="tiny muted">Can't find it? Message us on WhatsApp with your name and number and we will tell you where it stands.</p>''' + foot(FLOAT))
+<p class="tiny muted">Can't find it? Message us on WhatsApp with your name and number and we will tell you where it stands.</p>''' + foot(dock=False))
 
 
 # Rate card: every price in one place, before GST and with 18% GST, built from src/site.json so it always matches the Services page.
@@ -736,7 +737,7 @@ def rate_card_page():
 <section><div class="wrap">{body}<h3>Other services</h3><div class="scroll"><table class="rate-table">{head}<tbody>{other}</tbody></table></div>
 <h3>Add-ons</h3><div class="scroll"><table class="rate-table">{head}<tbody>{adds}</tbody></table></div>
 <p class="tiny muted" style="margin-top:14px">Parts and consumables are charged separately after you approve them, and are OEM or aftermarket as labelled in your quote. Pickup and drop is free in our serviceable area. The checkup and quote fee is adjusted in your final bill if you go ahead.</p>
-<div class="row" style="margin-top:14px"><a class="btn btn-primary" href="/book/">Build your service</a><a class="btn btn-wa" href="#" data-wa="general">Get a quote on WhatsApp</a></div></div></section>''' + foot(FLOAT))
+<div class="row" style="margin-top:14px"><a class="btn btn-primary" href="/book/">Build your service</a><a class="btn btn-wa" href="#" data-wa="general">Get a quote on WhatsApp</a></div></div></section>''' + foot())
     urls.append(('/rate-card/', '0.8'))
 rate_card_page()
 
@@ -747,7 +748,7 @@ _wr = _wr.replace('</title>', '</title><meta name="robots" content="noindex,nofo
 write('warranty/index.html', _wr + '''<h1 style="font-size:40px">Your warranty card.</h1>
 <p class="muted" style="font-size:18px" id="wrLead">Checking your card.</p>
 <div id="wrCard" aria-live="polite"></div>
-<p class="tiny muted">Cards are issued when a booking is completed and fully paid. If something looks wrong, message us on WhatsApp with your booking number.</p>''' + foot(FLOAT))
+<p class="tiny muted">Cards are issued when a booking is completed and fully paid. If something looks wrong, message us on WhatsApp with your booking number.</p>''' + foot(dock=False))
 
 
 # Rate page: a customer rates a finished job from the link we send on WhatsApp. The link carries the booking reference and a signature (checked by the submit-rating function).
@@ -766,7 +767,7 @@ write('rate/index.html', _rt + '''<h1 style="font-size:40px">How was your servic
   <p class="small" id="rtMsg" role="status" aria-live="polite"></p>
 </form>
 <div id="rtDone" aria-live="polite"></div>
-<p class="tiny muted">Your rating is shared only with the Mechanix Pro team. If something went wrong, we will call you.</p>''' + foot(FLOAT))
+<p class="tiny muted">Your rating is shared only with the Mechanix Pro team. If something went wrong, we will call you.</p>''' + foot(dock=False))
 
 # ---- Languages: Kannada and Hindi copies of the home page, published only when every line has been reviewed by a fluent reader ----
 LANG_META = {'kn': 'kn-IN', 'hi': 'hi-IN'}
@@ -826,7 +827,7 @@ def offer_page(o):
 <section><div class="wrap"><div class="final"><h2>Ready when your bike is.</h2><p>Build your service in under a minute, or just message us.</p><div class="row"><a class="btn btn-primary" href="{book}">Build your service</a><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{wa}">Get a quote on WhatsApp</a></div></div></div></section>'''
     page = HEAD.format(title=html.escape(o['title'] + ' | Mechanix Pro'), desc=html.escape(o['lead']), url=f'{SITE}/offers/{slug}/', site=SITE, schema='', scripts=LEGAL_JS + CHAT_JS, body='page-offer', nav=NAV, main='')
     page = page.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
-    write(f'offers/{slug}/index.html', page + body + foot(FLOAT))
+    write(f'offers/{slug}/index.html', page + body + foot())
 for _o in _load_json('offers.json'): offer_page(_o)
 
 # Roadside answers: only what the site already promises (src/site.json "sos" and the terms, section 7B). No arrival time is promised.
@@ -853,11 +854,11 @@ write('roadside/index.html', _road + f'''<section class="hero"><div class="wrap"
 <section><div class="wrap pricing"><div class="sec-head"><h2>What the roadside visit covers.</h2><p>{{{{text:sos}}}} for the visit, excluding GST. A puncture alone is {{{{text:puncture}}}}.</p></div><ul class="tick">''' + ''.join(f'<li>{html.escape(x.lstrip("• "))}</li>' for x in SITE_DATA['services']['sos']['includes'][1:]) + f'''</ul></div></section>
 <section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Roadside questions.</h2></div>''' + ''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(x)}</p></details>' for q, x in ROAD_FAQ) + f'''<p class="tiny muted" style="margin-top:14px">Areas we cover: ''' + ALL_AREA_LINKS.replace('</a><a', '</a> · <a') + f''' and <a href="/areas/">every Bengaluru PIN code</a>.</p></div></section>
 <section><div class="wrap"><p class="rsa-car"><b>Car broken down?</b> Our partner Axlio lists jump start, flat tyre help, towing and fuel delivery for cars in Bengaluru, with the help, price and time confirmed before work starts. <a href="/partners/axlio/">See Axlio's roadside help</a></p></div></section>
-<section><div class="wrap"><div class="final"><h2>Stuck right now?</h2><p>Message us with your location, or call.</p><div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{_road_wa}">Send my location on WhatsApp</a><a class="btn btn-ghost" href="#" data-call>Call us now</a></div></div></div></section>''' + foot(FLOAT))
+<section><div class="wrap"><div class="final"><h2>Stuck right now?</h2><p>Message us with your location, or call.</p><div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{_road_wa}">Send my location on WhatsApp</a><a class="btn btn-ghost" href="#" data-call>Call us now</a></div></div></div></section>''' + foot())
 urls.append(('/roadside/', '0.8'))
 
 MAIN = [
-  ('', 'home', 'Two Wheeler Doorstep Service in Bangalore | Mechanix Pro', 'Two wheeler service at home in Bangalore (Bengaluru) from {{text:basic}}. Servicing in as fast as 2 hours, scooty repair, EV and petrol bike care. Quote first.', 'home.jsonld', 'home', APP_JS + '\n<script src="/assets/js/hero.js" defer></script>\n' + CHAT_JS, '1.0'),
+  ('', 'home', 'Two Wheeler Doorstep Service in Bangalore | Mechanix Pro', 'Two wheeler service at home in Bangalore (Bengaluru) from {{text:basic}}. Servicing in as fast as 2 hours, scooty repair, EV and petrol bike care. Quote first.', 'home.jsonld', 'home', APP_JS, '1.0'),
   ('book', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.9'),
   ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}}, excluding GST. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
   ('help', 'help', 'How Doorstep Bike Service Works and FAQ | Mechanix Pro', 'How Mechanix Pro works: build your service, get a WhatsApp quote, approve, and we service your bike at your door in Bengaluru. Answers to common questions.', 'help.jsonld', 'page-help', APP_JS, '0.8'),
@@ -878,8 +879,8 @@ for slug, src, title, desc, ld, body, scripts, prio in MAIN:
         _faq = [(_plain(q), _plain(a)) for q, a in re.findall(r'<details><summary>(.*?)</summary><p>(.*?)</p></details>', _src, re.S)]
         if _faq: schema += '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in _faq]}, ensure_ascii=False) + '</script>'
         schema += '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "WebSite", "name": "Mechanix Pro", "url": SITE + "/", "inLanguage": "en-IN"}, ensure_ascii=False) + '</script>'
-    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
-    out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(FLOAT)
+    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--AREA_LINKS-->', AREA_LINKS).replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
+    out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(dock=(src != 'book'))
     if src == 'home':
         langs = i18n_build(out, url)
         if langs:
@@ -977,7 +978,7 @@ def car_page():
 <section class="band"><div class="wrap"><div class="sec-head"><h2>How it works.</h2></div><ol class="soon-steps steps-2">{st}</ol></div></section>
 <section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Questions we get asked.</h2></div>{fq}</div></section>
 <section><div class="wrap"><div class="final"><h2>Car or bike, we start with a quote.</h2><p>Nothing starts until you say yes.</p><div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a car service in Bangalore.&#10;Car make and model: &#10;Area: ">Get a car quote</a><a class="btn btn-ghost" href="/book/">Book a bike service</a></div></div></div></section>'''
-    write(f'{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=f'{SITE}/{slug}/', site=SITE, schema=ld, scripts=LEGAL_JS, body='', nav=NAV, main='') + body + foot())
+    write(f'{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=f'{SITE}/{slug}/', site=SITE, schema=ld, scripts=LEGAL_JS, body='', nav=NAV, main='') + body + foot(dock_text='Hi Mechanix Pro, I need a car service in Bangalore.\nCar make and model: \nArea: '))
     urls.append((f'/{slug}/', '0.8'))
 car_page()
 
@@ -1011,7 +1012,7 @@ landing_pages()
 def blog_pages():
     p = os.path.join(ROOT, 'src', 'blog', 'posts.json')
     if not os.path.exists(p): return
-    today = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30))).date().isoformat()
+    today = os.environ.get("BUILD_DATE") or datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30))).date().isoformat()
     posts = sorted([x for x in json.load(open(p, encoding='utf-8')) if x['date'] <= today], key=lambda x: x['date'], reverse=True)
     if not posts: return
     nice = lambda d: datetime.date.fromisoformat(d).strftime('%-d %B %Y')
@@ -1027,12 +1028,12 @@ def blog_pages():
 <p class="tiny muted" style="margin-top:22px">General advice only. Your owner's manual comes first. <a href="/services/">Service prices</a> · <a href="/guides/how-often-to-service-your-bike/">How often to service</a> · <a href="/roadside/">Roadside help</a></p>
 {('<h2>More from the blog</h2><ul>' + ''.join(f'<li><a href="/blog/{y["slug"]}/">{html.escape(y["h1"])}</a></li>' for y in more) + '</ul>') if more else ''}
 <div class="final" style="margin-top:28px"><h2>Want a mechanic to look at your bike?</h2><p>Get a quote on WhatsApp first. Nothing starts without your OK.</p><a class="btn btn-wa" href="#" data-wa="Bengaluru">Get a quote on WhatsApp</a> <a class="btn btn-primary" href="/book/">Build your service</a></div></article>'''
-        write(f"blog/{x['slug']}/index.html", HEAD.format(title=html.escape(x['title']), desc=html.escape(x['desc']), url=url, site=SITE, schema=ld, scripts=LEGAL_JS, body='', nav=NAV, main='page') + body + foot(FLOAT))
+        write(f"blog/{x['slug']}/index.html", HEAD.format(title=html.escape(x['title']), desc=html.escape(x['desc']), url=url, site=SITE, schema=ld, scripts=LEGAL_JS, body='', nav=NAV, main='page') + body + foot())
         urls.append((f"/blog/{x['slug']}/", '0.6'))
     idx = ''.join(f'<li style="margin:0 0 18px"><a href="/blog/{x["slug"]}/" style="font-size:20px;font-weight:600">{html.escape(x["h1"])}</a><br><span class="tiny muted">{nice(x["date"])}</span><br>{html.escape(x["desc"])}</li>' for x in posts)
     ld = crumbs(('Blog', '/blog/')) + ld_tag({"@context": "https://schema.org", "@type": "Blog", "name": "Mechanix Pro blog", "url": SITE + "/blog/"})
     bi = f'''<article class="page" style="max-width:780px;margin:0 auto;padding:0 16px"><p class="breadcrumb"><a href="/">Home</a> › Blog</p><h1 style="font-size:clamp(32px,6vw,50px)">Bike care, in plain words.</h1><p class="muted" style="font-size:20px">Practical advice for Bengaluru riders from the Mechanix Pro team. New post every day.</p><ul style="list-style:none;padding:0;margin-top:24px">{idx}</ul></article>'''
-    write('blog/index.html', HEAD.format(title='Bike and Scooter Care Blog, Bengaluru | Mechanix Pro', desc='Practical bike and scooter care advice for Bengaluru riders: brakes, chains, oil, monsoon care and more. A new post every day.', url=SITE + '/blog/', site=SITE, schema=ld, scripts=LEGAL_JS, body='', nav=NAV, main='page') + bi + foot(FLOAT))
+    write('blog/index.html', HEAD.format(title='Bike and Scooter Care Blog, Bengaluru | Mechanix Pro', desc='Practical bike and scooter care advice for Bengaluru riders: brakes, chains, oil, monsoon care and more. A new post every day.', url=SITE + '/blog/', site=SITE, schema=ld, scripts=LEGAL_JS, body='', nav=NAV, main='page') + bi + foot())
     urls.append(('/blog/', '0.7'))
 blog_pages()
 

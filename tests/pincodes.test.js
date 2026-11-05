@@ -31,8 +31,9 @@ test('anywhere inside Bengaluru is served; only places outside the city are not'
   const out = L.nearestPlace(13.0827, 80.2707); assert.equal(out.served, false); assert.equal(out.name, 'Other area');
   assert.equal(L.nearestPlace(NaN, 1), null);
 });
-test('the PIN check is on the home page, the help page and a page that lists every PIN code', () => {
-  for (const f of ['index.html', 'help/index.html']) { const h = read(f); assert.match(h, /data-pincheck/); assert.match(h, /All of Bengaluru/); assert.doesNotMatch(h, /South-East Bengaluru|Starting in/); }
+test('the PIN check is on the help page and a page that lists every PIN code; the home page links to it', () => {
+  const h = read('help/index.html'); assert.match(h, /data-pincheck/); assert.match(h, /All of Bengaluru/); assert.doesNotMatch(h, /South-East Bengaluru|Starting in/);
+  assert.match(read('index.html'), /href="\/areas\/"/);
   const a = read('areas/index.html');
   assert.equal((a.match(/class="pin-row"/g) || []).length, 106); assert.match(a, /560102/); assert.match(a, /HSR Layout/); assert.equal((a.match(/<h1/g) || []).length, 1);
   assert.match(read('sitemap.xml'), /\/areas\//);

@@ -38,11 +38,6 @@ test('every symptom the guide links is a problem the booking builder knows, and 
   assert.deepEqual(L.prefillExtras('?issues=evil,<b>', []).issues, []); assert.equal(L.prefillExtras('?km=evil', []).km, '');
   for (const id of ids) assert.ok(L.prefillExtras('?issues=' + id, []).issues.length === 1, id);
 });
-test('the home page has the two tools, and the page script has no inline code', () => {
-  const h = read('../index.html');
-  for (const id of ['rider-tools', 'due-type', 'due-date', 'due-km', 'due-out', 'sym-out']) assert.match(h, new RegExp('id="' + id + '"'), id);
-  assert.match(h, /rider-tools\.js/); assert.doesNotMatch(h, /<script>[^<]*dueStatus/);
-});
 test('the calendar reminder is a valid all-day event on the due date with a two-day nudge', () => {
   const ics = T.reminderIcs('scooter', day('2026-11-20'), new Date('2026-10-23T05:00:00Z'));
   assert.match(ics, /^BEGIN:VCALENDAR\r\n/); assert.match(ics, /DTSTART;VALUE=DATE:20261120/); assert.match(ics, /DTEND;VALUE=DATE:20261121/);
@@ -57,9 +52,6 @@ test('the pre-ride check lists what is missing, puts brakes and tyres first, and
   assert.equal(p.bookUrl, '/book/?service=repair&issues=tyre,brake');
   const q = T.preRide(['tyre', 'brake', 'chain', 'leak', 'elec', 'battery', 'gear']);
   assert.deepEqual(q.missing, ['fuel']); assert.equal(q.safetyFirst, false); assert.equal(q.bookUrl, '');
-});
-test('the home page has the pre-ride checklist with eight items', () => {
-  const h = read('../index.html'); assert.match(h, /id="rt-pre"/); assert.equal((h.match(/data-k="/g) || []).length, 8);
 });
 test('the install button is a plain script that only appears when the browser offers an install', () => {
   const js = read('../assets/js/install.js'); assert.match(js, /beforeinstallprompt/); assert.match(js, /preventDefault/);

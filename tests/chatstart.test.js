@@ -29,8 +29,8 @@ test('the starting price line is true: it names the price from the page and says
   assert.match(t, /₹599/); assert.match(t, /GST/i); assert.match(t, /approve/i);
   assert.match(C.priceLine({ service: '₹599', repair: '₹349' }, 'problem'), /₹349/);
 });
-test('the home page and every ad page open with the chat starter, with plain links that work without JavaScript', () => {
-  for (const f of ['index.html', 'offers/bike-service/index.html', 'offers/monsoon-check/index.html', 'offers/ev-check/index.html', 'offers/pre-trip-check/index.html']) {
+test('every ad page opens with the chat starter, with plain links that work without JavaScript (the home page uses the simple hero instead)', () => {
+  for (const f of ['offers/bike-service/index.html', 'offers/monsoon-check/index.html', 'offers/ev-check/index.html', 'offers/pre-trip-check/index.html']) {
     const h = read(f);
     assert.match(h, /id="chat"/, f); assert.match(h, /What do you ride\?/, f); assert.match(h, /assets\/js\/chatstart\.js/, f);
     assert.ok((h.match(/class="ride-chip"[^>]*data-wa-text="/g) || []).length >= 4, f + ' fallback links');

@@ -29,8 +29,8 @@ test('an exact place on the map can be shown instead of the PIN centre', () => {
   assert.notEqual(a, b); assert.match(b, /pm-pin/);
   assert.doesNotMatch(M.svg(GEO, { lat: 13.0827, lng: 80.2707 }), /pm-pin/);
 });
-test('the PIN map is on the home page check, the booking form and the confirmation receipt', () => {
-  assert.match(read('index.html'), /data-pinmap/); assert.match(read('areas/index.html'), /data-pinmap/);
+test('the PIN map is on the areas page, the booking form and the confirmation receipt', () => {
+  assert.match(read('areas/index.html'), /data-pinmap/);
   const app = read('assets/js/app.js');
   assert.match(app, /id="pinMap"/); assert.match(app, /MXP_PINMAP\.draw\(/); assert.match(app, /id="rcptMap"/);
   for (const f of ['index.html', 'book/index.html']) assert.match(read(f), /pinmap\.js/);

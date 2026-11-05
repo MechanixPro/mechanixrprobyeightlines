@@ -25,11 +25,3 @@ test('submit-lead works out the fee the same way the payment page does', () => {
   const f = read('supabase/functions/submit-lead/index.ts');
   assert.match(f, /isReturningCustomer/); assert.match(f, /slotFee/); assert.match(f, /newCustomer/);
 });
-test('the website has a trust section for money protection and service promises, with no invented numbers', () => {
-  const h = read('index.html');
-  assert.match(h, /id="trust"/); assert.match(h, /Your money is protected/i);
-  const t = h.slice(h.indexOf('id="trust"'), h.indexOf('id="trust"') + 6000);
-  for (const re of [/Quote first/i, /refunded in full/i, /Razorpay/i, /30-day/i, /OTP/i]) assert.match(t, re, String(re));
-  const noClaims = t.replace(/10,000\+ services done|1,300\+ gated communities trust us/g, ''); // only the two owner-confirmed numbers are allowed
-  assert.doesNotMatch(noClaims, /\b\d[\d,]*\+/); assert.doesNotMatch(t, /rated|stars?\b|reviews?\b/i);
-});

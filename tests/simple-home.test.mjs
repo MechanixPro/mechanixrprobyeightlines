@@ -14,10 +14,6 @@ test('the old Instagram strip is gone; the only Instagram link or handle is the 
   const rest = body.replace(/<section id="experience"[\s\S]*?<\/section>/, '');
   assert.doesNotMatch(rest, /instagram\.com|@themechanixpro/i);
 });
-test('WhatsApp is the first and main button in the home hero', () => {
-  const hero = body.slice(body.indexOf('<section class="hero">'), body.indexOf('</section>'));
-  assert.ok(hero.indexOf('btn-wa') > -1 && hero.indexOf('btn-wa') < hero.indexOf('Build your service'));
-});
 test('the two owner-confirmed numbers stay, in one short line', () => {
   assert.match(body, /10,000\+ services done/); assert.match(body, /1,300\+ gated communities trust us/);
 });
@@ -28,8 +24,4 @@ test('no helper character is loaded on any page', () => {
 });
 test('the home page no longer loads the slideshow script', () => {
   assert.doesNotMatch(home, /assets\/js\/showcase\.js/);
-});
-test('the areas block is one short block: the PIN checker and a link, not a long list', () => {
-  const a = body.slice(body.indexOf('id="areas"'), body.indexOf('</section>', body.indexOf('id="areas"')));
-  assert.match(a, /data-pincheck/); assert.ok((a.match(/<a /g) || []).length <= 3);
 });
