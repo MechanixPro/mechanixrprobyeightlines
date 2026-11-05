@@ -281,6 +281,7 @@ async function runStep(key, id) {
   if (!a.allowed) return toast(a.reason, true);
   const g = stepGuard(l, key === 'take' ? 'call' : key); if (!g.ok) return toast(g.error, true);
   if (key === 'take') { await rpc('crm_claim', { p_id: id }); toast('It is yours. Call the customer now.'); await go(S.view, true); return await openLead(id, 'call'); }
+  if (key === 'resend_link' || key === 'assign') { await openLead(id, 'note'); return await flow.actions[key === 'assign' ? 'assign' : 'payLink'](S.detail.lead); }   // the paid-confirmation steps
   if (key === 'confirm') { S.open = id; return await confirmBooking(); }
   if (key === 'done') { await rpc('crm_mark_done', { p_id: id }); toast('Marked done.'); S.open = id; return await afterChange(false); }
   // Send quote and Schedule need details (a follow-up, a technician and a slot), so they open the lead with the form already set.
