@@ -11,9 +11,9 @@ test('the video and its poster are in the project and small enough for phones', 
   assert.ok(size('assets/video/how-it-works.mp4') < 3 * 1024 * 1024);
   assert.ok(size('assets/video/how-it-works-poster.webp') < 150 * 1024);
 });
-test('the home page has no autoplay video; its only video is the tap-to-play booking demo', () => {
+test('the home page has no autoplay video; every video is muted tap-to-play, and the first is the booking demo', () => {
   const vids = read('index.html').match(/<video[^>]*>/g) || [];
-  assert.equal(vids.length, 1);
+  assert.equal(vids.length, 3, 'booking demo plus the two oil-change videos in Our work');
   vids.forEach((v) => { assert.match(v, /muted/); assert.doesNotMatch(v, /autoplay/); assert.match(v, /preload="none"/); });
   assert.match(vids[0], /how-to-book-poster/); assert.match(vids[0], /\bcontrols\b/);
 });

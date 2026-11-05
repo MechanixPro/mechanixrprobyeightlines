@@ -9,7 +9,7 @@ const SAMPLE = ['index.html', 'bike-service-hsr-layout/index.html', 'bike-servic
 
 test('the home page has six sections, in the order a visitor decides', () => {
   const ids = [...main.matchAll(/<section[^>]*id="([a-z-]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(ids, ['hero', 'brief', 'prices', 'trust', 'areas', 'faq', 'tools']);
+  assert.deepEqual(ids, ['hero', 'brief', 'work', 'prices', 'trust', 'areas', 'faq', 'tools']);
   assert.ok(main.indexOf('class="stage"') < main.indexOf('class="sheet"'), 'a navy stage first, then the light sheet');
   assert.equal((main.match(/<h1[ >]/g) || []).length, 1);
 });
@@ -117,7 +117,7 @@ test('the home page stays light: one hero photo, no chat script, no slideshow', 
   assert.doesNotMatch(home, /hero-rain|chatstart\.js|hero\.js|showcase\.js|class="ticker"/);
   assert.ok(Buffer.byteLength(home) < 40000, 'home HTML is ' + Buffer.byteLength(home) + ' bytes');
   assert.ok(readdirSync(new URL('../assets/css/', import.meta.url)).includes('site.css'));
-  assert.ok(Buffer.byteLength(css) < 28000, 'site.css is ' + Buffer.byteLength(css) + ' bytes');
+  assert.ok(Buffer.byteLength(css) < 32000, 'site.css is ' + Buffer.byteLength(css) + ' bytes');
 });
 test('prefilled WhatsApp messages carry no phone numbers or personal details', () => {
   for (const m of main.matchAll(/data-wa-text="([^"]+)"/g)) assert.doesNotMatch(m[1], /\d{6,}|@/);
@@ -189,4 +189,53 @@ test('the booking page shows its form below the stage and has no phone bar over 
 test('pages that pin the WhatsApp text keep it: car pages send the car message', () => {
   const car = read('car-service-bangalore/index.html'); assert.match(car, /<nav class="dock"[^>]*><a [^>]*data-wa-text="Hi Mechanix Pro, I need a car service in Bangalore/);
   assert.doesNotMatch(car, /10,000\+|1,300\+/);
+});
+
+/* Our work showcase */
+const work = main.slice(main.indexOf('<section id="work"'), main.indexOf('<section id="prices"'));
+const workRefs = [...work.matchAll(/(?:src|poster)="(\/assets\/[^"]+)"/g)].map((m) => m[1]);
+test('Our work sits after How it works, is bike-only and hidden by the Car toggle', () => {
+  assert.ok(work.length > 500, 'section exists');
+  assert.ok(main.indexOf('id="brief"') < main.indexOf('id="work"') && main.indexOf('id="work"') < main.indexOf('id="prices"'));
+  assert.match(work, /^<section id="work" class="bike-only" aria-labelledby="work-h">/);
+  assert.match(work, /<h2 id="work-h">Our work\.<\/h2>/);
+  assert.match(css, /#veh-car:checked ~ \* \.bike-only\{display:none!important\}/);
+});
+test('Our work uses only files that exist, with videos that wait for a tap', () => {
+  assert.ok(workRefs.length >= 20);
+  for (const r of workRefs) assert.ok(existsSync(new URL('..' + r, import.meta.url)), r);
+  for (const v of work.matchAll(/<video[^>]*>/g)) {
+    assert.match(v[0], /preload="none"/); assert.match(v[0], /poster="\/assets\/video\/[^"]+\.webp"/); assert.match(v[0], / controls/); assert.match(v[0], / muted/);
+    assert.doesNotMatch(v[0], /autoplay/); assert.match(v[0], /width="\d+" height="\d+"/);
+  }
+  for (const i of work.matchAll(/<img[^>]*>/g)) { assert.match(i[0], /width="\d+" height="\d+"/); assert.match(i[0], /loading="lazy"/); assert.match(i[0], /alt="/); }
+});
+test('Our work has no inline script or handler, and no new numeric claims', () => {
+  assert.doesNotMatch(work, /<script|\son[a-z]+=|style=/i);
+  const text = work.replace(/<[^>]*>/g, ' ').replace(/\b(?:NS|RC|R15|V3|S1|RTR|4V|Dio|Pro|Discover|Svartpilen|Bullet|Jawa|Karizma|Passion)\s*\d*/gi, ' ').replace(/(?:Discover|Svartpilen|Bullet|Jawa|RC|RTR|NS)\s*\d+/gi, ' ');
+  assert.doesNotMatch(text, /\d/, 'only model names carry digits: ' + text.match(/.{0,20}\d.{0,20}/));
+  assert.doesNotMatch(work, /rated|stars?\b|reviews?|testimonial|customers? say/i);
+});
+test('the bike strip loops with an aria-hidden duplicate whose links are out of the tab order', () => {
+  const rows = [...work.matchAll(/<div class="mq [^"]*"[^>]*>[\s\S]*?<\/div><\/div>/g)].map((m) => m[0]);
+  assert.equal(rows.length, 2);
+  for (const r of rows) {
+    const lists = [...r.matchAll(/<ul class="mq-list"([^>]*)>([\s\S]*?)<\/ul>/g)];
+    assert.equal(lists.length, 2); assert.doesNotMatch(lists[0][1], /aria-hidden/); assert.match(lists[1][1], /aria-hidden="true"/);
+    assert.equal(lists[0][2].replace(/ tabindex="-1"/g, ''), lists[1][2].replace(/ tabindex="-1"/g, ''), 'same bikes in both copies');
+    assert.ok(!/tabindex/.test(lists[0][2]) && [...lists[1][2].matchAll(/<a /g)].length === [...lists[1][2].matchAll(/<a [^>]*tabindex="-1"/g)].length);
+  }
+});
+test('every bike in the strip links to an existing model page', () => {
+  const links = new Set([...work.matchAll(/href="\/bike-service\/([a-z0-9-]+)\/"/g)].map((m) => m[1]));
+  assert.ok(links.size >= 12);
+  for (const s of links) { assert.ok(existsSync(new URL(`../bike-service/${s}/index.html`, import.meta.url)), s); assert.ok(existsSync(new URL(`../assets/img/showcase/${s}.webp`, import.meta.url)), s); }
+  assert.match(work, /href="\/terms\/#credits"/);
+});
+test('the strip is calm, pauses on hover and focus, and is static for reduced motion and reduced data', () => {
+  assert.match(css, /\.mq-track\{[^}]*animation:mq-left 70s linear infinite/);
+  assert.match(css, /\.mq:hover \.mq-track,\.mq:focus-within \.mq-track\{animation-play-state:paused\}/);
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\),\(prefers-reduced-data:reduce\)\{[^@]*\.mq-track\{animation:none!important/);
+  assert.match(css, /\.mq-list\[aria-hidden="true"\]\{display:none\}/);
+  assert.match(css, /\.mq-list img\{[^}]*aspect-ratio:4\/3/);
 });
