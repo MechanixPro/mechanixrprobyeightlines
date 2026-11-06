@@ -3,6 +3,7 @@ import { formatWhen } from './when.ts';
 import { REF_RE } from './booking-id.ts';
 import { gstSplit } from './confirm-fee.ts';
 import { etaMinutes, etaLine, mapsPointUrl } from './eta.ts';
+import { partnerGarageLine } from './garage.ts';
 export const STAGES = ['Request received', 'Quote shared', 'Slot confirmed', 'Mechanic booked', 'Service done'];
 const BY_STATUS: Record<string, { index: number; note: string; closed?: boolean }> = {
   new: { index: 0, note: 'We have your request. Our expert will message or call you soon.' },
@@ -24,7 +25,7 @@ export function cleanLookup(b: Record<string, unknown>): { ok: true; ref: string
 }
 
 type QuoteView = { status: string; version: number; eta_text?: string | null; lines?: { kind: string; name: string; amount: number }[]; subtotal?: number; gst?: number; total?: number; fee_credit?: number; balance?: number };
-type Extra = { quote?: QuoteView | null; service?: string | null; bike?: string | null; nick?: string | null; mechanic?: string | null; certified?: boolean; doorVerified?: boolean; secret?: { code?: string | null; address?: string | null } | null; vehicle?: string | null };
+type Extra = { quote?: QuoteView | null; service?: string | null; bike?: string | null; nick?: string | null; mechanic?: string | null; certified?: boolean; doorVerified?: boolean; secret?: { code?: string | null; address?: string | null } | null; vehicle?: string | null; garage?: string | null };
 
 export const DOOR_LINE = 'Give this code to the mechanic when they arrive. Do not share it before.';
 const paidConfirmation = (l: Record<string, any>) => l.confirm_fee != null;
@@ -78,6 +79,7 @@ export function trackView(l: Record<string, any>, x: Extra) {
     service: x.service ?? null, bike, area: l.area ?? null, when,
     mechanic: showMech ? String(x.mechanic).trim().split(/\s+/)[0] : null, certified: showMech ? x.certified !== false : null,
     estimate: l.est_total ?? null,
+    partner_garage: partnerGarageLine(x.garage),   // a plain status line while the vehicle is with a partner garage: never the garage's name or address
     ...(paidConfirmation(l) ? confirmationExtras(l, x) : {}),
   };
 }

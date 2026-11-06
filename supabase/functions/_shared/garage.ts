@@ -187,7 +187,7 @@ export function teamGarageMessage(kind: 'estimate' | 'ready', d: { bookingId?: s
 /** What the customer's tracking page says while the vehicle is with a partner garage. No garage name or address. */
 export function partnerGarageLine(status: string | null | undefined): { line: string; detail: string } | null {
   switch (status) {
-    case 'sent': return { line: 'Your vehicle is at a partner garage', detail: 'The garage is getting ready to take it in.' };
+    case 'sent': return { line: 'Your vehicle is on its way to a partner garage', detail: 'The garage is getting ready to take it in.' };
     case 'received': return { line: 'Your vehicle is at a partner garage', detail: 'The garage has received it.' };
     case 'in_work': return { line: 'Your vehicle is at a partner garage', detail: 'The work has started.' };
     case 'ready': return { line: 'Your vehicle is at a partner garage', detail: 'The work is done and the vehicle is ready to come back to you.' };
