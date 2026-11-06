@@ -347,10 +347,14 @@ def vid(name, label, caption):
 def body_pic(stem, alt):
     return (f'<figure class="bodypic"><img src="/assets/img/hero/{stem}-700.webp" srcset="/assets/img/hero/{stem}-700.webp 700w, /assets/img/hero/{stem}-1200.webp 1200w" sizes="(min-width:960px) 880px, calc(100vw - 40px)" '
             f'width="1200" height="594" loading="lazy" decoding="async" alt="{html.escape(alt)}"></figure>')
-VID_GARAGE = vid('garage', 'A workshop owner in a dark cap and a Mechanix Pro polo shirt smiling in a workshop.', 'A partner workshop')
+# Hidden until a version with Indian faces is supplied (owner decision 2026-11-07, Indian market): assets/video/garage.mp4 stays in the repo.
+VID_GARAGE_OFF = vid('garage', 'A workshop owner in a dark cap and a Mechanix Pro polo shirt smiling in a workshop.', 'A partner workshop')
+VID_GARAGE = ''
 # The fleet video (assets/video/fleet.mp4) has a visible vertical seam in the footage itself, so it is not shown until a clean re-export is supplied.
 VID_HEADS = {'societies': vid('societies', 'A mechanic checks a motorcycle on a tablet in apartment parking while residents talk nearby.', 'A service day in apartment parking')}
-VID_CODE = vid('code-handover', 'A customer shows a one-time code on a phone to the mechanic.', 'Show the code on your phone to the mechanic when they arrive.')
+# Hidden until a version with Indian faces is supplied (owner decision 2026-11-07): assets/video/code-handover.mp4 stays in the repo.
+VID_CODE_OFF = vid('code-handover', 'A customer shows a one-time code on a phone to the mechanic.', 'Show the code on your phone to the mechanic when they arrive.')
+VID_CODE = ''
 HERO_VIDEO_TAG = '<script src="/assets/js/hero-video.js" defer></script>'
 # Mechu appears on the home, model, area, car, services, help and workshop pages. Never on the single-task pages (book, pay, track, job, rate, warranty, unsubscribe).
 MECHU_PAGE = re.compile(r'^(index\.html|bike-service-[a-z0-9-]+/index\.html|bike-service/[a-z0-9-]+/index\.html|car-service-bangalore/index\.html|services/index\.html|help/index\.html|workshop/index\.html)$')
@@ -1151,7 +1155,7 @@ def icon_cards(items):
     return '<ul class="gcards">' + ''.join(f'<li><img src="/assets/img/hero/{ic}.webp" width="360" height="360" loading="lazy" decoding="async" alt=""><h3>{html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for ic, t, d in items) + '</ul>'
 GARAGE_WHAT = '''<section><div class="wrap"><div class="gwhat"><div><h2>What a Mechanix Pro garage is.</h2><p>A garage or mechanic in our network that has been visited, document-checked, trained on our way of working and trial-run before taking customer jobs.</p><p>When a bike must go to a workshop, it goes to a Mechanix Pro Certified garage. The repair is quoted first and starts only after the customer approves.</p></div>
 <ul class="gticks"><li>Visited and document-checked</li><li>Trained on quote first and honest findings</li><li>Bike leaves and returns only with the customer's one-time code</li><li>Photos at pickup and at return</li></ul></div></div></section>'''
-GARAGE_VID = '<section><div class="wrap">' + VID_GARAGE + '</div></section>'
+GARAGE_VID = ('<section><div class="wrap">' + VID_GARAGE + '</div></section>') if VID_GARAGE else ''
 GARAGE_GAL = [('garage-bay', 'A mechanic checking a motorcycle chain on a service stand in a workshop bay', 'In the bay'), ('garage-doorstep', 'A mechanic servicing a motorcycle on a stand in an apartment car park at dusk, with a tool bag beside him', 'At your door'), ('garage-parts', 'A parts counter with labelled oil, filters and brake pads, and a staff member handing over a part', 'Parts counter')]
 GARAGE_GALLERY = '<section><div class="wrap"><div class="sec-head"><h2>Inside a Mechanix Pro garage.</h2></div><ul class="ggal">' + ''.join(f'<li><img src="/assets/img/hero/{st}-600.webp" srcset="/assets/img/hero/{st}-600.webp 600w, /assets/img/hero/{st}-1000.webp 1000w" sizes="(min-width:960px) 380px, calc(100vw - 40px)" width="1000" height="667" loading="lazy" decoding="async" alt="{html.escape(alt)}"><span>{cap}</span></li>' for st, alt, cap in GARAGE_GAL) + '</ul></div></section>'
 GARAGE_VID = GARAGE_VID + GARAGE_GALLERY

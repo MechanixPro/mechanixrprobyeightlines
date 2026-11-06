@@ -105,11 +105,12 @@
     var store = { get: function () { try { return JSON.parse(win.localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; } }, set: function (o) { try { win.localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} }, clear: function () { try { win.localStorage.removeItem(KEY); } catch (e) {} } };
     var val = function (n) { var el = form.elements[n]; if (!el) return ''; if (el.length && el[0] && el[0].type === 'radio') { var c = all('[name="' + n + '"]:checked')[0]; return c ? c.value : ''; } return el.type === 'checkbox' ? el.checked : el.value; };
     var values = function () { var o = {}; ['vehicle', 'brand', 'model', 'engine_class', 'service_id', 'car_model', 'car_need', 'need_text', 'house', 'street', 'area', 'pincode', 'lat', 'lng', 'preferred_date', 'preferred_slot', 'name', 'phone', 'email', 'consent_whatsapp'].forEach(function (n) { o[n] = val(n); }); return o; };
-    var SAVE = ['vehicle', 'brand', 'model', 'engine_class', 'service_id', 'car_model', 'car_need', 'need_text', 'house', 'street', 'area', 'pincode', 'preferred_date', 'preferred_slot', 'name', 'phone', 'email'];
+    var SAVE = ['vehicle', 'brand', 'model', 'engine_class', 'service_id', 'car_model', 'car_need', 'area', 'pincode', 'preferred_date', 'preferred_slot'];   // no name, phone, email, house, street or free text is kept in the browser (data minimisation)
+    var PERSONAL = ['need_text', 'house', 'street', 'name', 'phone', 'email'];
     var SKEY = 'mxp_book_choices_v1';
     var sess = { get: function () { try { return JSON.parse(win.sessionStorage.getItem(SKEY) || '{}') || {}; } catch (e) { return {}; } }, set: function (o) { try { win.sessionStorage.setItem(SKEY, JSON.stringify(o)); } catch (e) {} }, clear: function () { try { win.sessionStorage.removeItem(SKEY); } catch (e) {} } };
     var prices = {}; Array.prototype.slice.call(doc.querySelectorAll('#bk-prices li')).forEach(function (li) { var n = Number(li.textContent); if (n > 0) prices[li.getAttribute('data-id')] = n; });
-    var save = function () { var o = store.get(); SAVE.forEach(function (n) { o[n] = val(n); }); o.step = step; o.key = o.key || uuid(); store.set(o); draft = o; sess.set(choicesForStorage(values(), step)); };
+    var save = function () { var o = store.get(); PERSONAL.forEach(function (n) { delete o[n]; }); SAVE.forEach(function (n) { o[n] = val(n); }); o.step = step; o.key = o.key || uuid(); store.set(o); draft = o; sess.set(choicesForStorage(values(), step)); };
 
     /* brands, models */
     var BIKES = win.MXP_BIKES || {}, brandSel = $('#bk-brand'), dl = $('#bk-models');
@@ -161,7 +162,8 @@
 
     /* steps */
     var show = function (n) {
-      step = n; all('[data-step]').forEach(function (f) { f.hidden = Number(f.getAttribute('data-step')) !== n; });
+      step = n; try { if (win.mxpTrack) win.mxpTrack('book_step', { step: n }); } catch (e) {}   // step reached; no personal details are sent
+      all('[data-step]').forEach(function (f) { f.hidden = Number(f.getAttribute('data-step')) !== n; });
       Array.prototype.slice.call(doc.querySelectorAll('.bk-steps li')).forEach(function (li) { var s = Number(li.getAttribute('data-s')); li.className = s === n ? 'on' : s < n ? 'done' : ''; if (s === n) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current'); });
       var pg = doc.getElementById('bk-prog'); if (pg) pg.textContent = 'Step ' + n + ' of 3: ' + ['Vehicle and service', 'Address and slot', 'Contact and pay'][n - 1]; renderSummary();
       var f = $('[data-step="' + n + '"]'); if (f) { var first = f.querySelector('input:not([type=hidden]):not([type=radio]),select'); if (first && n > 1) first.focus({ preventScroll: true }); if (started) f.scrollIntoView({ block: 'start', behavior: 'auto' }); } save();
@@ -210,7 +212,7 @@
     });
 
     /* restore saved progress and the link's prefill */
-    var q = new URLSearchParams(win.location.search), saved = store.get(), back = sess.get(); draft = saved;
+    var q = new URLSearchParams(win.location.search), saved = store.get(), back = sess.get(); PERSONAL.forEach(function (n) { delete saved[n]; }); store.set(saved); draft = saved;   // drops any personal details an older version saved
     var set = function (n, v) { var el = form.elements[n]; if (!el || v == null || v === '') return; if (el.length && el[0] && el[0].type === 'radio') { all('[name="' + n + '"]').forEach(function (r) { r.checked = r.value === v; }); } else el.value = v; };
     CHOICE_KEYS.forEach(function (n) { set(n, back[n]); });   // choices from this tab's session (no personal details are in it)
     SAVE.forEach(function (n) { set(n, saved[n]); });
@@ -262,6 +264,7 @@
       if (Object.keys(e).length) { var bad = Object.keys(e)[0], s = /^(model|service_id|car_model)$/.test(bad) ? 1 : /^(name|phone|email)$/.test(bad) ? 3 : 2; msg.textContent = 'Please check the highlighted details.'; if (s !== step) show(s); return; }
       if (!C.supabaseUrl || !C.supabaseAnonKey) { msg.textContent = 'Online booking is not available right now. Message us on WhatsApp.'; return; }
       busy = true; payBtn.disabled = true; msg.textContent = 'Starting your payment…'; var shown = showFee(), s0 = store.get();
+      try { if (win.mxpTrack) win.mxpTrack('begin_checkout', { currency: 'INR', value: typeof shown === 'number' ? shown : (shown && shown.fee) || undefined }); } catch (e) {}
       call('book-start', payload(v, s0.key || (save(), store.get().key), {})).then(function (x) {
         if (!x.ok) { free(); if (x.d && x.d.field) markErrors((function (o) { o[x.d.field] = x.d.error; return o; })({})); msg.textContent = (x.d && x.d.error) || 'Something went wrong. Please try again.'; return; }
         if (x.d.status === 'paid') { done(x.d, v.email); return; }

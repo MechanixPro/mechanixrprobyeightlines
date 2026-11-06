@@ -55,3 +55,12 @@ test('payment path unchanged: same endpoints, same validation, fee still server-
   const js = read('assets/js/book-pay.js');
   for (const m of ["call('book-start'", "call('verify-payment'", 'Number(x.d.fee) !== shown.amount', 'problems(v)', 'DEFAULTS = { confirm_std: 49, confirm_mid: 69, confirm_big: 99, confirm_car: 99 }']) assert.ok(js.includes(m), m);
 });
+
+test('no personal details are kept in the browser draft, and step and checkout events carry none', () => {
+  const js = read('assets/js/book-pay.js');
+  const save = js.match(/var SAVE = \[([^\]]*)\]/)[1];
+  for (const f of ['name', 'phone', 'email', 'house', 'street', 'need_text']) assert.doesNotMatch(save, new RegExp(`'${f}'`), f);
+  assert.match(js, /PERSONAL\.forEach\(function \(n\) \{ delete saved\[n\]; \}\)/);
+  assert.match(js, /mxpTrack\('book_step', \{ step: n \}\)/); assert.match(js, /mxpTrack\('begin_checkout', \{ currency: 'INR'/);
+  assert.match(read('_headers'), /https:\/\/analytics\.google\.com/);
+});

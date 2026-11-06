@@ -104,22 +104,19 @@ test('new videos: files exist, under 1.3 MB, no audio track, no AI-tool tags; po
   }
 });
 test('videos sit on the right pages with poster, muted loop, sizes, aria-label, caption; hero-video.js is loaded only where a hm-v video is', () => {
-  const where = { 'garage-partners': 'garage', 'join': 'garage', 'verified-bike-garages-bangalore': 'garage', 'help': 'code-handover', 'societies': 'societies' };   // fleet video withheld: seam in the footage
+  // changed on purpose (owner decision 2026-11-07, Indian market): the garage and code-handover videos are hidden until versions with Indian faces exist
+  const where = { 'societies': 'societies' };   // fleet video withheld: seam in the footage
   for (const [s, n] of Object.entries(where)) {
     const h = read(s + '/index.html'), v = h.match(/<video\b[^>]*class="hm-v"[^>]*>/)[0];
     for (const a of ['autoplay', 'muted', 'loop', 'playsinline']) assert.match(v, new RegExp('\\b' + a + '\\b'), s + ' ' + a);
-    assert.match(v, new RegExp(`poster="/assets/img/hero/${n}-poster\\.webp"`), s); assert.match(v, /preload="metadata"/); assert.match(v, /width="1280"/); assert.match(v, /height="572"/); assert.match(v, /aria-label="[^"]{20,}"/);
+    assert.match(v, new RegExp(`poster="/assets/img/hero/${n}-poster\\.webp"`), s); assert.match(v, /preload="metadata"/); assert.match(v, /width="1280"/); assert.match(v, /height="572"/); assert.match(v, /aria-label="[^"]{20,}"/)
     assert.match(h, new RegExp(`<source src="/assets/video/${n}\\.mp4" type="video/mp4">`), s);
     assert.match(h, /<figcaption>[^<]{8,}<\/figcaption>/, s);
     assert.match(h, /<script src="\/assets\/js\/hero-video\.js(\?v=\w+)?" defer><\/script>/, s);
     assert.equal((h.match(/<video\b/g) || []).length, 1, s + ' one video');
   }
-  assert.match(read('garage-partners/index.html'), /<figcaption>A partner workshop<\/figcaption>/);
-  assert.match(read('help/index.html'), /<figcaption>Show the code on your phone to the mechanic when they arrive\.<\/figcaption>/);
+  for (const s of ['garage-partners', 'join', 'verified-bike-garages-bangalore', 'help']) assert.doesNotMatch(read(s + '/index.html'), /<video\b/, s + ' video hidden');
   for (const s of ['book', 'car-service-bangalore', 'roadside', 'services', 'terms', 'partners/axlio']) assert.doesNotMatch(read(s + '/index.html'), /hero-video\.js|<video/, s);
-  // the code video sits inside the 'Share your code when they arrive' step
-  const hp = read('help/index.html'); const li = hp.slice(hp.indexOf('Share your code when they arrive'), hp.indexOf('Itemised quote, you approve'));
-  assert.match(li, /<video\b/);
 });
 test('hero-video.js handles every hm-v video, plays only on screen and while the tab is visible, stays still for reduced motion and data saver', () => {
   const j = read('assets/js/hero-video.js');
