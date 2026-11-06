@@ -68,23 +68,23 @@
 .why li b{font-size:15px;line-height:1.25;color:var(--on)}
 .why li span{font-size:13px;line-height:1.35;color:var(--on2)}
 @media(min-width:960px){
-  .hero-top{position:relative;display:block;min-height:540px}
-  #hero .hero-in{position:relative;z-index:2;order:0;width:100%;max-width:1180px;min-height:540px;padding:56px 32px 84px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:18px;grid-template-columns:none}
+  .hero-top{position:relative;display:block;min-height:470px}
+  #hero .hero-in{position:relative;z-index:2;order:0;width:100%;max-width:1180px;min-height:470px;padding:34px 32px 88px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:18px;grid-template-columns:none}
   #hero .hero-in>*{max-width:470px;align-self:flex-start}
   #hero .hero-copy{align-self:flex-start;padding-bottom:0}
-  #hero h1{font-size:clamp(34px,3.2vw,46px);max-width:11.6em;margin-bottom:12px}
+  #hero h1{font-size:clamp(36px,3.6vw,52px);max-width:11.6em;margin-bottom:12px}
   .hero-offer{font-size:clamp(26px,2.5vw,34px)}
-  .hero-media{position:absolute;top:0;right:0;bottom:0;width:62%;height:auto;order:0}
+  .hero-media{position:absolute;top:0;right:0;bottom:-56px;width:64%;height:auto;order:0}
   .hero-media video,.hero-media img{object-position:100% 50%}
   .hero-media{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 30%);mask-image:linear-gradient(90deg,transparent 0,#000 30%)}
-  .hero-book{margin-top:-52px;padding:0 32px 6px;max-width:1180px}
-  .hero-book .hb{display:grid;grid-template-columns:minmax(260px,440px) auto;justify-content:start;align-items:end;gap:6px 18px;padding:18px 22px;max-width:none;border-radius:22px}
+  .hero-book{margin-top:-60px;padding:0 32px 6px;max-width:1180px}
+  .hero-book .hb{display:grid;grid-template-columns:minmax(260px,440px) auto;justify-content:start;align-items:end;gap:6px 18px;padding:18px 22px;max-width:none;width:fit-content;border-radius:22px}
   .hero-book .hb h2{grid-column:1/-1;font-size:20px}
   .hero-book .hb-sub{display:none}
   .hero-book .hb .veh{margin:0}.hero-book .hb-f{margin:0}
   .hero-book .hb-go{margin:0;width:auto;min-width:230px;padding:0 26px}
   .hero-book .hb-links{margin:10px 0 0}
-  .why{max-width:1180px;padding:44px 32px 52px}
+  .why{max-width:1180px;padding:30px 32px 44px}
   .why ul{grid-template-columns:repeat(4,1fr);gap:16px}
 }
 @media(prefers-reduced-motion:reduce){.hm-v{animation:none}}
