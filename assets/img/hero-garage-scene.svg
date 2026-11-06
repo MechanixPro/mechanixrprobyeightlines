@@ -1,122 +1,78 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-640 0 2240 900" width="2240" height="900" preserveAspectRatio="xMidYMid slice" role="img" aria-labelledby="t d">
-<title id="t">The Mechanix Pro garage</title>
-<desc id="d">A designed illustration of a clean Mechanix Pro garage: a tool wall, a branded poster, shelves with helmets, navy cabinets, an open shutter with daylight, a silver scooter and a mechanic with a wrench.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="620 100 920 690" width="920" height="690" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="t d">
+<title id="t">Mechanix Pro garage at dusk</title>
+<desc id="d">A moody illustration of the Mechanix Pro garage at dusk: a glowing orange neon sign, a mechanic with a wrench beside a motorbike, both in silhouette against the warm light of an open shutter.</desc>
 <style>
-.lampg{animation:lamp 5s ease-in-out infinite}.shaft{animation:shaft 9s ease-in-out infinite}.dust{animation:dust 10s linear infinite;opacity:0}.d2{animation-delay:3s}.d3{animation-delay:6s}.d4{animation-delay:8s}
-@keyframes lamp{0%,100%{opacity:.85}50%{opacity:1}}
-@keyframes shaft{0%,100%{opacity:.5}50%{opacity:.8}}
-@keyframes dust{0%{opacity:0;transform:translate(0,0)}20%{opacity:.7}100%{opacity:0;transform:translate(30px,-90px)}}
-@media (prefers-reduced-motion:reduce){*{animation:none!important}.dust{opacity:0}}
+.neon{animation:neon 6s linear infinite}
+.sun{animation:sun 8s ease-in-out infinite;transform-origin:1260px 560px}
+.bulb{animation:bulb 4s ease-in-out infinite}.b2{animation-delay:1.3s}.b3{animation-delay:2.6s}
+.ember{animation:ember 7s linear infinite;opacity:0}.e2{animation-delay:1.4s}.e3{animation-delay:2.8s}.e4{animation-delay:4.2s}.e5{animation-delay:5.6s}
+.arm{animation:arm 2.4s ease-in-out infinite;transform-origin:800px 598px}
+.w1{animation:spin 14s linear infinite;transform-origin:930px 722px}.w2{animation:spin 14s linear infinite;transform-origin:1430px 722px}
+@keyframes neon{0%,19%,21%,60%,62%,100%{opacity:1}20%,61%{opacity:.78}}
+@keyframes sun{0%,100%{transform:scale(1);opacity:.95}50%{transform:scale(1.04);opacity:1}}
+@keyframes bulb{0%,100%{opacity:.8}50%{opacity:1}}
+@keyframes ember{0%{opacity:0;transform:translate(0,0)}12%{opacity:.9}100%{opacity:0;transform:translate(40px,-220px)}}
+@keyframes arm{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(7deg)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.ember{opacity:0}}
 </style>
 <defs>
-<linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#19305c"/><stop offset="1" stop-color="#0f1d3b"/></linearGradient>
-<linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a3a5c"/><stop offset=".5" stop-color="#1b2744"/><stop offset="1" stop-color="#101a31"/></linearGradient>
-<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9ec4f2"/><stop offset=".7" stop-color="#e6eefb"/><stop offset="1" stop-color="#fbe7c8"/></linearGradient>
-<linearGradient id="cab" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d3a74"/><stop offset="1" stop-color="#142a57"/></linearGradient>
-<linearGradient id="silver" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9eef6"/><stop offset=".5" stop-color="#aab5c6"/><stop offset="1" stop-color="#78859b"/></linearGradient>
-<linearGradient id="orange" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9a3d"/><stop offset="1" stop-color="#e86f10"/></linearGradient>
-<radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff2c9" stop-opacity=".95"/><stop offset="1" stop-color="#fff2c9" stop-opacity="0"/></radialGradient>
-<linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff7e0" stop-opacity=".55"/><stop offset="1" stop-color="#fff7e0" stop-opacity="0"/></linearGradient>
-<pattern id="holes" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="11" cy="11" r="2" fill="#0d1a37" opacity=".7"/></pattern>
-<pattern id="tile" width="160" height="60" patternUnits="userSpaceOnUse"><path d="M0 0H160M0 0V60" stroke="#3a4b72" stroke-width="2" opacity=".5" fill="none"/></pattern>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#070d1c"/><stop offset=".45" stop-color="#0d1a38"/><stop offset="1" stop-color="#1a2a55"/></linearGradient>
+<radialGradient id="dusk" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffb55c"/><stop offset=".35" stop-color="#f2801f" stop-opacity=".85"/><stop offset=".7" stop-color="#b8431a" stop-opacity=".35"/><stop offset="1" stop-color="#14295a" stop-opacity="0"/></radialGradient>
+<linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1f2e"/><stop offset=".25" stop-color="#121a33"/><stop offset="1" stop-color="#060b18"/></linearGradient>
+<linearGradient id="rim" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffb55c" stop-opacity="0"/><stop offset=".5" stop-color="#ffb55c"/><stop offset="1" stop-color="#ffb55c" stop-opacity="0"/></linearGradient>
+<linearGradient id="fade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#070d1c" stop-opacity=".95"/><stop offset=".55" stop-color="#070d1c" stop-opacity=".25"/><stop offset="1" stop-color="#070d1c" stop-opacity="0"/></linearGradient>
+<linearGradient id="refl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb55c" stop-opacity=".35"/><stop offset="1" stop-color="#ffb55c" stop-opacity="0"/></linearGradient>
+<filter id="blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="14"/></filter>
+<filter id="blur2" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="5"/></filter>
 </defs>
 
-<rect x="-640" width="2240" height="900" fill="url(#wall)"/>
-<rect x="-640" y="0" width="2240" height="90" fill="#0b1631"/>
-<g stroke="#162850" stroke-width="10"><path d="M-640 30H1600M-640 66H1600"/></g>
+<rect x="0" y="0" width="1600" height="900" fill="url(#bg)"/>
 
-<!-- roller shutter opening with daylight -->
-<g><rect x="1010" y="96" width="590" height="470" fill="url(#sky)"/>
-<ellipse cx="1190" cy="230" rx="90" ry="26" fill="#fff" opacity=".85"/><ellipse cx="1250" cy="214" rx="64" ry="22" fill="#fff" opacity=".85"/><ellipse cx="1420" cy="300" rx="110" ry="28" fill="#fff" opacity=".7"/>
-<path d="M1010 470 C1100 420 1180 450 1260 430 C1360 400 1480 440 1600 410 V566 H1010Z" fill="#7fae7c" opacity=".55"/>
-<path d="M1010 500 C1120 470 1200 500 1300 478 C1400 458 1500 490 1600 466 V566 H1010Z" fill="#5f9462" opacity=".7"/>
-<g fill="#cfd6e3"><rect x="1010" y="90" width="590" height="22"/><rect x="1010" y="112" width="590" height="22" fill="#b9c2d3"/><rect x="1010" y="134" width="590" height="22" fill="#a4aec2"/></g>
-<g stroke="#8b96ab" stroke-width="2"><path d="M1010 112H1600M1010 134H1600M1010 156H1600"/></g>
-<rect x="990" y="96" width="30" height="470" fill="#13244a"/></g>
-<polygon class="shaft" points="1030,180 1500,180 1300,820 640,820" fill="url(#beam)" opacity=".5"/>
+<g><rect x="760" y="130" width="840" height="560" fill="#0b1431"/>
+<circle class="sun" cx="1260" cy="560" r="400" fill="url(#dusk)"/>
+<path d="M760 600 C900 560 1020 590 1140 566 C1280 540 1420 580 1600 548 V690 H760Z" fill="#12102b" opacity=".85"/>
+<path d="M760 640 C920 608 1040 636 1180 616 C1320 598 1460 630 1600 604 V690 H760Z" fill="#0b0a1d"/>
+<g fill="#1b2750"><rect x="760" y="108" width="840" height="30"/><rect x="760" y="138" width="840" height="26" opacity=".9"/><rect x="760" y="164" width="840" height="22" opacity=".8"/></g>
+<g stroke="#0a1230" stroke-width="3"><path d="M760 138H1600M760 164H1600M760 186H1600"/></g>
+<rect x="736" y="108" width="34" height="582" fill="#070d1c"/></g>
 
-<!-- tool wall -->
-<g><rect x="40" y="150" width="470" height="320" rx="10" fill="#1d3466"/><rect x="40" y="150" width="470" height="320" rx="10" fill="url(#holes)"/>
-<g stroke="#d5dbe6" stroke-width="9" stroke-linecap="round" fill="none"><path d="M90 190V300"/><path d="M130 190V280"/><path d="M170 190V310"/><path d="M210 190V270"/><path d="M250 190V300"/></g>
-<g fill="none" stroke="#d5dbe6" stroke-width="9"><circle cx="90" cy="312" r="14"/><circle cx="170" cy="322" r="14"/><circle cx="250" cy="312" r="12"/></g>
-<g fill="#ff8a24"><rect x="296" y="190" width="14" height="110" rx="6"/><rect x="326" y="190" width="14" height="90" rx="6"/><path d="M360 190 H420 L430 214 H370Z"/><rect x="386" y="214" width="12" height="90" rx="6"/></g>
-<g stroke="#d5dbe6" stroke-width="10" stroke-linecap="round"><path d="M80 380H200"/><path d="M230 372L330 396"/><path d="M360 380H470"/></g>
-<g fill="#ff8a24"><rect x="76" y="396" width="132" height="14" rx="7"/><rect x="226" y="410" width="110" height="14" rx="7"/><rect x="356" y="396" width="116" height="14" rx="7"/></g>
-<rect x="40" y="448" width="470" height="22" fill="#10224a"/></g>
+<g class="neon"><g filter="url(#blur)" opacity=".85"><rect x="860" y="214" width="600" height="104" rx="22" fill="none" stroke="#ff8a24" stroke-width="12"/><text x="1160" y="288" font-family="Helvetica,Arial,sans-serif" font-size="60" font-weight="900" fill="#ff8a24" text-anchor="middle" letter-spacing="4">MECHANIX PRO</text></g>
+<rect x="860" y="214" width="600" height="104" rx="22" fill="none" stroke="#ffd7a6" stroke-width="4"/>
+<text x="1160" y="288" font-family="Helvetica,Arial,sans-serif" font-size="60" font-weight="900" fill="none" stroke="#ffd7a6" stroke-width="2.4" text-anchor="middle" letter-spacing="4">MECHANIX PRO</text>
+<path d="M890 214V190M1430 214V190" stroke="#4a5a85" stroke-width="3"/></g>
 
-<!-- poster: Why choose Mechanix Pro -->
-<g><rect x="548" y="136" width="270" height="340" rx="10" fill="url(#orange)"/><rect x="560" y="148" width="246" height="316" rx="6" fill="none" stroke="#fff" stroke-width="3" opacity=".55"/>
-<g transform="translate(580 168)"><path d="M0 6 L22 0 L44 6 V28 C44 42 32 50 22 56 C12 50 0 42 0 28Z" fill="#14295A"/><path d="M24 11 L12 31 H21 L18 46 L34 24 H24Z" fill="#F2801F"/></g>
-<text x="640" y="190" font-family="Helvetica,Arial,sans-serif" font-size="18" font-weight="800" fill="#14295A">WHY CHOOSE</text>
-<text x="640" y="218" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="900" fill="#fff">MECHANIX PRO</text>
-<g font-family="Helvetica,Arial,sans-serif" font-weight="700" font-size="19" fill="#14295A">
-<circle cx="590" cy="276" r="16" fill="#14295A"/><path d="M582 276l6 6 11-12" fill="none" stroke="#fff" stroke-width="4"/><text x="618" y="283">Quote first</text>
-<circle cx="590" cy="336" r="16" fill="#14295A"/><path d="M582 336l6 6 11-12" fill="none" stroke="#fff" stroke-width="4"/><text x="618" y="343">You approve first</text>
-<circle cx="590" cy="396" r="16" fill="#14295A"/><path d="M582 396l6 6 11-12" fill="none" stroke="#fff" stroke-width="4"/><text x="618" y="403">Service at your door</text></g>
-<rect x="560" y="430" width="246" height="22" rx="11" fill="#14295A"/><text x="683" y="446" font-family="Helvetica,Arial,sans-serif" font-size="14" font-weight="800" fill="#fff" text-anchor="middle" letter-spacing="1.5">BIKES · SCOOTERS · CARS</text></g>
+<g><path d="M300 0V150M520 0V120M700 0V170" stroke="#2a3a66" stroke-width="3"/>
+<g class="bulb"><circle cx="300" cy="158" r="62" fill="#ffd9a0" opacity=".18" filter="url(#blur2)"/><circle cx="300" cy="158" r="12" fill="#ffe7bf"/></g>
+<g class="bulb b2"><circle cx="520" cy="128" r="52" fill="#ffd9a0" opacity=".16" filter="url(#blur2)"/><circle cx="520" cy="128" r="11" fill="#ffe7bf"/></g>
+<g class="bulb b3"><circle cx="700" cy="178" r="56" fill="#ffd9a0" opacity=".16" filter="url(#blur2)"/><circle cx="700" cy="178" r="11" fill="#ffe7bf"/></g></g>
 
-<!-- shelf with helmets and box -->
-<g><rect x="842" y="176" width="130" height="290" rx="6" fill="#13244a"/>
-<rect x="852" y="186" width="110" height="130" fill="#0d1a37"/><rect x="852" y="326" width="110" height="130" fill="#0d1a37"/>
-<rect x="842" y="316" width="130" height="10" fill="#2a4580"/>
-<g><path d="M866 306 C866 262 888 240 912 240 C938 240 956 262 956 306Z" fill="#f2c200"/><rect x="866" y="290" width="90" height="12" fill="#14295A"/><path d="M890 270 H946" stroke="#fff" stroke-width="5" opacity=".6"/></g>
-<g><rect x="866" y="372" width="84" height="54" rx="6" fill="#c0392b"/><rect x="866" y="360" width="84" height="16" rx="5" fill="#e74c3c"/><rect x="896" y="352" width="24" height="10" rx="3" fill="#9aa6bd"/></g></g>
+<rect y="690" width="1600" height="210" fill="url(#floor)"/>
+<rect y="690" width="1600" height="3" fill="#ffb55c" opacity=".35"/>
+<ellipse cx="1180" cy="760" rx="520" ry="46" fill="url(#refl)" opacity=".6"/>
 
-<!-- ceiling lamps -->
-<g class="lampg"><ellipse cx="420" cy="104" rx="170" ry="60" fill="url(#glow)" opacity=".5"/><rect x="330" y="92" width="180" height="12" rx="6" fill="#fff4cf"/>
-<ellipse cx="800" cy="104" rx="170" ry="60" fill="url(#glow)" opacity=".5"/><rect x="710" y="92" width="180" height="12" rx="6" fill="#fff4cf"/></g>
-
-<!-- cabinets and counter -->
-<use href="#cabs" x="-600"/><g id="cabs"><rect x="0" y="476" width="1000" height="170" fill="url(#cab)"/>
-<g stroke="#0e2147" stroke-width="3"><path d="M200 476V646M400 476V646M600 476V646M800 476V646"/></g>
-<g fill="#0d1d42"><rect x="16" y="504" width="168" height="54" rx="6"/><rect x="16" y="574" width="168" height="54" rx="6"/><rect x="216" y="504" width="168" height="54" rx="6"/><rect x="216" y="574" width="168" height="54" rx="6"/><rect x="416" y="504" width="168" height="54" rx="6"/><rect x="416" y="574" width="168" height="54" rx="6"/><rect x="616" y="504" width="168" height="54" rx="6"/><rect x="616" y="574" width="168" height="54" rx="6"/><rect x="816" y="504" width="168" height="54" rx="6"/><rect x="816" y="574" width="168" height="54" rx="6"/></g>
-<g fill="#cbd5e1"><rect x="80" y="526" width="40" height="8" rx="4"/><rect x="80" y="596" width="40" height="8" rx="4"/><rect x="280" y="526" width="40" height="8" rx="4"/><rect x="280" y="596" width="40" height="8" rx="4"/><rect x="480" y="526" width="40" height="8" rx="4"/><rect x="480" y="596" width="40" height="8" rx="4"/><rect x="680" y="526" width="40" height="8" rx="4"/><rect x="680" y="596" width="40" height="8" rx="4"/><rect x="880" y="526" width="40" height="8" rx="4"/><rect x="880" y="596" width="40" height="8" rx="4"/></g>
-<rect x="0" y="462" width="1000" height="16" fill="#cbd5e1"/><rect x="0" y="474" width="1000" height="6" fill="#8895ab"/>
-<g><rect x="70" y="404" width="120" height="58" rx="6" fill="#c0392b"/><rect x="70" y="392" width="120" height="16" rx="5" fill="#e74c3c"/><rect x="112" y="380" width="36" height="14" rx="4" fill="#9aa6bd"/>
-<g fill="#f2c200"><rect x="220" y="410" width="34" height="52" rx="5"/><rect x="262" y="418" width="30" height="44" rx="5"/></g><g fill="#14295A"><rect x="224" y="424" width="26" height="14"/><rect x="266" y="430" width="22" height="12"/></g>
-<rect x="320" y="426" width="60" height="36" rx="5" fill="#2f4a86"/><rect x="326" y="418" width="48" height="10" rx="3" fill="#cbd5e1"/></g></g>
-
-<!-- floor -->
-<rect x="-640" y="646" width="2240" height="254" fill="url(#floor)"/><rect x="-640" y="646" width="2240" height="254" fill="url(#tile)"/>
-<path d="M-640 646H1600" stroke="#0b1631" stroke-width="6"/>
-<ellipse cx="1290" cy="800" rx="330" ry="46" fill="#000" opacity=".4"/>
-<polygon points="1060,646 1560,646 1590,900 1000,900" fill="#fff6dc" opacity=".08"/>
-
-<!-- scooter -->
-<g>
-<g><circle cx="1130" cy="770" r="82" fill="#0b0f1a"/><circle cx="1130" cy="770" r="52" fill="#c3ccdb"/><circle cx="1130" cy="770" r="40" fill="#8493ab"/><circle cx="1130" cy="770" r="12" fill="#0b0f1a"/></g>
-<g><circle cx="1490" cy="770" r="82" fill="#0b0f1a"/><circle cx="1490" cy="770" r="52" fill="#c3ccdb"/><circle cx="1490" cy="770" r="40" fill="#8493ab"/><circle cx="1490" cy="770" r="12" fill="#0b0f1a"/></g>
-<path d="M1130 770 L1170 700" stroke="#9aa6bd" stroke-width="12" stroke-linecap="round"/>
-<path d="M1170 700 C1180 640 1230 610 1300 612 L1380 612 C1420 612 1440 640 1450 700 L1490 770" fill="none" stroke="#6c788f" stroke-width="10"/>
-<path d="M1100 700 C1090 650 1130 600 1200 596 L1250 596 L1300 700 L1420 700 L1440 770 L1160 770Z" fill="url(#silver)"/>
-<path d="M1300 700 L1470 700 C1500 700 1520 724 1510 760 L1440 760Z" fill="url(#silver)"/>
-<path d="M1190 590 C1210 560 1280 556 1340 566 L1360 590 L1200 604Z" fill="#26324f"/>
-<path d="M1230 590 H1350" stroke="#ff8a24" stroke-width="8" stroke-linecap="round"/>
-<path d="M1460 700 L1500 548" stroke="#9aa6bd" stroke-width="14" stroke-linecap="round"/>
-<path d="M1478 540 H1536" stroke="#0b0f1a" stroke-width="14" stroke-linecap="round"/>
-<path d="M1480 556 C1470 520 1510 500 1550 512 L1562 560Z" fill="url(#silver)"/>
-<circle cx="1546" cy="532" r="26" fill="#fff3c4"/><circle cx="1546" cy="532" r="42" fill="url(#glow)" opacity=".7"/>
-<path d="M1120 770 H1500" stroke="#0b0f1a" stroke-width="3" opacity=".25"/>
-<path d="M1180 726 H1400" stroke="#fff" stroke-width="4" opacity=".35" stroke-linecap="round"/>
-<g><rect x="1245" y="674" width="140" height="26" rx="13" fill="#14295A"/><text x="1315" y="693" font-family="Helvetica,Arial,sans-serif" font-size="14" font-weight="800" fill="#fff" text-anchor="middle" letter-spacing=".5">MECHANIX PRO</text></g>
+<g fill="#050912" stroke="none">
+<g class="w1"><circle cx="930" cy="722" r="100"/></g><g class="w2"><circle cx="1430" cy="722" r="100"/></g>
+<path d="M930 722 L990 616 L1060 590 L1240 566 L1250 600 L1180 640 L1130 722Z"/>
+<path d="M1000 598 C1030 560 1100 548 1190 556 C1260 548 1320 520 1370 530 C1390 560 1370 592 1330 606 L1240 612 L1060 622Z"/>
+<path d="M1060 560 L1180 540 L1194 566 L1070 590Z"/>
+<rect x="1068" y="624" width="150" height="104" rx="18"/>
+<path d="M1218 630 L1300 612 L1330 700 L1236 700Z"/>
+<path d="M1370 530 L1450 560 L1430 722 L1400 722 L1396 590Z"/>
+<circle cx="1452" cy="560" r="34"/>
+<path d="M1368 520 L1400 470 L1444 462" stroke="#050912" stroke-width="14" fill="none" stroke-linecap="round"/>
+<path d="M1000 730 L1160 708 L1330 736 L1334 752 L1160 748 L1004 752Z"/>
 </g>
+<g fill="none" stroke="#2a3a66" stroke-width="3" opacity=".7"><circle cx="930" cy="722" r="74"/><circle cx="1430" cy="722" r="74"/><g class="w1"><path d="M930 650V794M858 722H1002"/></g><g class="w2"><path d="M1430 650V794M1358 722H1502"/></g></g>
+<g fill="none" stroke="url(#rim)" stroke-width="3.5" stroke-linecap="round"><path d="M1000 598 C1030 560 1100 548 1190 556 C1260 548 1320 520 1370 530"/><path d="M1060 560 L1180 540"/><path d="M1370 530 L1450 560"/><path d="M830 722 A100 100 0 0 1 1030 722" opacity=".6"/><path d="M1330 722 A100 100 0 0 1 1530 722" opacity=".6"/></g>
+<circle cx="1470" cy="556" r="16" fill="#ffd7a6"/><circle cx="1470" cy="556" r="44" fill="#ffb55c" opacity=".35" filter="url(#blur2)"/>
 
-<!-- mechanic -->
-<g>
-<ellipse cx="1040" cy="852" rx="70" ry="14" fill="#000" opacity=".35"/>
-<path d="M1000 640 C1000 612 1022 596 1046 600 L1074 612 L1072 740 H1006Z" fill="#14295A"/>
-<path d="M1004 640 C1004 616 1024 606 1044 610 L1066 630 L1008 664Z" fill="#ff8a24"/>
-<rect x="1010" y="736" width="22" height="106" rx="8" fill="#14295A"/><rect x="1044" y="736" width="22" height="106" rx="8" fill="#14295A"/>
-<path d="M1000 842 H1034 L1038 858 H996Z" fill="#6b3f1f"/><path d="M1042 842 H1074 L1078 858 H1038Z" fill="#6b3f1f"/>
-<path d="M1068 624 L1108 664 L1130 696" fill="none" stroke="#e2a97e" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M1068 624 L1090 640" stroke="#ff8a24" stroke-width="20" stroke-linecap="round"/>
-<circle cx="1132" cy="700" r="11" fill="#e2a97e"/>
-<g stroke="#cbd5e1" stroke-width="7" stroke-linecap="round" fill="none"><path d="M1140 706 L1166 742"/><path d="M1166 742 l-10 -4 m10 4 l-2 -12"/></g>
-<circle cx="1036" cy="570" r="26" fill="#e2a97e"/>
-<path d="M1008 566 C1008 540 1030 530 1048 534 C1064 538 1068 556 1066 566 C1050 556 1030 556 1008 566Z" fill="#14295A"/><rect x="1004" y="556" width="66" height="10" rx="5" fill="#14295A"/><circle cx="1038" cy="542" r="7" fill="#F2801F"/>
-<circle cx="1050" cy="574" r="3" fill="#0b0f1a"/><path d="M1038 588 Q1050 596 1060 586" fill="none" stroke="#0b0f1a" stroke-width="3" stroke-linecap="round"/>
-<rect x="1002" y="700" width="70" height="14" rx="4" fill="#0b1631" opacity=".6"/>
-</g>
+<g><ellipse cx="790" cy="768" rx="110" ry="14" fill="#000" opacity=".5"/>
+<g fill="#050912"><path d="M740 740 L706 700 L728 612 C736 580 764 560 790 566 C820 574 832 600 826 632 L808 700 L832 740 L812 760 L770 720 L752 760Z"/>
+<circle cx="768" cy="534" r="30"/><path d="M738 524 C738 500 758 490 778 494 C796 498 804 514 800 528 C786 520 760 518 738 524Z" fill="#0a1430"/><rect x="734" y="518" width="70" height="10" rx="5" fill="#0a1430"/></g>
+<g class="arm"><path d="M800 598 L860 640 L912 670" fill="none" stroke="#050912" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/><circle cx="914" cy="672" r="13" fill="#050912"/><g stroke="#050912" stroke-width="10" stroke-linecap="round" fill="none"><path d="M922 678 L962 724"/><path d="M962 724 l-14 -4 m14 4 l-4 -16"/></g></g>
+<g fill="none" stroke="#ffb55c" stroke-width="3" stroke-linecap="round" opacity=".75"><path d="M806 566 C830 580 836 610 824 640"/><path d="M786 494 C806 498 812 518 804 534"/></g></g>
 
-<g fill="#fff"><circle class="dust" cx="1200" cy="600" r="3"/><circle class="dust d2" cx="1340" cy="640" r="2.5"/><circle class="dust d3" cx="1100" cy="560" r="2.5"/><circle class="dust d4" cx="1420" cy="560" r="3"/></g>
+<g fill="#ffb55c"><circle class="ember" cx="930" cy="742" r="3.5"/><circle class="ember e2" cx="900" cy="750" r="3"/><circle class="ember e3" cx="960" cy="746" r="2.6"/><circle class="ember e4" cx="1180" cy="700" r="3"/><circle class="ember e5" cx="1380" cy="690" r="3.2"/></g>
+
 </svg>

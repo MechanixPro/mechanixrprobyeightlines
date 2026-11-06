@@ -1,8 +1,5 @@
 /* Home hero: full-bleed designed garage scene (one <img>, assets/img/hero-garage-scene.svg, its own gentle motion stops for reduced motion), navy overlay, offer headline and an inline booking card. No script, no inline style. */
-#hero.stage{padding:0;min-height:clamp(560px,calc(100svh - 120px),760px);display:flex;align-items:center}
-.hero-bg{position:absolute;inset:0;z-index:-1;background:#0B1220}
-.hero-bg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:90% 50%;filter:saturate(1.12) brightness(1.1)}
-.hero-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,18,32,.9),rgba(14,28,60,.9) 40%,rgba(14,28,60,.25) 58%,rgba(20,41,90,.6))}
+#hero.stage{padding:0;background:radial-gradient(900px 520px at 78% 55%,rgba(242,128,31,.22),transparent 70%),linear-gradient(135deg,#070d1c,#0d1a38 60%,#14295a);min-height:clamp(560px,calc(100svh - 120px),760px);display:flex;align-items:center}
 #hero .hero-in{width:100%;padding:12px 20px 26px;gap:12px}
 .hero-left{display:contents}
 #hero .hero-copy{animation:none}
@@ -37,24 +34,25 @@
   .hero-list li{padding:12px 0;font-size:17px;font-weight:600;color:var(--on)}
   .hero-list li+li{border-top:1px solid var(--hair-d)}
   #hero .hero-in{display:flex;flex-direction:column}
-  .hero-copy{order:0}.hb-wrap{order:1}.hero-chips,.hero-list.car-only{order:2}
+  .hero-copy{order:0}.hb-wrap{order:1}.hero-art{order:2}.hero-chips,.hero-list.car-only{order:3}
 }
 @media(max-width:959px) and (min-width:0){@supports(animation-timeline:scroll()){body:has(#hero-book) .mechu-btn{animation:mh linear both;animation-timeline:scroll(root);animation-range:0 140px}}}
 @keyframes mh{from{opacity:0;pointer-events:none}50%{pointer-events:none}51%{pointer-events:auto}to{opacity:1;pointer-events:auto}}
 @media(min-width:960px){
-  .hero-bg img{object-position:100% 50%}
-  .hero-bg::after{background:linear-gradient(90deg,rgba(11,18,32,.9),rgba(11,18,32,.87) 48%,rgba(14,28,60,.22) 62%,rgba(20,41,90,0) 85%)}
-  #hero .hero-in{display:grid;grid-template-columns:minmax(0,1fr) 360px;align-items:end;column-gap:64px;padding:40px 32px 48px}
-  .hb-wrap{align-self:start}
-  .hero-left{display:flex;flex-direction:column;gap:22px}
+      #hero .hero-in{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);align-items:center;column-gap:56px;padding:44px 32px 52px}
+  .hero-left{display:flex;flex-direction:column;gap:20px}
+  .hb-wrap{max-width:520px}
   #hero .hero-copy{padding:0;grid-area:auto;align-self:auto}
   #hero .hero-left>.hero-list.car-only{max-width:480px;align-self:auto;padding:4px 24px;margin:0}
   .hero-list li{padding:14px 0;font-size:19px}
-  .hb-wrap{grid-column:2}
   #hero h1{max-width:10.6em;font-size:clamp(38px,3.9vw,52px);margin-bottom:16px}
   .hero-offer{font-size:clamp(32px,3.4vw,46px);margin-bottom:14px}
   .hero-offer small{font-size:15px;margin-top:6px}
   #hero .lead{font-size:20px}
-  .hb{padding:20px}.hb h2{font-size:22px}.hb-sub{font-size:14px}
+  .hb{padding:20px}.hb h2{font-size:22px}.hb-sub{display:none}
   .hb .veh{margin-top:12px}.hb-f{margin-top:12px}
 }
+
+.hero-art{position:relative;width:100%;margin:4px 0 0;border-radius:24px;overflow:hidden;border:1px solid rgba(255,255,255,.18);box-shadow:0 30px 60px -26px rgba(0,0,0,.85),0 0 80px -20px rgba(242,128,31,.35)}
+.hero-art img{display:block;width:100%;height:auto;aspect-ratio:4/3}
+@media(min-width:960px){.hero-art{margin:0;border-radius:30px}}
