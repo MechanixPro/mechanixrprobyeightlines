@@ -24,9 +24,15 @@
 .flow-eta{border:1px solid #d8dee9;border-radius:12px;margin:12px 0;padding:8px 12px}.flow-eta legend{font-weight:600;font-size:14px;padding:0 6px}
 .flow-code{font:700 44px/1 inherit;letter-spacing:.3em;text-align:center;margin:12px 0}.flow-box2{word-break:break-all;background:#f6f8fb;padding:10px;border-radius:10px;font-size:13px}
 .flow-dispatch{list-style:none;margin:0;padding:0;display:grid;gap:10px}.flow-d{color:#0b1220;padding:12px;border:1px solid #d8dee9;border-radius:14px;background:#fff;display:grid;gap:4px}.flow-d-open{border-color:#f2801f;box-shadow:0 0 0 2px #fde3c8 inset}
-.flow-empty{padding:18px;color:#c5cddc}.flow-chips{margin:6px 0 0}
+.flow-empty{padding:18px;color:#556075}.flow-chips{margin:6px 0 0}
+.flow-warn{margin:8px 0;padding:10px 12px;border-radius:12px;background:#FFF1E2;color:#7A3B00;font-size:14px}.flow-warn .flow-btn{margin-left:6px}
 
 /* customer journey: added details, photos, issues */
-.flow-kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:6px 0}.flow-kv dt{color:#8a96ad;font-size:13px}.flow-kv dd{margin:0;overflow-wrap:anywhere}
+.flow-kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:6px 0}.flow-kv dt{color:#556075;font-size:13px}.flow-kv dd{margin:0;overflow-wrap:anywhere}
 .flow-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.flow-photos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block}
 .flow-seg{display:flex;gap:8px;margin:8px 0}.flow-seg button[aria-pressed=true]{background:#F2801F;color:#1A0E03;border-color:#F2801F}
+
+/* partner-garage desk (crm/garage-desk.js) */
+.gd h2{margin:0 0 4px;font-size:20px}.gd .flow-seg{flex-wrap:wrap}
+.gd-q{width:100%;min-height:44px;padding:8px 12px;border:1px solid #c5cddc;border-radius:10px;font-size:16px;font-family:inherit;margin:8px 0 12px;box-sizing:border-box}
+.gd-lines{width:100%;border-collapse:collapse;font-size:14px}.gd-lines td{padding:3px 6px 3px 0;border-bottom:1px solid #eef1f6;vertical-align:top}.gd-lines .gd-n{text-align:right;white-space:nowrap}
