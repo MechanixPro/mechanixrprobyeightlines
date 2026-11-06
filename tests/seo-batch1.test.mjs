@@ -18,3 +18,32 @@ test('1. the og:image:alt describes the confirmation-fee flow on every page', ()
   assert.match(read('rate-card/index.html'), /Confirm with a small fee adjusted in your bill; approve the quote before work/);
   assert.match(read('two-wheeler-service-at-home-bangalore/index.html'), /Quote first, work only after your OK/);
 });
+
+const visibleFaq = (html) => [...html.matchAll(/<details><summary>(.*?)<\/summary><p>(.*?)<\/p><\/details>/gs)].map((m) => [strip(m[1]).trim(), strip(m[2]).trim()]);
+const ldFaq = (html) => { const q = flat(jsonld(html)).find((x) => x['@type'] === 'FAQPage'); return q ? q.mainEntity.map((x) => [x.name, x.acceptedAnswer.text]) : null; };
+test('2. FAQPage JSON-LD equals the visible FAQ on /help/ and on home (questions and answers)', () => {
+  for (const f of ['help/index.html', 'index.html']) {
+    const h = read(f); const vis = visibleFaq(h); const ld = ldFaq(h);
+    assert.ok(vis.length >= 5, f); assert.deepEqual(ld, vis, f);
+    assert.equal(jsonld(h).filter((x) => x['@type'] === 'FAQPage').length, 1, f + ' has exactly one FAQPage');
+  }
+});
+test('2. /help/: no unresolved placeholders, the real flow in the meta description, warranty wording matches the other pages', () => {
+  const h = read('help/index.html');
+  assert.doesNotMatch(h, /\{\{[a-z]/i);
+  assert.match(h, /name="description" content="[^"]*confirmation fee[^"]*one-time code[^"]*quote/);
+  const w = "Parts carry a limited warranty on the terms of the part's manufacturer or supplier, shown on your invoice.";
+  assert.ok(strip(h).includes(w));
+  assert.doesNotMatch(h, /Parts also carry the manufacturer/);
+  const faq = ldFaq(h).find((x) => x[0] === 'Is there a warranty?');
+  assert.ok(faq[1].includes(w) && /30 days/.test(faq[1]));
+  assert.ok(ldFaq(h).some((x) => /₹49 to ₹99/.test(x[1])), 'fee range is in the FAQ JSON-LD');
+});
+test('3. home FAQ: How does it work mentions fee, one-time code, itemised quote and approval; pickup answer mentions the final bill', () => {
+  const faq = Object.fromEntries(visibleFaq(read('index.html')));
+  const how = faq['How does it work?'];
+  for (const re of [/confirmation fee \(₹49 to ₹99/, /one-time code/, /itemised quote/, /approve/]) assert.match(how, re);
+  const pick = faq['Is pickup and drop free?'];
+  assert.doesNotMatch(pick, /along with the doorstep visit/);
+  assert.match(pick, /confirmation fee is adjusted in your final bill/); assert.match(pick, /check or repair is quoted first/);
+});

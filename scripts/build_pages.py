@@ -175,6 +175,12 @@ def tok(s):
         return m.group(0)
     s = re.sub(r'\{\{(price|text|num|fee|feetext|includes_li):([a-z0-9]+)\}\}', rep, s)
     return s.replace('{{confirmrule}}', CONFIRM_RULE).replace('{{confirmrange}}', CONFIRM_RANGE).replace('{{confirmtiers}}', CONFIRM_TIERS_TEXT).replace('{{days}}', str(SITE_DATA['warrantyDays'])).replace('{{vidcode}}', VID_CODE)
+def faq_from_html(src):
+    """(question, answer) pairs read from the visible <details><summary>Q</summary><p>A</p></details> blocks of a source page, as plain text with price tokens turned into text tokens. The FAQPage JSON-LD of / and /help/ is built from this, so it always equals the visible FAQ."""
+    plain = lambda s: re.sub(r'\{\{price:(\w+)\}\}', r'{{text:\1}}', re.sub(r'\{\{fee:(\w+)\}\}', r'{{feetext:\1}}', re.sub(r'<[^>]+>', '', s))).strip()
+    return [(plain(q), plain(a)) for q, a in re.findall(r'<details><summary>(.*?)</summary><p>(.*?)</p></details>', src, re.S)]
+def faq_ld(pairs):
+    return {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in pairs]}
 def _unesc(x): return html.unescape(x)
 def fit_title(t, limit=65):
     """Search results cut titles at about 60 characters. Try shorter wordings that keep the area or model and the brand."""
@@ -1035,7 +1041,7 @@ MAIN = [
   ('book', 'book-pay', 'Book a Doorstep Bike or Car Service | Mechanix Pro', 'Book a doorstep bike or car service in Bengaluru. Pay a small confirmation fee to lock your slot, adjusted in your final bill. Itemised quote first, nothing starts without your OK.', None, 'page-book', BOOK_JS, '0.9'),
   ('quote', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.7'),
   ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}}, excluding GST. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
-  ('help', 'help', 'How Doorstep Bike Service Works and FAQ | Mechanix Pro', 'How Mechanix Pro works: build your service, get a WhatsApp quote, approve, and we service your bike at your door in Bengaluru. Answers to common questions.', 'help.jsonld', 'page-help', APP_JS, '0.8'),
+  ('help', 'help', 'How Doorstep Bike Service Works and FAQ | Mechanix Pro', 'How Mechanix Pro works: book and pay a small confirmation fee, share your one-time code when the mechanic arrives, and approve the itemised quote before work. Answers to common questions.', 'help.jsonld', 'page-help', APP_JS, '0.8'),
 ]
 for slug, src, title, desc, ld, body, scripts, prio in MAIN:
     url = f'{SITE}/{slug}/' if slug else f'{SITE}/'
@@ -1046,11 +1052,13 @@ for slug, src, title, desc, ld, body, scripts, prio in MAIN:
         _d['hasOfferCatalog'] = {"@type": "OfferCatalog", "name": "Bike and scooter services", "itemListElement": [{"@type": "Offer", "priceCurrency": "INR", "price": str(int(SITE_DATA['services'][k]['price'])), "itemOffered": {"@type": "Service", "name": SITE_DATA['services'][k]['name']}} for k in ('basic', 'general', 'full', 'repair') if k in SITE_DATA['services']]}
         _ld = json.dumps(_d, ensure_ascii=False)
     schema = ('<script type="application/ld+json">' + _ld + '</script>') if ld else ''
+    if ld == 'help.jsonld':
+        # /help/ FAQPage comes from the visible <details> in src/help.html (same generator as the home page); src/help.jsonld keeps only the WebPage node.
+        schema += '<script type="application/ld+json">' + json.dumps(faq_ld(faq_from_html(open(os.path.join(ROOT, 'src', 'help.html'), encoding='utf-8').read())), ensure_ascii=False) + '</script>'
     if ld == 'home.jsonld':
         # FAQPage from the visible FAQ (the same words), and WebSite, so search engines can show rich results.
         _src = open(os.path.join(ROOT, 'src', 'home.html'), encoding='utf-8').read()
-        _plain = lambda s: re.sub(r'\{\{price:(\w+)\}\}', r'{{text:\1}}', re.sub(r'\{\{fee:(\w+)\}\}', r'{{feetext:\1}}', re.sub(r'<[^>]+>', '', s))).strip()
-        _faq = [(_plain(q), _plain(a)) for q, a in re.findall(r'<details><summary>(.*?)</summary><p>(.*?)</p></details>', _src, re.S)]
+        _faq = faq_from_html(_src)
         if _faq: schema += '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in _faq]}, ensure_ascii=False) + '</script>'
         schema += '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "WebSite", "name": "Mechanix Pro", "url": SITE + "/", "inLanguage": "en-IN"}, ensure_ascii=False) + '</script>'
     content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--AREA_LINKS-->', AREA_LINKS).replace('<!--WORKSHOP_TEASER-->', workshop_teaser_html()).replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
