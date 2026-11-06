@@ -134,7 +134,18 @@ async function boot() {
 // Invoice numbers run in one series (MP/26-27/0001). A booking gets its number when its first invoice is made, and keeps it.
 // The bike's engine size always goes into the bill, so a booking reopened from the database bills the same as the one on screen.
 const buildInvoice = (lead, services, o = {}) => buildInvoiceRaw(withBike(lead), services, { number: S.invNo[lead.id], ...o });
+// The quote the customer approved is the work done, so it fills the invoice (a repair or a car booking has no package to bill). Read through the admin-passing crm_quote_get, because the table itself is closed.
+S.quoteBy = S.quoteBy || {};
+const applyQuote = (l) => { const q = S.quoteBy[l.id]; if (q && !l.invoice_override) { l.quote_lines = q.lines; l.quote_rate = q.rate; } };
+async function attachQuote(lead) {
+  if (!(lead.id in S.quoteBy)) {
+    S.quoteBy[lead.id] = null;
+    try { const r = await sb.rpc('crm_quote_get', { p_lead: lead.id }); const q = r.data && r.data.latest; if (!r.error && q && q.status === 'approved' && Array.isArray(q.lines) && q.lines.length) S.quoteBy[lead.id] = { lines: q.lines.map((x) => ({ name: x.name, amount: Number(x.amount) })), rate: Number(q.gst_rate) || 18 }; } catch (e) { console.error('attachQuote', e); }
+  }
+  applyQuote(lead);
+}
 async function ensureInvNo(lead) {
+  await attachQuote(lead);
   if (S.invNo[lead.id]) return S.invNo[lead.id];
   const { data, error } = await sb.rpc('invoice_no_for', { p_lead: lead.id });
   if (error || !data) { toast('Could not get the invoice number: ' + ((error && error.message) || 'try again')); return null; }
@@ -163,7 +174,7 @@ function engineRead(prefix) { const s = $('#' + prefix + '-engine'); return s ? 
 const failed = (name) => { (S.failed ||= []); if (!S.failed.includes(name)) S.failed.push(name); };
 async function loadLeads() {
   const { data, error } = await sb.from('leads').select('*').is('deleted_at', null).order('created_at', { ascending: false }).limit(500);
-  if (error) { toast('Could not load bookings'); failed('bookings'); } else { S.leads = data.filter((l) => l.status !== 'junk'); S.junkLeads = data.filter((l) => l.status === 'junk'); }
+  if (error) { toast('Could not load bookings'); failed('bookings'); } else { S.leads = data.filter((l) => l.status !== 'junk'); S.junkLeads = data.filter((l) => l.status === 'junk'); S.leads.forEach((l) => applyQuote(l)); }
 }
 async function loadInvoices() {
   const { data, error } = await sb.from('invoices').select('*').order('issued_at', { ascending: false }).limit(3000);
@@ -1691,7 +1702,8 @@ const invEditRow = (name, amount) => `<div class="inv-adjust-row ie-row"><input 
 // Save a copy of the invoice when it is printed or emailed. The same figures are never saved twice; a change is saved as a new revision.
 // An invoice is saved, printed or emailed only with the customer's name, mobile number and vehicle number.
 function detailsOk(lead) {
-  const miss = missingDetails(buildInvoice(lead, S.services, { customer: S.customers.find((c) => c.id === lead.customer_id) || null, bike: bikeOf(lead) }));
+  const built = buildInvoice(lead, S.services, { customer: S.customers.find((c) => c.id === lead.customer_id) || null, bike: bikeOf(lead) }), miss = missingDetails(built);
+  if (!built.lines.length) { const box = document.getElementById('invEditBox'); if (box) { box.hidden = false; box.scrollIntoView({ block: 'center' }); } toast('Add the items first: this booking has no priced item (a car or repair job). Type each item and its amount, then Save invoice.'); return false; }
   if (!miss.length) return true;
   toast('Add the ' + miss.join(', ') + ' first'); const f = document.querySelector('.inv-need'); if (f) { f.classList.add('warn'); f.scrollIntoView({ block: 'center' }); const i = f.querySelector('input:not([value])') || f.querySelector('input'); if (i) i.focus(); }
   return false;
@@ -1760,7 +1772,7 @@ async function openInvoice(lead, opts = {}) {
       <div class="inv-adjust-row"><input id="cdn-name" maxlength="80" placeholder="Customer name" aria-label="Customer name" value="${esc(v.customer.name && !/^customer$/i.test(v.customer.name) ? v.customer.name : '')}"><input id="cdn-phone" inputmode="numeric" maxlength="12" placeholder="Mobile number" aria-label="Mobile number" value="${esc(v.customer.phone || '')}"></div>
       <div class="inv-adjust-row"><input id="cdn-reg" maxlength="14" autocapitalize="characters" placeholder="Vehicle number, for example KA05MQ1234" aria-label="Vehicle number" value="${esc(v.vehicle.reg || '')}"><input id="cdn-email" type="email" maxlength="120" placeholder="Email (optional)" aria-label="Email" value="${esc(v.customer.email || '')}"><button class="btn btn-primary btn-sm" type="button" data-act="invSaveDetails">Save details</button></div></div>
     <table class="inv-table"><thead><tr><th class="sno">S.No</th><th class="code">Item code</th><th>Item</th><th class="num">Amount (${v.basis === 'excl' ? 'excl.' : 'incl.'} GST)</th></tr></thead><tbody>
-      ${v.lines.length ? v.lines.map((l, i) => `<tr class="inv-line" style="--i:${i}"><td class="sno">${i + 1}</td><td class="code">${esc(l.code || '')}</td><td>${esc(l.name)}</td><td class="num">${inr(l.amount)}</td></tr>`).join('') : '<tr><td colspan="4" class="muted">No priced items on this booking.</td></tr>'}
+      ${v.lines.length ? v.lines.map((l, i) => `<tr class="inv-line" style="--i:${i}"><td class="sno">${i + 1}</td><td class="code">${esc(l.code || '')}</td><td>${esc(l.name)}</td><td class="num">${inr(l.amount)}</td></tr>`).join('') : '<tr><td colspan="4" class="muted">No priced item on this booking yet (a car or repair job has no package). Add the items in the Edit invoice box below.</td></tr>'}
       ${v.couponDiscount ? `<tr class="inv-line" style="--i:${v.lines.length}"><td></td><td></td><td>Coupon discount</td><td class="num">− ${inr(v.couponDiscount)}</td></tr>` : ''}${v.extraDiscount ? `<tr class="inv-line" style="--i:${v.lines.length + 1}"><td></td><td></td><td>Special discount${v.extraNote ? ' (' + esc(v.extraNote) + ')' : ''}</td><td class="num">− ${inr(v.extraDiscount)}</td></tr>` : ''}</tbody></table>
     <dl class="inv-tot"><dt>Taxable value</dt><dd data-to="${v.taxable}">${inr(v.taxable)}</dd>${v.gstRate ? `<dt>CGST @ ${v.gstRate / 2}%</dt><dd data-to="${v.cgst}">${inr(v.cgst)}</dd><dt>SGST @ ${v.gstRate / 2}%</dt><dd data-to="${v.sgst}">${inr(v.sgst)}</dd>` : ''}
       <dt class="grand">Total</dt><dd class="grand" data-to="${v.total}">${inr(v.total)}</dd>${v.paid ? `<dt>Paid so far</dt><dd data-to="${v.paid}">${inr(v.paid)}</dd><dt class="grand">Balance due</dt><dd class="grand" data-to="${v.balance}">${inr(v.balance)}</dd>` : ''}${v.refund ? `<dt class="grand">Refund due to customer</dt><dd class="grand" data-to="${v.refund}">${inr(v.refund)}</dd>` : ''}</dl>
@@ -1777,10 +1789,10 @@ async function openInvoice(lead, opts = {}) {
     })()}
     <div class="inv-adjust"><label for="inv-disc"><b>Last-minute discount</b> <span class="tiny muted">at the customer's request, on top of any coupon</span></label>
       <div class="inv-adjust-row"><select id="inv-disc-kind" aria-label="Discount type"><option value="amt">₹ amount</option><option value="pct">% of the bill</option></select><input id="inv-disc" inputmode="numeric" maxlength="6" placeholder="0" value="${v.extraDiscount || ''}" aria-label="Discount"><input id="inv-disc-note" maxlength="80" placeholder="Reason, for example: regular customer" value="${esc(v.extraNote)}" aria-label="Reason"><button class="btn btn-dark btn-sm" type="button" data-act="invDiscount">Apply</button></div></div>
-    <div class="inv-edit card" id="invEditBox" hidden><b>Edit invoice</b> <span class="tiny muted">Change the items and amounts for this booking. The invoice and the email use what you save.</span>
+    <div class="inv-edit card" id="invEditBox"${v.lines.length ? ' hidden' : ''}><b>Edit invoice</b> <span class="tiny muted">Change the items and amounts for this booking. The invoice and the email use what you save.</span>
       <label class="label" for="ie-rate">GST rate on this invoice</label><select id="ie-rate"><option value="18"${v.gstRate === 18 ? ' selected' : ''}>18% GST (CGST 9% + SGST 9%)</option><option value="12"${v.gstRate === 12 ? ' selected' : ''}>12% GST (CGST 6% + SGST 6%)</option><option value="5"${v.gstRate === 5 ? ' selected' : ''}>5% GST (CGST 2.5% + SGST 2.5%)</option><option value="0"${v.gstRate === 0 ? ' selected' : ''}>0%: no GST on this invoice</option></select>
       <label class="label" for="ie-basis">The amounts below are</label><select id="ie-basis"><option value="excl"${v.basis === 'excl' ? ' selected' : ''}>Before GST (GST is added on top)</option><option value="incl"${v.basis === 'incl' ? ' selected' : ''}>Including GST (GST is worked out from the amount)</option></select>
-      ${itemPicker()}<div id="ie-rows">${v.lines.map((l) => invEditRow(l.name, l.amount)).join('')}</div>
+      ${itemPicker()}<div id="ie-rows">${v.lines.length ? v.lines.map((l) => invEditRow(l.name, l.amount)).join('') : invEditRow('', '')}</div>
       <div class="inv-adjust-row"><button class="btn btn-ghost btn-sm" type="button" data-act="invAddRow">Add an item</button><button class="btn btn-primary btn-sm" type="button" data-act="invSaveEdit">Save invoice</button>${lead.invoice_override ? '<button class="btn btn-ghost btn-sm" type="button" data-act="invResetEdit">Back to package prices</button>' : ''}</div></div>
     <div class="inv-edit card" id="invxBox" hidden><b>Separate invoice for extra work</b> <span class="tiny muted">Use this for work added later. It gets its own number (${esc(v.number)}-${nextDocKey(S.invoicesAll.filter((r) => r.lead_id === lead.id)) || '?'}) and its own total. This invoice stays as it is. Sales and payments for the booking add the two together. To fix a mistake on this invoice instead, use "Correct this invoice".</span>
       <label class="label" for="ix-rate">GST rate on the new invoice</label><select id="ix-rate"><option value="18">18% GST</option><option value="12">12% GST</option><option value="5">5% GST</option><option value="0">No GST</option></select>
