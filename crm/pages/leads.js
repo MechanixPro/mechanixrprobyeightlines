@@ -4,7 +4,7 @@ import { newBooking } from './booking.js';
 import { PRESETS, presetRange, presetOf, parseCsv, toImportRows } from '../data-tools.js';
 import { exportButtons, bindExports } from '../exports.js';
 
-const FILTERS = [['all', 'All'], ['mine', 'Mine'], ['unassigned', 'Unassigned'], ['new', 'New'], ['followups', 'Follow-ups'], ['converted', 'Converted'], ['won', 'Won'], ['lost', 'Lost'], ['junk', 'Junk'], ['unassigned_open', 'Unassigned and open'], ['overdue', 'Overdue']];
+const FILTERS = [['all', 'All'], ['mine', 'Mine'], ['unassigned', 'Unassigned'], ['new', 'New'], ['followups', 'Follow-ups'], ['converted', 'Converted'], ['won', 'Done'], ['lost', 'Lost'], ['junk', 'Junk'], ['unassigned_open', 'Unassigned and open'], ['overdue', 'Overdue']];
 const st = { filter: 'mine', q: '', from: '', to: '', owner: '', tech: '', vehicle: '', picked: new Set() };
 const OPEN_STAGES = ['new', 'contacted', 'quoted', 'payment_sent'];
 /** Set what the Leads page shows before opening it (the dashboard cards use this). */
@@ -36,7 +36,7 @@ export async function render(root, ctx) {
   root.innerHTML = `${head('Leads', 'Every lead from every source. Open a row to call, message, log what happened or edit the booking.', tools)}
     ${chips(filters.map(([k, t]) => [k, t, ['all', 'converted', 'won', 'followups', 'lost', 'junk'].includes(k) ? count(k) : null]), st.filter)}
     ${sum.by_vehicle ? `<p class="small muted">${['bike', 'car', 'parts'].map((v) => { const x = sum.by_vehicle[v] || {}; return `${VEHICLE_LABEL[v]} ${x.leads || 0} leads, ${x.converted || 0} converted`; }).join(' · ')}</p>` : ''}
-    <p class="small muted">${sum.pct ? `Converted ${sum.pct.converted}% · Won ${sum.pct.won}% · Lost ${sum.pct.lost}% · Follow-ups due ${sum.pct.followups}% of ${sum.all} leads` : ''}</p>
+    <p class="small muted">${sum.pct ? `Converted ${sum.pct.converted}% · Done ${sum.pct.won}% · Lost ${sum.pct.lost}% · Follow-ups due ${sum.pct.followups}% of ${sum.all} leads` : ''}</p>
     ${sel && (ctx.can('assign_leads') || ctx.can('delete_leads')) ? `<div class="bulk"><b>${sel} selected</b>${ctx.can('assign_leads') ? '<button class="btn sm" type="button" id="bulkAssign">Assign</button>' : ''}${ctx.can('delete_leads') ? '<button class="btn sm danger" type="button" id="bulkDelete">Delete</button>' : ''}<button class="btn ghost sm" type="button" id="bulkClear">Clear</button></div>` : ''}
     ${rows.length ? table(rows, ctx, all) : empty('No leads match these filters.')}`;
   bind(root, ctx, rows, users);

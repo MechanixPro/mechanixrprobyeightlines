@@ -1,0 +1,62 @@
+/* Mechanix design system for Crew and Admin (Step 2). ONE file: crm/ds.css is the source and admin/ds.css is an identical copy (scripts/sync_shared.sh, listed in scripts/shared-files.txt).
+   Loaded LAST in both index.html files. It (1) defines the brand tokens as --mx-*, (2) points the old variables (--bg, --ink, --navy, --m-ink and so on) at them so
+   existing screens change only in colour, and (3) adds the component classes new screens use (mx-btn, mx-chip, mx-card, mx-empty, mx-skeleton, mx-error). Light mode only for now. */
+:root{
+  --mx-navy:#14295A;--mx-ink:#0B1220;--mx-ember:#F2801F;--mx-on-ember:#1A0E03;--mx-paper:#FAFAF8;--mx-card:#FFFFFF;--mx-line:#E3E6EC;--mx-muted:#556075;--mx-soft:#F1F3F6;
+  --mx-good:#157A3E;--mx-good-bg:#E6F5EC;--mx-bad:#B3261E;--mx-bad-bg:#FCEBEA;--mx-warn:#9A4B00;--mx-warn-bg:#FFF1E2;--mx-info:#1D4ED8;--mx-info-bg:#DBEAFE;
+  --mx-wa:#25D366;--mx-on-wa:#063B1C;
+  --mx-r:12px;--mx-r-sm:8px;--mx-pill:999px;--mx-tap:44px;--mx-shadow:0 1px 2px rgba(11,18,32,.06);
+  --mx-font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+
+  /* legacy names used by crm.css, admin.css, style.css, minimal.css, theme.css and maxi.css, re-pointed to the brand values */
+  --bg:var(--mx-paper);--card:var(--mx-card);--ink:var(--mx-ink);--ink-2:#2B3445;--muted:var(--mx-muted);--line:var(--mx-line);--soft:var(--mx-soft);
+  --navy:var(--mx-navy);--navy-2:#0E1D42;--ember:var(--mx-ember);--ember-ink:var(--mx-on-ember);--ember-2:var(--mx-warn);
+  --good:var(--mx-good);--good-bg:var(--mx-good-bg);--bad:var(--mx-bad);--bad-bg:var(--mx-bad-bg);--ok:var(--mx-good);--next:var(--mx-info);--next-bg:var(--mx-info-bg);
+  --wa:var(--mx-wa);--wa-ink:var(--mx-on-wa);
+  --m-bg:var(--mx-paper);--m-card:var(--mx-card);--m-ink:var(--mx-ink);--m-muted:var(--mx-muted);--m-line:var(--mx-line);--m-soft:var(--mx-soft);--m-accent:var(--mx-navy);--m-ember:var(--mx-ember);--m-ring:var(--mx-navy);
+  --m-green:var(--mx-good);--m-green-bg:var(--mx-good-bg);--m-red:var(--mx-bad);--m-red-bg:var(--mx-bad-bg);--m-amber:var(--mx-warn);--m-amber-bg:var(--mx-warn-bg);--m-blue:var(--mx-info);--m-blue-bg:var(--mx-info-bg);
+  --bn-navy:var(--mx-navy);--bn-ink:var(--mx-ink);--bn-ember:var(--mx-ember);
+  color-scheme:light;
+}
+
+/* Existing screens: places where the old layers left text unreadable. */
+.goal-sub{color:var(--mx-muted)}   /* the header is light (minimal.css), but this line was white */
+.stat-row>.stat.bad:nth-child(1) b,.kpis>.stat.bad:nth-child(1) b{color:var(--mx-bad)!important}
+.stat-row>.stat.good:nth-child(1) b{color:var(--mx-good)!important}
+.stat-row>.stat.bad:nth-child(1) span,.stat-row>.stat.good:nth-child(1) span{color:var(--mx-muted)!important}
+
+/* ---------- components ---------- */
+.mx-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--mx-tap);padding:0 18px;border-radius:var(--mx-pill);border:1.5px solid var(--mx-line);background:var(--mx-card);color:var(--mx-ink);font:600 15px/1.2 var(--mx-font);cursor:pointer;text-decoration:none}
+.mx-btn:hover{background:var(--mx-soft)}
+.mx-btn:focus-visible{outline:3px solid var(--mx-ember);outline-offset:2px}
+.mx-btn:disabled,.mx-btn[aria-disabled=true]{opacity:.55;cursor:not-allowed}
+.mx-btn--primary{background:var(--mx-ember);border-color:var(--mx-ember);color:var(--mx-on-ember)}.mx-btn--primary:hover{background:#E8761A}
+.mx-btn--call{background:var(--mx-navy);border-color:var(--mx-navy);color:#fff}.mx-btn--call:hover{background:#0E1D42}
+.mx-btn--wa{background:var(--mx-wa);border-color:var(--mx-wa);color:var(--mx-on-wa)}
+.mx-btn--danger{background:var(--mx-bad);border-color:var(--mx-bad);color:#fff}
+.mx-btn--ghost{background:transparent;border-color:transparent}
+.mx-btn--sm{min-height:var(--mx-tap);padding:0 12px;font-size:14px}
+
+.mx-chip{display:inline-flex;align-items:center;min-height:26px;padding:2px 10px;border-radius:var(--mx-pill);background:var(--mx-soft);color:var(--mx-ink);font:600 13px/1.2 var(--mx-font);white-space:nowrap;vertical-align:middle}
+.mx-chip--good{background:var(--mx-good-bg);color:var(--mx-good)}.mx-chip--bad{background:var(--mx-bad-bg);color:var(--mx-bad)}
+.mx-chip--warn{background:var(--mx-warn-bg);color:var(--mx-warn)}.mx-chip--info{background:var(--mx-info-bg);color:var(--mx-info)}
+
+.mx-card{background:var(--mx-card);border:1px solid var(--mx-line);border-radius:var(--mx-r);padding:16px;box-shadow:var(--mx-shadow);color:var(--mx-ink)}
+
+.mx-empty{padding:32px 20px;text-align:center;color:var(--mx-muted);background:var(--mx-card);border:1px dashed var(--mx-line);border-radius:var(--mx-r)}
+.mx-empty b{display:block;color:var(--mx-ink);font-size:16px;margin-bottom:4px}
+.mx-empty .mx-btn{margin-top:12px}
+
+.mx-skeleton{display:block;min-height:16px;border-radius:var(--mx-r);background:linear-gradient(90deg,var(--mx-line),#F3F5F8,var(--mx-line));background-size:200% 100%;animation:mx-shimmer 1.2s linear infinite}
+.mx-skeleton--line{height:16px;margin:8px 0}.mx-skeleton--card{height:72px;margin:10px 0}
+.mx-skeleton-group{display:block;padding:8px 0}
+.mx-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@keyframes mx-shimmer{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.mx-skeleton{animation:none}}
+
+.mx-error{padding:16px;border:1px solid var(--mx-bad);border-left-width:5px;border-radius:var(--mx-r);background:var(--mx-bad-bg);color:var(--mx-ink)}
+.mx-error b{display:block;color:var(--mx-bad);font-size:16px;margin-bottom:4px}
+.mx-error p{margin:0 0 10px;font-size:14px}
+
+/* Admin header on a phone: the brand and the section buttons were drawn on top of each other. */
+.nav .brand{flex:0 0 auto}.nav .groups{flex:1 1 auto;min-width:0}.nav #signOut{flex:0 0 auto}

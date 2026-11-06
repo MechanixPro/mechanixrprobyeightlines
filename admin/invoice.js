@@ -37,7 +37,8 @@ export function missingDetails(inv) {
 
 export function buildInvoice(lead, services, opts = {}) {
   const byId = new Map((services || []).map((s) => [s.id, s]));
-  const ov = cleanOverride(lead.invoice_override);
+  // Lines come from the invoice the admin corrected, else from the quote the customer approved (amounts before GST, GST rate of that quote), else from the package the customer chose.
+  const ov = cleanOverride(lead.invoice_override) || cleanOverride(lead.quote_lines && lead.quote_lines.length ? { basis: 'excl', rate: lead.quote_rate, lines: lead.quote_lines } : null);
   const lines = [];
   const svc = ov ? undefined : byId.get(lead.service_id);
   // Bikes of 150 to 250cc and of 251 to 500cc are billed at their own price of the package, when that row exists.

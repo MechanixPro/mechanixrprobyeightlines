@@ -1,0 +1,8 @@
+# Files that live in crm/ (the source) and are copied byte for byte to admin/ by scripts/sync_shared.sh. tests/shared-ds.test.mjs checks the copies match.
+# One file name per line. Lines starting with # are ignored.
+ds.css
+flow-core.js
+flow-rules.js
+flow.css
+ds.js
+garage-desk.js
