@@ -41,7 +41,7 @@ const fullLead = (l) => ({ lead: { ...l, address: null, notes: '[Internal note a
 
 const crewHandlers = {
   crm_me: () => crewMe,
-  crm_queue: (a, ui) => (a.p_view === 'unassigned' ? queue.slice(0, 1).map((l) => ({ ...l, crm_owner: null, owner_name: null })) : queue),
+  crm_queue: (a, ui) => (a.p_view === 'unassigned' ? queue.slice(0, 1).map((l) => ({ ...l, crm_owner: null, owner_name: null })) : (ui && ui.extra ? queue.concat(extraLeads) : queue)),
   crm_call_queue: () => callRows,
   crm_my_leads: () => leadRows,
   crm_leads_list: () => leadRows,
@@ -62,7 +62,7 @@ const crewHandlers = {
   crm_tech_board: () => ({ techs: [{ name: '[Mechanic Name]', area: 'HSR Layout', jobs: [{ id: 'lead-6', booking_id: 'MP-2611-0006', slot: 'afternoon', area: 'HSR Layout', status: 'paid' }] }, { name: '[Mechanic Name 2]', area: 'Whitefield', jobs: [] }], unassigned: [{ id: 'lead-5', booking_id: 'MP-2611-0005', slot: 'morning', area: 'Indiranagar', status: 'paid' }] }),
   crm_mechanic_picker: () => [{ id: 'mech-1', name: '[Mechanic Name]', area: 'HSR Layout' }, { id: 'mech-2', name: '[Mechanic Name 2]', area: 'Whitefield' }],
   crm_paid_badges: (a) => Object.fromEntries((a.p_ids || []).filter((id) => id === 'lead-5').map((id) => [id, { fee: 49, paid: true, stage: null, quote: null, review: false }])),
-  crm_lead: (a) => fullLead(queue.find((l) => l.id === a.p_id) || queue[4]),
+  crm_lead: (a) => fullLead(queue.concat(extraLeads).find((l) => l.id === a.p_id) || queue[4]),
   crm_lead_rating: () => null, crm_lead_money: () => null, crm_handovers: () => null, crm_wa_links: () => null,
   crm_chat: () => ({ messages: [{ direction: 'in', sender: 'customer', body: '[Customer message]', created_at: ago(20) }, { direction: 'out', sender: 'agent', body: '[Reply from the desk]', created_at: ago(10) }], last_customer_msg_at: ago(20), window_open: true, opted_out: false }),
   crm_confirmation: (a) => (a.p_lead === 'lead-5' || a.p_lead === 'lead-4' ? { fee: a.p_lead === 'lead-5' ? 49 : 99, paid: a.p_lead === 'lead-5', paid_at: ago(100), stage: a.p_lead === 'lead-5' ? 'started' : null, door: a.p_lead === 'lead-5' ? 'open' : 'none', review: false, link_sent_at: ago(50), nudge_minutes: 15, quote: null } : null),
@@ -89,4 +89,38 @@ const adminRpc = {
   crm_paid_badges: crewHandlers.crm_paid_badges, crm_confirmation: crewHandlers.crm_confirmation, crm_notifications: crewHandlers.crm_notifications, crm_quote_get: crewHandlers.crm_quote_get, crm_booking_updates: crewHandlers.crm_booking_updates, crm_tech_location: crewHandlers.crm_tech_location,
 };
 
-export const fixtures = { crewHandlers, adminTables, adminRpc, crewMe };
+
+// ---- Click-through harness additions (personas, extra leads, write results, Edge Function replies). Placeholders only. ----
+const PERSONA = (o) => ({ ...crewMe, ...o });
+const personas = {
+  owner: crewMe,
+  agent: PERSONA({ name: '[Agent Name]', role: 'sales', designation: 'sales', is_admin: false, permissions: { pages: { dashboard: 1, inbox: 1, leads: 1, tickets: 1, knowledge: 1 }, actions: { take_leads: 1, add_leads: 1, edit_leads: 1, create_bookings: 1, create_tickets: 1, send_payment_link: 1, close_chats: 1 } } }),
+  techlead: PERSONA({ name: '[Technician Lead]', role: 'sales', designation: 'tech_lead', is_admin: false, permissions: { pages: { dashboard: 1, leads: 1, mechanics: 1, garages: 1 }, actions: { view_all_leads: 1, edit_leads: 1, manage_mechanics: 1, manage_technicians: 1 } } }),
+};
+const extraLeads = [
+  lead(8, { status: 'junk', junk_reason: '[spam]', crm_owner: 'me-1' }),
+  lead(9, { status: 'scheduled', booking_id: 'MP-2611-0009', confirm_fee: 49, confirm_paid_at: ago(300), mechanic_name: '[Mechanic Name]', mechanic_id: 'mech-1', mechanic_phone: ph(91), crm_first_contact_at: ago(400) }),
+  lead(10, { status: 'completed', booking_id: 'MP-2611-0010', confirm_fee: 49, confirm_paid_at: ago(900), mechanic_name: '[Mechanic Name]', mechanic_id: 'mech-1', mechanic_phone: ph(91), crm_first_contact_at: ago(1000) }),
+  lead(15, { status: 'new', crm_owner: null, owner_name: null }),
+];
+const ok = (v) => () => v;
+const writeResults = {
+  crm_claim: ok(null), crm_assign: ok(null), crm_log: ok(null), crm_set_outcome: ok(null), crm_mark_done: ok(null), confirm_booking: ok('MP-2611-0099'), mark_lead_junk: ok(null), restore_lead_junk: ok('contacted'), set_lead_vehicle: (a) => a.p_vehicle,
+  crm_confirm_booking: ok({ ok: true, already: false, mechanic_name: '[Mechanic Name]' }), crm_assign_technician: ok({ ok: true, changed: true, mechanic_name: '[Mechanic Name]' }),
+  crm_add_lead: ok({ id: 'lead-1', duplicate: false }), crm_import_leads: ok({ created: 1, duplicates: 0, invalid: 0 }), crm_handover_code: ok({ code: '123456' }), crm_tech_link: ok('https://example.invalid/job/abc'), crm_door_code: ok('123456'),
+  crm_visit_mark: ok({ ok: true }), crm_issue_resolve: ok(null), crm_quote_save: ok({ ok: true }), crm_quote_phone_approve: ok({ ok: true }),
+  crm_create_booking: ok({ id: 'lead-1' }), crm_update_booking: ok({ ok: true }), crm_users_list_unused: ok([]), crm_set_user_active: ok(null), crm_set_permissions: ok(null), crm_reset_permissions: ok(null), crm_set_targets: ok(null),
+  crm_mechanic_save: ok({ id: 'mech-1' }), crm_mechanic_set_status: ok(null), crm_garage_save: ok({ id: 'g-1' }), crm_garage_set_status: ok(null), crm_garage_set_availability: ok(null), crm_garage_ops_set: ok(null), crm_garage_bank_set: ok(null), crm_garage_import: ok({ created: 0 }),
+  crm_rsa_create: ok({ id: 'rsa-1' }), crm_rsa_update: ok(null), crm_ticket_create: ok({ id: 't-1' }), crm_ticket_set: ok(null), crm_ticket_note: ok(null), crm_visit_schedule: ok(null), crm_visit_update: ok(null), crm_visit_complete: ok(null),
+  crm_playbook_save: ok({ id: 'p-1' }), crm_playbook_publish: ok(null), crm_playbook_flag: ok(null), crm_fitment_save: ok(null), crm_sop_save: ok(null), crm_delete_leads: ok(null), crm_assign_many: ok(null), crm_roster_set: ok(null), crm_automation_set: ok(null),
+};
+const functionReply = (fn, body) => {
+  if (fn === 'desk-chat-sync') return { ok: false };
+  if (fn === 'desk-payment-link' || fn === 'payment-link') return { ok: true, url: 'https://example.invalid/pay/abc', amount: 49, suggested: 49, whatsapp_sent: false, whatsapp_note: 'not_connected', whatsapp_text: 'Hi, pay here https://example.invalid/pay/abc', has_email: true, review: false, nudge_minutes: 15 };
+  if (fn === 'booking-notify') return { ok: true, result: 'sent', version: 2, changed: true };
+  if (fn === 'desk-reply' || fn === 'desk-template') return { ok: true };
+  if (fn === 'confirm-booking') return { ok: true };
+  return { ok: true };
+};
+
+export const fixtures = { personas, extraLeads, writeResults, functionReply,  crewHandlers, adminTables, adminRpc, crewMe };
