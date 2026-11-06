@@ -1323,23 +1323,57 @@ with open(os.path.join(ROOT, 'assets', 'js', 'mechu-data.js'), 'w', encoding='ut
 
 # ---- llms.txt: a plain-text summary for AI assistants (ChatGPT, Claude, Perplexity, Google AI). Built from site.json so the prices match the site. ----
 def llms_txt():
+    """llms.txt is rewritten on every build (never edit the file). Prices, fees, PIN count and company facts all come from src/ files and assets/js/book-pay.js."""
     sv = SITE_DATA['services']
-    lines = ['# Mechanix Pro', '', '> Mechanix Pro is a doorstep bike and scooter service and roadside help in Bengaluru (Bangalore), India. Certified mechanics come to your home or office. You confirm your slot with a small confirmation fee that is adjusted in your final bill, then approve an itemised quote before any work starts.', '',
-      '## Key facts',
-      '- Service area: all of Bengaluru, every PIN code from 560001 to 560110 (see the areas page).',
-      '- How it works: message on WhatsApp or build a service on the website, receive an itemised quote, approve it, the mechanic comes to your door.',
-      f"- Prices for bikes and scooters up to 149cc (before GST; 18% GST is added): {sv['basic']['name']} {_inr(_price('basic'))}, {sv['general']['name']} {_inr(_price('general'))}, {sv['full']['name']} {_inr(_price('full'))}, {sv['repair']['name']} from {_inr(_price('repair'))}, puncture {_inr(_price('puncture'))}, roadside emergency visit {_inr(_price('sos'))}.",
-      f"- Bikes of 150 to 250cc and 251 to 500cc have their own prices: Basic {_inr(_price('basic250'))} and {_inr(_price('basic500'))}, Standard {_inr(_price('general250'))} and {_inr(_price('general500'))}, Full {_inr(_price('full250'))} and {_inr(_price('full500'))}.",
-      f"- Booking: {CONFIRM_RULE} ({CONFIRM_TIERS_TEXT}) holds the slot.",
-      '- Open 24/7 for requests. A basic service can be done in as fast as 2 hours once the mechanic arrives.',
-      '- 10,000+ services done. 1,300+ gated communities trust us.',
-      '- Safety: certified mechanics (visited, document-checked, trained, trial jobs), itemised WhatsApp quote before work, OTP before the bike leaves, GST invoice for every job.',
-      f"- Warranty: {SITE_DATA['warrantyDays']}-day service warranty on the work.",
-      '- Roadside help for bikes and scooters: breakdown diagnosis, puncture, battery jump-start, starting problems, fuel-related help, minor on-the-spot repairs, emergency towing support if required. Arrival time depends on traffic and location.',
-      '- Car service is live: periodic and brake service, jump start, flat tyre help, towing and fuel delivery, quote first. Spare parts come through our partner Axlio.',
-      f"- Legal entity: {COMPANY['legalName']}, {_ADDR}. GSTIN {COMPANY['gstin']}.",
-      '- Contact: +91 79652 95649 · hello@mechanixpro.in · WhatsApp from the website. Instagram: https://www.instagram.com/themechanixpro/', '',
-      '## Pages', f'- [Services and prices]({SITE}/services/)', f'- [Rate card]({SITE}/rate-card/)', f'- [How it works]({SITE}/help/)', f'- [Roadside help]({SITE}/roadside/)', f'- [Our workshop]({SITE}/workshop/)', f'- [Car service]({SITE}/car-service-bangalore/)', f'- [Partner your garage]({SITE}/garage-partners/)', f'- [Areas we serve]({SITE}/areas/)', f'- [Guides]({SITE}/guides/how-often-to-service-your-bike/)', f'- [Blog]({SITE}/blog/)', f'- [Book a service]({SITE}/book/)', '']
+    pins = sorted(json.load(open(os.path.join(ROOT, 'src', 'pincodes.json'), encoding='utf-8'))['pins'])
+    unused = [str(n) for n in range(int(pins[0]), int(pins[-1]) + 1) if str(n) not in pins]
+    pin_line = f"{len(pins)} PIN codes between {pins[0]} and {pins[-1]}" + (f" ({', '.join(unused[:-1])} and {unused[-1]} are not in use)" if len(unused) > 1 else '')
+    tier = lambda k: f"{_inr(_price(k))} | {_inr(_price(k + '250'))} | {_inr(_price(k + '500'))}"
+    lines = ['# Mechanix Pro', '',
+      f"> Mechanix Pro is a doorstep bike, scooter and car service with roadside help in Bengaluru (Bangalore), India. Booking flow: pay a small confirmation fee ({CONFIRM_RANGE}, by engine size, adjusted in your final bill), share a one-time code when the mechanic arrives, and approve an itemised quote before any work starts.", '',
+      '## How booking works',
+      f"1. Choose your vehicle, PIN code and a time at {SITE}/book/, or ask our team on a call or WhatsApp to send you the booking link.",
+      f"2. Pay {CONFIRM_RULE}. The fee is {CONFIRM_TIERS_TEXT}. It confirms the booking.",
+      '3. You get a booking ID, a one-time code and a tracking link by email and WhatsApp, and we assign a mechanic.',
+      '4. Share the one-time code with the mechanic when they arrive. It starts the job. If a bike has to go to a workshop, it is picked up and returned only with your code.',
+      '5. The mechanic checks the vehicle and we send an itemised quote. Work starts only after you approve it, and extra work needs a new approval.',
+      f"6. You get a GST invoice and a {SITE_DATA['warrantyDays']}-day service warranty on the work.",
+      f"Cancellation: cancel more than 2 hours before your slot and the confirmation fee is refunded in full. See the [refund policy]({SITE}/refund-policy/).", '',
+      '## Prices (before 18% GST)',
+      '', '| Service | Up to 149cc | 150 to 250cc | 251 to 500cc |', '| --- | --- | --- | --- |',
+      f"| {sv['basic']['name']} | {tier('basic')} |", f"| {sv['general']['name']} | {tier('general')} |", f"| {sv['full']['name']} | {tier('full')} |", '',
+      f"- {sv['repair']['name']}: from {_inr(_price('repair'))}. The repair itself is quoted after the check.",
+      f"- Puncture {_inr(_price('puncture'))}, roadside emergency visit {_inr(_price('sos'))}.",
+      f"- Confirmation fee: {CONFIRM_TIERS_TEXT}. It is adjusted in your final bill.",
+      '- Parts, oil above standard grade and work outside the package are quoted first and charged only after you approve.',
+      f"- Full rate card with GST: {SITE}/rate-card/. Service packages: {SITE}/services/", '',
+      '## Services',
+      f"- [Doorstep bike and scooter service]({SITE}/services/): Basic, Standard and Full service at your home, office or society parking, by Mechanix Pro Certified mechanics. A basic service can be done in as fast as 2 hours once the mechanic arrives.",
+      f"- [Roadside help for bikes and scooters]({SITE}/roadside/): breakdown diagnosis, puncture, battery jump-start, starting problems, fuel-related help, minor on-the-spot repairs, emergency towing support if required. Arrival time depends on traffic and location.",
+      f"- [Major repairs with pickup and drop]({SITE}/major-bike-repair-pickup-and-drop-bangalore/): the mechanic checks the bike at your door and quotes first. If it needs a workshop, pickup and drop is free in the serviceable area and the repair is done at a Mechanix Pro Certified garage.",
+      f"- [Car service]({SITE}/car-service-bangalore/): Car service is live: periodic service, brake service, jump start, flat tyre help, towing and fuel delivery, with the price confirmed before work. Our partner Axlio lists jump start, flat tyre help, towing and fuel delivery for cars in Bengaluru, with the help, price and time confirmed before work starts ([Axlio]({SITE}/partners/axlio/)).",
+      f"- Parts: OEM and aftermarket parts, labelled in your quote and fitted only after you approve. They are sourced from our partner Axlio, which is run separately.", '',
+      '## Trust and safety',
+      '- Mechanix Pro Certified garages and mechanics: each is visited by our team, document-checked, trained and trial-run before taking customer jobs.',
+      '- An itemised quote before any work. Nothing starts without your approval.',
+      '- A one-time code, shared when the mechanic arrives, protects your vehicle.',
+      '- A GST invoice for every job.',
+      f"- {SITE_DATA['warrantyDays']}-day service warranty on our work. Parts carry a limited warranty on the terms of the part's manufacturer or supplier, shown on your invoice.",
+      '- Stated by the company: 10,000+ services done, and 1,300+ gated communities trust us.', '',
+      '## Area',
+      f"- All of Bengaluru: {pin_line}. Requests are taken 24/7. Areas: {SITE}/areas/", '',
+      '## For AI agents',
+      f"- A prefilled booking link opens the booking form with the details filled in: {SITE}/book/?vehicle=bike|car&brand=&model=&service=basic|general|full|repair&area=&pincode=",
+      '- vehicle is bike or car. brand is a two-wheeler brand as listed on the site (for example Honda). model is free text. service is basic, general (Standard), full or repair for bikes; for cars it is service or problem. area is the locality name. pincode is a 6-digit Bengaluru PIN code, for example 560102.',
+      '- The person completes the booking and the payment themselves on the booking page. Do not pay or submit on their behalf.',
+      '- Do not quote prices other than the ones on this page. Exact quotes are sent by our team after the vehicle is checked.', '',
+      '## Business',
+      f"- {COMPANY['legalName']}, operating as Mechanix Pro. {_ADDR}. GSTIN {COMPANY['gstin']}.",
+      '- Phone: +91 79652 95649. Email: hello@mechanixpro.in. WhatsApp from the website. Instagram: https://www.instagram.com/themechanixpro/', '',
+      '## Pages']
+    for t, u in (('Services and prices', '/services/'), ('Rate card', '/rate-card/'), ('How it works', '/help/'), ('Book a service', '/book/'), ('Track a booking', '/track/'), ('Roadside help', '/roadside/'), ('Our workshop', '/workshop/'), ('Car service', '/car-service-bangalore/'), ('Major repairs with pickup and drop', '/major-bike-repair-pickup-and-drop-bangalore/'), ('Verified garages', '/verified-bike-garages-bangalore/'), ('Partner your garage', '/garage-partners/'), ('Join as a garage or mechanic', '/join/'), ('Areas we serve', '/areas/'), ('Guides', '/guides/how-often-to-service-your-bike/'), ('Blog', '/blog/'), ('Refund policy', '/refund-policy/'), ('Terms', '/terms/'), ('Contact', '/contact/')):
+        lines.append(f"- [{t}]({SITE}{u})")
+    lines.append('')
     open(os.path.join(ROOT, 'llms.txt'), 'w', encoding='utf-8').write('\n'.join(lines))
 llms_txt()
 

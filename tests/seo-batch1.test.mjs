@@ -47,3 +47,39 @@ test('3. home FAQ: How does it work mentions fee, one-time code, itemised quote 
   assert.doesNotMatch(pick, /along with the doorstep visit/);
   assert.match(pick, /confirmation fee is adjusted in your final bill/); assert.match(pick, /check or repair is quoted first/);
 });
+
+const SITE = 'https://mechanixpro.in';
+const siteJson = () => JSON.parse(read('src/site.json'));
+const rupee = (n) => '₹' + Number(n).toLocaleString('en-IN');
+test('4. llms.txt: structure, fee flow, prices from site.json, true PIN count, agent link format, business facts', () => {
+  const t = read('llms.txt'), sv = siteJson().services;
+  for (const h of ['## How booking works', '## Prices (before 18% GST)', '## Services', '## Trust and safety', '## Area', '## For AI agents', '## Business', '## Pages']) assert.ok(t.includes(h), h);
+  assert.match(t, /confirmation fee \(₹49 to ₹99/);
+  for (let i = 1; i <= 6; i++) assert.match(t, new RegExp('^' + i + '\\. ', 'm'), 'step ' + i);
+  assert.match(t, /\[refund policy\]\(https:\/\/mechanixpro\.in\/refund-policy\/\)/);
+  for (const [k, row] of [['basic', 'Basic service'], ['general', 'Standard service'], ['full', 'Full service']]) {
+    assert.ok(t.includes(`| ${row} | ${rupee(sv[k].price)} | ${rupee(sv[k + '250'].price)} | ${rupee(sv[k + '500'].price)} |`), row);
+  }
+  for (const k of ['repair', 'puncture', 'sos']) assert.ok(t.includes(rupee(sv[k].price)), k);
+  const pins = Object.keys(JSON.parse(read('src/pincodes.json')).pins);
+  assert.equal(pins.length, 106);
+  assert.ok(t.includes(`${pins.length} PIN codes between ${pins[0]} and ${pins[pins.length - 1]}`));
+  assert.ok(t.includes('/book/?vehicle=bike|car&brand=&model=&service=basic|general|full|repair&area=&pincode='));
+  assert.match(t, /Do not quote prices other than/); assert.match(t, /payment themselves/);
+  assert.match(t, /NOVA VENTURES/); assert.match(t, /GSTIN 29\w+/); assert.match(t, /hello@mechanixpro\.in/); assert.match(t, /instagram\.com\/themechanixpro/);
+  assert.match(t, /10,000\+ services/); assert.match(t, /1,300\+ gated communities/);
+  assert.match(t, /Our partner Axlio lists jump start, flat tyre help, towing and fuel delivery for cars in Bengaluru, with the help, price and time confirmed before work starts/);
+  assert.doesNotMatch(t, /OTP before the bike leaves/);
+  assert.doesNotMatch(t, /pay after you say yes|pay only after|nothing is charged until|checkup and quote fee|349/i);
+});
+test('4. the llms.txt agent link parameters are the ones the booking page accepts', () => {
+  const bp = read('assets/js/book-pay.js');
+  for (const p of ['vehicle', 'brand', 'model', 'service', 'area', 'pincode']) assert.ok(bp.includes(`q.get('${p}')`), p);
+  assert.match(bp, /\['basic', 'general', 'full', 'repair'\]\.indexOf\(q\.get\('service'\)\)/);
+});
+test('4. every link in llms.txt points to a page that exists', () => {
+  const t = read('llms.txt'); const links = [...new Set([...t.matchAll(/\]\((https:\/\/mechanixpro\.in[^)]*)\)/g)].map((m) => m[1]))];
+  assert.ok(links.length >= 15);
+  for (const u of links) { const path = u.replace(SITE, ''); assert.ok(publicFiles().includes(path.replace(/^\//, '') + 'index.html'), u); }
+  for (const u of ['/garage-partners/', '/workshop/']) assert.ok(t.includes(SITE + u), u);
+});

@@ -1,31 +1,74 @@
 # Mechanix Pro
 
-> Mechanix Pro is a doorstep bike and scooter service and roadside help in Bengaluru (Bangalore), India. Certified mechanics come to your home or office. You confirm your slot with a small confirmation fee that is adjusted in your final bill, then approve an itemised quote before any work starts.
+> Mechanix Pro is a doorstep bike, scooter and car service with roadside help in Bengaluru (Bangalore), India. Booking flow: pay a small confirmation fee (₹49 to ₹99, by engine size, adjusted in your final bill), share a one-time code when the mechanic arrives, and approve an itemised quote before any work starts.
 
-## Key facts
-- Service area: all of Bengaluru, every PIN code from 560001 to 560110 (see the areas page).
-- How it works: message on WhatsApp or build a service on the website, receive an itemised quote, approve it, the mechanic comes to your door.
-- Prices for bikes and scooters up to 149cc (before GST; 18% GST is added): Basic service ₹499, Standard service ₹799, Full service ₹1,299, Repair or problem check from ₹599, puncture ₹599, roadside emergency visit ₹1,299.
-- Bikes of 150 to 250cc and 251 to 500cc have their own prices: Basic ₹799 and ₹999, Standard ₹999 and ₹1,499, Full ₹1,799 and ₹2,199.
-- Booking: a small confirmation fee, ₹49 to ₹99 depending on your vehicle's engine size, shown before you pay and adjusted in your final bill (₹49 up to 149cc, ₹69 for 150 to 250cc, ₹99 for 251cc and above and for cars) holds the slot.
-- Open 24/7 for requests. A basic service can be done in as fast as 2 hours once the mechanic arrives.
-- 10,000+ services done. 1,300+ gated communities trust us.
-- Safety: certified mechanics (visited, document-checked, trained, trial jobs), itemised WhatsApp quote before work, OTP before the bike leaves, GST invoice for every job.
-- Warranty: 30-day service warranty on the work.
-- Roadside help for bikes and scooters: breakdown diagnosis, puncture, battery jump-start, starting problems, fuel-related help, minor on-the-spot repairs, emergency towing support if required. Arrival time depends on traffic and location.
-- Car service is live: periodic and brake service, jump start, flat tyre help, towing and fuel delivery, quote first. Spare parts come through our partner Axlio.
-- Legal entity: NOVA VENTURES, Haralur Main Rd, 1st Sector, HSR Layout, Bengaluru, Karnataka 560102. GSTIN 29DVCPR0895G1Z3.
-- Contact: +91 79652 95649 · hello@mechanixpro.in · WhatsApp from the website. Instagram: https://www.instagram.com/themechanixpro/
+## How booking works
+1. Choose your vehicle, PIN code and a time at https://mechanixpro.in/book/, or ask our team on a call or WhatsApp to send you the booking link.
+2. Pay a small confirmation fee, ₹49 to ₹99 depending on your vehicle's engine size, shown before you pay and adjusted in your final bill. The fee is ₹49 up to 149cc, ₹69 for 150 to 250cc, ₹99 for 251cc and above and for cars. It confirms the booking.
+3. You get a booking ID, a one-time code and a tracking link by email and WhatsApp, and we assign a mechanic.
+4. Share the one-time code with the mechanic when they arrive. It starts the job. If a bike has to go to a workshop, it is picked up and returned only with your code.
+5. The mechanic checks the vehicle and we send an itemised quote. Work starts only after you approve it, and extra work needs a new approval.
+6. You get a GST invoice and a 30-day service warranty on the work.
+Cancellation: cancel more than 2 hours before your slot and the confirmation fee is refunded in full. See the [refund policy](https://mechanixpro.in/refund-policy/).
+
+## Prices (before 18% GST)
+
+| Service | Up to 149cc | 150 to 250cc | 251 to 500cc |
+| --- | --- | --- | --- |
+| Basic service | ₹499 | ₹799 | ₹999 |
+| Standard service | ₹799 | ₹999 | ₹1,499 |
+| Full service | ₹1,299 | ₹1,799 | ₹2,199 |
+
+- Repair or problem check: from ₹599. The repair itself is quoted after the check.
+- Puncture ₹599, roadside emergency visit ₹1,299.
+- Confirmation fee: ₹49 up to 149cc, ₹69 for 150 to 250cc, ₹99 for 251cc and above and for cars. It is adjusted in your final bill.
+- Parts, oil above standard grade and work outside the package are quoted first and charged only after you approve.
+- Full rate card with GST: https://mechanixpro.in/rate-card/. Service packages: https://mechanixpro.in/services/
+
+## Services
+- [Doorstep bike and scooter service](https://mechanixpro.in/services/): Basic, Standard and Full service at your home, office or society parking, by Mechanix Pro Certified mechanics. A basic service can be done in as fast as 2 hours once the mechanic arrives.
+- [Roadside help for bikes and scooters](https://mechanixpro.in/roadside/): breakdown diagnosis, puncture, battery jump-start, starting problems, fuel-related help, minor on-the-spot repairs, emergency towing support if required. Arrival time depends on traffic and location.
+- [Major repairs with pickup and drop](https://mechanixpro.in/major-bike-repair-pickup-and-drop-bangalore/): the mechanic checks the bike at your door and quotes first. If it needs a workshop, pickup and drop is free in the serviceable area and the repair is done at a Mechanix Pro Certified garage.
+- [Car service](https://mechanixpro.in/car-service-bangalore/): Car service is live: periodic service, brake service, jump start, flat tyre help, towing and fuel delivery, with the price confirmed before work. Our partner Axlio lists jump start, flat tyre help, towing and fuel delivery for cars in Bengaluru, with the help, price and time confirmed before work starts ([Axlio](https://mechanixpro.in/partners/axlio/)).
+- Parts: OEM and aftermarket parts, labelled in your quote and fitted only after you approve. They are sourced from our partner Axlio, which is run separately.
+
+## Trust and safety
+- Mechanix Pro Certified garages and mechanics: each is visited by our team, document-checked, trained and trial-run before taking customer jobs.
+- An itemised quote before any work. Nothing starts without your approval.
+- A one-time code, shared when the mechanic arrives, protects your vehicle.
+- A GST invoice for every job.
+- 30-day service warranty on our work. Parts carry a limited warranty on the terms of the part's manufacturer or supplier, shown on your invoice.
+- Stated by the company: 10,000+ services done, and 1,300+ gated communities trust us.
+
+## Area
+- All of Bengaluru: 106 PIN codes between 560001 and 560110 (560031, 560044, 560101 and 560106 are not in use). Requests are taken 24/7. Areas: https://mechanixpro.in/areas/
+
+## For AI agents
+- A prefilled booking link opens the booking form with the details filled in: https://mechanixpro.in/book/?vehicle=bike|car&brand=&model=&service=basic|general|full|repair&area=&pincode=
+- vehicle is bike or car. brand is a two-wheeler brand as listed on the site (for example Honda). model is free text. service is basic, general (Standard), full or repair for bikes; for cars it is service or problem. area is the locality name. pincode is a 6-digit Bengaluru PIN code, for example 560102.
+- The person completes the booking and the payment themselves on the booking page. Do not pay or submit on their behalf.
+- Do not quote prices other than the ones on this page. Exact quotes are sent by our team after the vehicle is checked.
+
+## Business
+- NOVA VENTURES, operating as Mechanix Pro. Haralur Main Rd, 1st Sector, HSR Layout, Bengaluru, Karnataka 560102. GSTIN 29DVCPR0895G1Z3.
+- Phone: +91 79652 95649. Email: hello@mechanixpro.in. WhatsApp from the website. Instagram: https://www.instagram.com/themechanixpro/
 
 ## Pages
 - [Services and prices](https://mechanixpro.in/services/)
 - [Rate card](https://mechanixpro.in/rate-card/)
 - [How it works](https://mechanixpro.in/help/)
+- [Book a service](https://mechanixpro.in/book/)
+- [Track a booking](https://mechanixpro.in/track/)
 - [Roadside help](https://mechanixpro.in/roadside/)
 - [Our workshop](https://mechanixpro.in/workshop/)
 - [Car service](https://mechanixpro.in/car-service-bangalore/)
+- [Major repairs with pickup and drop](https://mechanixpro.in/major-bike-repair-pickup-and-drop-bangalore/)
+- [Verified garages](https://mechanixpro.in/verified-bike-garages-bangalore/)
 - [Partner your garage](https://mechanixpro.in/garage-partners/)
+- [Join as a garage or mechanic](https://mechanixpro.in/join/)
 - [Areas we serve](https://mechanixpro.in/areas/)
 - [Guides](https://mechanixpro.in/guides/how-often-to-service-your-bike/)
 - [Blog](https://mechanixpro.in/blog/)
-- [Book a service](https://mechanixpro.in/book/)
+- [Refund policy](https://mechanixpro.in/refund-policy/)
+- [Terms](https://mechanixpro.in/terms/)
+- [Contact](https://mechanixpro.in/contact/)
