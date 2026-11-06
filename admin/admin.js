@@ -21,6 +21,7 @@ import { customerList, bookingRows, summarize } from './customer-bookings.js';
 import { adsConversions } from './ads-export.js';
 import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge } from './booking-steps.js';
 import { createFlow } from './flow-core.js';
+import { createGarageDesk } from './garage-desk.js';
 import { STATUS, skeleton, errorState } from './ds.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
@@ -241,12 +242,13 @@ function syncNav() {
   document.querySelectorAll('[data-group]').forEach((b) => (b.dataset.group === g ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   document.querySelectorAll('[data-sub]').forEach((d) => { d.hidden = d.dataset.sub !== g; });
   document.querySelectorAll('#subtabs [data-tab]').forEach((b) => (b.dataset.tab === S.tab ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
+  const ga = document.querySelector('[data-tab=garageapp]'); if (ga) ga.hidden = !isOwner();   // owner only
   const bd = navBadges({ leads: S.leads, issues: S.issues });
   document.querySelectorAll('[data-badge]').forEach((el) => { const n = bd[el.dataset.badge] || 0; el.textContent = n > 99 ? '99+' : String(n); el.hidden = !n; });
 }
 function render() { try { renderPage(); } catch (e) { console.error('render', S.tab, e); $('#view').innerHTML = errorHtml('This page could not be shown.', e, 'render'); } }
 const failBanner = () => ((S.failed || []).length ? `<div class="alert" role="alert"><b>Some data could not be loaded:</b> ${esc(S.failed.join(', '))}. What you see may be incomplete. <button class="btn btn-ghost btn-sm" type="button" data-retry="boot">Retry</button></div>` : '');
-function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, dispatch, board, leads, customers, mechanics, coupons, issues, pins, waitlist, offers, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, dispatch, board, leads, customers, mechanics, garageapp, coupons, issues, pins, waitlist, offers, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -347,6 +349,9 @@ function openCustomer(id) {
   <div class="card" style="margin-top:12px"><h3>Booking history</h3>${mine.length ? mine.map((l) => `<button class="row" data-lead="${l.id}" style="border-radius:12px"><span class="ref">${esc(bid(l))}</span><span>${esc(svcName(l.service_id))}<br><span class="meta">${when(l.created_at)}</span></span><span class="pill ${l.status}">${LABEL[l.status]}</span></button>`).join('') : '<p class="small muted">No bookings yet.</p>'}</div>`;
   $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
 }
+
+/* ---------- garage app (partner garages): the shared desk fills #gdRoot ---------- */
+function garageapp() { return '<div id="gdRoot"></div>'; }
 
 /* ---------- mechanics ---------- */
 function mechanics() {
@@ -680,8 +685,13 @@ function moneyCardBody(l) {
     ${entryRows(entries, true)}${btn}</div>`;
 }
 // The paid-confirmation card (payment link, call script, dispatch, quote, Resend) is the same code as in Crew: admin/flow-core.js. Every admin passes its checks.
+// The partner-garage desk (Garage app tab, Send to a partner garage on a booking) is the same code as in Crew: admin/garage-desk.js. Owner only here, and only the owner enters settlement amounts.
+const adminRpc = async (n, a) => { const { data, error } = await sb.rpc(n, a); if (error) throw error; return data; };
+const garageDesk = createGarageDesk({ rpc: adminRpc, toast, can: () => isOwner(), canSettle: () => isOwner(), dialog: (o) => flow.dialog(o), openLead: (id) => { S.tab = 'leads'; render(); openLead(id); },
+  reload: async () => { await loadLeads(); render(); if (S.open) openLead(S.open, true); } });
 const flow = createFlow({
-  rpc: async (n, a) => { const { data, error } = await sb.rpc(n, a); if (error) throw error; return data; },
+  garageDesk,
+  rpc: adminRpc,
   invoke: async (fn, body) => { const { data, error } = await sb.functions.invoke(fn, { body }); if (error) { let m = null; try { m = (await error.context.json()).error; } catch (x) { /* no body */ } throw new Error(m || error.message); } return data; },
   toast, can: () => true, paymentFn: 'payment-link',
   reload: async () => { await loadLeads(); if (S.tab === 'dispatch') loadDispatch(); else render(); if (S.open) openLead(S.open, true); },

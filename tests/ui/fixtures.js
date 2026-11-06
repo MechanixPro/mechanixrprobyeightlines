@@ -6,7 +6,7 @@ const ahead = (min) => new Date(NOW + min * 60e3).toISOString();
 const ph = (n) => '90000' + String(n).padStart(5, '0');
 
 const PAGES = { dashboard: 1, inbox: 1, leads: 1, rsa: 1, tickets: 1, garage_visits: 1, garages: 1, mechanics: 1, knowledge: 1, team: 1 };
-const ACTIONS = { take_leads: 1, assign_leads: 1, edit_leads: 1, view_all_leads: 1, create_bookings: 1, add_leads: 1, send_payment_link: 1, manage_technicians: 1, export: 1, create_tickets: 1, delete_leads: 1 };
+const ACTIONS = { take_leads: 1, assign_leads: 1, edit_leads: 1, view_all_leads: 1, create_bookings: 1, add_leads: 1, send_payment_link: 1, manage_technicians: 1, export: 1, create_tickets: 1, delete_leads: 1, manage_garages: 1 };
 
 const lead = (i, o = {}) => ({ id: 'lead-' + i, name: '[Customer Name ' + i + ']', phone: ph(i), bike: '[Vehicle ' + i + ']', service_name: 'Basic service', area: ['Indiranagar', 'HSR Layout', 'Whitefield', 'Jayanagar'][i % 4], pincode: '5600' + (10 + i), status: 'new', source: 'website', utm_source: 'google', campaign: 'search-doorstep', created_at: ago(12 + i * 40), crm_owner: 'me-1', owner_name: 'Care Buddy Demo', crm_first_contact_at: null, crm_next_action_at: null, overdue: false, is_late: false, booking_id: null, vehicle: 'bike', ...o });
 
@@ -90,6 +90,15 @@ const adminRpc = {
 };
 
 
+// Partner garage app (garage-desk): placeholders only. No customer phone, address or email appears in any of these rows.
+const gAccess = [{ id: 'acc-1', garage_id: 'g-1', garage: '[Garage Name]', label: 'Owner', active: true, revoked_at: null, locked_until: null, last_login_at: ago(120), created_at: ago(9000) }];
+const gAssign = [{ id: 'as-1', lead_id: 'lead-6', booking_id: 'MP-2611-0006', garage_id: 'g-1', garage: '[Garage Name]', status: 'ready', eta: ahead(300), notes: '[Work needed]', assigned_at: ago(600), progress: [{ event: 'ready', at: ago(30), photos: [], note: null }], settlement: null }];
+const gEstimates = [{ id: 'es-1', assignment_id: 'as-1', lead_id: 'lead-6', booking_id: 'MP-2611-0006', garage: '[Garage Name]', status: 'submitted', lines: [{ kind: 'parts', name: '[Part]', amount: 800 }, { kind: 'labour', name: '[Labour]', amount: 400 }], notes: null, hours: 6, return_day: null, subtotal: 1200, gst: 216, submitted_at: ago(40), reviewed_at: null, review_note: null, converted_quote_id: null }];
+Object.assign(crewHandlers, {
+  crm_garage_access_list: () => gAccess, crm_garage_assignments_list: (a) => (a.p_lead ? gAssign.filter((x) => x.lead_id === a.p_lead) : gAssign), crm_garage_estimates_inbox: (a) => gEstimates.filter((e) => !a.p_status || e.status === a.p_status),
+});
+Object.assign(adminRpc, { crm_garage_picker: () => [{ id: 'g-1', name: '[Garage Name]', code: 'G-0001', pincode: '560102', status: 'live' }], crm_garage_access_list: crewHandlers.crm_garage_access_list, crm_garage_assignments_list: crewHandlers.crm_garage_assignments_list, crm_garage_estimates_inbox: crewHandlers.crm_garage_estimates_inbox });
+
 // ---- Click-through harness additions (personas, extra leads, write results, Edge Function replies). Placeholders only. ----
 const PERSONA = (o) => ({ ...crewMe, ...o });
 const personas = {
@@ -113,6 +122,8 @@ const writeResults = {
   crm_visit_mark: ok({ ok: true }), crm_issue_resolve: ok(null), crm_quote_save: ok({ ok: true }), crm_quote_phone_approve: ok({ ok: true }),
   crm_create_booking: ok({ id: 'lead-1' }), crm_update_booking: ok({ ok: true }), crm_booking_catalog: ok(bookingCatalog), crm_garage_picker: ok([{ id: 'g-1', name: '[Garage Name]', area: 'HSR Layout' }]), crm_log_export: ok([]), crm_set_user_active: ok(null), crm_set_permissions: ok(null), crm_reset_permissions: ok(null), crm_set_targets: ok(null),
   crm_mechanic_save: ok({ id: 'mech-1' }), crm_mechanic_set_status: ok(null), crm_garage_save: ok({ id: 'g-1' }), crm_garage_set_status: ok(null), crm_garage_set_availability: ok(null), crm_garage_ops_set: ok(null), crm_garage_bank_set: ok(null), crm_garage_import: ok({ created: 0 }),
+  crm_garage_access_create: ok({ access_id: 'acc-2', garage: '[Garage Name]', link: 'https://example.invalid/garage/?g=PLACEHOLDER' }), crm_garage_link_new: ok({ link: 'https://example.invalid/garage/?g=PLACEHOLDER' }), crm_garage_pin_reset: ok({ ok: true }), crm_garage_revoke: ok({ ok: true, active: false }), crm_garage_enable: ok({ ok: true, active: true }),
+  crm_garage_assign: ok({ assignment_id: 'as-2', status: 'sent', garage: '[Garage Name]' }), crm_garage_estimate_review: ok({ ok: true, status: 'converted', quote: { version: 1 } }), crm_garage_settlement_set: ok({ ok: true }),
   crm_rsa_create: ok({ id: 'rsa-1' }), crm_rsa_update: ok(null), crm_ticket_create: ok({ id: 't-1', code: 'T-0001', legal: false }), crm_ticket_set: ok(null), crm_ticket_note: ok(null), crm_visit_schedule: ok(null), crm_visit_update: ok(null), crm_visit_complete: ok(null),
   crm_playbook_save: ok({ id: 'p-1' }), crm_playbook_publish: ok(null), crm_playbook_flag: ok(null), crm_fitment_save: ok(null), crm_sop_save: ok(null), crm_delete_leads: ok(null), crm_assign_many: ok(null), crm_roster_set: ok(null), crm_automation_set: ok(null),
 };

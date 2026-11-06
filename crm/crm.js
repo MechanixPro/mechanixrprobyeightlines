@@ -18,6 +18,8 @@ import * as callnow from './pages/callnow.js';
 import { newBooking, editBooking } from './pages/booking.js';
 import { sendPaymentLink } from './pages/payment.js';
 import { createFlow } from './flow-core.js';
+import { createGarageDesk } from './garage-desk.js';
+import * as garageapp from './pages/garageapp.js';
 import { skeleton, errorState } from './ds.js';
 import * as dispatch from './pages/dispatch.js';
 import * as issues from './pages/issues.js';
@@ -51,6 +53,7 @@ const SCREENS = [
   { id: 'tickets', title: 'Tickets', page: 'tickets', mod: tickets },
   { id: 'visits', title: 'Garage Visits', page: 'garage_visits', mod: visits },
   { id: 'garages', title: 'Garages', page: 'garages', mod: garages },
+  { id: 'garageapp', title: 'Garage app', page: 'garages', need: 'manage_garages', mod: garageapp },
   { id: 'mechanics', title: 'Mechanics', page: 'mechanics', mod: mechanics },
   { id: 'knowledge', title: 'Knowledge', page: 'knowledge', mod: knowledge },
   { id: 'team', title: 'Team', page: 'team', mod: team },
@@ -61,7 +64,7 @@ const can = (a) => !!S.me?.permissions?.actions?.[a];
 const pageOk = (p) => !!S.me?.permissions?.pages?.[p];
 // Technician work (board, picker, unstaffed alert, any booking's technician): supervisors with assign_leads, or the Technician lead with manage_technicians.
 const canTech = () => can('assign_leads') || can('manage_technicians');
-const screens = () => SCREENS.filter((s) => pageOk(s.page) && (!s.action || can(s.action) || can('assign_leads')) && (!s.tech || canTech()));
+const screens = () => SCREENS.filter((s) => pageOk(s.page) && (!s.action || can(s.action) || can('assign_leads')) && (!s.need || can(s.need)) && (!s.tech || canTech()));
 
 const ctx = {
   get me() { return S.me; }, can, page: pageOk,
@@ -72,11 +75,14 @@ const ctx = {
   users: async () => { if (!S.users || Date.now() - (S.usersAt || 0) > 20000) { try { S.users = await rpc('crm_users_list'); S.usersAt = Date.now(); } catch (e) { S.users ||= []; } } return S.users; },
   showPlaybook: (id) => knowledge.showPlaybook(id),
   get flow() { return flow; },
+  get garageDesk() { return garageDesk; },
 };
 // The paid-confirmation screens (payment link, call script, door code, quote, Resend, Dispatch) are shared with the Admin: crm/flow-core.js. Same database functions, same checks.
 const PHOTO_BUCKET = 'booking-updates';   // private storage bucket (not a table); the database decides who may read it
+// The partner-garage desk (Garage app tab and the Send to a partner garage button on a booking) is shared with the Admin: crm/garage-desk.js. Settlement amounts are Admin-only, so Crew shows them read only.
+const garageDesk = createGarageDesk({ rpc, toast, can, canSettle: () => false, dialog: (o) => flow.dialog(o), openLead: (id) => openLead(id), reload: () => afterChange(false) });
 const flow = createFlow({
-  rpc, toast, can,
+  rpc, toast, can, garageDesk,
   invoke: async (fn, body) => { const { data, error } = await sb.functions.invoke(fn, { body }); if (error) { let m = null; try { m = (await error.context.json()).error; } catch (x) { /* no body */ } throw new Error(m || error.message); } return data; },
   reload: () => afterChange(false), openLead: (id) => openLead(id),
   photoUrl: async (path) => { const { data, error } = await sb.storage.from(PHOTO_BUCKET).createSignedUrl(path, 600); if (error) throw error; return data.signedUrl; },   // customer photos: private bucket, 10-minute links, only for the roles the database allows
