@@ -29,9 +29,10 @@ The number is shown to the garage only in the job detail of an open job, and eve
 ## Onboard the first garage
 
 1. In Crew, make sure the garage exists on the Garages page (name, mobile, status not paused).
-2. Until the Crew/Admin Garages screen is built, an admin runs in the Supabase SQL editor (signed in as that admin is not possible there, so use the API from Admin once the screen exists; for the first garage the owner may run it as database owner with `auth.uid()` empty by temporarily using the Admin session in the browser console of the admin site):
+2. The Crew/Admin Garages screen is not built yet, so until then run the functions in the Supabase SQL editor *as an admin*. They check who is calling, and the SQL editor has no signed-in user, so start the same run with your own admin user id (Authentication > Users):
+   `select set_config('request.jwt.claim.sub', '<your admin user id>', true);`
    `select public.crm_garage_access_create('<garage id>', '<4 to 6 digit PIN>');`
-   The result holds the private link. It is shown once and only its hash is stored.
+   Run both lines together (one run). The result holds the private link. It is shown once and only its hash is stored. The same two-line pattern works for every function below. (Not tested in the real SQL editor: this build only proved the functions on a local scratch Postgres.)
 3. Send the link and the PIN to the garage on WhatsApp in two separate messages.
 4. Assign a job: `select public.crm_garage_assign('<lead id>', '<garage id>', 'what was found and what is needed', '<return time>');`
 5. Test on a real phone: open the link, enter the PIN, see the job, add to home screen, mark Vehicle received, send a test estimate. Then in Crew: `select public.crm_garage_estimates_inbox();` and approve with `select public.crm_garage_estimate_review('<estimate id>', true);` (makes a DRAFT quote; send it with the usual Send quote button).
