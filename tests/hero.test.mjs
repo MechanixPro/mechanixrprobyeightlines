@@ -53,19 +53,15 @@ test('headline, accent price line, trust line and the two allowed chips; no othe
   assert.doesNotMatch(text, /certified|rating|stars?\b|minutes|within \d|arrive in|★/i);
   assert.deepEqual([...new Set((text.match(/\d[\d,]*\+?/g) || []).filter((n) => !/^(560102|499|6|0)$/.test(n)))].sort(), ['1,300+', '10,000+', '24'].filter((n) => text.includes(n)).sort());
 });
-test('booking card: plain GET form to /book/, only vehicle (attached radios) and pincode, no name or phone fields', () => {
+// Changed on purpose (owner: "remove the pincode"): the hero card no longer asks for a PIN code. It sends only the vehicle (Bike or Car) to /book/, where the address step asks for the PIN code.
+test('booking card: plain GET form to /book/ that sends only the vehicle; no PIN, name or phone field', () => {
   const f = hero.match(/<form id="hero-book"[^>]*>[\s\S]*?<\/form>/)[0];
   assert.match(f, /action="\/book\/" method="get"/);
-  assert.match(f, /<h2 id="hb-h">Book your service<\/h2>/); assert.match(f, /Pick your vehicle and PIN code\. See the price and book in a minute\./);
+  assert.match(f, /<h2 id="hb-h">Book your service<\/h2>/); assert.match(f, /Pick your vehicle\. See the price and book in a minute\./);
   assert.match(home, /<input class="veh-in" type="radio" name="vehicle" id="veh-bike" value="bike" form="hero-book" checked><input class="veh-in" type="radio" name="vehicle" id="veh-car" value="car" form="hero-book">/);
-  const pin = f.match(/<input id="hb-pin"[^>]*>/)[0];
-  assert.match(pin, /name="pincode"/); assert.match(pin, /inputmode="numeric"/); assert.match(pin, /autocomplete="postal-code"/); assert.match(pin, /pattern="56\[0-2\]\[0-9\]\{3\}"/); assert.match(pin, /maxlength="6"/); assert.match(pin, /required/);
-  assert.match(f, /Bengaluru PIN codes only/); assert.match(f, /<button class="hb-go" type="submit">See price and book &rarr;<\/button>/);
-  assert.deepEqual([...f.matchAll(/<(?:input|select|textarea)\b[^>]*name="([^"]+)"/g)].map((m) => m[1]), ['pincode']);
-  assert.doesNotMatch(f, /type="(tel|email|password)"|name="(phone|name|mobile)"/);
-  const re = new RegExp(pin.match(/pattern="([^"]+)"/)[1].replace(/&[a-z]+;/g, ''));
-  for (const ok of ['560001', '560102', '562125']) assert.ok(new RegExp('^(?:' + re.source + ')$').test(ok), ok);
-  for (const bad of ['110001', '56010', '5601022', '56a102', '563001', '']) assert.ok(!new RegExp('^(?:' + re.source + ')$').test(bad), bad);
+  assert.deepEqual([...f.matchAll(/<(?:input|select|textarea)\b[^>]*name="([^"]+)"/g)].map((m) => m[1]), [], 'the card has no fields of its own; the vehicle radios are attached by the form attribute');
+  assert.doesNotMatch(f, /pincode|PIN code|postal-code|type="(tel|email|password)"|name="(phone|name|mobile)"/i);
+  assert.match(f, /<button class="hb-go" type="submit">See price and book &rarr;<\/button>/);
 });
 test('WhatsApp and Call use the site hooks, no hard-coded numbers; the old garage is gone from the home page', () => {
   assert.match(hero, /<p class="hb-links">[\s\S]*data-wa="general"[\s\S]*data-call/);

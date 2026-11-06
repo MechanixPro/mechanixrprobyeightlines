@@ -24,7 +24,7 @@ test('the Bike / Car toggle works without scripts: two radios, two labels, CSS d
   assert.match(css, /#veh-car:checked ~ \* \.bike-only\{display:none!important\}/);
   assert.match(css, /#veh-car:checked ~ \* \.car-only\{display:var\(--d,block\)!important\}/);
   assert.ok(main.indexOf('id="veh-bike"') < main.indexOf('class="veh"'), 'the toggle sits above the buttons');
-  assert.ok(main.indexOf('class="veh"') < main.indexOf('id="hb-pin"'));   // changed on purpose (hero v3): the toggle sits at the top of the booking card, above the PIN field, not above the old button stack
+  assert.ok(main.indexOf('class="veh"') < main.indexOf('class="hb-go"'));   // changed on purpose (PIN field removed): the toggle sits in the booking card, above its button
 });
 test('booking card, then WhatsApp us and Call as secondary links; the car set swaps the WhatsApp wording and adds the car services link', () => {   // rewritten on purpose (hero v3): the old three-button stack is replaced by the booking card
   const links = main.match(/<p class="hb-links">([\s\S]*?)<\/p>/)[1];
