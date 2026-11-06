@@ -29,6 +29,41 @@
   }
   function feeLine(vehicle, amount) { return 'Confirmation fee for your ' + (vehicle === 'car' ? 'car' : 'bike size') + ': ₹' + amount + '. Adjusted in your final bill.'; }
 
+
+  /* The live "Your service" summary. Pure: the numbers come from the site's own price rows (build-time defaults from src/site.json in a hidden list,
+     replaced by the live rows when they load) and from feeFor above. Nothing here is typed in as a price. */
+  var SVC_NAME = { basic: 'Basic service', general: 'Standard service', full: 'Full service', repair: 'Repair or problem check' };
+  var TIER_TXT = { std: 'Up to 149cc', mid: '150 to 250cc', big: '251cc and above' };
+  var GST_NOTE = 'Excluding GST. GST at 18% is added on your final invoice.';
+  var rupees = function (n) { return '₹' + String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
+  function priceFor(serviceId, tier, prices) {
+    if (!SVC_NAME[serviceId]) return null;
+    var id = serviceId === 'repair' ? 'repair' : serviceId + (tier === 'mid' ? '250' : tier === 'big' ? '500' : '');
+    var n = Number(prices && prices[id]); return isFinite(n) && n > 0 ? Math.round(n) : null;
+  }
+  function summary(v, prices, rows) {
+    var car = v.vehicle === 'car', model = String(car ? v.car_model : v.model || '').trim(), brand = car ? '' : String(v.brand || '').trim();
+    var vehicle = car ? model : (brand && model.toLowerCase().indexOf(brand.toLowerCase()) !== 0 ? brand + ' ' : '') + model;
+    var f = feeFor({ vehicle: v.vehicle, model: car ? '' : v.model, engine: v.engine_class }, rows), tier = car ? null : engineFor(v.model, v.engine_class);
+    var service = car ? (v.car_need === 'problem' ? 'Problem check' : 'Service') : (SVC_NAME[v.service_id] || '');
+    var priceNum = car ? null : priceFor(v.service_id, tier, prices), priceText = '', note = '';
+    if (car) { priceText = 'Quoted before any work starts'; note = 'GST at 18% is added on your final invoice.'; }
+    else if (priceNum) {
+      priceText = (!tier && v.service_id !== 'repair' ? 'From ' : '') + rupees(priceNum);
+      note = v.service_id === 'repair' ? 'Checkup and quote visit. Any repair is quoted before work starts. ' + GST_NOTE : GST_NOTE;
+    }
+    var engine = car ? '' : tier ? TIER_TXT[tier] : 'Not sure, we will check';
+    return { vehicle: vehicle, engine: engine, service: service, priceNum: priceNum, priceText: priceText, gstNote: note, fee: f.amount, unknown: f.unknown,
+      feeLine: 'Pay ' + rupees(f.amount) + ' now to lock your slot. It is adjusted in your final bill.' + (f.unknown ? ' Your engine size is not clear, so our team will check it.' : ''),
+      ready: !!(vehicle.length >= 2 && (car || service)) };
+  }
+  /* What may be kept in sessionStorage so a customer who navigates away and back keeps their choices. Choices only: never a name, mobile number, email, address or PIN. */
+  var CHOICE_KEYS = ['vehicle', 'brand', 'model', 'engine_class', 'service_id', 'car_model', 'car_need', 'preferred_date', 'preferred_slot'];
+  function choicesForStorage(v, step) {
+    var o = {}; CHOICE_KEYS.forEach(function (k) { if (v && v[k] != null && v[k] !== '') o[k] = String(v[k]).slice(0, 60); });
+    o.step = step === 2 || step === 3 ? step : 1; return o;
+  }
+
   var ERR = { phone: 'Enter a valid 10-digit mobile number.', email: 'Enter a valid email address. We send your confirmation and code there.', name: 'Enter your name.', house: 'Enter your house or flat number.', street: 'Enter your street or a landmark.', area: 'Enter your area.',
     pincode: 'Enter a Bengaluru PIN code (6 digits, like 560102).', model: 'Choose or type your model.', service_id: 'Choose what your bike needs.', car_model: 'Enter your car make and model.', preferred_date: 'Pick a day.', preferred_slot: 'Pick a time slot.' };
   /* Returns { field: message } for what is wrong. Step 1, 2 or 3 limits the check to that step; no step checks everything. */
@@ -71,7 +106,10 @@
     var val = function (n) { var el = form.elements[n]; if (!el) return ''; if (el.length && el[0] && el[0].type === 'radio') { var c = all('[name="' + n + '"]:checked')[0]; return c ? c.value : ''; } return el.type === 'checkbox' ? el.checked : el.value; };
     var values = function () { var o = {}; ['vehicle', 'brand', 'model', 'engine_class', 'service_id', 'car_model', 'car_need', 'need_text', 'house', 'street', 'area', 'pincode', 'lat', 'lng', 'preferred_date', 'preferred_slot', 'name', 'phone', 'email', 'consent_whatsapp'].forEach(function (n) { o[n] = val(n); }); return o; };
     var SAVE = ['vehicle', 'brand', 'model', 'engine_class', 'service_id', 'car_model', 'car_need', 'need_text', 'house', 'street', 'area', 'pincode', 'preferred_date', 'preferred_slot', 'name', 'phone', 'email'];
-    var save = function () { var o = store.get(); SAVE.forEach(function (n) { o[n] = val(n); }); o.step = step; o.key = o.key || uuid(); store.set(o); draft = o; };
+    var SKEY = 'mxp_book_choices_v1';
+    var sess = { get: function () { try { return JSON.parse(win.sessionStorage.getItem(SKEY) || '{}') || {}; } catch (e) { return {}; } }, set: function (o) { try { win.sessionStorage.setItem(SKEY, JSON.stringify(o)); } catch (e) {} }, clear: function () { try { win.sessionStorage.removeItem(SKEY); } catch (e) {} } };
+    var prices = {}; Array.prototype.slice.call(doc.querySelectorAll('#bk-prices li')).forEach(function (li) { var n = Number(li.textContent); if (n > 0) prices[li.getAttribute('data-id')] = n; });
+    var save = function () { var o = store.get(); SAVE.forEach(function (n) { o[n] = val(n); }); o.step = step; o.key = o.key || uuid(); store.set(o); draft = o; sess.set(choicesForStorage(values(), step)); };
 
     /* brands, models */
     var BIKES = win.MXP_BIKES || {}, brandSel = $('#bk-brand'), dl = $('#bk-models');
@@ -91,11 +129,26 @@
       days.insertAdjacentHTML('beforeend', '<label class="bk-pick"><input type="radio" name="preferred_date" value="' + iso + '"><span>' + esc(lab) + '<small>' + esc(sub) + '</small></span></label>');
     }
 
+    /* live "Your service" summary */
+    var liveT = null, lastLive = '';
+    var pickText = function (n) { var c = all('[name="' + n + '"]:checked')[0], sp = c && c.parentNode.querySelector('span'); return sp ? Array.prototype.slice.call(sp.childNodes).map(function (x) { return x.textContent.replace(/\s+/g, ' ').trim(); }).filter(Boolean).join(', ') : ''; };
+    var renderSummary = function () {
+      var v = values(), m = summary(v, prices, rows), when = [pickText('preferred_date'), pickText('preferred_slot')].filter(Boolean).join(', ');
+      var set1 = function (k, t) { var d = doc.querySelector('#bk-sum [data-row="' + k + '"] dd'), r = d && d.parentNode; if (!d) return; d.textContent = t || 'Not chosen yet'; d.className = t ? '' : 'bk-empty'; if (r) r.hidden = (k === 'engine' && v.vehicle === 'car'); };
+      set1('vehicle', m.vehicle); set1('engine', m.engine); set1('service', m.service); set1('price', m.priceText); set1('when', when);
+      var line = doc.getElementById('bk-sum-line'), parts = [m.vehicle, m.service, m.priceText && (m.priceNum ? m.priceText + ' + GST' : m.priceText)].filter(Boolean);
+      var text = m.ready ? parts.join(' · ') : 'Choose your vehicle and service. Your summary builds here.';
+      if (line) line.textContent = text; doc.getElementById('bk-sum-gst').textContent = m.ready ? m.gstNote : ''; doc.getElementById('bk-sum-fee').textContent = m.feeLine;
+      var built = doc.getElementById('bk-built-t'); if (built) built.textContent = m.ready ? 'You chose ' + parts.join(', ') + (when ? ', ' + when : '') + '. ' + m.feeLine.replace(/ It is adjusted in your final bill\./, '') + ' Add your contact details to finish.' : 'Your service is ready. Add your contact details and pay the confirmation fee to lock your slot.';
+      // a short, calm spoken update once the customer pauses (not one per keystroke)
+      var say = m.ready ? 'Your service: ' + parts.join(', ') + '. ' + m.feeLine : '';
+      if (win.clearTimeout) win.clearTimeout(liveT); liveT = win.setTimeout(function () { var lv = doc.getElementById('bk-sum-live'); if (lv && say !== lastLive) { lastLive = say; lv.textContent = say; } }, 900);
+    };
     /* fee preview */
     var showFee = function () {
       var v = values(), car = v.vehicle === 'car', f = feeFor({ vehicle: v.vehicle, model: car ? '' : v.model, engine: v.engine_class }, rows);
       $('#bk-fee-amt').textContent = 'Pay ₹' + f.amount + ' to confirm'; $('#bk-fee-line').textContent = feeLine(v.vehicle, f.amount) + (f.unknown ? ' Your engine size is not clear, so our team will check it.' : '');
-      $('#bk-pay').textContent = 'Pay ₹' + f.amount + ' to confirm'; return f;
+      $('#bk-pay').textContent = 'Pay ₹' + f.amount + ' to confirm'; renderSummary(); return f;
     };
     var trust = $('#bk-trust'), setVehicle = function () {
       var car = val('vehicle') === 'car'; form.setAttribute('data-veh', car ? 'car' : 'bike');
@@ -109,7 +162,8 @@
     /* steps */
     var show = function (n) {
       step = n; all('[data-step]').forEach(function (f) { f.hidden = Number(f.getAttribute('data-step')) !== n; });
-      all('.bk-steps li').forEach(function (li) { var s = Number(li.getAttribute('data-s')); li.className = s === n ? 'on' : s < n ? 'done' : ''; });
+      Array.prototype.slice.call(doc.querySelectorAll('.bk-steps li')).forEach(function (li) { var s = Number(li.getAttribute('data-s')); li.className = s === n ? 'on' : s < n ? 'done' : ''; if (s === n) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current'); });
+      var pg = doc.getElementById('bk-prog'); if (pg) pg.textContent = 'Step ' + n + ' of 3: ' + ['Vehicle and service', 'Address and slot', 'Contact and pay'][n - 1]; renderSummary();
       var f = $('[data-step="' + n + '"]'); if (f) { var first = f.querySelector('input:not([type=hidden]):not([type=radio]),select'); if (first && n > 1) first.focus({ preventScroll: true }); if (started) f.scrollIntoView({ block: 'start', behavior: 'auto' }); } save();
     };
     var markErrors = function (e) {
@@ -119,11 +173,14 @@
       if (firstBad && firstBad.focus) firstBad.focus();
     };
     form.addEventListener('click', function (ev) {
-      var b = ev.target.closest('[data-next]'); if (!b) return; var to = Number(b.getAttribute('data-next'));
+      var b = ev.target.closest('[data-next]'); if (!b) return; ev.preventDefault(); var to = Number(b.getAttribute('data-next'));
       if (to > step) { var e = problems(values(), step); markErrors(e); if (Object.keys(e).length) return; } show(to);
     });
     form.addEventListener('input', function (ev) { if (ev.target.name === 'model' || ev.target.name === 'brand') guessEngine(); save(); showFee(); });
     form.addEventListener('change', function (ev) { if (ev.target.name === 'vehicle') setVehicle(); if (ev.target.name === 'brand') { fillModels(); } save(); showFee(); });
+
+    var sumT = doc.getElementById('bk-sum-t'), sumBox = doc.getElementById('bk-sum');
+    if (sumT) sumT.addEventListener('click', function () { var open = sumBox.classList.toggle('open'); sumT.setAttribute('aria-expanded', open ? 'true' : 'false'); sumT.textContent = open ? 'Hide' : 'Details'; });
 
     /* location (optional, only when the customer taps) */
     $('#bk-geo').addEventListener('click', function () {
@@ -153,8 +210,9 @@
     });
 
     /* restore saved progress and the link's prefill */
-    var q = new URLSearchParams(win.location.search), saved = store.get(); draft = saved;
+    var q = new URLSearchParams(win.location.search), saved = store.get(), back = sess.get(); draft = saved;
     var set = function (n, v) { var el = form.elements[n]; if (!el || v == null || v === '') return; if (el.length && el[0] && el[0].type === 'radio') { all('[name="' + n + '"]').forEach(function (r) { r.checked = r.value === v; }); } else el.value = v; };
+    CHOICE_KEYS.forEach(function (n) { set(n, back[n]); });   // choices from this tab's session (no personal details are in it)
     SAVE.forEach(function (n) { set(n, saved[n]); });
     if (q.get('vehicle') === 'car' || q.get('vehicle') === 'bike') set('vehicle', q.get('vehicle'));   // a link wins over a saved draft
     if (q.get('brand') && BIKES[q.get('brand')]) set('brand', q.get('brand')); fillModels();
@@ -165,12 +223,12 @@
       if (['service', 'problem'].indexOf(q.get('service')) > -1) set('car_need', q.get('service'));
     }
     if (!saved.model && q.get('model') && q.get('vehicle') !== 'car') guessEngine();
-    setVehicle(); show(!linked && saved.step && saved.step < 3 ? saved.step : 1);   // a link from the home card starts at step 1 (vehicle, model and service); the PIN is already filled for step 2 started = true;
+    setVehicle(); show(!linked && (saved.step || back.step) && (saved.step || back.step) < 3 ? (saved.step || back.step) : 1);   // a link from the home card starts at step 1 (vehicle, model and service); the PIN is already filled for step 2 started = true;
 
     /* live fee rows (public, active prices); the defaults above are used if this fails */
     if (C.supabaseUrl && C.supabaseAnonKey && win.fetch) {
-      win.fetch(C.supabaseUrl.replace(/\/$/, '') + '/rest/v1/services?select=id,price&active=eq.true&id=in.(confirm_std,confirm_mid,confirm_big,confirm_car)', { headers: { apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey } })
-        .then(function (r) { return r.ok ? r.json() : []; }).then(function (list) { (list || []).forEach(function (x) { rows[x.id] = x.price; }); showFee(); }).catch(function () {});
+      win.fetch(C.supabaseUrl.replace(/\/$/, '') + '/rest/v1/services?select=id,price&active=eq.true&id=in.(confirm_std,confirm_mid,confirm_big,confirm_car,basic,general,full,repair,basic250,general250,full250,basic500,general500,full500)', { headers: { apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey } })
+        .then(function (r) { return r.ok ? r.json() : []; }).then(function (list) { (list || []).forEach(function (x) { rows[x.id] = x.price; if (/^confirm_/.test(x.id)) return; if (Number(x.price) > 0) prices[x.id] = Number(x.price); }); showFee(); }).catch(function () {});
     }
 
     /* pay */
@@ -182,7 +240,7 @@
     var msg = $('#bk-msg'), payBtn = $('#bk-pay');
     var free = function () { busy = false; payBtn.disabled = false; showFee(); };
     var done = function (d, email) {
-      store.clear(); form.hidden = true; var steps = doc.querySelector('.bk-steps'); if (steps) { steps.hidden = true; steps.style.display = 'none'; }   // the step list sits outside the form: the old $() lookup returned null and threw after a successful payment
+      store.clear(); sess.clear(); form.hidden = true; var sm = doc.getElementById('bk-sum'); if (sm) sm.hidden = true; var pr = doc.getElementById('bk-prog'); if (pr) pr.hidden = true; var steps = doc.querySelector('.bk-steps'); if (steps) { steps.hidden = true; steps.style.display = 'none'; }   // the step list sits outside the form: the old $() lookup returned null and threw after a successful payment
       var box = doc.getElementById('bkDone'), T = win.MXP_THANKS, I = win.MXP_INSTALL;
       // Keep the private tracking link on this phone (token and booking ID only) so the home page and an installed app can show "Your booking".
       if (I && d.track_token) I.saveBooking(win, { t: d.track_token, id: d.booking_id });
@@ -218,5 +276,5 @@
       }).catch(function () { free(); msg.textContent = 'No connection. Your details are saved on this phone. Please try again.'; });
     });
   }
-  return { init: init, pinFromQuery: pinFromQuery, feeFor: feeFor, feeLine: feeLine, engineFromModel: engineFromModel, problems: problems, payload: payload, clamp: clamp, FEE_MIN: FEE_MIN, FEE_MAX: FEE_MAX };
+  return { summary: summary, priceFor: priceFor, choicesForStorage: choicesForStorage, CHOICE_KEYS: CHOICE_KEYS, GST_NOTE: GST_NOTE, init: init, pinFromQuery: pinFromQuery, feeFor: feeFor, feeLine: feeLine, engineFromModel: engineFromModel, problems: problems, payload: payload, clamp: clamp, FEE_MIN: FEE_MIN, FEE_MAX: FEE_MAX };
 });

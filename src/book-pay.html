@@ -1,13 +1,16 @@
 <section class="page-head" aria-labelledby="bk-h">
   <div class="wrap">
     <h1 id="bk-h">Book a doorstep service.</h1>
-    <p class="muted">Three short steps. You pay a small confirmation fee to lock your slot. It is adjusted in your final bill.</p>
+    <p class="muted">Three short steps. Takes about a minute. You pay a small confirmation fee to lock your slot. It is adjusted in your final bill.</p>
   </div>
 </section>
 <section id="book">
   <div class="wrap bk">
     <noscript><p class="card bk-card">Please turn on JavaScript to book online, or message us on WhatsApp and we will book it for you.</p></noscript>
-    <ol class="bk-steps" aria-label="Steps"><li data-s="1" class="on"><b>1</b> Vehicle</li><li data-s="2"><b>2</b> Address and slot</li><li data-s="3"><b>3</b> Contact and pay</li></ol>
+    <p class="bk-prog" id="bk-prog">Step 1 of 3: Vehicle and service</p>
+    <ol class="bk-steps" aria-label="Steps"><li data-s="1" class="on" aria-current="step"><b>1</b> Vehicle</li><li data-s="2"><b>2</b> Address and slot</li><li data-s="3"><b>3</b> Contact and pay</li></ol>
+    <ul id="bk-prices" hidden><li data-id="basic">{{num:basic}}</li><li data-id="general">{{num:general}}</li><li data-id="full">{{num:full}}</li><li data-id="repair">{{num:repair}}</li><li data-id="basic250">{{num:basic250}}</li><li data-id="general250">{{num:general250}}</li><li data-id="full250">{{num:full250}}</li><li data-id="basic500">{{num:basic500}}</li><li data-id="general500">{{num:general500}}</li><li data-id="full500">{{num:full500}}</li></ul>
+    <div class="bk-grid">
     <form id="bkForm" class="bk-form" novalidate autocomplete="on" data-veh="bike">
       <input type="hidden" id="bk-lat" name="lat"><input type="hidden" id="bk-lng" name="lng">
 
@@ -78,6 +81,7 @@
 
       <fieldset class="card bk-card" data-step="3" hidden>
         <legend class="bk-h">3. Contact and pay</legend>
+        <div class="bk-built" id="bk-built"><p class="bk-built-h">You built this.</p><p id="bk-built-t">Your service is ready. Add your contact details and pay the confirmation fee to lock your slot.</p><button class="bk-link" type="button" data-next="1">Change my choices</button></div>
         <label class="label" for="bk-name">Your name</label>
         <input id="bk-name" name="name" autocomplete="name" maxlength="60"><p class="err" data-err="name" role="alert"></p>
         <label class="label" for="bk-phone">Mobile number</label>
@@ -99,6 +103,21 @@
         <p class="tiny muted">By paying you accept our <a href="/terms/">terms</a> and <a href="/refund-policy/">refund policy</a>. We never see your card details.</p>
       </fieldset>
     </form>
+    <aside class="card bk-sum" id="bk-sum" aria-labelledby="bk-sum-h">
+      <div class="bk-sum-top"><h2 class="bk-sum-h" id="bk-sum-h">Your service</h2><button class="bk-sum-t" type="button" id="bk-sum-t" aria-expanded="false" aria-controls="bk-sum-l">Details</button></div>
+      <p class="bk-sum-line" id="bk-sum-line">Choose your vehicle and service. Your summary builds here.</p>
+      <dl class="bk-sum-l" id="bk-sum-l">
+        <div data-row="vehicle"><dt>Vehicle</dt><dd>Not chosen yet</dd></div>
+        <div data-row="engine"><dt>Engine size</dt><dd>Not chosen yet</dd></div>
+        <div data-row="service"><dt>Service</dt><dd>Not chosen yet</dd></div>
+        <div data-row="price"><dt>Price</dt><dd>Not chosen yet</dd></div>
+        <div data-row="when"><dt>When</dt><dd>Not chosen yet</dd></div>
+      </dl>
+      <p class="bk-sum-gst tiny muted" id="bk-sum-gst"></p>
+      <p class="bk-sum-fee" id="bk-sum-fee"></p>
+    </aside>
+    </div>
+    <p class="bk-vh" id="bk-sum-live" role="status" aria-live="polite"></p>
     <div id="bkDone" aria-live="polite"></div>
     <p class="tiny muted bk-alt">Prefer to talk? <a href="#" data-wa="general">Message us on WhatsApp</a> or <a href="/quote/">get a quote first</a>.</p>
   </div>
