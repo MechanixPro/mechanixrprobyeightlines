@@ -117,7 +117,7 @@ test('one font, one accent; tap targets, focus, reduced motion and contrast toke
 });
 test('the home page stays light: one eager hero photo (lazy extras), no chat script, no script slideshow', () => {
   assert.doesNotMatch(home, /hero-rain|chatstart\.js|hero\.js|showcase\.js|class="ticker"/);
-  assert.ok(Buffer.byteLength(home) < 44000, 'home HTML is ' + Buffer.byteLength(home) + ' bytes');
+  assert.ok(Buffer.byteLength(home) < 48000, 'home HTML is ' + Buffer.byteLength(home) + ' bytes');   // raised on purpose from 44,000 (hero carousel slides)
   assert.ok(readdirSync(new URL('../assets/css/', import.meta.url)).includes('site.css'));
   assert.ok(Buffer.byteLength(css) < 32000, 'site.css is ' + Buffer.byteLength(css) + ' bytes');
 });
