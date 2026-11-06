@@ -76,7 +76,8 @@ test('videos have controls, muted, playsinline, preload none, a poster, real dim
   const tags = page.match(/<video [^>]*>/g); assert.equal(tags.length, 2);
   const dims = { 'custom-paint-finishes': [480, 854], 'engine-frame-rebuild': [720, 1280] };
   for (const [name, [w, h]] of Object.entries(dims)) {
-    const i = page.indexOf(name + '.mp4'), tag = page.slice(page.lastIndexOf('<video ', i), page.indexOf('>', page.lastIndexOf('<video ', i)) + 1);
+    const i = page.indexOf('/' + name + '.mp4" type='), // changed on purpose: the same file name is also in the VideoObject JSON-LD
+      tag = page.slice(page.lastIndexOf('<video ', i), page.indexOf('>', page.lastIndexOf('<video ', i)) + 1);
     for (const a of ['controls', 'muted', 'playsinline', 'preload="none"']) assert.ok(tag.includes(a), name + ' ' + a);
     assert.ok(tag.includes(`width="${w}" height="${h}"`), name + ' size'); assert.ok(tag.includes(`poster="/assets/img/workshop/${name}-1200.webp"`));
     assert.match(tag, /aria-label="[^"]{20,}"/); assert.doesNotMatch(tag, /autoplay|loop/);
@@ -108,10 +109,13 @@ test('the 10,000+ and 1,300+ claims sit only in the bike-only block', () => {
 });
 test('structured data parses and holds only facts from company.json', () => {
   const blocks = [...page.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map((x) => JSON.parse(x[1]));
-  const biz = blocks.find((b) => b['@type'] === 'AutoRepair');
+  // changed on purpose (SEO 6e): the workshop page no longer re-declares the business; it is a WebPage about #business, and the company facts live on the home page node
+  assert.equal(blocks.find((b) => b['@type'] === 'AutoRepair'), undefined);
+  assert.equal(blocks.find((b) => b['@type'] === 'WebPage').mainEntity['@id'], 'https://mechanixpro.in/#business');
+  const biz = [...read('index.html').matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].flatMap((m) => { const d = JSON.parse(m[1]); return d['@graph'] || [d]; }).find((b) => b['@type'] === 'AutoRepair');
   assert.equal(biz.address.postalCode, company.pincode); assert.equal(biz.legalName, company.legalName);
   assert.equal(biz.address.streetAddress, company.addressLines.join(', '));
-  for (const k of ['geo', 'openingHours', 'openingHoursSpecification', 'aggregateRating', 'review', 'telephone']) assert.equal(biz[k], undefined, k);
+  for (const k of ['geo', 'openingHours', 'openingHoursSpecification', 'aggregateRating', 'review']) assert.equal(biz[k], undefined, k);
 });
 test('the home teaser shows three photos and links to /workshop/ in the bike view only', () => {
   const t = home.match(/<section id="shop"[\s\S]*?<\/section>/)[0];

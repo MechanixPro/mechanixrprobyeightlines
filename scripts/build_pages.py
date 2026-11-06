@@ -138,10 +138,26 @@ def company_fill(s):
 SITE_DATA = json.load(open(os.path.join(ROOT, 'src', 'site.json'), encoding='utf-8'))
 # One business entity for every page: the home page defines it in full (src/home.jsonld), every other page points to it by @id.
 BUSINESS_ID = SITE + '/#business'
-PROVIDER = {"@type": "AutoRepair", "@id": BUSINESS_ID, "name": "Mechanix Pro", "url": SITE + "/"}
+PROVIDER = {"@id": BUSINESS_ID}  # a reference only: the full business node is on the home page
+WEBSITE_ID = SITE + '/#website'
+CATALOG_ID = SITE + '/services/#catalog'
+def price_spec(price):
+    """Prices on the site are before 18% GST, so the structured data says the price excludes tax."""
+    return {"@type": "PriceSpecification", "price": str(int(price)), "priceCurrency": "INR", "valueAddedTaxIncluded": False}
 def offers(keys):
     """Offer list for structured data, prices from src/site.json (before GST)."""
-    return [{"@type": "Offer", "name": SITE_DATA['services'][k]['name'], "price": str(int(SITE_DATA['services'][k]['price'])), "priceCurrency": "INR"} for k in keys if k in SITE_DATA['services']]
+    return [{"@type": "Offer", "name": SITE_DATA['services'][k]['name'], "price": str(int(SITE_DATA['services'][k]['price'])), "priceCurrency": "INR", "priceSpecification": price_spec(SITE_DATA['services'][k]['price'])} for k in keys if k in SITE_DATA['services']]
+def service_node(name, url, service_type, price_keys=(), **extra):
+    """A Service that points to the one business node by @id."""
+    d = {"@type": "Service", "name": name, "serviceType": service_type, "url": url, "provider": {"@id": BUSINESS_ID}, "areaServed": {"@type": "City", "name": "Bengaluru"}}
+    if price_keys: d["offers"] = offers(price_keys)
+    d.update(extra); return d
+def page_ld(*nodes):
+    return ''.join(ld_tag({"@context": "https://schema.org", **n}) for n in nodes)
+ARTICLE_PUBLISHER = {"@type": "Organization", "@id": BUSINESS_ID, "name": "Mechanix Pro", "logo": {"@type": "ImageObject", "url": SITE + "/assets/img/icon-512.png"}}
+# Dates a page or video was first published on the site: the date of the git commit that added the file (the earliest it could have been live). Not a modified date.
+GUIDE_PUBLISHED = {'how-often-to-service-your-bike': '2026-10-16', 'doorstep-bike-service-vs-garage': '2026-10-16'}
+WORKSHOP_VIDEO_PUBLISHED = '2026-11-05'
 def _inr(n): return 'Free' if n == 0 else '₹' + format(int(n), ',')
 def _price(key):
     d = SITE_DATA['services'].get(key)
@@ -346,7 +362,11 @@ def write(path, content):
         content = content.replace('</body>', HERO_VIDEO_TAG + '</body>', 1)
     if path.endswith('.html') and MECHU_PAGE.match(path) and '</body>' in content:
         content = content.replace('</body>', MECHU_TAG + '</body>', 1)   # Mechu, the virtual assistant button (see the Mechu section near the end)
-    open(full, 'w', encoding='utf-8').write(seo_fit(tok(shape(content, path))) if path.endswith('.html') else content)
+    out = seo_fit(tok(shape(content, path))) if path.endswith('.html') else content
+    if path.startswith('bike-service/') and path.endswith('.html'):
+        # model pages: the visible breadcrumb is a labelled <nav> that matches their BreadcrumbList (same class, so the styling is unchanged)
+        out = re.sub(r'<p class="breadcrumb">(.*?)</p>', r'<nav class="breadcrumb" aria-label="Breadcrumb">\1</nav>', out, count=1, flags=re.S)
+    open(full, 'w', encoding='utf-8').write(out)
 
 _pc = json.load(open(os.path.join(ROOT, 'src', 'model-photos.json'), encoding='utf-8'))
 POPULAR = ''.join(f'<a href="/bike-service/{k}/">{html.escape(_pc[k]["brand"] + " " + _pc[k]["model"])}</a>' for k in ['honda-activa-6g', 'honda-dio', 'tvs-jupiter', 'hero-splendor-plus', 'bajaj-pulsar-ns160', 'royal-enfield-classic-350', 'ola-electric-s1-pro'] if k in _pc)
@@ -392,7 +412,7 @@ for slug, name, pins, locs, why in AREAS:
       "@context": "https://schema.org", "@type": "Service", "name": f"Doorstep bike service in {name}, Bengaluru", "serviceType": "Doorstep bike and scooter service", "url": url,
       "provider": PROVIDER, "areaServed": {"@type": "Place", "name": f"{name}, Bengaluru", "address": {"@type": "PostalAddress", "addressLocality": "Bengaluru", "addressRegion": "Karnataka", "postalCode": pins.split(',')[0].strip(), "addressCountry": "IN"}},
       "offers": offers(('basic', 'general', 'full', 'repair', 'puncture', 'sos'))}) + '\n' + ld_tag({
-      "@context": "https://schema.org", "@type": "WebPage", "url": url, "name": title, "dateModified": TODAY, "about": {"@id": BUSINESS_ID}}) + '\n' + ld_tag({
+      "@context": "https://schema.org", "@type": "WebPage", "url": url, "name": title, "isPartOf": {"@id": WEBSITE_ID}, "about": {"@id": BUSINESS_ID}}) + '\n' + ld_tag({
       "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]})
     body = f'''<p class="breadcrumb"><a href="/">Home</a> › Bike service in {name}</p>
 <h1 style="font-size:clamp(34px,6vw,52px)">Doorstep bike service in {name}.</h1>
@@ -539,14 +559,13 @@ for brand, name, t, big in load_bikes():
       ('Is there a warranty on the work?', 'Yes, {{days}} days on the work, with OEM and aftermarket parts.'),
       ('Do I pay before the work starts?', 'You approve the quote first. To hold your slot you pay {{confirmrule}}.'),
     ]
-    schema = '<script type="application/ld+json">' + json.dumps({
-      "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]}, ensure_ascii=False) + '</script>\n<script type="application/ld+json">' + json.dumps({
-      "@context": "https://schema.org", "@type": "AutoRepair", "name": f"Mechanix Pro: {full} service", "url": url,
-      "image": f"{SITE}/assets/img/models/{slug}.webp", "telephone": "+91-7965295649", "priceRange": "{{text:repair}}–{{text:full}}",
-      "areaServed": {"@type": "City", "name": "Bengaluru"},
-      "address": {"@type": "PostalAddress", "addressLocality": "Bengaluru", "addressRegion": "Karnataka", "addressCountry": "IN"}}, ensure_ascii=False) + '</script>'
+    # FAQPage, a 2-level BreadcrumbList (Home > this page), the Service (provider = the one business node, four Offers before GST) and the WebPage that is part of the site and about that Service.
+    svc_id = url + '#service'
+    schema = (ld_tag(faq_ld(faq)) + crumbs((full, f'/bike-service/{slug}/'))
+              + page_ld(service_node(f"{full} service at home in Bengaluru", url, "Doorstep bike and scooter service", ('basic', 'general', 'full', 'repair'), **{"@id": svc_id, "description": "Prices are for bikes and scooters up to 149cc and exclude GST; 150 to 250cc and 251 to 500cc bikes have their own prices."}),
+                        {"@type": "WebPage", "@id": url + '#webpage', "url": url, "name": f"{full} service at home in Bengaluru", "isPartOf": {"@id": WEBSITE_ID}, "about": {"@id": svc_id}}))
     price_rows = ''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES if k in ('basic', 'general', 'full', 'repair'))
-    body = f'''<p class="breadcrumb"><a href="/">Home</a> › <a href="/book/?brand={urllib.parse.quote(brand, safe="")}">{html.escape(brand)}</a> › {html.escape(name)}</p>
+    body = f'''<p class="breadcrumb"><a href="/">Home</a> › {html.escape(full)}</p>
 <h1 style="font-size:clamp(32px,6vw,50px)">{html.escape(full)} service at your doorstep in Bengaluru.</h1>
 <p class="muted" style="font-size:20px">A Mechanix Pro certified mechanic comes to your home or office for your {html.escape(full)}, a {kind}. Quote on WhatsApp first, and nothing starts without your OK.</p>
 <figure class="model-fig"><img src="/assets/img/models/{slug}.webp" width="600" height="420" decoding="async" alt="{html.escape(full)} {kind} (example photo)"><figcaption class="tiny muted">Example photo: "{html.escape(c['title'])}" by {html.escape(c['author'])}, <a href="{html.escape(c['license_url'])}" rel="noopener">{html.escape(c['license'])}</a>, <a href="{html.escape(c['source'])}" rel="noopener">source</a>. It shows an example bike, not a customer's.</figcaption></figure>
@@ -575,7 +594,7 @@ for brand, name, t, big in load_bikes():
 for _slug in model_pages:
     _path = os.path.join(ROOT, 'bike-service', _slug, 'index.html'); _pg = open(_path, encoding='utf-8').read()
     def _others(m):
-        brand = html.unescape(m.group(1)); same = [(sl, nm) for sl, nm in by_brand.get(brand, []) if sl != m.group(2)][:12]
+        brand = html.unescape(m.group(1)); same = [(sl, nm) for sl, nm in by_brand.get(brand, []) if sl != m.group(2)]  # every sibling model, so no model page is an orphan
         return ''.join(f'<a href="/bike-service/{sl}/">{html.escape(brand + " " + nm)}</a>' for sl, nm in same) or '<a href="/book/">Choose your model</a>'
     open(_path, 'w', encoding='utf-8').write(re.sub(r'\{\{OTHERS:(.*?):([a-z0-9-]+)\}\}', _others, _pg))
 
@@ -608,7 +627,7 @@ GUIDE_PAGES = {
 }
 for gslug, (gtitle, gdesc, gh1, glead, gsecs, gfaq) in GUIDE_PAGES.items():
     gurl = f'{SITE}/guides/{gslug}/'
-    gschema = '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in gfaq]}, ensure_ascii=False) + '</script>\n<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "Article", "headline": gh1, "description": gdesc, "mainEntityOfPage": gurl, "dateModified": TODAY, "author": {"@type": "Organization", "name": "Mechanix Pro"}, "publisher": {"@type": "Organization", "name": "Mechanix Pro", "logo": {"@type": "ImageObject", "url": f"{SITE}/assets/img/icon-512.png"}}}, ensure_ascii=False) + '</script>'
+    gschema = '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in gfaq]}, ensure_ascii=False) + '</script>\n<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "Article", "headline": gh1, "description": gdesc, "mainEntityOfPage": gurl, "image": f"{SITE}/assets/img/og.png", **({"datePublished": GUIDE_PUBLISHED[gslug]} if gslug in GUIDE_PUBLISHED else {}), "author": {"@type": "Organization", "@id": BUSINESS_ID, "name": "Mechanix Pro"}, "publisher": ARTICLE_PUBLISHER}, ensure_ascii=False) + '</script>'
     gbody = f"""<p class="breadcrumb"><a href="/">Home</a> › Guides › {html.escape(GUIDES_TITLE[gslug])}</p>
 <h1 style="font-size:clamp(32px,6vw,50px)">{html.escape(gh1)}</h1>
 <p class="muted" style="font-size:20px">{html.escape(glead)}</p>
@@ -632,6 +651,7 @@ GROUP = {
    ['A set service day in your parking area', 'Each owner gets their own quote and approves for their own bike', 'Group visits mean quicker slots', 'Mechanix Pro certified mechanics and OEM and aftermarket parts', '{{days}}-day warranty on the work'],
    'Hi Mechanix Pro, I would like a bike service day at our apartment or office. Society or office name: __. Area: __. Approximate bikes: __.', 'Plan a service day on WhatsApp'),
 }
+GROUP_LD = {'fleet': ('Fleets and delivery riders', 'Bike service for fleets and delivery riders'), 'societies': ('Apartments and offices', 'Bike service days for apartments and offices')}
 for slug, (title, desc, h1, lead, points, msg, cta) in GROUP.items():
     url = f'{SITE}/{slug}/'
     body = f'''<h1 style="font-size:clamp(32px,6vw,50px)">{h1}</h1>
@@ -646,7 +666,9 @@ for slug, (title, desc, h1, lead, points, msg, cta) in GROUP.items():
 <h2>How it works</h2>
 <ol><li>Message us the number of bikes and your location.</li><li>We reply with a group quote and a service day.</li><li>Each owner approves, and the mechanics arrive on the day.</li></ol>
 '''
-    write(f'{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema='', scripts=LEGAL_JS, body='', nav=NAV, main='page') + body + foot())
+    _gname, _gtype = GROUP_LD[slug]
+    _gld = crumbs((_gname, f'/{slug}/')) + page_ld(service_node(_gname, url, _gtype, description=_unesc(re.sub('<[^>]+>', '', lead))))
+    write(f'{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=_gld, scripts=LEGAL_JS, body='', nav=NAV, main='page') + body + foot())
     urls.append((f'/{slug}/', '0.6'))
 
 # ---- Every Bengaluru PIN code: a small script for the PIN check, and a page that lists them all ----
@@ -1036,6 +1058,14 @@ def workshop_teaser_html():
 
 HERO_CSS = '<link rel="stylesheet" href="/assets/css/hero.css">\n'
 BOOK_JS = '<link rel="stylesheet" href="/assets/css/book.css"><link rel="stylesheet" href="/assets/css/journey.css">\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/thanks.js" defer></script>\n<script src="/assets/js/book-pay.js" defer></script>'
+def services_catalog():
+    """OfferCatalog (the @id the home page's business node points to): every service in src/site.json with its price before GST. The three packages have one Offer per engine-size tier."""
+    sv = SITE_DATA['services']; items = []
+    for k, v in sv.items():
+        name = v['name'] + (' (up to 149cc)' if k in ('basic', 'general', 'full') else '')
+        items.append({"@type": "Offer", "name": name, "price": str(int(v['price'])), "priceCurrency": "INR", "priceSpecification": price_spec(v['price']),
+                      "itemOffered": {"@type": "Service", "name": name, "provider": {"@id": BUSINESS_ID}}})
+    return {"@context": "https://schema.org", "@type": "OfferCatalog", "@id": CATALOG_ID, "name": "Mechanix Pro services and prices (before 18% GST)", "url": SITE + "/services/", "itemListElement": items}
 MAIN = [
   ('', 'home', 'Two Wheeler Doorstep Service in Bangalore | Mechanix Pro', 'Two wheeler service at home in Bangalore (Bengaluru) from {{text:basic}}. Servicing in as fast as 2 hours, scooty repair, EV and petrol bike care. Quote first.', 'home.jsonld', 'home', HERO_CSS + APP_JS, '1.0'),
   ('book', 'book-pay', 'Book a Doorstep Bike or Car Service | Mechanix Pro', 'Book a doorstep bike or car service in Bengaluru. Pay a small confirmation fee to lock your slot, adjusted in your final bill. Itemised quote first, nothing starts without your OK.', None, 'page-book', BOOK_JS, '0.9'),
@@ -1047,20 +1077,24 @@ for slug, src, title, desc, ld, body, scripts, prio in MAIN:
     url = f'{SITE}/{slug}/' if slug else f'{SITE}/'
     _ld = open(os.path.join(ROOT, 'src', ld), encoding='utf-8').read() if ld else ''
     if ld == 'home.jsonld':
-        _d = json.loads(_ld)
+        # One @graph: the full business (AutoRepair, the single @id #business), the WebSite (publisher = the business) and this WebPage. The FAQPage follows, built from the visible FAQ.
+        _d = json.loads(_ld); _d.pop('@context', None)
         _d['areaServed'] = [{"@type": "City", "name": "Bengaluru"}] + [{"@type": "Place", "name": f"{n}, Bengaluru"} for _s, n, *_r in AREAS]
-        _d['hasOfferCatalog'] = {"@type": "OfferCatalog", "name": "Bike and scooter services", "itemListElement": [{"@type": "Offer", "priceCurrency": "INR", "price": str(int(SITE_DATA['services'][k]['price'])), "itemOffered": {"@type": "Service", "name": SITE_DATA['services'][k]['name']}} for k in ('basic', 'general', 'full', 'repair') if k in SITE_DATA['services']]}
-        _ld = json.dumps(_d, ensure_ascii=False)
+        _d['hasOfferCatalog'] = {"@id": CATALOG_ID}   # the catalog itself (with prices) is defined on /services/
+        _graph = {"@context": "https://schema.org", "@graph": [_d, {"@type": "WebSite", "@id": WEBSITE_ID, "name": "Mechanix Pro", "url": SITE + "/", "inLanguage": "en-IN", "publisher": {"@id": BUSINESS_ID}},
+                  {"@type": "WebPage", "@id": SITE + "/#webpage", "url": SITE + "/", "name": title, "inLanguage": "en-IN", "isPartOf": {"@id": WEBSITE_ID}, "about": {"@id": BUSINESS_ID}}]}
+        _ld = json.dumps(_graph, ensure_ascii=False)
     schema = ('<script type="application/ld+json">' + _ld + '</script>') if ld else ''
     if ld == 'help.jsonld':
         # /help/ FAQPage comes from the visible <details> in src/help.html (same generator as the home page); src/help.jsonld keeps only the WebPage node.
         schema += '<script type="application/ld+json">' + json.dumps(faq_ld(faq_from_html(open(os.path.join(ROOT, 'src', 'help.html'), encoding='utf-8').read())), ensure_ascii=False) + '</script>'
+    if slug == 'services':
+        schema = crumbs(('Services and prices', '/services/')) + ld_tag(services_catalog())
     if ld == 'home.jsonld':
-        # FAQPage from the visible FAQ (the same words), and WebSite, so search engines can show rich results.
+        # FAQPage from the visible FAQ (the same words).
         _src = open(os.path.join(ROOT, 'src', 'home.html'), encoding='utf-8').read()
         _faq = faq_from_html(_src)
-        if _faq: schema += '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in _faq]}, ensure_ascii=False) + '</script>'
-        schema += '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "WebSite", "name": "Mechanix Pro", "url": SITE + "/", "inLanguage": "en-IN"}, ensure_ascii=False) + '</script>'
+        if _faq: schema += ld_tag(faq_ld(_faq))
     content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--AREA_LINKS-->', AREA_LINKS).replace('<!--WORKSHOP_TEASER-->', workshop_teaser_html()).replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
     out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(dock=(src not in ('book', 'book-pay')), dock_home=(src == 'home'))
     if src == 'home':
@@ -1123,7 +1157,7 @@ def join_page():
   <p class="wl-msg" id="ptMsg" role="status" aria-live="polite"></p>
 </form></div></section>
 {garage_band('Questions before you apply?', partner=True)}'''
-    write('join/index.html', HEAD.format(title='Join Mechanix Pro: Garages and Mechanics in Bengaluru', desc='Run a garage or work as a mechanic in Bengaluru? Apply to join the Mechanix Pro network and get doorstep bookings.', url=f'{SITE}/join/', site=SITE, schema=crumbs(('Join us', '/join/')) + ld_tag({"@context": "https://schema.org", "@type": "WebPage", "name": "Join the Mechanix Pro network", "url": SITE + "/join/", "about": "Garages and mechanics in Bengaluru can apply to join Mechanix Pro."}), scripts=LEGAL_JS + '<script src="/assets/js/partner.js" defer></script>', body='', nav=NAV, main='') + body + foot())
+    write('join/index.html', HEAD.format(title='Join Mechanix Pro: Garages and Mechanics in Bengaluru', desc='Run a garage or work as a mechanic in Bengaluru? Apply to join the Mechanix Pro network and get doorstep bookings.', url=f'{SITE}/join/', site=SITE, schema=crumbs(('Join us', '/join/')) + ld_tag({"@context": "https://schema.org", "@type": "WebPage", "name": "Join the Mechanix Pro network", "url": SITE + "/join/", "description": "Garages and mechanics in Bengaluru can apply to join Mechanix Pro.", "about": {"@id": BUSINESS_ID}}), scripts=LEGAL_JS + '<script src="/assets/js/partner.js" defer></script>', body='', nav=NAV, main='') + body + foot())
     urls.append(('/join/', '0.6'))
 join_page()
 
@@ -1144,7 +1178,7 @@ def garage_partner_page():
 <section><div class="wrap"><div class="sec-head"><h2>What your garage does.</h2></div>{does}</div></section>
 <section class="band"><div class="wrap"><div class="sec-head"><h2>How to apply.</h2><p>Every garage and mechanic is checked before the first job, so customers can trust the name. There is one form, on the Join us page.</p></div><ol class="soon-steps">{steps}</ol><p style="margin-top:22px"><a class="btn btn-primary btn-apply" href="/join/#apply">Go to the application form</a></p></div></section>
 {garage_band('Ready to partner?', partner=False)}'''
-    ld = crumbs(('Partner your garage', f'/{slug}/')) + ld_tag({"@context": "https://schema.org", "@type": "WebPage", "name": "Partner your garage with Mechanix Pro", "url": f'{SITE}/{slug}/', "about": "Workshops and independent garages in Bengaluru can apply to partner with Mechanix Pro."})
+    ld = crumbs(('Partner your garage', f'/{slug}/')) + ld_tag({"@context": "https://schema.org", "@type": "WebPage", "name": "Partner your garage with Mechanix Pro", "url": f'{SITE}/{slug}/', "description": "Workshops and independent garages in Bengaluru can apply to partner with Mechanix Pro.", "about": {"@id": BUSINESS_ID}})
     write(f'{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=f'{SITE}/{slug}/', site=SITE, schema=ld, scripts=LEGAL_JS, body='', nav=NAV, main='') + body + foot())
     urls.append((f'/{slug}/', '0.6'))
 garage_partner_page()
@@ -1247,8 +1281,9 @@ def workshop_page():
     lead_html = ws_item_html(lead).replace('class="ws-fig ws-vid"', 'class="ws-fig ws-vid ws-lead"', 1) if lead else ''
     has_video = any(it['kind'] == 'video' for it in items)
     disclose = WS_DISCLOSE + ' ' + WS_DISCLOSE_EXTRA + ((' ' + WS_DISCLOSE_VIDEO) if has_video else '')
-    ld = crumbs(('Our workshop', '/workshop/')) + ld_tag({"@context": "https://schema.org", "@type": "AutoRepair", "@id": BUSINESS_ID, "name": "Mechanix Pro", "legalName": COMPANY['legalName'], "url": SITE + "/",
-        "address": {"@type": "PostalAddress", "streetAddress": ', '.join(COMPANY['addressLines']), "addressLocality": COMPANY['city'], "addressRegion": COMPANY['state'], "postalCode": COMPANY['pincode'], "addressCountry": "IN"}})
+    # The page is a WebPage about the one business node (defined in full on the home page); the two workshop videos are described as VideoObjects.
+    vids = [{"@type": "VideoObject", "name": it['caption'], "description": it['alt'], "thumbnailUrl": f"{SITE}{WS_IMG}{it['poster']}-1200.webp", "contentUrl": f"{SITE}{WS_VID}{it['file']}.mp4", "uploadDate": WORKSHOP_VIDEO_PUBLISHED} for it in items if it['kind'] == 'video' and it.get('poster')]
+    ld = crumbs(('Our workshop', '/workshop/')) + page_ld({"@type": "WebPage", "@id": url + '#webpage', "url": url, "name": WORKSHOP['title'], "isPartOf": {"@id": WEBSITE_ID}, "about": {"@id": BUSINESS_ID}, "mainEntity": {"@id": BUSINESS_ID}}, *vids)
     body = f"""<section class="page-head"><div class="wrap"><p class="breadcrumb"><a href="/">Home</a> &rsaquo; Our workshop</p><h1>Our workshop, HSR Layout.</h1>
 <p>This is the Mechanix Pro workshop in HSR Layout, Bengaluru. Most of our work happens at your door, and this is the base our mechanics work from. The photos below are real, and you are welcome to see the place for yourself.</p></div></section>
 <section><div class="wrap"><div class="ws-layout{' ws-has-lead' if lead else ''}">{lead_html}<div class="ws-grid">{gallery}</div></div>
@@ -1278,7 +1313,7 @@ def blog_pages():
     for i, x in enumerate(posts):
         url = f"{SITE}/blog/{x['slug']}/"
         more = [y for y in posts if y['slug'] != x['slug']][:3]
-        ld = crumbs(('Blog', '/blog/'), (x['h1'], f"/blog/{x['slug']}/")) + ld_tag({"@context": "https://schema.org", "@type": "BlogPosting", "headline": x['h1'], "description": x['desc'], "datePublished": x['date'], "dateModified": x['date'], "mainEntityOfPage": url, "author": {"@type": "Organization", "name": "Mechanix Pro"}, "publisher": {"@type": "Organization", "name": "Mechanix Pro", "logo": {"@type": "ImageObject", "url": SITE + "/assets/img/logo.svg"}}}) + ld_tag({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in x['faq']]})
+        ld = crumbs(('Blog', '/blog/'), (x['h1'], f"/blog/{x['slug']}/")) + ld_tag({"@context": "https://schema.org", "@type": "BlogPosting", "headline": x['h1'], "description": x['desc'], "datePublished": x['date'], "dateModified": x['date'], "mainEntityOfPage": url, "image": SITE + "/assets/img/og.png", "author": {"@type": "Organization", "@id": BUSINESS_ID, "name": "Mechanix Pro"}, "publisher": ARTICLE_PUBLISHER}) + ld_tag({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in x['faq']]})
         body = f'''<article class="page" style="max-width:780px;margin:0 auto;padding:0 16px"><p class="breadcrumb"><a href="/">Home</a> › <a href="/blog/">Blog</a></p>
 <h1 style="font-size:clamp(30px,5.5vw,46px)">{html.escape(x['h1'])}</h1><p class="tiny muted"><time datetime="{x['date']}">{nice(x['date'])}</time> · Mechanix Pro</p>
 <p class="muted" style="font-size:20px">{html.escape(x['lead'])}</p>

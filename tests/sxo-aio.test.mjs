@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
-const lds = (html) => [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1]));
+const lds = (html) => [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].flatMap((m) => { const d = JSON.parse(m[1]); return d['@graph'] || [d]; }); // changed on purpose: home JSON-LD is one @graph now
 
 test('one business entity: the home page defines it, area and roadside pages point to it', () => {
   const home = lds(read('index.html')).find((x) => x['@type'] === 'AutoRepair');

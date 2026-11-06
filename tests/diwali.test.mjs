@@ -19,7 +19,7 @@ test('an offer line comes only from config, and is cleaned', () => {
 test('every page keeps the Diwali banner, the join page exists, and no discount is invented', () => {
   const home = read('../index.html');
   assert.match(home, /href="\/join\/"/);
-  const built = /"dateModified": "(\d{4}-\d{2}-\d{2})"/.exec(read('../bike-service-hsr-layout/index.html'))[1];
+  const built = /<lastmod>(\d{4}-\d{2}-\d{2})<\/lastmod>/.exec(read('../sitemap.xml'))[1]; // changed on purpose: area pages no longer carry the build date as dateModified (SEO 6f), so the build date is read from the sitemap
   if (built <= '2026-11-08') { // the banner is built into pages only until 8 November 2026; later builds carry none
     assert.match(home, /data-diwali-bar/);
     assert.doesNotMatch(home.match(/<div class="diwali-bar"[\s\S]*?<\/div>/)[0], /\d+\s?%|₹\s?\d|flat|off\b/i);

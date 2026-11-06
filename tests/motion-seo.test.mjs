@@ -19,7 +19,7 @@ test('the continue nudge appears only for a build with a name, and is cleaned', 
 });
 test('the home page tells search engines its FAQ, its site and its business, with the same words as the page', () => {
   const h = read('../index.html');
-  const types = [...h.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1])['@type']);
+  const types = [...h.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].flatMap((m) => { const d = JSON.parse(m[1]); return (d['@graph'] || [d]).map((x) => x['@type']); }); // changed on purpose: home JSON-LD is one @graph now
   for (const t of ['AutoRepair', 'FAQPage', 'WebSite']) assert.ok(types.includes(t), t);
   const faq = JSON.parse([...h.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => m[1]).find((s) => s.includes('FAQPage')));
   assert.ok(faq.mainEntity.length >= 4);

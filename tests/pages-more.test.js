@@ -18,7 +18,8 @@ test('model pages have unique titles and descriptions, a canonical link, JSON-LD
     const t = h.match(/<title>(.*?)<\/title>/)[1], d = h.match(/<meta name="description" content="(.*?)"/)[1];
     assert.ok(!titles.has(t), 'dup title ' + t); assert.ok(!descs.has(d), 'dup description ' + slug); titles.add(t); descs.add(d);
     assert.match(h, new RegExp(`<link rel="canonical" href="https://[^"]+/bike-service/${slug}/"`));
-    assert.match(h, /"@type": "AutoRepair"/); assert.match(h, /href="\/book\/\?brand=[^"&]+&amp;model=/);
+    assert.match(h, /"@type": "Service"/); assert.doesNotMatch(h, /"@type": "AutoRepair"/); // changed on purpose: model pages describe a Service whose provider is the one business node (SEO 6a)
+    assert.match(h, /href="\/book\/\?brand=[^"&]+&amp;model=/);
     assert.equal((h.match(/<h1/g) || []).length, 1);
     assert.doesNotMatch(h, /\{\{/);
   }

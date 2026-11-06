@@ -71,7 +71,7 @@ test('areas link to the existing area pages, and the FAQ shows five questions wi
   assert.equal((faq.match(/<details>/g) || []).length, 14, 'every question stays on the page, so the FAQ structured data still matches');
 });
 test('home structured data is unchanged: the FAQPage lists the same 14 questions that are on the page', () => {
-  const ld = [...home.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map((m) => JSON.parse(m[1]));
+  const ld = [...home.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].flatMap((m) => { const d = JSON.parse(m[1]); return d['@graph'] || [d]; }); // changed on purpose: home JSON-LD is one @graph now
   const faq = ld.find((x) => x['@type'] === 'FAQPage');
   assert.equal(faq.mainEntity.length, 14);
   assert.ok(ld.some((x) => x['@type'] === 'AutoRepair')); assert.ok(ld.some((x) => x['@type'] === 'WebSite'));
