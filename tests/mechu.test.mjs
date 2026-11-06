@@ -156,7 +156,7 @@ test('the bike-only claims are absent in a car context', () => {
   assert.equal(chat.isCar(D, {}, '/car-service-bangalore/', null), true);
   assert.equal(chat.isCar(D, { vehicle: 'car' }, '/', null), true); assert.equal(chat.isCar(D, { vehicle: 'bike' }, '/car-service-bangalore/', null), false);
   assert.equal(chat.isCar(D, {}, '/', { getElementById: () => ({ checked: true }) }), true);
-  const carFaq = chat.faqList(D, true), carText = JSON.stringify(carFaq) + chat.COPY.carPrice + chat.COPY.carArea;
+  const carFaq = chat.faqList(D, true), carText = (JSON.stringify(carFaq) + chat.COPY.carPrice + chat.COPY.carArea).replace(/To confirm a booking you pay [^.]*\.( For cars the fee is ₹\d+\.)?/g, ''); // changed on purpose: the car FAQ states the confirmation fee
   assert.ok(carFaq.length >= 4);
   assert.ok(!/10,000|1,300|gated|warranty|₹|\bGST\b|up to 149cc/.test(carText), 'no bike claim, price, GST line or warranty in the car answers');
   // a car question never gets a bike FAQ answer

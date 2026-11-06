@@ -6,7 +6,7 @@ const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 test('the car service page is live, claims no price or warranty, and is in the sitemap and the menu', () => {
   const page = read('car-service-bangalore/index.html');
   assert.match(page, /<h1>Car service in Bangalore, quote first\.<\/h1>/); assert.match(page, /Car service is now live/); assert.match(page, /Axlio/); assert.ok(!existsSync(new URL('../coming-soon/car-service/index.html', import.meta.url)), 'the coming-soon car page is gone'); assert.match(read('_redirects'), /\/coming-soon\/car-service\/ \/car-service-bangalore\//);
-  assert.ok(!/₹\s?\d/.test(page.replace(/<script[\s\S]*?<\/script>/g, '')), 'no rupee amount on the car page');
+  assert.ok(!/₹\s?\d/.test(page.replace(/<script[\s\S]*?<\/script>/g, '').replace(/To confirm a booking you pay [^.]*\.( For cars the fee is ₹\d+\.)?/g, '')), 'no rupee amount on the car page (the confirmation-fee sentence aside)'); // changed on purpose: the car FAQ states the confirmation fee
   assert.match(page, /"@type":\s?"FAQPage"/); assert.match(read('sitemap.xml'), /car-service-bangalore/); assert.match(read('index.html'), /href="\/car-service-bangalore\/"/);
 });
 test('llms.txt carries the same prices as the site and robots.txt lets AI assistants read the public pages', () => {

@@ -83,3 +83,28 @@ test('4. every link in llms.txt points to a page that exists', () => {
   for (const u of links) { const path = u.replace(SITE, ''); assert.ok(publicFiles().includes(path.replace(/^\//, '') + 'index.html'), u); }
   for (const u of ['/garage-partners/', '/workshop/']) assert.ok(t.includes(SITE + u), u);
 });
+
+const FEE = /a small confirmation fee, ₹49 to ₹99 depending on your vehicle's engine size/;
+test('5. the confirmation fee is stated on /services/, every landing page, and the roadside and car FAQs (JSON-LD equals visible text)', () => {
+  assert.match(strip(read('services/index.html')), FEE);
+  for (const f of ['two-wheeler-service-at-home-bangalore', 'scooty-repair-at-home-bangalore', 'ev-and-petrol-bike-care-bangalore', 'verified-bike-garages-bangalore', 'digital-service-records', 'doorstep-bike-and-car-repair-near-me', 'major-bike-repair-pickup-and-drop-bangalore']) {
+    const h = read(f + '/index.html');
+    assert.ok(h.includes('Prices, up front.'), f); assert.match(strip(h), new RegExp('To confirm your slot you pay ' + FEE.source), f);
+  }
+  for (const f of ['roadside/index.html', 'car-service-bangalore/index.html']) {
+    const h = read(f); const ld = ldFaq(h); const vis = visibleFaq(h);
+    assert.deepEqual(ld, vis, f); assert.ok(ld.some(([, a]) => FEE.test(a)), f + ' FAQ states the fee');
+  }
+  assert.doesNotMatch(strip(read('car-service-bangalore/index.html')), /Do I pay before the work\? No\./);
+});
+test('5. question-style H2s on key pages, H1s unchanged', () => {
+  const h2 = (f) => [...read(f).matchAll(/<h2[^>]*>(.*?)<\/h2>/gs)].map((m) => strip(m[1]).trim());
+  const h1 = (f) => (read(f).match(/<h1[^>]*>(.*?)<\/h1>/s) || [])[1];
+  assert.ok(h2('index.html').includes('How does doorstep service work?'));
+  assert.ok(h2('services/index.html').includes('What does a bike service cost?'));
+  assert.ok(h2('roadside/index.html').includes('What does the roadside visit cover?'));
+  assert.ok(h2('major-bike-repair-pickup-and-drop-bangalore/index.html').includes('Is pickup and drop free?'));
+  assert.equal(strip(h1('services/index.html')), 'Services and prices.');
+  assert.equal(strip(h1('roadside/index.html')), 'Bike broken down in Bengaluru? We send the nearest mechanic.');
+  assert.ok(read('index.html').includes('id="brief-h"') && read('services/index.html').includes('id="prices"'));
+});
