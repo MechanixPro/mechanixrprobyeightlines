@@ -40,9 +40,11 @@ export function createFlow(deps) {
   async function load(leadId) {
     // A part that fails is NOT shown as "none yet": its name goes into `failed`, and the card says so with a Retry button.
     const failed = [], safe = (name, p) => p.then((x) => x, () => { failed.push(name); return null; });
-    const [conf, notes, quote, updates, seen] = await Promise.all([safe('payment status', rpc('crm_confirmation', { p_lead: leadId })), safe('messages', rpc('crm_notifications', { p_lead: leadId })), safe('quote', rpc('crm_quote_get', { p_lead: leadId })),
-      safe('customer details', rpc('crm_booking_updates', { p_lead: leadId })), safe('mechanic location', rpc('crm_tech_location', { p_lead: leadId }))]);
-    return { conf, notes: notes || [], quote, updates, seen, failed };
+    const gd = deps.garageDesk && deps.garageDesk.visible();   // partner garage: only for people who may manage garages
+    const [conf, notes, quote, updates, seen, garage] = await Promise.all([safe('payment status', rpc('crm_confirmation', { p_lead: leadId })), safe('messages', rpc('crm_notifications', { p_lead: leadId })), safe('quote', rpc('crm_quote_get', { p_lead: leadId })),
+      safe('customer details', rpc('crm_booking_updates', { p_lead: leadId })), safe('mechanic location', rpc('crm_tech_location', { p_lead: leadId })),
+      gd ? safe('partner garage', deps.garageDesk.forLead(leadId)) : Promise.resolve(null)]);
+    return { conf, notes: notes || [], quote, updates, seen, garage, failed };
   }
   /** Fold the confirmation fields into the lead the step bar reads. */
   const withFlow = (lead, flow) => (flow && flow.conf ? { ...lead, confirm_fee: flow.conf.fee, confirm_paid_at: flow.conf.paid ? (flow.conf.paid_at || 'paid') : null, visit_stage: flow.conf.stage, quote_state: flow.conf.quote ? flow.conf.quote.status : null } : lead);
@@ -74,6 +76,7 @@ export function createFlow(deps) {
       if ((c && c.stage) === 'ready' && l.job_place !== 'garage') row.push('<button class="flow-btn" type="button" data-flow="markDelivered">Mark delivered</button>');
       if (row.length) h += `<div class="flow-row">${row.join('')}</div>`;
       h += quoteBlock(l, flow);
+      if (deps.garageDesk && deps.garageDesk.visible()) h += deps.garageDesk.leadHtml(flow && flow.garage);
     }
     h += seenBlock(l, flow) + customerBlock(flow);
     const rs = resendable(flow && flow.notes);
@@ -132,6 +135,7 @@ export function createFlow(deps) {
         } });
     },
     reloadFlow() { deps.reload(); },
+    garageAssign(lead, flow, btn) { return deps.garageDesk.assignDialog({ lead, moveFrom: (btn && btn.dataset && btn.dataset.move) || undefined }); },
     copyScript(lead, flow, btn) { copy(callScript(btn.dataset.amount || '49 to 99')); },
     async assign(lead) {
       const list = await (deps.mechanics ? deps.mechanics() : rpc('crm_mechanic_picker'));
