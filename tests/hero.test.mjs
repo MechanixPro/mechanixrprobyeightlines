@@ -13,9 +13,10 @@ test('hero.css is linked from the home page only and stays small', () => {
   assert.match(home, /<link rel="stylesheet" href="\/assets\/css\/hero\.css(\?v=\w+)?">/);
   for (const f of ['book/index.html', 'help/index.html', 'car-service-bangalore/index.html', 'services/index.html']) assert.doesNotMatch(read(f), /hero\.css/, f);
   // Raised on purpose to 9,500 bytes: the video hero, the booking bar and the Why choose row need more CSS than the earlier hero.
-  assert.ok(statSync(new URL('../assets/css/hero.css', import.meta.url)).size < 9500, 'hero.css budget 9,500 bytes');
+  // Raised again on purpose to 12,500 bytes for the hero picture carousel.
+  assert.ok(statSync(new URL('../assets/css/hero.css', import.meta.url)).size < 12500, 'hero.css budget 12,500 bytes');
   assert.ok(Buffer.byteLength(read('assets/css/site.css')) < 32000);
-  assert.ok(Buffer.byteLength(home) < 44000, 'home HTML ' + Buffer.byteLength(home));
+  assert.ok(Buffer.byteLength(home) < 48000, 'home HTML ' + Buffer.byteLength(home));
 });
 // Changed on purpose (owner's own garage render and video): the hero shows the owner's illustrated Mechanix Pro garage as a short muted loop (bike view) and a still (car view), beside the headline.
 test('the hero media: a muted looping garage video with a poster (bike view) and a car still (car view); sized, alt text, no audio, files exist', () => {
@@ -26,8 +27,9 @@ test('the hero media: a muted looping garage video with a poster (bike view) and
   const src = art.match(/<source src="([^"]+)" type="video\/mp4">/)[1];
   assert.ok(existsSync(new URL('..' + src, import.meta.url)), src); assert.ok(statSync(new URL('..' + src, import.meta.url)).size < 1_600_000, 'video under 1.6 MB');
   assert.ok(existsSync(new URL('../assets/img/hero/hero-garage-poster.webp', import.meta.url)));
-  assert.equal(imgs.length, 1); const t = imgs[0];
-  assert.match(t, /class="car-only"/); assert.match(t, /\balt="[^"]{20,}"/); assert.match(t, /width="2752"/); assert.match(t, /height="1361"/);
+  // Changed on purpose (hero carousel): the pictures are now carousel slides (data-src, car set is the second carousel). See tests/hero-slider.test.mjs.
+  assert.equal(imgs.length, 6); const t = imgs.find((i) => /hero-car-1200/.test(i));
+  assert.match(art, /<div class="hs car-only"/); assert.match(t, /\balt="[^"]{20,}"/); assert.match(t, /\balt="[^"]{20,}"/); assert.match(t, /width="2752"/); assert.match(t, /height="1361"/);
   for (const m of t.matchAll(/\/assets\/img\/hero\/[\w-]+\.webp/g)) assert.ok(existsSync(new URL('..' + m[0], import.meta.url)), m[0]);
   assert.doesNotMatch(art, /Illustration|hm-ill/, 'owner: do not show the word Illustration on the hero');
   assert.doesNotMatch(hero, /\/assets\/img\/workshop\//, 'the real workshop photos are not in the hero');
@@ -71,7 +73,7 @@ test('WhatsApp and Call use the site hooks, no hard-coded numbers; the old garag
   assert.match(hero, /<ul class="hero-list car-only"/); assert.match(css, /#veh-car:checked ~ \* \.hero-list\.car-only/);
 });
 test('CSP: no inline scripts, handlers or style attributes in the hero; no outside hosts', () => {
-  assert.doesNotMatch(hero.replace(/<script src="\/assets\/js\/hero-video\.js(\?v=\w+)?" defer><\/script>/, ''), /<script|\son\w+=|\sstyle=|https?:\/\//i);
+  assert.doesNotMatch(hero.replace(/<script src="\/assets\/js\/hero-(video|slider)\.js(\?v=\w+)?" defer><\/script>/g, ''), /<script|\son\w+=|\sstyle=|https?:\/\//i);
   assert.doesNotMatch(css, /@import|url\(\s*["']?https?:/); assert.doesNotMatch(css, /expression\(|javascript:/i);
 });
 // WCAG contrast. The text sits on the dark navy stage gradient (and its faint orange glow), never on the picture.
