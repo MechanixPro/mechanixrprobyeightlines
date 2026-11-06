@@ -18,7 +18,7 @@ test('hero.css is linked from the home page only and stays small', () => {
   assert.ok(Buffer.byteLength(home) < 44000, 'home HTML ' + Buffer.byteLength(home));
 });
 // Changed on purpose (owner's own garage render and video): the hero shows the owner's illustrated Mechanix Pro garage as a short muted loop (bike view) and a still (car view), beside the headline.
-test('the hero media: a muted looping garage video with a poster (bike view) and a car still (car view); sized, alt text, honest "Illustration" tag, no audio, files exist', () => {
+test('the hero media: a muted looping garage video with a poster (bike view) and a car still (car view); sized, alt text, no audio, files exist', () => {
   assert.match(art, /^<figure class="hero-media"/);
   const v = art.match(/<video\b[^>]*>/)[0];
   for (const a of ['autoplay', 'muted', 'loop', 'playsinline']) assert.match(v, new RegExp('\\b' + a + '\\b'), a);
@@ -29,7 +29,7 @@ test('the hero media: a muted looping garage video with a poster (bike view) and
   assert.equal(imgs.length, 1); const t = imgs[0];
   assert.match(t, /class="car-only"/); assert.match(t, /\balt="[^"]{20,}"/); assert.match(t, /width="2752"/); assert.match(t, /height="1361"/);
   for (const m of t.matchAll(/\/assets\/img\/hero\/[\w-]+\.webp/g)) assert.ok(existsSync(new URL('..' + m[0], import.meta.url)), m[0]);
-  assert.match(art, /<figcaption class="hm-ill">Illustration<\/figcaption>/);
+  assert.doesNotMatch(art, /Illustration|hm-ill/, 'owner: do not show the word Illustration on the hero');
   assert.doesNotMatch(hero, /\/assets\/img\/workshop\//, 'the real workshop photos are not in the hero');
   assert.doesNotMatch(css, /background(-image)?:[^;}]*url\(/);
 });
