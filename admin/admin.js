@@ -201,9 +201,6 @@ document.addEventListener('change', (e) => { const id = e.target.id; if (id === 
 document.addEventListener('input', (e) => { if (e.target.id === 'sf-q') { S.sf.q = e.target.value; clearTimeout(S.sfT); S.sfT = setTimeout(() => { render(); const q = $('#sf-q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if ($('#inv')) $('#inv').remove(); else if (!$('#sheet').hidden) closeSheet(); } });
 $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
-flow.bind($('#sheetPanel'), () => leadOf(S.open), () => S.flow);
-flow.bindDispatch($('#view'), () => S.dispatchRows || []);
-flow.bindIssues($('#view'), () => loadCustIssues());
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-ci]'); if (b) { S.ciFilter = b.dataset.ci; loadCustIssues(); } });
 
 
@@ -659,6 +656,10 @@ const flow = createFlow({
   photoUrl: async (path) => { const { data, error } = await sb.storage.from('booking-updates').createSignedUrl(path, 600); if (error) throw error; return data.signedUrl; },   // customer photos: private bucket, 10-minute links
   mechanics: async () => { const { data } = await sb.from('mechanics').select('id,name,area').eq('active', true).in('onboarding_status', ['live', 'pilot']).order('name'); return data || []; },
 });
+// Bind after the flow object exists (const is not available before its line runs).
+flow.bind($('#sheetPanel'), () => leadOf(S.open), () => S.flow);
+flow.bindDispatch($('#view'), () => S.dispatchRows || []);
+flow.bindIssues($('#view'), () => loadCustIssues());
 async function openLead(id, silent) { await openLeadBase(id, silent); await paintFlow(id); }
 async function paintFlow(id) {
   const el = $('#flowCard'), l = leadOf(id); if (!el || !l) return;
