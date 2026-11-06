@@ -174,7 +174,7 @@ def tok(s):
         if kind == 'includes_li': return ''.join(f'<li>{html.escape(x)}</li>' for x in SITE_DATA['services'][key]['includes'])
         return m.group(0)
     s = re.sub(r'\{\{(price|text|num|fee|feetext|includes_li):([a-z0-9]+)\}\}', rep, s)
-    return s.replace('{{confirmrule}}', CONFIRM_RULE).replace('{{confirmrange}}', CONFIRM_RANGE).replace('{{confirmtiers}}', CONFIRM_TIERS_TEXT).replace('{{days}}', str(SITE_DATA['warrantyDays']))
+    return s.replace('{{confirmrule}}', CONFIRM_RULE).replace('{{confirmrange}}', CONFIRM_RANGE).replace('{{confirmtiers}}', CONFIRM_TIERS_TEXT).replace('{{days}}', str(SITE_DATA['warrantyDays'])).replace('{{vidcode}}', VID_CODE)
 def _unesc(x): return html.unescape(x)
 def fit_title(t, limit=65):
     """Search results cut titles at about 60 characters. Try shorter wordings that keep the area or model and the brand."""
@@ -250,6 +250,9 @@ BIKE_ART_PAGES = ('two-wheeler-service-at-home-bangalore', 'scooty-repair-at-hom
 STAGE_PICS = {
     'bike': ('hero-bike', 'A Mechanix Pro garage with the sign on the wall, a motorcycle on a stand and a smiling mechanic holding a spanner'),
     'car': ('hero-car', 'A Mechanix Pro garage with a car on the lift, its bonnet open, and a mechanic checking it on a tablet'),
+    'ev': ('ev-care', 'A mechanic plugging a diagnostic cable into an electric scooter on a workshop lift'),
+    'monsoon': ('monsoon-check', 'A mechanic in a rain jacket kneeling beside a motorcycle on a rainy Bengaluru street at night'),
+    'parts': ('parts-counter', 'A parts shop counter where a mechanic in an orange shirt collects a boxed part'),
     'road': ('roadside-night', 'A Mechanix Pro mechanic kneeling beside a scooter on a Bengaluru street at night while the rider waits'),
 }
 PIC_BIKE_FIRST = ('bike-service-', 'bike-service/', 'offers/', 'guides/', 'blog/')
@@ -258,6 +261,9 @@ def pic_for(path):
     top = path.split('/')[0]
     if top == 'car-service-bangalore': return 'car'
     if top == 'roadside': return 'road'
+    if path.startswith(('offers/ev-check', 'ev-and-petrol-bike-care-bangalore')): return 'ev'
+    if path.startswith('offers/monsoon-check'): return 'monsoon'
+    if path.startswith('partners/axlio'): return 'parts'
     if path.startswith(PIC_BIKE_FIRST) or top in PIC_BIKE_PAGES: return 'bike'
     return None
 def stage_pic(key, first):
@@ -309,6 +315,18 @@ def shape(page, path=''):
     if has_art and 'assets/css/pages.css' not in out: out = out.replace('</head>', PAGES_CSS + '</head>', 1)
     return out
 
+# ---- Short muted loops (assets/video, posters in assets/img/hero) and body pictures. The loops are played by assets/js/hero-video.js, which write() adds to any page that has one. ----
+def vid(name, label, caption):
+    return (f'<figure class="vid"><video class="hm-v" autoplay muted loop playsinline preload="metadata" poster="/assets/img/hero/{name}-poster.webp" width="1280" height="572" aria-label="{html.escape(label)}">'
+            f'<source src="/assets/video/{name}.mp4" type="video/mp4"></video><figcaption>{html.escape(caption)}</figcaption></figure>')
+def body_pic(stem, alt):
+    return (f'<figure class="bodypic"><img src="/assets/img/hero/{stem}-700.webp" srcset="/assets/img/hero/{stem}-700.webp 700w, /assets/img/hero/{stem}-1200.webp 1200w" sizes="(min-width:960px) 880px, calc(100vw - 40px)" '
+            f'width="1200" height="594" loading="lazy" decoding="async" alt="{html.escape(alt)}"></figure>')
+VID_GARAGE = vid('garage', 'A workshop owner in a dark cap and a Mechanix Pro polo shirt smiling in a workshop.', 'A partner workshop')
+VID_HEADS = {'societies': vid('societies', 'A mechanic checks a motorcycle on a tablet in apartment parking while residents talk nearby.', 'A service day in apartment parking'),
+             'fleet': vid('fleet', 'Two mechanics check a row of motorcycles at a hub in the evening.', 'Servicing a group of bikes at a hub')}
+VID_CODE = vid('code-handover', 'A customer shows a one-time code on a phone to the mechanic.', 'Show the code on your phone to the mechanic when they arrive.')
+HERO_VIDEO_TAG = '<script src="/assets/js/hero-video.js" defer></script>'
 # Mechu appears on the home, model, area, car, services, help and workshop pages. Never on the single-task pages (book, pay, track, job, rate, warranty, unsubscribe).
 MECHU_PAGE = re.compile(r'^(index\.html|bike-service-[a-z0-9-]+/index\.html|bike-service/[a-z0-9-]+/index\.html|car-service-bangalore/index\.html|services/index\.html|help/index\.html|workshop/index\.html)$')
 MECHU_TAG = '<script src="/assets/js/mechu.js" defer></script>'
@@ -317,6 +335,9 @@ def write(path, content):
     if path in OG_BY_PAGE and path.endswith('.html'):
         # a card of its own for the link preview on WhatsApp, Instagram and search (the structured-data image stays the shared one)
         content = content.replace('<meta property="og:image" content="' + SITE + '/assets/img/og.png">', '<meta property="og:image" content="' + SITE + '/assets/img/og/' + OG_BY_PAGE[path] + '.jpg">').replace('<meta name="twitter:image" content="' + SITE + '/assets/img/og.png">', '<meta name="twitter:image" content="' + SITE + '/assets/img/og/' + OG_BY_PAGE[path] + '.jpg">')
+    content = content.replace('{{vidcode}}', VID_CODE) if path.endswith('.html') else content
+    if path.endswith('.html') and 'class="hm-v"' in content and 'hero-video.js' not in content and '</body>' in content:
+        content = content.replace('</body>', HERO_VIDEO_TAG + '</body>', 1)
     if path.endswith('.html') and MECHU_PAGE.match(path) and '</body>' in content:
         content = content.replace('</body>', MECHU_TAG + '</body>', 1)   # Mechu, the virtual assistant button (see the Mechu section near the end)
     open(full, 'w', encoding='utf-8').write(seo_fit(tok(shape(content, path))) if path.endswith('.html') else content)
@@ -610,6 +631,7 @@ for slug, (title, desc, h1, lead, points, msg, cta) in GROUP.items():
     body = f'''<h1 style="font-size:clamp(32px,6vw,50px)">{h1}</h1>
 <p class="muted" style="font-size:20px">{lead}</p>
 <p><a class="btn btn-wa" href="#" data-wa="Bengaluru" data-wa-text="{html.escape(msg)}">{cta}</a></p>
+{VID_HEADS[slug]}
 <h2>What you get</h2>
 <ul>{''.join(f'<li>{p}</li>' for p in points)}</ul>
 <h2>Prices</h2>
@@ -1053,6 +1075,7 @@ def icon_cards(items):
     return '<ul class="gcards">' + ''.join(f'<li><img src="/assets/img/hero/{ic}.webp" width="360" height="360" loading="lazy" decoding="async" alt=""><h3>{html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for ic, t, d in items) + '</ul>'
 GARAGE_WHAT = '''<section><div class="wrap"><div class="gwhat"><div><h2>What a Mechanix Pro garage is.</h2><p>A garage or mechanic in our network that has been visited, document-checked, trained on our way of working and trial-run before taking customer jobs.</p><p>When a bike must go to a workshop, it goes to a Mechanix Pro Certified garage. The repair is quoted first and starts only after the customer approves.</p></div>
 <ul class="gticks"><li>Visited and document-checked</li><li>Trained on quote first and honest findings</li><li>Bike leaves and returns only with the customer's one-time code</li><li>Photos at pickup and at return</li></ul></div></div></section>'''
+GARAGE_VID = '<section><div class="wrap">' + VID_GARAGE + '</div></section>'
 GARAGE_WA = 'Hi Mechanix Pro, I run a garage / I am a mechanic and I want to join your network.'
 def garage_band(h2='Bring your garage to Mechanix Pro.', partner=True):
     return (f'''<section><div class="wrap"><div class="final gband"><h2>{h2}</h2><p>Run a garage or work as a mechanic in Bengaluru? Apply to join us. We bring doorstep bookings, you bring the skill.</p><div class="row"><a class="btn btn-primary btn-apply" href="/join/#apply">Apply to join</a><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{GARAGE_WA}">Ask on WhatsApp</a><a class="btn btn-ghost" href="#" data-call>Call us</a>'''
@@ -1071,6 +1094,7 @@ def join_page():
     <div class="row"><a class="btn btn-primary btn-apply" href="#apply">Apply now</a><a class="btn btn-ghost-light" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I run a garage / I am a mechanic and I want to join your network.">Ask on WhatsApp</a></div></div></div>
 </div></section>
 {GARAGE_WHAT}
+{GARAGE_VID}
 <section class="band"><div class="wrap"><div class="sec-head"><h2>How joining works.</h2><p>Every garage and mechanic is checked before the first job, so customers can trust the name.</p></div><ol class="soon-steps">{steps}</ol></div></section>
 <section><div class="wrap"><div class="sec-head"><h2>What we check before the first job.</h2></div>{icon_cards([(GARAGE_ICON[t], t, d) for t, d in _GTILES])}</div></section>
 <section id="apply"><div class="wrap"><div class="sec-head"><h2>Apply to join.</h2><p>Fill this in and our team will call you. We use these details only to contact you about joining.</p></div>
@@ -1107,6 +1131,7 @@ def garage_partner_page():
     body = f'''<section class="page-head"><div class="wrap"><p class="breadcrumb soon-crumb"><a href="/">Home</a> &rsaquo; Partner your garage</p><span class="soon-pill">For workshops and garages</span><h1>Partner your garage with Mechanix Pro.</h1><p>Run a workshop or an independent garage in Bengaluru? Mechanix Pro brings you doorstep bookings and vehicles that need workshop work. You bring the skill.</p>
   <div class="row"><a class="btn btn-primary btn-apply" href="/join/#apply">Apply to partner</a><a class="btn btn-ghost-light" href="#" data-wa="general" data-wa-text="{GARAGE_WA}">Ask on WhatsApp</a></div></div></section>
 <section><div class="wrap"><div class="sec-head"><h2>Who it is for.</h2><p>Workshops and independent garages in Bengaluru.</p></div>{who}</div></section>
+{GARAGE_VID}
 <section><div class="wrap"><div class="sec-head"><h2>What Mechanix Pro sends you.</h2></div>{sends}</div></section>
 <section><div class="wrap"><div class="sec-head"><h2>What your garage does.</h2></div>{does}</div></section>
 <section class="band"><div class="wrap"><div class="sec-head"><h2>How to apply.</h2><p>Every garage and mechanic is checked before the first job, so customers can trust the name. There is one form, on the Join us page.</p></div><ol class="soon-steps">{steps}</ol><p style="margin-top:22px"><a class="btn btn-primary btn-apply" href="/join/#apply">Go to the application form</a></p></div></section>
@@ -1165,6 +1190,7 @@ def car_page():
     body = f'''<section class="page-head"><div class="wrap"><p class="breadcrumb soon-crumb"><a href="/">Home</a> &rsaquo; {html.escape(kicker)}</p><h1>Car service in Bangalore, quote first.</h1><p>Car service is now live at Mechanix Pro. Message us with your car and what it needs, and you are told the work, the price and the time before anything starts.</p>
   <div class="row" style="margin-top:22px"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a car service in Bangalore.&#10;Car make and model: &#10;Fuel (petrol, diesel, EV): &#10;What it needs: &#10;Area: ">Get a car quote on WhatsApp</a><a class="btn btn-ghost-light" href="/partners/axlio/">About our partner Axlio</a></div></div></section>
 <section><div class="wrap"><div class="sec-head"><h2>What we can help with.</h2></div><ul class="job-grid">{ti}</ul></div></section>
+<section><div class="wrap">{body_pic('car-closeup', 'A mechanic wearing gloves checks a car on a tablet with the bonnet open')}</div></section>
 <section class="band"><div class="wrap"><div class="sec-head"><h2>How it works.</h2></div><ol class="soon-steps steps-2">{st}</ol></div></section>
 <section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Questions we get asked.</h2></div>{fq}</div></section>
 <section><div class="wrap"><div class="final"><h2>Car or bike, we start with a quote.</h2><p>Nothing starts until you say yes.</p><div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a car service in Bangalore.&#10;Car make and model: &#10;Area: ">Get a car quote</a><a class="btn btn-ghost" href="/book/">Book a bike service</a></div></div></div></section>'''
@@ -1191,7 +1217,7 @@ def landing_pages():
   <div class="row" style="margin-top:22px"><a class="btn btn-primary" href="{cta_h}">{html.escape(cta_t)}</a><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I am looking for {html.escape(x["kicker"].lower())} in Bangalore.&#10;Bike model: &#10;Area: ">Ask on WhatsApp</a></div></div>
   <figure class="pg-fig"><img src="/assets/img/stories/{x["image"]}.webp" width="480" height="640" decoding="async" fetchpriority="low" alt="{html.escape(x["image_alt"])}"></figure></div></section>
 <section class="strip" aria-label="Our promises"><div class="wrap"><ul><li>Servicing in as fast as 2 hours</li><li>Quote first, work after your OK</li><li>{{{{days}}}}-day service warranty</li><li>Open 24/7</li></ul></div></section>
-{GARAGE_WHAT if is_garage else ''}<section><div class="wrap"><div class="sec-head"><h2>What you get.</h2></div>{tiles_block}</div></section>
+{(GARAGE_WHAT + GARAGE_VID) if is_garage else ''}<section><div class="wrap"><div class="sec-head"><h2>What you get.</h2></div>{tiles_block}</div></section>
 <section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Prices, up front.</h2><p>Starting prices for bikes and scooters up to 149cc, excluding GST. 150 to 250cc and 251 to 500cc bikes have their own prices on the <a href="/services/">services page</a>.</p></div><div class="card">{LANDING_PRICES}</div><p class="tiny muted" style="margin-top:8px">Prices checked on {TODAY_NICE}.</p></div></section>
 <section class="band"><div class="wrap"><div class="sec-head"><h2>How it works.</h2></div><ol class="soon-steps steps-2">{steps}</ol></div></section>
 {garage_band() if is_garage else ''}<section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Questions we get asked.</h2></div>{faq}<p class="tiny muted" style="margin-top:18px">Prices are before GST; 18% GST is added on your bill. Your exact quote comes on WhatsApp first.</p><div class="rel-row"><span class="tiny muted">Also see:</span>{rel}</div></div></section>

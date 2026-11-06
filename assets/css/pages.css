@@ -5,7 +5,7 @@
 @media(max-width:959px){.stage.has-pic{padding-bottom:0!important}}
 @media(min-width:960px){
   .stage.has-pic{min-height:460px}
-  .stage-pic{position:absolute;z-index:-1;right:0;bottom:30px;width:clamp(600px,64%,900px);margin:0;max-height:none;aspect-ratio:1200/594;border:0;border-radius:0;background:none;-webkit-mask-image:linear-gradient(90deg,transparent,#000 38%),linear-gradient(180deg,transparent,#000 22%,#000 90%,transparent);-webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent,#000 38%),linear-gradient(180deg,transparent,#000 22%,#000 90%,transparent);mask-composite:intersect}
+  .stage-pic{position:absolute;z-index:-1;right:0;top:50%;transform:translateY(-50%);width:clamp(600px,64%,900px);margin:0;max-height:none;aspect-ratio:1200/594;border:0;border-radius:0;background:none;-webkit-mask-image:linear-gradient(90deg,transparent,#000 38%),linear-gradient(180deg,transparent,#000 22%,#000 90%,transparent);-webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent,#000 38%),linear-gradient(180deg,transparent,#000 22%,#000 90%,transparent);mask-composite:intersect}
   .stage.has-pic>.wrap>*{max-width:min(560px,50%)}
   .stage.has-pic .actions .btn,.stage.has-pic .row .btn{flex:0 0 auto}
 }
@@ -30,3 +30,11 @@
 @media(min-width:900px){.gwhat{grid-template-columns:1.2fr .8fr;align-items:center;gap:48px}.gwhat h2{margin-bottom:16px}}
 @media(min-width:960px){.gcards{grid-template-columns:repeat(3,1fr);gap:16px}.gcards li{display:block;padding:28px}.gcards img{width:72px;height:72px;margin:0 0 14px}}
 .stage .breadcrumb a{min-width:44px}
+.vid,.bodypic{margin:24px 0;max-width:880px;border-radius:var(--r-m);overflow:hidden;background:var(--nv)}
+.vid video,.bodypic img{display:block;width:100%;height:auto;aspect-ratio:1200/537}
+.bodypic img{aspect-ratio:1200/594}
+.vid figcaption{padding:10px 16px;font-size:14px;line-height:1.4;color:var(--on2)}
+.timeline .vid{margin:14px 0 0}
+.pic-ev img,.pic-monsoon img{object-position:68% 50%}
+.pic-parts img{object-position:64% 50%}
+@media(min-width:820px){.stage.has-pic .soon-hero-grid{display:block}}
