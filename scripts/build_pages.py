@@ -34,7 +34,7 @@ FOOTER = '''<footer class="foot">
     </div>
     <div class="foot-cols">
       <div><b>Areas</b>{area_links}<a href="/areas/">All Bengaluru PIN codes</a></div>
-      <div><b>Company</b><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/workshop/">Our workshop</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
+      <div><b>Company</b><a href="/services/">Services and prices</a><a href="/rate-card/">Rate card</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/workshop/">Our workshop</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
     </div>
     <p class="tiny">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Mechanix Pro is a brand of {company_name}, {company_addr}. GSTIN {company_gstin}</p><p class="tiny">Website developed by <a href="https://ziyam.me" target="_blank" rel="noopener" class="inl">ziyam.me</a></p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p>
   </div>
@@ -198,7 +198,7 @@ def faq_from_html(src):
 def faq_ld(pairs):
     return {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in pairs]}
 def _unesc(x): return html.unescape(x)
-def fit_title(t, limit=65):
+def fit_title(t, limit=60):
     """Search results cut titles at about 60 characters. Try shorter wordings that keep the area or model and the brand."""
     t = _unesc(t)
     if len(t) <= limit: return t
@@ -207,6 +207,7 @@ def fit_title(t, limit=65):
              main.replace(' Service at Home in Bengaluru', ' Home Service, Bengaluru') + ' | ' + brand if brand else None,
              main.replace(' Service at Home in Bengaluru', ' Service Bengaluru') + ' | ' + brand if brand else None,
              main.replace(' in Bengaluru', ', Bengaluru'), main.replace(' Service at Home in Bengaluru', ' Service, Bengaluru'), main]
+    tries += [main.replace(' Service at Home in Bengaluru', ' Service in Bengaluru'), main.replace(' Service at Home in Bengaluru', ' Service'), main.replace('Doorstep Bike Service in ', 'Bike Service in ').replace(' in Bengaluru', ', Bengaluru')]
     for c in tries:
         if c and len(c) <= limit: return c
     return t[:limit - 1].rsplit(' ', 1)[0] + '…'
@@ -474,7 +475,7 @@ LEGAL = {
 <h2>Service issues</h2><p>If something we fixed fails within {{days}} days, we redo that work free. If we cannot fix it, we refund the charge for that item. Parts are covered by the limited warranty of the part's manufacturer or supplier, as shown on your invoice.</p>
 <h2>How refunds are paid</h2><p>Refunds go to your original payment method through Razorpay within 5–7 working days of approval.</p>
 <h2>Contact</h2><p>Write to hello@mechanixpro.in or message us on WhatsApp with your booking reference.</p>'''),
- 'contact': ('Contact Mechanix Pro', 'Reach Mechanix Pro for bookings, support and partnerships in Bengaluru.', '''
+ 'contact': ('Contact Mechanix Pro', 'Contact Mechanix Pro for bookings, support and partnerships in Bengaluru. Call, WhatsApp or email us, and find our address and company details.', '''
 <p class="muted" style="font-size:20px">Fastest: message us on WhatsApp. We are open 24/7.</p>
 <p><a class="btn btn-wa" href="#" data-wa="Contact">Chat on WhatsApp</a></p>
 <div class="card" style="margin-top:20px"><div class="price-row"><span>Phone</span><b data-phone>+91 79652 95649</b></div><div class="price-row"><span>Email</span><b>hello@mechanixpro.in</b></div><div class="price-row"><span>Areas</span><b>All of Bengaluru (560001 to 560110)</b></div></div>
@@ -554,7 +555,7 @@ for brand, name, t, big in load_bikes():
     desc = f'Doorstep {full} {"problem check" if t == "e" else "service"} in Bengaluru, from {{{{text:{first}}}}}. Mechanix Pro certified mechanics, OEM and aftermarket parts, {{{{days}}}}-day warranty. Quote on WhatsApp first.'
     book = f'/book/?brand={urllib.parse.quote(brand, safe="")}&amp;model={urllib.parse.quote(name, safe="")}'
     faq = [
-      (f'How much does a {full} {"problem check" if t == "e" else "service"} cost in Bengaluru?', ('A problem check starts from {{text:repair}}.' if t == 'e' else 'Basic service from {{text:basic}}, Standard from {{text:general}} and Full from {{text:full}}.') + (' This bike is usually 150cc or more, so its 150 to 250cc or 251 to 500cc prices on the Services page apply.' if big and t != 'e' else '') + ' excluding GST. Your exact quote comes on WhatsApp before any work starts.'),
+      (f'How much does a {full} {"problem check" if t == "e" else "service"} cost in Bengaluru?', ('A problem check starts from {{text:repair}}' if t == 'e' else 'Basic service from {{text:basic}}, Standard from {{text:general}} and Full from {{text:full}}') + ', excluding GST.' + (' This bike is usually 150cc or more, so its 150 to 250cc or 251 to 500cc prices on the Services page apply.' if big and t != 'e' else '') + ' Your exact quote comes on WhatsApp before any work starts.'),
       (f'Can you service my {full} at home?', f'Yes. A Mechanix Pro certified mechanic comes to your home or office in Bengaluru. {timing}'),
       ('Is there a warranty on the work?', 'Yes, {{days}} days on the work, with OEM and aftermarket parts.'),
       ('Do I pay before the work starts?', 'You approve the quote first. To hold your slot you pay {{confirmrule}}.'),
@@ -1057,6 +1058,7 @@ def workshop_teaser_html():
             f'<a class="ws-tz" href="/workshop/">{imgs}</a><p><a class="btn btn-ghost" href="/workshop/">Visit the workshop page</a></p></div></section>\n')
 
 HERO_CSS = '<link rel="stylesheet" href="/assets/css/hero.css">\n'
+HERO_PRELOAD = '<link rel="preload" as="image" href="/assets/img/hero/hero-garage-poster.webp" fetchpriority="high">\n'   # the bike hero's first picture (the video poster); home only. The car picture is lazy and is not preloaded.
 BOOK_JS = '<link rel="stylesheet" href="/assets/css/book.css"><link rel="stylesheet" href="/assets/css/journey.css">\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/thanks.js" defer></script>\n<script src="/assets/js/book-pay.js" defer></script>'
 def services_catalog():
     """OfferCatalog (the @id the home page's business node points to): every service in src/site.json with its price before GST. The three packages have one Offer per engine-size tier."""
@@ -1067,10 +1069,10 @@ def services_catalog():
                       "itemOffered": {"@type": "Service", "name": name, "provider": {"@id": BUSINESS_ID}}})
     return {"@context": "https://schema.org", "@type": "OfferCatalog", "@id": CATALOG_ID, "name": "Mechanix Pro services and prices (before 18% GST)", "url": SITE + "/services/", "itemListElement": items}
 MAIN = [
-  ('', 'home', 'Two Wheeler Doorstep Service in Bangalore | Mechanix Pro', 'Two wheeler service at home in Bangalore (Bengaluru) from {{text:basic}}. Servicing in as fast as 2 hours, scooty repair, EV and petrol bike care. Quote first.', 'home.jsonld', 'home', HERO_CSS + APP_JS, '1.0'),
+  ('', 'home', 'Bike and Car Service at Home in Bengaluru | Mechanix Pro', 'Bike and car service at home in Bengaluru (Bangalore), bikes from {{text:basic}}. Small confirmation fee, then approve the itemised quote before work.', 'home.jsonld', 'home', HERO_PRELOAD + HERO_CSS + APP_JS, '1.0'),
   ('book', 'book-pay', 'Book a Doorstep Bike or Car Service | Mechanix Pro', 'Book a doorstep bike or car service in Bengaluru. Pay a small confirmation fee to lock your slot, adjusted in your final bill. Itemised quote first, nothing starts without your OK.', None, 'page-book', BOOK_JS, '0.9'),
   ('quote', 'book', 'Build Your Bike Service and Get a Quote | Mechanix Pro', 'Pick your bike model, tell us what it needs and send it on WhatsApp. Get a quote from our expert. Work starts only after you approve. Doorstep bike service in Bengaluru.', None, 'page-book', APP_JS, '0.7'),
-  ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}}, excluding GST. Doorstep bike and scooter service in Bengaluru with a quote on WhatsApp before any work starts.', None, 'page-services', APP_JS, '0.9'),
+  ('services', 'services', 'Bike Service Prices in Bengaluru | Mechanix Pro', 'Basic service from {{text:basic}}, Standard from {{text:general}}, Full from {{text:full}}, excluding GST. Bike and scooter service at home in Bengaluru, itemised quote first.', None, 'page-services', APP_JS, '0.9'),
   ('help', 'help', 'How Doorstep Bike Service Works and FAQ | Mechanix Pro', 'How Mechanix Pro works: book and pay a small confirmation fee, share your one-time code when the mechanic arrives, and approve the itemised quote before work. Answers to common questions.', 'help.jsonld', 'page-help', APP_JS, '0.8'),
 ]
 for slug, src, title, desc, ld, body, scripts, prio in MAIN:

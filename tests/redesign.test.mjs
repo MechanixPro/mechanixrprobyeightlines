@@ -75,7 +75,7 @@ test('home structured data is unchanged: the FAQPage lists the same 14 questions
   const faq = ld.find((x) => x['@type'] === 'FAQPage');
   assert.equal(faq.mainEntity.length, 14);
   assert.ok(ld.some((x) => x['@type'] === 'AutoRepair')); assert.ok(ld.some((x) => x['@type'] === 'WebSite'));
-  assert.match(home, /<title>Two Wheeler Doorstep Service in Bangalore \| Mechanix Pro<\/title>/);
+  assert.match(home, /<title>Bike and Car Service at Home in Bengaluru \| Mechanix Pro<\/title>/); // changed on purpose (SEO 7d): the title now matches the H1 and the bike-and-car scope
   assert.match(home, /<link rel="canonical" href="https:\/\/mechanixpro\.in\/">/);
 });
 test('the phone bar has WhatsApp and Call only, on home, service, area, car and roadside pages', () => {

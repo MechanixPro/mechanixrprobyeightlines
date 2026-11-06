@@ -33,7 +33,7 @@ test('the home page links to every landing page and says Bangalore as well as Be
   const home = read('index.html');
   for (const x of LAND) assert.ok(home.includes(`href="/${x.slug}/"`), x.slug);
   assert.match(home, /Bangalore/); assert.match(home, /Bengaluru|Bangalore/);
-  const sd = home.match(/<title>(.*?)<\/title>/)[1]; assert.match(sd, /Bangalore/);
+  const sd = home.match(/<title>(.*?)<\/title>/)[1]; assert.match(sd, /Bengaluru|Bangalore/); assert.match(home.match(/name="description" content="(.*?)"/)[1], /Bangalore/); // changed on purpose (SEO 7d): the title follows the H1 (Bengaluru); Bangalore stays in the description
 });
 
 test('the major-repair page exists and is linked from the site header, and the terms describe pickup, certified garage and the one-time code', () => {

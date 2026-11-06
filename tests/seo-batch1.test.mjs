@@ -206,3 +206,75 @@ test('6g. blog and guide Articles: PNG publisher logo, image, publisher and auth
 test('6h. join and garage-partners: about is an object', () => {
   for (const f of ['join', 'garage-partners']) { const w = nodesOf(read(f + '/index.html')).find((x) => x['@type'] === 'WebPage'); assert.equal(typeof w.about, 'object'); assert.equal(w.about['@id'], SITE + '/#business'); }
 });
+
+// ---- 7. technical quick wins ----
+import { statSync, readdirSync, readFileSync, mkdtempSync, cpSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { ROOT } from './helpers/pages.mjs';
+const titleOf = (h) => strip((h.match(/<title>(.*?)<\/title>/s) || [])[1] || '');
+const descOf = (h) => (h.match(/<meta name="description" content="(.*?)"/) || [])[1];
+test('7a/7b. home: the hidden car hero image is lazy and not preloaded; the bike hero poster is preloaded on home only', () => {
+  const h = read('index.html');
+  assert.match(h, /<img class="car-only" src="\/assets\/img\/hero\/hero-car-1200\.webp"[^>]*loading="lazy"/);
+  const pre = [...h.matchAll(/<link rel="preload"[^>]*>/g)].map((m) => m[0]);
+  assert.deepEqual(pre, ['<link rel="preload" as="image" href="/assets/img/hero/hero-garage-poster.webp" fetchpriority="high">']);
+  for (const f of htmlFiles()) if (f !== 'index.html') assert.doesNotMatch(read(f), /rel="preload" as="image"/, f);
+  assert.ok(statSync(ROOT + 'assets/img/hero/hero-garage-poster.webp').size > 1000);
+});
+test('7c. hero video: about 450 to 600 KB, 1280x572, no audio, faststart (moov before mdat)', () => {
+  const b = readFileSync(ROOT + 'assets/video/hero-garage.mp4');
+  assert.ok(b.length >= 450 * 1024 && b.length <= 600 * 1024, 'size ' + b.length);
+  assert.ok(b.indexOf('moov') > -1 && b.indexOf('moov') < b.indexOf('mdat'), 'faststart');
+  assert.ok(!b.includes(Buffer.from('mp4a')));
+  assert.match(read('index.html'), /<video class="hm-v"[^>]*width="1280" height="572"/);
+});
+test('7d. home title and description follow the H1 and the bike-and-car scope and the fee flow', () => {
+  const h = read('index.html'), t = titleOf(h), d = descOf(h);
+  assert.equal(t, 'Bike and Car Service at Home in Bengaluru | Mechanix Pro'); assert.ok(t.length <= 60);
+  assert.ok(d.length >= 120 && d.length <= 155, d.length + ''); assert.match(d, /bike and car/i); assert.match(d, /confirmation fee/); assert.match(d, /quote/);
+  assert.match(h, /<h1 id="hero-h">Bike and car service at your door in Bengaluru\.<\/h1>/);
+});
+test('7e. no title is longer than 60 characters, none is cut with an ellipsis, none is duplicated', () => {
+  const seen = new Map();
+  for (const f of htmlFiles()) {
+    const h = read(f); if (/<meta name="robots" content="noindex/.test(h)) continue;
+    const t = titleOf(h); assert.ok(t.length > 0 && t.length <= 60, `${f}: ${t.length} ${t}`); assert.doesNotMatch(t, /…$/, f);
+    assert.ok(!seen.has(t), `${f} duplicates ${seen.get(t)}: ${t}`); seen.set(t, f);
+    assert.equal(strip((h.match(/<meta property="og:title" content="(.*?)"/) || [])[1] || t), t, f + ' og:title');
+  }
+});
+test('7f. /services/ and /contact/ meta descriptions are 120 to 155 characters', () => {
+  for (const f of ['services', 'contact']) { const d = strip(descOf(read(f + '/index.html'))); assert.ok(d.length >= 120 && d.length <= 155, f + ' ' + d.length); }
+});
+test('7g. no model page is an orphan, and /rate-card/ is linked from /services/ and the footer', () => {
+  const pages = publicFiles().filter((f) => f.endsWith('.html')); const linked = new Map();
+  for (const f of pages) for (const m of read(f).matchAll(/href="(\/bike-service\/[a-z0-9-]+\/)"/g)) { if (f !== m[1].slice(1) + 'index.html') linked.set(m[1], (linked.get(m[1]) || 0) + 1); }
+  const models = pages.filter((f) => /^bike-service\/[^/]+\/index\.html$/.test(f)); assert.ok(models.length >= 170);
+  for (const f of models) assert.ok(linked.get('/' + f.replace('index.html', '')) >= 1, f + ' is an orphan');
+  for (const s of ['honda-cb-unicorn', 'hero-splendor-nxg', 'hero-karizma-r', 'hero-passion', 'yamaha-gladiator', 'yamaha-libero', 'yamaha-enticer', 'yamaha-sz', 'yamaha-fino', 'kawasaki-z400', 'kawasaki-versys-1000', 'triumph-street-twin']) assert.ok(linked.get(`/bike-service/${s}/`) >= 1, s);
+  assert.ok(read('services/index.html').includes('href="/rate-card/"'));
+  for (const f of ['index.html', 'help/index.html', 'bike-service-hsr-layout/index.html']) assert.match(read(f), /<footer[\s\S]*<a href="\/rate-card\/">Rate card<\/a>[\s\S]*<\/footer>/, f);
+});
+test('7h. one theme colour: every public page matches the manifest theme_color', () => {
+  const want = JSON.parse(read('manifest.webmanifest')).theme_color; assert.equal(want, '#0B1220');
+  for (const f of htmlFiles()) { const m = read(f).match(/<meta name="theme-color" content="([^"]*)"/); if (m) assert.equal(m[1], want, f); }
+});
+test('7j. css and js are not served as immutable while any reference to them is unversioned (the service worker and lazy loaders use plain paths); the build versions every HTML reference', () => {
+  const unversioned = [];
+  const scan = (p) => { for (const m of read(p).matchAll(/["'`(]\/?assets\/(?:css|js)\/[A-Za-z0-9_.-]+\.(?:css|js)(?!\?v=)["'`)]/g)) unversioned.push(p + ' ' + m[0]); };
+  scan('sw.js'); for (const f of readdirSync(ROOT + 'assets/js')) if (f.endsWith('.js') && f !== 'mechu-data.js') scan('assets/js/' + f);
+  const hdr = read('_headers');
+  if (unversioned.length) assert.doesNotMatch(hdr, /immutable/, 'unversioned references exist: ' + unversioned.slice(0, 3).join('; '));
+  // the build step versions every css/js link in the HTML
+  const dir = mkdtempSync(join(tmpdir(), 'mxp-cb-'));
+  for (const f of ['index.html', 'services/index.html', 'bike-service/honda-activa-6g/index.html', 'help/index.html']) { cpSync(ROOT + f, join(dir, f)); }
+  cpSync(ROOT + 'assets', join(dir, 'assets'), { recursive: true });
+  execFileSync('python3', [ROOT + 'scripts/cachebust.py', dir]);
+  for (const f of ['index.html', 'services/index.html', 'bike-service/honda-activa-6g/index.html', 'help/index.html']) {
+    const refs = [...readFileSync(join(dir, f), 'utf8').matchAll(/(?:href|src)="(\/assets\/(?:css|js)\/[^"]+)"/g)].map((m) => m[1]); assert.ok(refs.length > 5, f);
+    for (const r of refs) assert.match(r, /\?v=[0-9a-f]{8}$/, f + ' ' + r);
+  }
+  assert.match(hdr, /\/sw\.js\n\s+Cache-Control: no-cache/); for (const p of ['sitemap.xml', 'robots.txt', 'llms.txt']) assert.match(hdr, new RegExp('/' + p.replace('.', '\\.') + '\\n\\s+Cache-Control: public, max-age=0, must-revalidate'));
+});
