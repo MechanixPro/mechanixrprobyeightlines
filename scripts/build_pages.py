@@ -276,12 +276,14 @@ STAGE_PICS = {
     'ev': ('ev-care', 'A mechanic plugging a diagnostic cable into an electric scooter on a workshop lift'),
     'monsoon': ('monsoon-check', 'A mechanic in a rain jacket kneeling beside a motorcycle on a rainy Bengaluru street at night'),
     'parts': ('parts-counter', 'A parts shop counter where a mechanic in an orange shirt collects a boxed part'),
+    'garage': ('garage-front', 'A Mechanix Pro garage front with the signboard, parked bikes and scooters, and a mechanic at the entrance'),
     'road': ('roadside-night', 'A Mechanix Pro mechanic kneeling beside a scooter on a Bengaluru street at night while the rider waits'),
 }
 PIC_BIKE_FIRST = ('bike-service-', 'bike-service/', 'offers/', 'guides/', 'blog/')
 PIC_BIKE_PAGES = BIKE_ART_PAGES + ('verified-bike-garages-bangalore', 'digital-service-records', 'doorstep-bike-and-car-repair-near-me', 'join', 'garage-partners', 'services', 'areas', 'help', 'fleet', 'societies', 'rate-card', 'blog', 'guides')
 def pic_for(path):
     top = path.split('/')[0]
+    if top in ('verified-bike-garages-bangalore', 'join', 'garage-partners'): return 'garage'
     if top == 'car-service-bangalore': return 'car'
     if top == 'roadside': return 'road'
     if path.startswith(('offers/ev-check', 'ev-and-petrol-bike-care-bangalore')): return 'ev'
@@ -1150,6 +1152,9 @@ def icon_cards(items):
 GARAGE_WHAT = '''<section><div class="wrap"><div class="gwhat"><div><h2>What a Mechanix Pro garage is.</h2><p>A garage or mechanic in our network that has been visited, document-checked, trained on our way of working and trial-run before taking customer jobs.</p><p>When a bike must go to a workshop, it goes to a Mechanix Pro Certified garage. The repair is quoted first and starts only after the customer approves.</p></div>
 <ul class="gticks"><li>Visited and document-checked</li><li>Trained on quote first and honest findings</li><li>Bike leaves and returns only with the customer's one-time code</li><li>Photos at pickup and at return</li></ul></div></div></section>'''
 GARAGE_VID = '<section><div class="wrap">' + VID_GARAGE + '</div></section>'
+GARAGE_GAL = [('garage-bay', 'A mechanic checking a motorcycle chain on a service stand in a workshop bay', 'In the bay'), ('garage-quote', 'A mechanic showing a customer an itemised quote on a tablet beside a motorcycle', 'Quote first'), ('garage-parts', 'A parts counter with labelled oil, filters and brake pads, and a staff member handing over a part', 'Parts counter')]
+GARAGE_GALLERY = '<section><div class="wrap"><div class="sec-head"><h2>Inside a Mechanix Pro garage.</h2></div><ul class="ggal">' + ''.join(f'<li><img src="/assets/img/hero/{st}-600.webp" srcset="/assets/img/hero/{st}-600.webp 600w, /assets/img/hero/{st}-1000.webp 1000w" sizes="(min-width:960px) 380px, calc(100vw - 40px)" width="1000" height="667" loading="lazy" decoding="async" alt="{html.escape(alt)}"><span>{cap}</span></li>' for st, alt, cap in GARAGE_GAL) + '</ul></div></section>'
+GARAGE_VID = GARAGE_VID + GARAGE_GALLERY
 GARAGE_WA = 'Hi Mechanix Pro, I run a garage / I am a mechanic and I want to join your network.'
 def garage_band(h2='Bring your garage to Mechanix Pro.', partner=True):
     return (f'''<section><div class="wrap"><div class="final gband"><h2>{h2}</h2><p>Run a garage or work as a mechanic in Bengaluru? Apply to join us. We bring doorstep bookings, you bring the skill.</p><div class="row"><a class="btn btn-primary btn-apply" href="/join/#apply">Apply to join</a><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{GARAGE_WA}">Ask on WhatsApp</a><a class="btn btn-ghost" href="#" data-call>Call us</a>'''

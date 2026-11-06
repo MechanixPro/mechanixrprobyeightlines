@@ -53,14 +53,14 @@ test('pages.css stays within its own size budget and is linked only where a pict
   for (const f of GARAGE) assert.match(read(f + '/index.html'), /<link rel="stylesheet" href="\/assets\/css\/pages\.css(\?v=\w+)?">/, f);
 });
 test('header picture: right asset per family, in the stage, with srcset; absent on single-task and legal pages', () => {
-  const want = { 'bike-service/honda-activa-6g': 'hero-bike', 'bike-service-hsr-layout': 'hero-bike', 'two-wheeler-service-at-home-bangalore': 'hero-bike', 'offers/bike-service': 'hero-bike', 'car-service-bangalore': 'hero-car', 'roadside': 'roadside-night', 'verified-bike-garages-bangalore': 'hero-bike', 'join': 'hero-bike', 'garage-partners': 'hero-bike' };
+  const want = { 'bike-service/honda-activa-6g': 'hero-bike', 'bike-service-hsr-layout': 'hero-bike', 'two-wheeler-service-at-home-bangalore': 'hero-bike', 'offers/bike-service': 'hero-bike', 'car-service-bangalore': 'hero-car', 'roadside': 'roadside-night', 'verified-bike-garages-bangalore': 'garage-front', 'join': 'garage-front', 'garage-partners': 'garage-front' };
   for (const [s, stem] of Object.entries(want)) {
     const h = read(s + '/index.html'), st = main(h).slice(0, main(h).indexOf('</section>') + 10);
     assert.match(st, /<section[^>]*class="[^"]*\bstage has-pic/, s + ' stage has-pic');
     const fig = st.match(/<figure class="stage-pic[^"]*">(<img[^>]*>)<\/figure>/); assert.ok(fig, s + ' picture in the stage');
     assert.match(fig[1], new RegExp(`srcset="/assets/img/hero/${stem}-700\\.webp 700w, /assets/img/hero/${stem}-1200\\.webp 1200w"`), s);
     assert.match(fig[1], /fetchpriority="high"/); assert.match(fig[1], /\balt="[^"]{20,}"/); assert.doesNotMatch(fig[1], /Illustration/);
-    assert.equal(imgs(main(h)).filter((t) => /stage-pic|\/hero\/(hero|roadside)/.test(t) && /loading="eager"/.test(t)).length, 1, s);
+    assert.equal(imgs(main(h)).filter((t) => /stage-pic|\/hero\/(hero|roadside|garage-front)/.test(t) && /loading="eager"/.test(t)).length, 1, s);
     assert.ok(statSync(new URL(`../assets/img/hero/${stem}-1200.webp`, import.meta.url)).size < 56000);
     assert.doesNotMatch(h, /hero-minimal|\/assets\/img\/workshop\//, s);
   }

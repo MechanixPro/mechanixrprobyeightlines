@@ -38,3 +38,5 @@
 .pic-ev img,.pic-monsoon img{object-position:68% 50%}
 .pic-parts img{object-position:64% 50%}
 @media(min-width:820px){.stage.has-pic .soon-hero-grid{display:block}}
+
+.ggal{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.ggal li{margin:0;position:relative;border-radius:12px;overflow:hidden;background:var(--card)}.ggal img{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:cover}.ggal span{position:absolute;left:10px;bottom:10px;background:rgba(11,18,32,.78);color:#fff;font-size:13px;line-height:1;padding:6px 9px;border-radius:6px}@media(max-width:720px){.ggal{grid-template-columns:1fr}}
