@@ -302,10 +302,6 @@ input,select,textarea{font-family:var(--font)}
   .stage h1{font-size:clamp(48px,5.4vw,64px);max-width:13em}
   .stage p,.page-head.stage p{font-size:21px}
   .page-head.stage{padding:56px 0 128px}
-  .page-head.stage.art{min-height:460px}
-  .page-head.stage.art::after{display:block;content:"";position:absolute;z-index:-1;right:max(32px,calc((100% - 1116px)/2));bottom:-40px;width:min(40%,520px);height:94%;background:url(/assets/img/hero-minimal.webp) no-repeat right bottom/contain;-webkit-mask-image:linear-gradient(90deg,transparent,#000 22%);mask-image:linear-gradient(90deg,transparent,#000 22%);filter:drop-shadow(0 30px 40px rgba(0,0,0,.45));pointer-events:none}
-  .page-head.stage.art>.wrap>*{max-width:min(560px,56%)}
-  .page-head.stage.art .actions .btn{flex:0 0 auto}
   #hero.stage{padding-top:56px}
   .hero-in{grid-template-columns:1.05fr .95fr;align-items:end;min-height:640px}
   .hero-copy{align-self:center;padding-bottom:96px}

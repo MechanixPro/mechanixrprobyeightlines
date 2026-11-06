@@ -22,7 +22,7 @@ NAV = (DIWALI_BAR if TODAY <= DIWALI_LAST_DAY else '') + '''<a class="skip" href
   <a class="call-top" href="#" data-call>Call us</a>
   <a class="pill bike-only" href="/book/">Book online</a><a class="pill car-only" href="/car-service-bangalore/">Book online</a>
   <details class="menu"><summary aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
-    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/workshop/">Our workshop</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/major-bike-repair-pickup-and-drop-bangalore/">Major repairs with pickup and drop</a><a href="/join/">Join as a garage or mechanic</a><a href="/two-wheeler-service-at-home-bangalore/">Two wheeler service at home</a><a href="/scooty-repair-at-home-bangalore/">Scooty repair at home</a><a href="/ev-and-petrol-bike-care-bangalore/">EV and petrol bike care</a><a href="/verified-bike-garages-bangalore/">Verified garages</a><a href="/digital-service-records/">Digital service records</a><a href="/doorstep-bike-and-car-repair-near-me/">Doorstep bike and car repair</a><a href="/car-service-bangalore/">Car service</a><a href="/blog/">Blog</a><a href="/partners/axlio/">Car parts and service: Axlio</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
+    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/workshop/">Our workshop</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/major-bike-repair-pickup-and-drop-bangalore/">Major repairs with pickup and drop</a><a href="/join/">Join as a garage or mechanic</a><a href="/garage-partners/">Partner your garage</a><a href="/two-wheeler-service-at-home-bangalore/">Two wheeler service at home</a><a href="/scooty-repair-at-home-bangalore/">Scooty repair at home</a><a href="/ev-and-petrol-bike-care-bangalore/">EV and petrol bike care</a><a href="/verified-bike-garages-bangalore/">Verified garages</a><a href="/digital-service-records/">Digital service records</a><a href="/doorstep-bike-and-car-repair-near-me/">Doorstep bike and car repair</a><a href="/car-service-bangalore/">Car service</a><a href="/blog/">Blog</a><a href="/partners/axlio/">Car parts and service: Axlio</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
 </div></header>
 '''
 FOOTER = '''<footer class="foot">
@@ -246,6 +246,25 @@ def top_nodes(s):
             depth += 1
     return nodes
 BIKE_ART_PAGES = ('two-wheeler-service-at-home-bangalore', 'scooty-repair-at-home-bangalore', 'ev-and-petrol-bike-care-bangalore', 'major-bike-repair-pickup-and-drop-bangalore')
+# Header picture panel on the navy stage (owner's garage renders, assets/img/hero). Single-task and legal pages (book, pay, track, rate, warranty, job, unsubscribe, help-desk, terms, privacy, refund) are not listed, so they stay plain.
+STAGE_PICS = {
+    'bike': ('hero-bike', 'A Mechanix Pro garage with the sign on the wall, a motorcycle on a stand and a smiling mechanic holding a spanner'),
+    'car': ('hero-car', 'A Mechanix Pro garage with a car on the lift, its bonnet open, and a mechanic checking it on a tablet'),
+    'road': ('roadside-night', 'A Mechanix Pro mechanic kneeling beside a scooter on a Bengaluru street at night while the rider waits'),
+}
+PIC_BIKE_FIRST = ('bike-service-', 'bike-service/', 'offers/', 'guides/', 'blog/')
+PIC_BIKE_PAGES = BIKE_ART_PAGES + ('verified-bike-garages-bangalore', 'digital-service-records', 'doorstep-bike-and-car-repair-near-me', 'join', 'garage-partners', 'services', 'areas', 'help', 'fleet', 'societies', 'rate-card', 'blog', 'guides')
+def pic_for(path):
+    top = path.split('/')[0]
+    if top == 'car-service-bangalore': return 'car'
+    if top == 'roadside': return 'road'
+    if path.startswith(PIC_BIKE_FIRST) or top in PIC_BIKE_PAGES: return 'bike'
+    return None
+def stage_pic(key, first):
+    stem, alt = STAGE_PICS[key]
+    return (f'<figure class="stage-pic pic-{key}"><img src="/assets/img/hero/{stem}-700.webp" srcset="/assets/img/hero/{stem}-700.webp 700w, /assets/img/hero/{stem}-1200.webp 1200w" '
+            f'sizes="(min-width:960px) 64vw, calc(100vw - 40px)" width="1200" height="594" alt="{alt}" loading="eager" fetchpriority="high" decoding="async"></figure>')
+PAGES_CSS = '<link rel="stylesheet" href="/assets/css/pages.css">\n'
 def _add_class(tag_src, cls):
     return re.sub(r'class="([^"]*)"', lambda m: f'class="{m.group(1)} {cls}"', tag_src, count=1) if 'class="' in tag_src else tag_src.replace('>', f' class="{cls}">', 1)
 def shape(page, path=''):
@@ -256,10 +275,14 @@ def shape(page, path=''):
     if art: inner = art.group(1).strip()
     nodes = top_nodes(inner)
     if not nodes: return page
-    has_art = path.startswith(('bike-service-', 'bike-service/')) or path.split('/')[0] in BIKE_ART_PAGES
+    pic = pic_for(path)
+    has_art = bool(pic)
     first = nodes[0]
     if first[0] == 'section' and re.search(r'class="(page-head|hero|soon-hero)[ "]', first[1]):
-        hero = re.sub(r'^<section([^>]*)>', lambda mm: '<section' + _add_class(mm.group(1) + '>', 'stage' + (' art' if has_art else ''))[:-1] + '>', first[2], count=1)
+        hero = re.sub(r'^<section([^>]*)>', lambda mm: '<section' + _add_class(mm.group(1) + '>', 'stage' + (' has-pic' if has_art else ''))[:-1] + '>', first[2], count=1)
+        if has_art:
+            hero = re.sub(r'<figure class="pg-fig">.*?</figure>', '', hero, flags=re.S)
+            hero = hero[:hero.rindex('</section>')] + stage_pic(pic, True) + '</section>'
         new = hero + '\n<div class="sheet">' + ''.join(n[2] for n in nodes[1:]) + '</div>'
         main_cls = cls
     elif cls.split()[:1] in (['page'], []) and ((first[0] == 'p' and 'breadcrumb' in first[1]) or first[0] == 'h1'):
@@ -277,12 +300,14 @@ def shape(page, path=''):
         hero = [strip(h) for h in hero]
         hero = [h.replace('<p>', '<p class="actions">', 1) if h.startswith('<p>') and 'class="btn' in h else h for h in hero]
         crumb = [h for h in hero if h.startswith('<p class="breadcrumb')]; rest_h = [h for h in hero if h not in crumb]
-        new = ('<section class="page-head stage' + (' art' if has_art else '') + '"><div class="wrap">' + ''.join(crumb + rest_h) + '</div></section>\n'
+        new = ('<section class="page-head stage' + (' has-pic' if has_art else '') + '"><div class="wrap">' + ''.join(crumb + rest_h) + '</div>' + (stage_pic(pic, True) if has_art else '') + '</section>\n'
                '<div class="sheet"><div class="wrap prose">' + ''.join(held) + ''.join(n[2] for n in nodes[i:]) + '</div></div>')
         main_cls = 'pg'
     else:
         return page
-    return page[:m.start()] + f'<main id="main" class="{main_cls}">\n' + new + '\n</main>' + page[m.end():]
+    out = page[:m.start()] + f'<main id="main" class="{main_cls}">\n' + new + '\n</main>' + page[m.end():]
+    if has_art and 'assets/css/pages.css' not in out: out = out.replace('</head>', PAGES_CSS + '</head>', 1)
+    return out
 
 # Mechu appears on the home, model, area, car, services, help and workshop pages. Never on the single-task pages (book, pay, track, job, rate, warranty, unsubscribe).
 MECHU_PAGE = re.compile(r'^(index\.html|bike-service-[a-z0-9-]+/index\.html|bike-service/[a-z0-9-]+/index\.html|car-service-bangalore/index\.html|services/index\.html|help/index\.html|workshop/index\.html)$')
