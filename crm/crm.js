@@ -23,6 +23,8 @@ import * as dispatch from './pages/dispatch.js';
 import * as issues from './pages/issues.js';
 import { findByPin } from './pages/pinsearch.js';
 
+// A failed action that nobody caught must still tell the person, never fail silently.
+window.addEventListener('unhandledrejection', (e) => { console.error('unhandled', e.reason); toast('That did not work: ' + clean(e.reason).slice(0, 140), true); });
 const C = window.MXP || {};
 if (!C.supabaseUrl || !C.supabaseAnonKey) {
   $('#login').innerHTML = '<h1>Desk not connected yet</h1><p class="muted">The Supabase settings are missing from /assets/js/config.js.</p>';

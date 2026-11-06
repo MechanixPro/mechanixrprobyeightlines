@@ -75,14 +75,14 @@ await send('Emulation.setEmulatedMedia', { media: 'screen', features: [{ name: '
 const PAGE_JS = `(() => {
   if (window.__H) return; const H = window.__H = {};
   // Stand-ins so a click never leaves the page: external links and window.open are recorded, not followed. Confirm dialogs say yes.
-  H.opened = []; window.open = (u) => { H.opened.push(String(u)); return { location: { set href(v) { H.opened.push(String(v)); } }, close() {}, opener: null }; };
+  H.opened = []; window.open = (u) => { H.opened.push(String(u)); return { location: { set href(v) { H.opened.push(String(v)); } }, close() {}, opener: null, addEventListener() {}, document: { write() {}, close() {} }, focus() {}, print() {} }; };
   window.confirm = () => true; window.alert = () => {}; window.prompt = () => 'Test value';
   document.addEventListener('click', (e) => { const a = e.target.closest && e.target.closest('a[href]'); if (a && !a.getAttribute('href').startsWith('#')) { H.opened.push(a.getAttribute('href')); e.preventDefault(); } }, true);
   H.visible = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' && !el.closest('[hidden]'); };
   H.sel = '[data-act],[data-flow],[data-dispatch],[data-issue],[data-q],[data-view],[data-tab],[data-group],[data-f],[data-dt],[data-retry],[data-lead],[data-cust],[data-mech],[data-coupon],[data-pin],[data-wl],[data-wi],[data-cb],[data-ci],button,a[href],summary,select,[role=tab],input[type=checkbox],input[type=radio]';
   H.list = (scope) => { const root = document.querySelector(scope) || document; const out = []; const seen = new Set(); for (const el of root.querySelectorAll(H.sel)) { if (seen.has(el) || !H.visible(el)) continue; if (el.closest('.modal-back,.flow-modal,#inv')) continue; if (scope === '#view' && el.closest('#sheet')) continue; seen.add(el); out.push(el); } return out; };
   H.desc = (el) => { const d = {}; for (const a of el.attributes) if (/^(data-|id$|name$|type$|href$|aria-label$)/.test(a.name)) d[a.name] = a.value.slice(0, 40); return { tag: el.tagName.toLowerCase(), attrs: d, text: (el.getAttribute('aria-label') || el.textContent || el.value || '').replace(/\\s+/g, ' ').trim().slice(0, 48), disabled: !!el.disabled, ariaDisabled: el.getAttribute('aria-disabled') === 'true' }; };
-  H.snap = () => JSON.stringify([location.hash, [...document.body.children].filter((e) => !e.classList.contains('toast')).map((e) => e.innerHTML.length + ':' + e.innerHTML.slice(0, 4000) + e.innerHTML.slice(-2000)), [...document.querySelectorAll('input,select,textarea')].map((i) => i.value + (i.checked ? '1' : '') + (i.disabled ? 'd' : ''))]);
+  H.snap = () => JSON.stringify([location.hash, [...document.body.children].filter((e) => !e.classList.contains('toast')).map((e) => e.outerHTML.slice(0, e.outerHTML.indexOf('>')) + e.innerHTML.length + ':' + e.innerHTML.slice(0, 4000) + e.innerHTML.slice(-2000)), [...document.querySelectorAll('input,select,textarea')].map((i) => i.value + (i.checked ? '1' : '') + (i.disabled ? 'd' : ''))]);
   H.toasts = () => [...document.querySelectorAll('.toast')].map((t) => ({ text: t.textContent, bad: t.classList.contains('bad') }));
   H.modals = () => [...document.querySelectorAll('.modal-back form, .flow-modal form, #inv')];
   H.fill = (form) => { const day = new Date(Date.now() + 2 * 864e5).toISOString().slice(0, 10);
@@ -161,7 +161,7 @@ async function sweep(name, reset, scope, opts = {}) {
     const js = isSelect ? `(()=>{const e=${pick};const o=[...e.options].find(x=>x.value&&x.value!==e.value)||e.options[e.options.length-1];e.value=o.value;e.dispatchEvent(new Event('change',{bubbles:true}));})()` : `${pick}.click()`;
     const r = await press(js);
     const extra = {};
-    if (!isSelect && !r.modal) { const st = await ev(`(()=>{const e=${pick};return !!(e&&e.disabled&&e.type!=='radio'&&e.type!=='checkbox')})()`).catch(() => false); if (st && !d.disabled) extra.stuck = true; }
+    if (!isSelect && !r.modal) { const st = await ev(`(()=>{const e=${pick};return !!(e&&e.disabled&&window.__H.visible(e)&&e.type!=='radio'&&e.type!=='checkbox')})()`).catch(() => false); if (st && !d.disabled) extra.stuck = true; }
     add(name, d, r, extra);
     if (r.modal) await dialogs(name, d);
     await ev('window.__H.closeAll()').catch(() => {});
@@ -181,7 +181,7 @@ async function dialogs(name, d) {
   await sleep(80); await idle(); await sleep(300); await idle(1500);
   const after = await ev('window.__H.snap()'), log = await logSince(n0), toasts = await ev('window.__H.toasts()'), still = await ev('window.__H.modals().length'), opened = await ev('window.__H.opened.splice(0)');
   const errText = await ev(`(()=>{const f=window.__H.modals()[0];const e=f&&f.querySelector('.err,.flow-err');return e?e.textContent:''})()`);
-  const stuck = await ev(`(()=>{const f=window.__H.modals()[0];const b=f&&f.querySelector('button[type=submit]');return !!(b&&b.disabled)})()`);
+  const stuck = await ev(`(()=>{const f=window.__H.modals()[0];const b=f&&f.querySelector('button[type=submit]');return !!(b&&b.disabled&&window.__H.visible(b))})()`);
   const r = { changed: before !== after, log, toasts, modal: 0, opened, errs: [...errs], thrown };
   const c = classify(r, { stuck, errText });
   let result = c.result; if (result === 'NO EFFECT' && errText) result = 'OK';   // a dialog that stays open with a plain-words reason is a visible, correct refusal
@@ -228,7 +228,7 @@ async function sheetForms(lid, what, reset) {
     if (!(await reset())) continue;
     const r = await press(`(async()=>{const f=document.querySelector('#logForm'); if(!f) return; ${fill} f.requestSubmit();})()`);
     const err = await ev(`(document.querySelector('#logErr')||{}).textContent||''`);
-    const stuck = await ev(`!!(document.querySelector('#logSave')&&document.querySelector('#logSave').disabled)`);
+    const stuck = await ev(`!!(document.querySelector('#logSave')&&document.querySelector('#logSave').disabled&&window.__H.visible(document.querySelector('#logSave')))`);
     const c = classify(r, { stuck, errText: err }); let result = c.result; if (result === 'NO EFFECT' && err) result = 'OK';
     rows.push({ app: APP, persona: PERSONA, scope: name, element: 'form#logForm submit', label: nm, ...summarize(r), dialog: err ? 'error line: ' + err.slice(0, 80) : '', result, notes: c.notes.join('; ') });
     if (r.modal) await dialogs(name, { text: nm, attrs: {} });

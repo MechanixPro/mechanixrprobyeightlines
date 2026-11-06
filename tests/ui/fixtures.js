@@ -109,11 +109,12 @@ const writeResults = {
   crm_confirm_booking: ok({ ok: true, already: false, mechanic_name: '[Mechanic Name]' }), crm_assign_technician: ok({ ok: true, changed: true, mechanic_name: '[Mechanic Name]' }),
   crm_add_lead: ok({ id: 'lead-1', duplicate: false }), crm_import_leads: ok({ created: 1, duplicates: 0, invalid: 0 }), crm_handover_code: ok({ code: '123456' }), crm_tech_link: ok('https://example.invalid/job/abc'), crm_door_code: ok('123456'),
   crm_visit_mark: ok({ ok: true }), crm_issue_resolve: ok(null), crm_quote_save: ok({ ok: true }), crm_quote_phone_approve: ok({ ok: true }),
-  crm_create_booking: ok({ id: 'lead-1' }), crm_update_booking: ok({ ok: true }), crm_users_list_unused: ok([]), crm_set_user_active: ok(null), crm_set_permissions: ok(null), crm_reset_permissions: ok(null), crm_set_targets: ok(null),
+  crm_create_booking: ok({ id: 'lead-1' }), crm_update_booking: ok({ ok: true }), crm_booking_catalog: ok(bookingCatalog), crm_garage_picker: ok([{ id: 'g-1', name: '[Garage Name]', area: 'HSR Layout' }]), crm_log_export: ok([]), crm_set_user_active: ok(null), crm_set_permissions: ok(null), crm_reset_permissions: ok(null), crm_set_targets: ok(null),
   crm_mechanic_save: ok({ id: 'mech-1' }), crm_mechanic_set_status: ok(null), crm_garage_save: ok({ id: 'g-1' }), crm_garage_set_status: ok(null), crm_garage_set_availability: ok(null), crm_garage_ops_set: ok(null), crm_garage_bank_set: ok(null), crm_garage_import: ok({ created: 0 }),
   crm_rsa_create: ok({ id: 'rsa-1' }), crm_rsa_update: ok(null), crm_ticket_create: ok({ id: 't-1' }), crm_ticket_set: ok(null), crm_ticket_note: ok(null), crm_visit_schedule: ok(null), crm_visit_update: ok(null), crm_visit_complete: ok(null),
   crm_playbook_save: ok({ id: 'p-1' }), crm_playbook_publish: ok(null), crm_playbook_flag: ok(null), crm_fitment_save: ok(null), crm_sop_save: ok(null), crm_delete_leads: ok(null), crm_assign_many: ok(null), crm_roster_set: ok(null), crm_automation_set: ok(null),
 };
+const bookingCatalog = { tiers: { mid: {}, big: {} }, services: [{ id: 'svc-1', name: 'Basic service', price: 499, vehicle: 'bike', kind: 'service' }], addons: [], coupons: [], areas: [{ pin: '560038', name: 'Indiranagar' }], mechanics: [] };
 const functionReply = (fn, body) => {
   if (fn === 'desk-chat-sync') return { ok: false };
   if (fn === 'desk-payment-link' || fn === 'payment-link') return { ok: true, url: 'https://example.invalid/pay/abc', amount: 49, suggested: 49, whatsapp_sent: false, whatsapp_note: 'not_connected', whatsapp_text: 'Hi, pay here https://example.invalid/pay/abc', has_email: true, review: false, nudge_minutes: 15 };

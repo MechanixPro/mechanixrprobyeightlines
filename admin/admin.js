@@ -57,6 +57,8 @@ if (!C.supabaseUrl || !C.supabaseAnonKey) {
 const sb = createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
 const S = { catalog: [], invNo: {}, icsel: new Set(), imode: false, isel: new Set(), me: null, tab: 'dash', lastTab: {}, invoices: [], invoicesAll: [], cb: { q: '', id: null }, ledger: [], sf: { period: 'month', mechanic: '', status: '', q: '', channel: '', gst: '', from: '', to: '' }, finJob: null, finKind: 'payment', mlOpen: null, ifl: { gst: '', rate: '', mechanic: '', period: 'month', q: '' }, leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', waitlist: [], wi: '', wq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', df: { range: '7d', from: '', to: '', src: '', area: '', svc: '' }, cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
 
+// A failed action that nobody caught must still tell the person, never fail silently.
+window.addEventListener('unhandledrejection', (e) => { const r = e.reason; console.error('unhandled', r); toast('That did not work: ' + String((r && r.message) || r || 'something went wrong').replace(/^Error:\s*/, '').slice(0, 140)); });
 function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
 const basis = () => 'before_gst'; // payouts are always worked out on the amount before GST
@@ -201,7 +203,7 @@ document.addEventListener('click', (e) => {
   const pn = e.target.closest('[data-pin]'); if (pn) { openPin(pn.dataset.pin); return; }
   const me = e.target.closest('[data-mech]'); if (me) { openMechanic(me.dataset.mech); return; }
   const co = e.target.closest('[data-coupon]'); if (co) { openCoupon(co.dataset.coupon); return; }
-  const a = e.target.closest('[data-act]'); if (a && ACT[a.dataset.act]) ACT[a.dataset.act](a);
+  const a = e.target.closest('[data-act]'); if (a && ACT[a.dataset.act]) { try { const p = ACT[a.dataset.act](a); if (p && p.catch) p.catch((x) => { console.error('act', a.dataset.act, x); toast('That did not work: ' + String((x && x.message) || x || 'something went wrong').replace(/^Error:\s*/, '').slice(0, 140)); }); } catch (x) { console.error('act', a.dataset.act, x); toast('That did not work: ' + String((x && x.message) || x).slice(0, 140)); } }
 });
 document.addEventListener('input', (e) => {
   if (e.target.id === 'cb-q') { S.cb.q = e.target.value; clearTimeout(S.cbT); S.cbT = setTimeout(() => { render(); const q = $('#cb-q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250); return; }
@@ -683,7 +685,7 @@ flow.bindIssues($('#view'), () => loadCustIssues());
 async function openLead(id, silent) { await openLeadBase(id, silent); await paintFlow(id); }
 async function paintFlow(id) {
   const el = $('#flowCard'), l = leadOf(id); if (!el || !l) return;
-  try { S.flow = await flow.load(id); el.innerHTML = flow.card(flow.withFlow(l, S.flow), S.flow); } catch (e) { el.innerHTML = ''; }
+  try { S.flow = await flow.load(id); el.innerHTML = flow.card(flow.withFlow(l, S.flow), S.flow); } catch (e) { console.error('paintFlow', e); el.innerHTML = '<div class="alert" role="alert"><b>The paid-confirmation card could not be loaded.</b> ' + esc((e && e.message) || 'Try again.') + ' <button class="btn btn-ghost btn-sm" type="button" data-flow="reloadFlow">Retry</button></div>'; }
 }
 async function openLeadBase(id, silent) {
   if (!silent && S.open !== id) S.dt = 'booking';
