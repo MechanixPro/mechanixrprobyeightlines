@@ -146,13 +146,14 @@ test('every inner page is a navy stage with the H1, then a light sheet; text, ca
   }
   const hsr = read('bike-service-hsr-layout/index.html');
   assert.match(hsr, /<h1>Doorstep bike service in HSR Layout\.<\/h1>/); assert.match(hsr, /"@type": "FAQPage"/); assert.match(hsr, /<link rel="canonical" href="https:\/\/mechanixpro\.in\/bike-service-hsr-layout\/">/);
-  assert.match(hsr, /<section class="page-head stage art">/, 'bike area pages get the hero photo on large screens');
+  // Changed on purpose (garage header pictures): the stage class is now "has-pic" and the picture is a real <img> panel, not the hero-minimal cut-out. See tests/garages.test.mjs.
+  assert.match(hsr, /<section class="page-head stage has-pic">/, 'bike area pages get the header picture panel');
 });
-test('the shared hero photo is on bike pages only: car, roadside, Axlio and partner pages have a plain navy stage', () => {
-  for (const f of ['car-service-bangalore/index.html', 'partners/axlio/index.html', 'roadside/index.html', 'doorstep-bike-and-car-repair-near-me/index.html', 'book/index.html']) assert.doesNotMatch(read(f), /stage[^"]* art"|hero-minimal/, f);
-  for (const f of ['bike-service/honda-activa-6g/index.html', 'scooty-repair-at-home-bangalore/index.html']) assert.match(read(f), /stage art"/, f);
-  assert.match(css, /\.page-head\.stage\.art::after\{[^}]*hero-minimal\.webp/);
-  assert.ok(existsSync(new URL('../assets/img/hero-minimal.webp', import.meta.url)));
+// Changed on purpose (owner asked for the garage render on every service page): the old hero-minimal cut-out is gone; header pictures per page family are tested in tests/garages.test.mjs. Single-task pages stay plain.
+test('the old hero-minimal cut-out is retired from stages; single-task pages have a plain navy stage', () => {
+  for (const f of ['book/index.html', 'track/index.html', 'pay/index.html', 'terms/index.html']) assert.doesNotMatch(read(f), /has-pic|stage-pic/, f);
+  for (const f of ['bike-service/honda-activa-6g/index.html', 'scooty-repair-at-home-bangalore/index.html', 'car-service-bangalore/index.html', 'roadside/index.html']) assert.doesNotMatch(read(f), /hero-minimal/, f);
+  assert.doesNotMatch(css, /hero-minimal/);
   // Changed on purpose (hero redesign): the home hero no longer uses the hero-minimal cut-out (hard right edge). Its first photo is the workshop front, eager and high priority. See tests/hero.test.mjs.
   // Changed again (animated garage): the home hero is now the animated garage illustration, eager and high priority. See tests/hero.test.mjs.
   // Changed again (hero v3): the garage illustration is gone; the backdrop is the designed garage scene <img>, eager and high priority. See tests/hero.test.mjs.

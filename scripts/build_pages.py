@@ -1046,8 +1046,21 @@ for slug, src, title, desc, ld, body, scripts, prio in MAIN:
     if slug: urls.append((f'/{slug}/', prio))
 urls[0] = ('/', '1.0')
 
+# ---- Garage pages: shared blocks for /verified-bike-garages-bangalore/, /join/ and /garage-partners/. Every sentence here is already on the site (landing.json, the join page, terms section 6). ----
+GARAGE_ICON = {'Visited in person': 'why-door', 'Documents checked': 'why-quote', 'Trained our way': 'why-approve', 'Trial jobs first': 'why-quote', 'Rated by customers': 'why-approve', 'OTP-safe handover': 'why-code'}
+def icon_cards(items):
+    """items: (icon file stem, title, text). Decorative 3D icons (alt is empty on purpose, the title says it)."""
+    return '<ul class="gcards">' + ''.join(f'<li><img src="/assets/img/hero/{ic}.webp" width="360" height="360" loading="lazy" decoding="async" alt=""><h3>{html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for ic, t, d in items) + '</ul>'
+GARAGE_WHAT = '''<section><div class="wrap"><div class="gwhat"><div><h2>What a Mechanix Pro garage is.</h2><p>A garage or mechanic in our network that has been visited, document-checked, trained on our way of working and trial-run before taking customer jobs.</p><p>When a bike must go to a workshop, it goes to a Mechanix Pro Certified garage. The repair is quoted first and starts only after the customer approves.</p></div>
+<ul class="gticks"><li>Visited and document-checked</li><li>Trained on quote first and honest findings</li><li>Bike leaves and returns only with the customer's one-time code</li><li>Photos at pickup and at return</li></ul></div></div></section>'''
+GARAGE_WA = 'Hi Mechanix Pro, I run a garage / I am a mechanic and I want to join your network.'
+def garage_band(h2='Bring your garage to Mechanix Pro.', partner=True):
+    return (f'''<section><div class="wrap"><div class="final gband"><h2>{h2}</h2><p>Run a garage or work as a mechanic in Bengaluru? Apply to join us. We bring doorstep bookings, you bring the skill.</p><div class="row"><a class="btn btn-primary btn-apply" href="/join/#apply">Apply to join</a><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{GARAGE_WA}">Ask on WhatsApp</a><a class="btn btn-ghost" href="#" data-call>Call us</a>'''
+            + ('<a class="btn btn-ghost" href="/garage-partners/">Partner your garage</a>' if partner else '') + '</div></div></div></section>')
+
 # ---- Join us: garages and independent mechanics apply here. The form goes to the submit-partner function and lands in the desk as a garage at "applied". ----
 def join_page():
+    _GTILES = next(x['tiles'] for x in json.load(open(os.path.join(ROOT, 'src', 'landing.json'), encoding='utf-8')) if x['slug'] == 'verified-bike-garages-bangalore')
     kinds = ''.join(f'<label class="chip-check"><input type="radio" name="pt-kind" value="{k}"{" checked" if k == "garage" else ""}><span>{l}</span></label>' for k, l in (('garage', 'Garage or workshop'), ('mechanic', 'Independent mechanic')))
     work = ''.join(f'<label class="chip-check"><input type="checkbox" name="pt-work" value="{k}"><span>{l}</span></label>' for k, l in (('bike', 'Motorcycles'), ('scooter', 'Scooters'), ('electric', 'Electric bikes and scooters'), ('car', 'Cars')))
     steps = ''.join(f'<li class="soon-step reveal" style="--i:{i}"><span class="soon-n">{i + 1}</span><span>{html.escape(t)}</span></li>' for i, t in enumerate((
@@ -1055,9 +1068,11 @@ def join_page():
     body = f'''<section class="soon-hero"><div class="soon-glow" aria-hidden="true"></div><div class="wrap">
   <p class="breadcrumb soon-crumb"><a href="/">Home</a> &rsaquo; Join us</p>
   <div class="soon-hero-grid"><div class="soon-copy"><span class="soon-pill">For garages and mechanics</span><h1>Join the Mechanix Pro network.</h1><p class="lead">Run a garage or work as a mechanic in Bengaluru? Apply to join us. We bring doorstep bookings, you bring the skill.</p>
-    <div class="row"><a class="btn btn-primary" href="#apply">Apply now</a><a class="btn btn-ghost-light" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I run a garage / I am a mechanic and I want to join your network.">Ask on WhatsApp</a></div></div></div>
+    <div class="row"><a class="btn btn-primary btn-apply" href="#apply">Apply now</a><a class="btn btn-ghost-light" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I run a garage / I am a mechanic and I want to join your network.">Ask on WhatsApp</a></div></div></div>
 </div></section>
+{GARAGE_WHAT}
 <section class="band"><div class="wrap"><div class="sec-head"><h2>How joining works.</h2><p>Every garage and mechanic is checked before the first job, so customers can trust the name.</p></div><ol class="soon-steps">{steps}</ol></div></section>
+<section><div class="wrap"><div class="sec-head"><h2>What we check before the first job.</h2></div>{icon_cards([(GARAGE_ICON[t], t, d) for t, d in _GTILES])}</div></section>
 <section id="apply"><div class="wrap"><div class="sec-head"><h2>Apply to join.</h2><p>Fill this in and our team will call you. We use these details only to contact you about joining.</p></div>
 <form class="wl card" id="partnerForm" novalidate>
   <fieldset class="wl-interests"><legend class="label">I am a</legend><div class="wl-chips">{kinds}</div></fieldset>
@@ -1074,10 +1089,32 @@ def join_page():
   <label class="check"><input type="checkbox" id="pt-consent"><span>It is fine to contact me about joining Mechanix Pro.</span></label>
   <button class="btn btn-primary" type="submit" style="margin-top:14px">Send my application</button>
   <p class="wl-msg" id="ptMsg" role="status" aria-live="polite"></p>
-</form></div></section>'''
+</form></div></section>
+{garage_band('Questions before you apply?', partner=True)}'''
     write('join/index.html', HEAD.format(title='Join Mechanix Pro: Garages and Mechanics in Bengaluru', desc='Run a garage or work as a mechanic in Bengaluru? Apply to join the Mechanix Pro network and get doorstep bookings.', url=f'{SITE}/join/', site=SITE, schema=crumbs(('Join us', '/join/')) + ld_tag({"@context": "https://schema.org", "@type": "WebPage", "name": "Join the Mechanix Pro network", "url": SITE + "/join/", "about": "Garages and mechanics in Bengaluru can apply to join Mechanix Pro."}), scripts=LEGAL_JS + '<script src="/assets/js/partner.js" defer></script>', body='', nav=NAV, main='') + body + foot())
     urls.append(('/join/', '0.6'))
 join_page()
+
+# ---- Partner your garage: who it is for, what Mechanix Pro sends, what the garage does, how to apply (the one form on /join/). Facts from the join page, the verified-garages page and terms section 6. No payout figures. ----
+def garage_partner_page():
+    slug, title = 'garage-partners', 'Partner Your Garage with Mechanix Pro | Bengaluru Workshops'
+    desc = 'Run a workshop or independent garage in Bengaluru? Partner with Mechanix Pro for doorstep jobs and pickup-and-drop vehicles that need workshop work. Apply online.'
+    who = icon_cards((('why-door', 'Workshops', 'Garages and workshops in Bengaluru that want to take on the workshop work Mechanix Pro customers need.'), ('why-quote', 'Independent garages', 'Independent garages in Bengaluru with the bays, tools and skill to do the job properly.'), ('why-approve', 'What you work on', 'Motorcycles, scooters, electric bikes and scooters, and cars. Tell us on the form which ones you do.')))
+    sends = icon_cards((('why-door', 'Doorstep jobs', 'We bring doorstep bookings, you bring the skill.'), ('why-code', 'Pickup-and-drop vehicles', 'When a bike must go to a workshop, it goes to a Mechanix Pro Certified garage.'), ('why-quote', 'Quote first', 'The repair is quoted first and starts only after the customer approves.')))
+    does = icon_cards((('why-quote', 'Checks and repairs', 'You check the vehicle and do the repair as quoted, with honest findings.'), ('why-approve', 'Photos at pickup and return', 'The Mechanix Pro mechanic photographs the bike at pickup and again at return, so there is a record of its condition.'), ('why-code', 'Returned with the one-time code', 'The bike leaves only after the customer shares a one-time code with the mechanic, and returns the same way.')))
+    steps = ''.join(f'<li class="soon-step reveal" style="--i:{i}"><span class="soon-n">{i + 1}</span><span>{html.escape(t)}</span></li>' for i, t in enumerate((
+        'You apply here. It takes two minutes.', 'Our team calls you and visits your workshop.', 'We check your documents and tools.', 'A short training on how Mechanix Pro works.', 'A few trial jobs, then you go live.')))
+    body = f'''<section class="page-head"><div class="wrap"><p class="breadcrumb soon-crumb"><a href="/">Home</a> &rsaquo; Partner your garage</p><span class="soon-pill">For workshops and garages</span><h1>Partner your garage with Mechanix Pro.</h1><p>Run a workshop or an independent garage in Bengaluru? Mechanix Pro brings you doorstep bookings and vehicles that need workshop work. You bring the skill.</p>
+  <div class="row"><a class="btn btn-primary btn-apply" href="/join/#apply">Apply to partner</a><a class="btn btn-ghost-light" href="#" data-wa="general" data-wa-text="{GARAGE_WA}">Ask on WhatsApp</a></div></div></section>
+<section><div class="wrap"><div class="sec-head"><h2>Who it is for.</h2><p>Workshops and independent garages in Bengaluru.</p></div>{who}</div></section>
+<section><div class="wrap"><div class="sec-head"><h2>What Mechanix Pro sends you.</h2></div>{sends}</div></section>
+<section><div class="wrap"><div class="sec-head"><h2>What your garage does.</h2></div>{does}</div></section>
+<section class="band"><div class="wrap"><div class="sec-head"><h2>How to apply.</h2><p>Every garage and mechanic is checked before the first job, so customers can trust the name. There is one form, on the Join us page.</p></div><ol class="soon-steps">{steps}</ol><p style="margin-top:22px"><a class="btn btn-primary btn-apply" href="/join/#apply">Go to the application form</a></p></div></section>
+{garage_band('Ready to partner?', partner=False)}'''
+    ld = crumbs(('Partner your garage', f'/{slug}/')) + ld_tag({"@context": "https://schema.org", "@type": "WebPage", "name": "Partner your garage with Mechanix Pro", "url": f'{SITE}/{slug}/', "about": "Workshops and independent garages in Bengaluru can apply to partner with Mechanix Pro."})
+    write(f'{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=f'{SITE}/{slug}/', site=SITE, schema=ld, scripts=LEGAL_JS, body='', nav=NAV, main='') + body + foot())
+    urls.append((f'/{slug}/', '0.6'))
+garage_partner_page()
 
 # ---- Partner page: Axlio (spare parts and car service). Facts are taken from axlio.in and attributed to it; Axlio is run separately. ----
 def axlio_page():
@@ -1143,6 +1180,8 @@ def landing_pages():
     for x in LANDING:
         url = f"{SITE}/{x['slug']}/"
         tiles = ''.join(f'<li class="reveal" style="--i:{i}"><h3>{html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for i, (t, d) in enumerate(x['tiles']))
+        is_garage = x['slug'] == 'verified-bike-garages-bangalore'
+        tiles_block = icon_cards([(GARAGE_ICON[t], t, d) for t, d in x['tiles']]) if is_garage else f'<ul class="job-grid three">{tiles}</ul>'
         steps = ''.join(f'<li class="soon-step reveal" style="--i:{i}"><span class="soon-n">{i + 1}</span><span>{html.escape(t)}</span></li>' for i, t in enumerate(x['steps']))
         faq = ''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in x['faq'])
         rel = ''.join(f'<a class="ride-chip rel-chip" href="/{r}/">{html.escape(by[r]["kicker"])}</a>' for r in x.get('related', []) if r in by)
@@ -1152,10 +1191,10 @@ def landing_pages():
   <div class="row" style="margin-top:22px"><a class="btn btn-primary" href="{cta_h}">{html.escape(cta_t)}</a><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I am looking for {html.escape(x["kicker"].lower())} in Bangalore.&#10;Bike model: &#10;Area: ">Ask on WhatsApp</a></div></div>
   <figure class="pg-fig"><img src="/assets/img/stories/{x["image"]}.webp" width="480" height="640" decoding="async" fetchpriority="low" alt="{html.escape(x["image_alt"])}"></figure></div></section>
 <section class="strip" aria-label="Our promises"><div class="wrap"><ul><li>Servicing in as fast as 2 hours</li><li>Quote first, work after your OK</li><li>{{{{days}}}}-day service warranty</li><li>Open 24/7</li></ul></div></section>
-<section><div class="wrap"><div class="sec-head"><h2>What you get.</h2></div><ul class="job-grid three">{tiles}</ul></div></section>
+{GARAGE_WHAT if is_garage else ''}<section><div class="wrap"><div class="sec-head"><h2>What you get.</h2></div>{tiles_block}</div></section>
 <section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Prices, up front.</h2><p>Starting prices for bikes and scooters up to 149cc, excluding GST. 150 to 250cc and 251 to 500cc bikes have their own prices on the <a href="/services/">services page</a>.</p></div><div class="card">{LANDING_PRICES}</div><p class="tiny muted" style="margin-top:8px">Prices checked on {TODAY_NICE}.</p></div></section>
 <section class="band"><div class="wrap"><div class="sec-head"><h2>How it works.</h2></div><ol class="soon-steps steps-2">{steps}</ol></div></section>
-<section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Questions we get asked.</h2></div>{faq}<p class="tiny muted" style="margin-top:18px">Prices are before GST; 18% GST is added on your bill. Your exact quote comes on WhatsApp first.</p><div class="rel-row"><span class="tiny muted">Also see:</span>{rel}</div></div></section>
+{garage_band() if is_garage else ''}<section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Questions we get asked.</h2></div>{faq}<p class="tiny muted" style="margin-top:18px">Prices are before GST; 18% GST is added on your bill. Your exact quote comes on WhatsApp first.</p><div class="rel-row"><span class="tiny muted">Also see:</span>{rel}</div></div></section>
 <section><div class="wrap"><div class="final"><h2>Ready when your bike is.</h2><p>Build your service in under a minute, or just message us.</p><div class="row"><a class="btn btn-primary" href="/book/">Build your service</a><a class="btn btn-ghost" href="#" data-wa="general">Get a quote on WhatsApp</a></div></div></div></section>'''
         write(f"{x['slug']}/index.html", HEAD.format(title=html.escape(x['title']), desc=html.escape(x['desc']), url=url, site=SITE, schema=ld, scripts=LEGAL_JS, body='', nav=NAV, main='') + body + foot())
         urls.append((f"/{x['slug']}/", '0.8'))
@@ -1266,7 +1305,7 @@ def llms_txt():
       '- Car service is live: periodic and brake service, jump start, flat tyre help, towing and fuel delivery, quote first. Spare parts come through our partner Axlio.',
       f"- Legal entity: {COMPANY['legalName']}, {_ADDR}. GSTIN {COMPANY['gstin']}.",
       '- Contact: +91 79652 95649 · hello@mechanixpro.in · WhatsApp from the website. Instagram: https://www.instagram.com/themechanixpro/', '',
-      '## Pages', f'- [Services and prices]({SITE}/services/)', f'- [Rate card]({SITE}/rate-card/)', f'- [How it works]({SITE}/help/)', f'- [Roadside help]({SITE}/roadside/)', f'- [Our workshop]({SITE}/workshop/)', f'- [Car service]({SITE}/car-service-bangalore/)', f'- [Areas we serve]({SITE}/areas/)', f'- [Guides]({SITE}/guides/how-often-to-service-your-bike/)', f'- [Blog]({SITE}/blog/)', f'- [Book a service]({SITE}/book/)', '']
+      '## Pages', f'- [Services and prices]({SITE}/services/)', f'- [Rate card]({SITE}/rate-card/)', f'- [How it works]({SITE}/help/)', f'- [Roadside help]({SITE}/roadside/)', f'- [Our workshop]({SITE}/workshop/)', f'- [Car service]({SITE}/car-service-bangalore/)', f'- [Partner your garage]({SITE}/garage-partners/)', f'- [Areas we serve]({SITE}/areas/)', f'- [Guides]({SITE}/guides/how-often-to-service-your-bike/)', f'- [Blog]({SITE}/blog/)', f'- [Book a service]({SITE}/book/)', '']
     open(os.path.join(ROOT, 'llms.txt'), 'w', encoding='utf-8').write('\n'.join(lines))
 llms_txt()
 
