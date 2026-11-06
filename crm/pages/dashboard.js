@@ -14,10 +14,10 @@ export async function render(root, ctx) {
   const card = (n, t, tone = '', go = '') => (go ? `<button type="button" class="stat clickable ${tone}" data-goto="${go}" aria-label="${t}: ${n}. Open"><b>${n}</b><span>${t}</span></button>` : `<div class="stat ${tone}"><b>${n}</b><span>${t}</span></div>`);
   const target = (title, x) => `<div class="stat wide"><span>${title}</span><div class="two-num"><b>${x.daily_done}</b><small>of ${x.daily_target} today</small></div>${bar(x.daily_done, x.daily_target)}
     <div class="two-num"><b>${x.monthly_done}</b><small>of ${x.monthly_target} this month</small></div>${bar(x.monthly_done, x.monthly_target)}</div>`;
-  root.innerHTML = `${head('Dashboard', 'Won is a booking that has been completed. Bookings made count toward targets.',
+  root.innerHTML = `${head('Dashboard', 'Done is a booking that has been completed. Bookings made count toward targets.',
     `<label class="small muted">Range <select id="dPreset" aria-label="Date range">${PRESETS.map(([k, t]) => `<option value="${k}"${k === presetOf(range.from || from, range.to || new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10)) ? ' selected' : ''}>${t}</option>`).join('')}</select></label><label class="small muted">From <input id="dFrom" type="date" value="${from}"></label><label class="small muted">To <input id="dTo" type="date" value="${range.to || ''}"></label>`)}
     <div class="stat-row">
-      ${card(L.total, 'Leads in range', '', 'range')}${card(L.won, `Won (${L.won_pct}%)`, 'good')}${card(L.lost, `Lost (${L.lost_pct}%)`)}${card(d.unassigned, 'Unassigned and open', d.unassigned ? 'bad' : '', 'unassigned')}
+      ${card(L.total, 'Leads in range', '', 'range')}${card(L.won, `Done (${L.won_pct}%)`, 'good')}${card(L.lost, `Lost (${L.lost_pct}%)`)}${card(d.unassigned, 'Unassigned and open', d.unassigned ? 'bad' : '', 'unassigned')}
       ${rt && rt.count ? card(`${rt.avg}/5`, `Average rating (${rt.count} ${rt.count === 1 ? 'rating' : 'ratings'}${rt.low ? ', ' + rt.low + ' low' : ''})`, rt.avg >= 4 ? 'good' : rt.avg < 3.5 ? 'bad' : '') : ''}
       ${ctx.page('inbox') ? card(d.chats.unreplied, `Chats waiting of ${d.chats.total}`, d.chats.unreplied ? 'bad' : '', 'chats') : ''}
     </div>
@@ -36,7 +36,7 @@ export async function render(root, ctx) {
   }));
   const pre = root.querySelector('#dPreset'); pre.addEventListener('change', () => { const r = presetRange(pre.value); if (r) { range.from = r.from; range.to = r.to; ctx.reload(); } });
   if (d.agents) bindExports(root, () => { const cap = new Map(((fc && fc.agents) || []).map((x) => [x.user_id, x])); return { name: 'team-performance', what: 'Team performance', title: 'Mechanix Pro team performance', subtitle: `${from} to ${range.to || 'today'}`, by: ctx.me && ctx.me.name, rows: d.agents, filters: { from: range.from, to: range.to },
-    columns: [['name', 'Care Buddy'], ['assigned', 'Assigned'], ['won', 'Won'], ['won_pct', 'Won %'], ['lost', 'Lost'], ['lost_pct', 'Lost %'], ['daily_done', 'Won today'], ['monthly_done', 'Won this month'], [(a) => (cap.get(a.user_id) || {}).open ?? '', 'Open leads'], [(a) => (cap.get(a.user_id) || {}).load_pct ?? '', 'Load % of capacity'], [(a) => (cap.get(a.user_id) || {}).overdue ?? '', 'Overdue follow-ups'], [(a) => (cap.get(a.user_id) || {}).contacts ?? '', 'Calls and WhatsApp logged']] }; }, 'team');
+    columns: [['name', 'Care Buddy'], ['assigned', 'Assigned'], ['won', 'Done'], ['won_pct', 'Done %'], ['lost', 'Lost'], ['lost_pct', 'Lost %'], ['daily_done', 'Done today'], ['monthly_done', 'Done this month'], [(a) => (cap.get(a.user_id) || {}).open ?? '', 'Open leads'], [(a) => (cap.get(a.user_id) || {}).load_pct ?? '', 'Load % of capacity'], [(a) => (cap.get(a.user_id) || {}).overdue ?? '', 'Overdue follow-ups'], [(a) => (cap.get(a.user_id) || {}).contacts ?? '', 'Calls and WhatsApp logged']] }; }, 'team');
   root.querySelector('#dFrom').addEventListener('change', (e) => { range.from = e.target.value || null; ctx.reload(); });
   root.querySelector('#dTo').addEventListener('change', (e) => { range.to = e.target.value || null; ctx.reload(); });
 }
@@ -44,7 +44,7 @@ export async function render(root, ctx) {
 function agents(list, caps) {
   const cap = new Map((caps || []).map((x) => [x.user_id, x]));
   if (!list.length) return empty('No Care Buddies yet. Add the first one in Team.');
-  return `<div class="table-wrap"><table><thead><tr><th>Name</th><th class="n">Assigned</th><th class="n">Won</th><th class="n">Won %</th><th class="n">Lost</th><th class="n">Lost %</th><th>Today</th><th>This month</th>${caps ? '<th>Workload</th><th class="n">Overdue</th><th class="n">Due today</th><th class="n">Contacts</th>' : ''}</tr></thead><tbody>
+  return `<div class="table-wrap"><table><thead><tr><th>Name</th><th class="n">Assigned</th><th class="n">Done</th><th class="n">Done %</th><th class="n">Lost</th><th class="n">Lost %</th><th>Today</th><th>This month</th>${caps ? '<th>Workload</th><th class="n">Overdue</th><th class="n">Due today</th><th class="n">Contacts</th>' : ''}</tr></thead><tbody>
     ${list.map((a) => `<tr><td>${esc(a.name)} <small class="muted">${esc(a.designation || '')}</small></td><td class="n">${a.assigned}</td><td class="n"><b>${a.won}</b></td><td class="n">${a.won_pct}%</td><td class="n">${a.lost}</td><td class="n">${a.lost_pct}%</td>
       <td class="meter">${a.daily_done} / ${a.daily_target}${bar(a.daily_done, a.daily_target)}</td><td class="meter">${a.monthly_done} / ${a.monthly_target}${bar(a.monthly_done, a.monthly_target)}</td>${caps ? (() => { const c = cap.get(a.user_id); return c ? `<td class="meter">${c.open} of ${c.capacity} open${bar(Math.min(c.open, c.capacity), c.capacity)}${c.load_pct > 100 ? '<small class="badtxt">Over capacity</small>' : ''}</td><td class="n ${c.overdue ? 'badtxt' : ''}">${c.overdue}</td><td class="n">${c.today}</td><td class="n">${c.contacts}</td>` : '<td></td><td></td><td></td><td></td>'; })() : ''}</tr>`).join('')}</tbody></table></div>`;
 }

@@ -122,5 +122,6 @@ test('flow-core, Crew and Admin use ds.js; the status words come from it', () =>
   assert.doesNotMatch(read('crm/flow-core.js'), /flow-chip|flow-empty/);
   assert.match(read('crm/ui.js'), /STAGE = Object\.fromEntries\(Object\.entries\(STATUS\)/);
   assert.match(read('crm/crm.js'), /from '\.\/ds\.js'/); assert.match(read('admin/admin.js'), /from '\.\/ds\.js'/);
-  assert.match(read('admin/admin.js'), /paid: 'Booked \(paid\)', scheduled: 'Booked \(scheduled\)'/);
+  assert.match(read('admin/admin.js'), /scheduled: 'Booked \(visit scheduled\)'/);   // dropdown keeps both stored values settable; everywhere else both read Booked
+  assert.match(read('admin/admin.js'), /STATUSES\.filter\(\(s\) => s !== 'scheduled'\)/);   // pipeline: one Booked row
 });

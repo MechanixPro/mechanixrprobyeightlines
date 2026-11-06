@@ -31,8 +31,9 @@ const rupee = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 const when = (d) => (d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
 const BOOKED_STATUSES = ['paid', 'scheduled', 'completed'];
 const STATUSES = ['new', 'contacted', 'quoted', 'payment_sent', 'paid', 'scheduled', 'completed', 'lost'];
-// One vocabulary (ds.js). Paid and Scheduled are both "Booked" in Crew; here they are told apart because the status list and the pipeline show every stored value.
-const LABEL = { ...Object.fromEntries(Object.entries(STATUS).map(([k, v]) => [k, v.label])), paid: 'Booked (paid)', scheduled: 'Booked (scheduled)' };
+// One vocabulary (ds.js): paid and scheduled both read "Booked" in pills, lists and the pipeline. The status dropdown must still be able to set either stored value, so its second entry reads "Booked (visit scheduled)".
+const LABEL = Object.fromEntries(Object.entries(STATUS).map(([k, v]) => [k, v.label]));
+const OPTION_LABEL = { ...LABEL, scheduled: 'Booked (visit scheduled)' };
 // A lead has no booking ID until it is confirmed: show the ID when there is one, else the word Lead. The private ref (L-...) is never shown.
 const bid = (l) => (l && l.booking_id) || 'Lead';
 const bkg = (l) => (l && l.booking_id ? 'booking ' + l.booking_id : 'booking');
@@ -251,7 +252,7 @@ function dash() {
   const waiting = L.filter((l) => l.status === 'new' && Date.now() - new Date(l.created_at) > 30 * 6e4 && new Date(l.created_at) > dayAgo);
   const by = (k) => { const m = {}; week.forEach((l) => { const v = (k === 'utm' ? l.utm?.utm_source : l[k]) || (k === 'utm' ? 'direct' : '—'); m[v] = (m[v] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 8); };
   const bars = (rows) => { const mx = Math.max(1, ...rows.map((r) => r[1])); return '<div class="bars">' + rows.map(([k, v]) => `<div class="b"><span>${esc(LABEL[k] ?? k)}</span><span class="t"><i style="width:${Math.round((v / mx) * 100)}%"></i></span><b>${v}</b></div>`).join('') + '</div>'; };
-  const funnel = STATUSES.map((s) => [s, week.filter((l) => l.status === s).length]);
+  const funnel = STATUSES.filter((s) => s !== 'scheduled').map((s) => [s, week.filter((l) => (s === 'paid' ? ['paid', 'scheduled'].includes(l.status) : l.status === s)).length]);   // one Booked row: paid and scheduled together
   return `<h1 style="font-size:34px">Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, ${esc(S.me.name)}</h1>
   ${filterBar}
   <div class="kpis">
@@ -706,7 +707,7 @@ async function openLeadBase(id, silent) {
   ${panel('booking', `${DETAILS}
     ${customerVehicleCard(l)}
     <div class="card" style="margin-top:12px"><h3>Update</h3>
-      <label class="label" for="ls">Status</label><select id="ls">${STATUSES.map((s) => `<option value="${s}"${s === l.status ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
+      <label class="label" for="ls">Status</label><select id="ls">${STATUSES.map((s) => `<option value="${s}"${s === l.status ? ' selected' : ''}>${OPTION_LABEL[s]}</option>`).join('')}</select>
       <div id="lostBox" hidden><label class="label" for="lr">Why was it lost? (required)</label><select id="lr"><option value="">Choose a reason</option>${LOST_REASONS.map((r) => `<option>${esc(r)}</option>`).join('')}</select>
         <label class="label" for="lrn">Note (Other needs at least 5 characters)</label><input id="lrn" maxlength="200"></div>
       <label class="label" for="lm">Mechanic</label><select id="lm"><option value="">Not assigned</option>${MECH}</select>
