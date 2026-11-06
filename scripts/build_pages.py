@@ -537,7 +537,7 @@ GUIDE_PAGES = {
     ('Why Bengaluru riding can need more care', '<p>Stop-start traffic, long idling at signals, potholes and the monsoon all add wear that the kilometre count does not show. A bike that does short, crowded trips every day can need attention earlier than one that cruises on open roads.</p>'),
     ('Signs your bike needs a service sooner', '<ul><li>Brakes that feel soft, noisy or slow to bite</li><li>A chain that is loose, noisy or dry</li><li>Hard starting, a rough idle or weaker pickup</li><li>A clutch that slips or feels heavy</li><li>Engine oil that is dark, low or past its due date</li><li>A battery that struggles on the self-start</li></ul><p>If you notice any of these, get the bike checked rather than waiting for the next due date.</p>'),
     ('Electric scooters and bikes', '<p>An electric scooter has no engine oil to change, but it still needs regular checks: brakes, tyres, suspension, lights, battery health and connectors, and how it charges. If the range drops or charging stops early, have it looked at.</p>'),
-    ('What a service usually covers', '<p>Our packages are listed with their prices on the <a href="/services/">service prices</a> page. You get a quote on WhatsApp first and pay only after you approve it.</p>')],
+    ('What a service usually covers', '<p>Our packages are listed with their prices on the <a href="/services/">service prices</a> page. You confirm your slot with a small confirmation fee that is adjusted in your final bill, then approve an itemised quote before any work starts.</p>')],
    [('How often should I service my bike?', 'Follow the schedule in your owner\'s manual, which is usually by kilometres or months, whichever comes first. Service sooner if the brakes, chain, clutch or starting feel off.'),
     ('Do electric scooters need servicing?', 'Yes. There is no engine oil, but brakes, tyres, suspension, lights, battery health and charging still need regular checks.'),
     ('Can a mechanic service my bike at home in Bengaluru?', 'Yes. A Mechanix Pro certified mechanic comes to your home or office. You get a quote on WhatsApp first and approve it before any work starts.')]),
@@ -900,7 +900,7 @@ def chat_block(campaign=''):
             '<div class="chat-head"><img src="/assets/img/logo-mark.webp" alt="" width="40" height="40"><div><b>Mechanix Pro</b><span>Business account on WhatsApp · Open 24/7</span></div></div>'
             '<div class="chat-log" aria-live="polite"><div class="bubble in">Hi! I\'m the Mechanix Pro team. What do you ride?</div></div>'
             f'<div class="chat-opts">{chips}</div>'
-            '<p class="tiny reassure">Tap your bike and WhatsApp opens with a message ready. Nothing is charged until you approve your quote. We are open 24/7.</p></div>')
+            '<p class="tiny reassure">Tap your bike and WhatsApp opens with a message ready. You pay only a small confirmation fee to book, adjusted in your final bill. Nothing else is charged until you approve your quote. We are open 24/7.</p></div>')
 
 def offer_page(o):
     sid, slug = o['service'], o['slug']
@@ -1226,7 +1226,7 @@ with open(os.path.join(ROOT, 'assets', 'js', 'mechu-data.js'), 'w', encoding='ut
 # ---- llms.txt: a plain-text summary for AI assistants (ChatGPT, Claude, Perplexity, Google AI). Built from site.json so the prices match the site. ----
 def llms_txt():
     sv = SITE_DATA['services']
-    lines = ['# Mechanix Pro', '', '> Mechanix Pro is a doorstep bike and scooter service and roadside help in Bengaluru (Bangalore), India. Certified mechanics come to your home or office. You get an itemised quote on WhatsApp first and pay only after you approve.', '',
+    lines = ['# Mechanix Pro', '', '> Mechanix Pro is a doorstep bike and scooter service and roadside help in Bengaluru (Bangalore), India. Certified mechanics come to your home or office. You confirm your slot with a small confirmation fee that is adjusted in your final bill, then approve an itemised quote before any work starts.', '',
       '## Key facts',
       '- Service area: all of Bengaluru, every PIN code from 560001 to 560110 (see the areas page).',
       '- How it works: message on WhatsApp or build a service on the website, receive an itemised quote, approve it, the mechanic comes to your door.',

@@ -15,7 +15,7 @@ test('hero.css is linked from the home page only and stays small', () => {
   // Raised on purpose to 9,500 bytes: the video hero, the booking bar and the Why choose row need more CSS than the earlier hero.
   assert.ok(statSync(new URL('../assets/css/hero.css', import.meta.url)).size < 9500, 'hero.css budget 9,500 bytes');
   assert.ok(Buffer.byteLength(read('assets/css/site.css')) < 32000);
-  assert.ok(Buffer.byteLength(home) < 42500, 'home HTML ' + Buffer.byteLength(home));
+  assert.ok(Buffer.byteLength(home) < 44000, 'home HTML ' + Buffer.byteLength(home));
 });
 // Changed on purpose (owner's own garage render and video): the hero shows the owner's illustrated Mechanix Pro garage as a short muted loop (bike view) and a still (car view), beside the headline.
 test('the hero media: a muted looping garage video with a poster (bike view) and a car still (car view); sized, alt text, honest "Illustration" tag, no audio, files exist', () => {

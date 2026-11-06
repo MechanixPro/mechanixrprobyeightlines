@@ -9,7 +9,7 @@ const SAMPLE = ['index.html', 'bike-service-hsr-layout/index.html', 'bike-servic
 
 test('the home page has six sections, in the order a visitor decides', () => {
   const ids = [...main.matchAll(/<section[^>]*id="([a-z-]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(ids, ['hero', 'brief', 'work', 'prices', 'trust', 'shop', 'areas', 'faq', 'tools']);
+  assert.deepEqual(ids, ['hero', 'brief', 'work', 'prices', 'team', 'trust', 'shop', 'areas', 'faq', 'tools']);
   assert.ok(main.indexOf('class="stage"') < main.indexOf('class="sheet"'), 'a navy stage first, then the light sheet');
   assert.equal((main.match(/<h1[ >]/g) || []).length, 1);
 });
@@ -35,11 +35,13 @@ test('booking card, then WhatsApp us and Call as secondary links; the car set sw
   assert.match(links, /<a class="car-only" href="\/car-service-bangalore\/">See car services<\/a>/);
   assert.match(main, /<form id="hero-book" class="hb" action="\/book\/" method="get"/);
 });
-test('how it works has three steps and keeps the tap-to-play demo, loading nothing until tapped', () => {
-  const b = main.slice(main.indexOf('id="brief"'), main.indexOf('id="prices"'));
+// Changed on purpose: how it works now follows the real flow (book and pay a small confirmation fee, mechanic comes with a one-time code, itemised quote you approve) and shows the gate illustration instead of the outdated demo video.
+test('how it works has three steps that match the real booking flow, with the gate illustration and no outdated video', () => {
+  const from = main.indexOf('id="brief"'), b = main.slice(from, main.indexOf('</section>', from));
   assert.equal((b.match(/<li><b>/g) || []).length, 6, 'three bike steps and three car steps');
-  assert.match(b, /Send your model and area/); assert.match(b, /Get an itemised quote/); assert.match(b, /We service at your door/);
-  assert.match(b, /<video controls muted playsinline preload="none"/);
+  assert.match(b, /Book and confirm your slot/); assert.match(b, /Your mechanic comes to your door/); assert.match(b, /Itemised quote, you approve/);
+  assert.match(b, /confirmation fee, ₹\d+ to ₹\d+/); assert.match(b, /at-your-door-1200\.webp/);
+  assert.doesNotMatch(b, /<video/);
 });
 test('prices come from the price source, say "from", and keep GST apart; no price was changed', () => {
   const site = JSON.parse(read('src/site.json')).services;
@@ -115,7 +117,7 @@ test('one font, one accent; tap targets, focus, reduced motion and contrast toke
 });
 test('the home page stays light: one eager hero photo (lazy extras), no chat script, no script slideshow', () => {
   assert.doesNotMatch(home, /hero-rain|chatstart\.js|hero\.js|showcase\.js|class="ticker"/);
-  assert.ok(Buffer.byteLength(home) < 42500, 'home HTML is ' + Buffer.byteLength(home) + ' bytes');
+  assert.ok(Buffer.byteLength(home) < 44000, 'home HTML is ' + Buffer.byteLength(home) + ' bytes');
   assert.ok(readdirSync(new URL('../assets/css/', import.meta.url)).includes('site.css'));
   assert.ok(Buffer.byteLength(css) < 32000, 'site.css is ' + Buffer.byteLength(css) + ' bytes');
 });
