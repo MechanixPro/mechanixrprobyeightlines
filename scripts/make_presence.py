@@ -41,7 +41,7 @@ def share_card(path, kicker, headline, sub):
     os.makedirs(os.path.dirname(path), exist_ok=True); img.save(path, 'JPEG', quality=86, optimize=True)
 
 CARDS = {
-  'services': ('Services and prices', 'Clear prices, quote first', 'Bike and scooter service at your door in Bengaluru. Pay after you say yes.'),
+  'services': ('Services and prices', 'Clear prices, quote first', 'Bike and scooter service at your door in Bengaluru. Quote first, work after your OK.'),
   'roadside': ('Roadside help', 'Broken down? We come to you.', 'Puncture, battery or breakdown. Share your location on WhatsApp.'),
   'join': ('Garages and mechanics', 'Join the Mechanix Pro network', 'Apply in two minutes. Our team calls you.'),
   'axlio': ('Our partner Axlio', 'Car and bike spare parts, delivered', 'Parts, service kits and car help in Bengaluru.'),
