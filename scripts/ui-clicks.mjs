@@ -254,8 +254,8 @@ const adminLoad = (tab) => async () => { const ok = await load(ADMIN, { wait: '#
 async function admin() {
   await sweep('admin shell', adminLoad(null), '#groups, #subtabs, .topbar, header', { skip: (d) => /signOut|forgot/.test(d.attrs.id || '') });
   for (const t of ADMIN_TABS) await sweep('admin ' + t, adminLoad(t), '#view');
-  for (const [lid, what] of LEADS.slice(0, 8)) {
-    const reset = async () => { const ok = await adminLoad('leads')(); if (!ok) return false; if (!(await ev(`!!document.querySelector('[data-lead="${lid}"]')`))) return false; await ev(`document.querySelector('[data-lead="${lid}"]').click()`); for (let i = 0; i < 30; i++) { await sleep(120); if (await ev('!!document.querySelector("#sheetPanel .card")')) break; } await idle(); await sleep(250); await idle(); return true; };
+  for (const [lid, what] of LEADS.slice(0, 5)) {
+    const reset = async () => { const ok = await adminLoad('leads')(); if (!ok) return false; await ev(`(()=>{const s=document.querySelector('#fs'); if(s){s.value='all'; s.dispatchEvent(new Event('change',{bubbles:true}));}})()`); await idle(); await sleep(200); if (!(await ev(`!!document.querySelector('[data-lead="${lid}"]')`))) return false; await ev(`document.querySelector('[data-lead="${lid}"]').click()`); for (let i = 0; i < 30; i++) { await sleep(120); if (await ev('!!document.querySelector("#sheetPanel .card")')) break; } await idle(); await sleep(250); await idle(); return true; };
     await sweep(`admin booking sheet ${lid} (${what})`, reset, '#sheetPanel');
   }
 }

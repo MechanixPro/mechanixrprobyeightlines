@@ -75,6 +75,12 @@ test('Admin: the quote is attached before the invoice opens, and an empty invoic
   assert.match(a, /Add the items first: this booking has no priced item/);
 });
 
+test('a dialog that stays open after Save (Find by PIN) gets its button back', () => {
+  const u = read('crm/ui.js');
+  assert.match(u, /finally \{ if \(btn && el\.isConnected\) btn\.disabled = false; \}/);
+  assert.doesNotMatch(u, /catch \(x\) \{ err\.textContent = clean\(x\); if \(btn\) btn\.disabled = false; \}\s*\n/);
+});
+
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 test('click-through: every element on Dispatch and Issues does something and nothing throws (skips without Chrome)', { skip: !existsSync(CHROME) && 'Chrome not installed', timeout: 180000 }, () => {
   const out = mkdtempSync(join(tmpdir(), 'mxp-ct-'));

@@ -71,7 +71,7 @@ export function modal({ title, intro, body, submit = 'Save', cancel = 'Cancel', 
   form.addEventListener('submit', async (e) => {
     e.preventDefault(); err.textContent = '';
     const btn = $('button[type=submit]', form); if (btn) btn.disabled = true;
-    try { await onSubmit(form, formData(form), close); } catch (x) { err.textContent = clean(x); if (btn) btn.disabled = false; }
+    try { await onSubmit(form, formData(form), close); } catch (x) { err.textContent = clean(x); } finally { if (btn && el.isConnected) btn.disabled = false; }   // a dialog that stays open (Find by PIN shows its answer inside) must stay usable
   });
   const first = $('input:not([type=hidden]), select, textarea', form); if (first) first.focus();
   if (onOpen) onOpen(form, close);
