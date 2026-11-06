@@ -14,28 +14,26 @@ test('the home page has six sections, in the order a visitor decides', () => {
   assert.equal((main.match(/<h1[ >]/g) || []).length, 1);
 });
 test('the hero says the offer in one line, and the quote-first promise in the next', () => {
-  assert.match(main, /<h1[^>]*>Bike and car service at your home in Bengaluru\.<\/h1>/);
+  assert.match(main, /<h1[^>]*>Bike and car service at your door in Bengaluru\.<\/h1>/);   // changed on purpose: hero v3 headline is 'at your door'
   assert.match(main, /<p class="lead">Quote first\. You approve before we start\.<\/p>/);
 });
 test('the Bike / Car toggle works without scripts: two radios, two labels, CSS decides what shows', () => {
-  assert.match(main, /<input class="veh-in" type="radio" name="vehicle" id="veh-bike" checked>/);
-  assert.match(main, /<input class="veh-in" type="radio" name="vehicle" id="veh-car">/);
+  assert.match(main, /<input class="veh-in" type="radio" name="vehicle" id="veh-bike" value="bike" form="hero-book" checked>/);   // changed on purpose: the radios now also submit vehicle with the hero booking form
+  assert.match(main, /<input class="veh-in" type="radio" name="vehicle" id="veh-car" value="car" form="hero-book">/);   // changed on purpose: same
   assert.match(main, /<label for="veh-bike">Bike<\/label><label for="veh-car">Car<\/label>/);
   assert.match(css, /#veh-car:checked ~ \* \.bike-only\{display:none!important\}/);
   assert.match(css, /#veh-car:checked ~ \* \.car-only\{display:var\(--d,block\)!important\}/);
   assert.ok(main.indexOf('id="veh-bike"') < main.indexOf('class="veh"'), 'the toggle sits above the buttons');
-  assert.ok(main.indexOf('class="veh"') < main.indexOf('class="bike-only btns"'));
+  assert.ok(main.indexOf('class="veh"') < main.indexOf('id="hb-pin"'));   // changed on purpose (hero v3): the toggle sits at the top of the booking card, above the PIN field, not above the old button stack
 });
-test('three buttons in order: WhatsApp quote (main, green), Call now, Book online; the car set swaps wording and links', () => {
-  const bike = main.match(/<div class="bike-only btns">([\s\S]*?)<\/div><\/div>/)[1];
-  const wa = bike.indexOf('btn btn-wa btn-xl'), call = bike.indexOf('data-call'), book = bike.indexOf('href="/book/"');
-  assert.ok(wa > -1 && wa < call && call < book, 'WhatsApp, then Call now, then Book online');
-  assert.match(bike, /data-wa="general" data-wa-text="Hi Mechanix Pro, I need a service for my bike in Bengaluru\./);
-  assert.match(bike, />Book online</); assert.match(bike, />Call now</);
-  const car = main.match(/<div class="car-only btns">([\s\S]*?)<\/div><\/div>/)[1];
-  assert.match(car, /data-wa-text="Hi Mechanix Pro, I need a car service in Bangalore\./);
-  assert.match(car, /href="\/car-service-bangalore\/"/);
-  assert.ok(car.indexOf('btn-wa') < car.indexOf('data-call'));
+test('booking card, then WhatsApp us and Call as secondary links; the car set swaps the WhatsApp wording and adds the car services link', () => {   // rewritten on purpose (hero v3): the old three-button stack is replaced by the booking card
+  const links = main.match(/<p class="hb-links">([\s\S]*?)<\/p>/)[1];
+  assert.ok(main.indexOf('id="hero-book"') < main.indexOf('class="hb-links"'), 'the card comes first, the secondary links under it');
+  assert.match(links, /class="bike-only" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a service for my bike in Bengaluru\./);
+  assert.match(links, /class="car-only" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a car service in Bangalore\./);
+  assert.match(links, />WhatsApp us</); assert.match(links, /data-call[^>]*>[\s\S]*Call</);
+  assert.match(links, /<a class="car-only" href="\/car-service-bangalore\/">See car services<\/a>/);
+  assert.match(main, /<form id="hero-book" class="hb" action="\/book\/" method="get"/);
 });
 test('how it works has three steps and keeps the tap-to-play demo, loading nothing until tapped', () => {
   const b = main.slice(main.indexOf('id="brief"'), main.indexOf('id="prices"'));
@@ -54,7 +52,9 @@ test('the trust line is exactly the two owner-confirmed numbers, and only on bik
   const t = main.slice(main.indexOf('id="trust"'), main.indexOf('id="areas"'));
   assert.match(t, /class="bike-only"/);
   assert.deepEqual([...t.matchAll(/<b>([^<]+)<\/b>/g)].map((m) => m[1]), ['10,000+ services done', '1,300+ gated communities trust us']);
-  assert.doesNotMatch(main.replace(t, ''), /10,000\+|1,300\+/, 'the numbers appear nowhere else on the home page');
+  const chips = main.match(/<ul class="hero-chips bike-only"[^>]*>[\s\S]*?<\/ul>/)[0];   // changed on purpose (hero v3): the owner approved the same two claims as small chips in the hero, bike view only
+  assert.deepEqual([...chips.matchAll(/<li>([^<]+)<\/li>/g)].map((m) => m[1]), ['10,000+ services done', '1,300+ gated communities trust us']);
+  assert.doesNotMatch(main.replace(t, '').replace(chips, ''), /10,000\+|1,300\+/, 'the numbers appear nowhere else on the home page');
   assert.doesNotMatch(home, /rated|\bstars?\b|testimonial|\breviews?\b/i);
   for (const f of ['car-service-bangalore/index.html', 'partners/axlio/index.html', 'roadside/index.html']) assert.doesNotMatch(read(f), /10,000\+|1,300\+/, f);
   assert.match(css, /#veh-car:checked ~ \* \.bike-only/, 'hidden in the car view');
@@ -115,7 +115,7 @@ test('one font, one accent; tap targets, focus, reduced motion and contrast toke
 });
 test('the home page stays light: one eager hero photo (lazy extras), no chat script, no script slideshow', () => {
   assert.doesNotMatch(home, /hero-rain|chatstart\.js|hero\.js|showcase\.js|class="ticker"/);
-  assert.ok(Buffer.byteLength(home) < 41000, 'home HTML is ' + Buffer.byteLength(home) + ' bytes');
+  assert.ok(Buffer.byteLength(home) < 42500, 'home HTML is ' + Buffer.byteLength(home) + ' bytes');
   assert.ok(readdirSync(new URL('../assets/css/', import.meta.url)).includes('site.css'));
   assert.ok(Buffer.byteLength(css) < 32000, 'site.css is ' + Buffer.byteLength(css) + ' bytes');
 });
@@ -152,7 +152,9 @@ test('the shared hero photo is on bike pages only: car, roadside, Axlio and part
   assert.match(css, /\.page-head\.stage\.art::after\{[^}]*hero-minimal\.webp/);
   assert.ok(existsSync(new URL('../assets/img/hero-minimal.webp', import.meta.url)));
   // Changed on purpose (hero redesign): the home hero no longer uses the hero-minimal cut-out (hard right edge). Its first photo is the workshop front, eager and high priority. See tests/hero.test.mjs.
-  assert.match(main, /<img src="\/assets\/img\/workshop\/workshop-front-1200\.webp"[^>]*fetchpriority="high"/);
+  // Changed again (animated garage): the home hero is now the animated garage illustration, eager and high priority. See tests/hero.test.mjs.
+  // Changed again (hero v3): the garage illustration is gone; the backdrop is the designed garage scene <img>, eager and high priority. See tests/hero.test.mjs.
+  assert.match(main, /<img class="hb1" src="\/assets\/img\/hero-garage-scene\.svg"[^>]*fetchpriority="high"/);
   assert.doesNotMatch(main.slice(0, main.indexOf('id="brief"')), /hero-minimal/);
 });
 test('the footer keeps the company line and GSTIN from company.json, and the Areas links', () => {

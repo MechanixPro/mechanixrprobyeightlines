@@ -1,37 +1,60 @@
-/* Home hero: "a workshop made for you". Real workshop photos only (assets/img/workshop). Pure CSS: no script.
-   The first photo is the page's LCP image and sits at the bottom, always fully visible. The other two fade in over it, then fade out together. */
-.hs{position:relative;z-index:1;margin:28px 0 44px;max-width:560px}
-.hs-main{position:relative;overflow:hidden;aspect-ratio:4/3;max-height:45vh;width:100%;border-radius:24px;background:var(--nv2);border:1px solid rgba(255,255,255,.24);box-shadow:0 26px 50px -22px rgba(0,0,0,.7)}
-.hs-main::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--acc)}
-.hs-z{position:absolute;inset:0;animation:hs-kb 20s ease-in-out infinite alternate}
-.hs-z img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.hs-z .b,.hs-z .c{opacity:0}
-.hs-z .b{animation:hs-b 15s ease-in-out infinite}
-.hs-z .c{animation:hs-c 15s ease-in-out infinite}
-.hs-t,.hs-c{position:absolute;z-index:2;display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(11,18,32,.74);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid var(--hair-d);color:var(--on);font-size:13px;line-height:1.2;font-weight:600;letter-spacing:-.01em}
-.hs-t{top:-12px;left:10px;padding-left:8px;box-shadow:0 8px 20px -6px rgba(0,0,0,.6)}
-.hs-t img{width:20px;height:21px}
-.hs-c{left:12px;bottom:16px}
-.hs-s{display:none}
-.hs figcaption{margin:10px 2px 0;font-size:13px;line-height:1.4;color:var(--on2)}
-@keyframes hs-kb{from{transform:scale(1)}to{transform:scale(1.06)}}
-@keyframes hs-b{0%,33%{opacity:0}40%,92%{opacity:1}100%{opacity:0}}
-@keyframes hs-c{0%,66%{opacity:0}72%,92%{opacity:1}100%{opacity:0}}
-@media(min-width:960px){
-  .hs{margin:0 0 72px auto;width:100%;max-width:540px;padding-bottom:44px}
-  .hs-main{max-height:none;width:92%;margin-left:auto;transform:rotate(1.2deg);border-radius:28px;box-shadow:0 36px 64px -24px rgba(0,0,0,.75),0 0 0 7px rgba(255,255,255,.04)}
-  .hs-s{display:block;position:absolute;left:0;bottom:0;width:46%;aspect-ratio:4/3;object-fit:cover;border-radius:20px;border:1px solid rgba(255,255,255,.4);box-shadow:0 22px 40px -14px rgba(0,0,0,.75);transform:rotate(-2deg);z-index:3}
-  .hs-t{top:-14px;left:calc(8% - 12px);font-size:14px}
-  .hs-c{left:auto;right:16px;bottom:18px;font-size:14px}
-  .hs figcaption{position:absolute;right:0;bottom:4px;width:54%;margin:0;text-align:right;padding-left:12px}
-}
-@media(prefers-reduced-motion:reduce),(prefers-reduced-data:reduce){
-  .hs-z,.hs-z .b,.hs-z .c{animation:none!important;transform:none!important}
-  .hs-z .b,.hs-z .c{display:none}
-}
-@media(prefers-reduced-data:reduce){.hs-s{display:none!important}}
+/* Home hero: full-bleed designed garage scene (one <img>, assets/img/hero-garage-scene.svg, its own gentle motion stops for reduced motion), navy overlay, offer headline and an inline booking card. No script, no inline style. */
+#hero.stage{padding:0;min-height:clamp(560px,calc(100svh - 120px),760px);display:flex;align-items:center}
+.hero-bg{position:absolute;inset:0;z-index:-1;background:#0B1220}
+.hero-bg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:90% 50%;filter:saturate(1.12) brightness(1.1)}
+.hero-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,18,32,.9),rgba(14,28,60,.9) 40%,rgba(14,28,60,.25) 58%,rgba(20,41,90,.6))}
+#hero .hero-in{width:100%;padding:12px 20px 26px;gap:12px}
+.hero-left{display:contents}
+#hero .hero-copy{animation:none}
+#hero h1{font-size:clamp(24px,7vw,34px);line-height:1.04;letter-spacing:-.035em;text-transform:uppercase;font-weight:800;margin:0 0 10px;max-width:14em;text-wrap:balance}
+.hero-offer{margin:0 0 6px;font-size:clamp(22px,6.6vw,32px);font-weight:800;line-height:1.05;letter-spacing:-.03em;color:var(--acc)!important;text-transform:uppercase}
+.hero-offer small{display:inline-block;margin-left:2px;font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--on)}
+#hero .lead{font-size:15px;margin:0;color:var(--on)}
+.hb{padding:14px;border-radius:22px;background:rgba(11,18,32,.74);border:1px solid rgba(255,255,255,.2);box-shadow:0 30px 60px -28px rgba(0,0,0,.8);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.hb h2{margin:0;font-size:20px;line-height:1.2;letter-spacing:-.02em}
+.hb-sub{margin:3px 0 0;font-size:13px;line-height:1.35;color:var(--on)}
+.hb .veh{display:grid;max-width:none;margin-top:10px}
+.hb-f{margin-top:10px}
+.hb-f label{display:block;margin:0 0 4px;font-size:13px;font-weight:600;color:var(--on)}
+.hb-f input{display:block;width:100%;min-height:50px;padding:0 14px;border:2px solid transparent;border-radius:14px;background:#fff;color:var(--nv);font:600 18px/1 var(--font);letter-spacing:.04em}
+.hb-f input::placeholder{color:#6B7690;font-weight:500}
+.hb-f input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.hb-help,.hb-err{margin:5px 2px 0;font-size:13px;line-height:1.3;color:var(--on2)!important}
+.hb-err{display:none;color:#FFC9A0!important;font-weight:600}
+.hb-f:has(input:not(:placeholder-shown):invalid) .hb-err{display:block}
+.hb-f:has(input:not(:placeholder-shown):invalid) .hb-help{display:none}
+.hb-f input:not(:placeholder-shown):invalid{border-color:#FFB070}
+.hb-go{display:flex;align-items:center;justify-content:center;width:100%;min-height:54px;margin-top:10px;border:0;border-radius:14px;background:var(--acc);color:var(--on-acc);font:800 18px/1 var(--font);letter-spacing:-.01em;cursor:pointer;transition:filter .2s,transform .2s}
+.hb-go:hover{filter:brightness(1.07)}.hb-go:active{transform:translateY(1px)}
+.hb-go:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.hb-links{display:flex;flex-wrap:wrap;gap:0 18px;margin:8px 0 0;padding:0 14px;border-radius:14px;background:rgba(11,18,32,.72);width:fit-content}
+.hb-links a{--d:inline-flex;display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:15px;font-weight:600;text-decoration:none}
+.hb-links a:hover{text-decoration:underline}.hb-links svg{width:20px;height:20px}
+.hero-chips{--d:flex;display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.hero-chips li{padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);font-size:14px;font-weight:600;color:var(--on)}
 @media(max-width:959px){
-  #veh-car:checked ~ * .hero-list.car-only{margin:24px 0 0;padding:4px 20px;border:1px solid var(--hair-d);border-radius:20px;background:rgba(255,255,255,.05)}
-  .hero-list li{padding:14px 0;font-size:18px;font-weight:600;color:var(--on)}
+  #veh-car:checked ~ * .hero-list.car-only{margin:0;padding:2px 18px;border:1px solid var(--hair-d);border-radius:20px;background:rgba(11,18,32,.6)}
+  .hero-list li{padding:12px 0;font-size:17px;font-weight:600;color:var(--on)}
   .hero-list li+li{border-top:1px solid var(--hair-d)}
+  #hero .hero-in{display:flex;flex-direction:column}
+  .hero-copy{order:0}.hb-wrap{order:1}.hero-chips,.hero-list.car-only{order:2}
+}
+@media(max-width:959px) and (min-width:0){@supports(animation-timeline:scroll()){body:has(#hero-book) .mechu-btn{animation:mh linear both;animation-timeline:scroll(root);animation-range:0 140px}}}
+@keyframes mh{from{opacity:0;pointer-events:none}50%{pointer-events:none}51%{pointer-events:auto}to{opacity:1;pointer-events:auto}}
+@media(min-width:960px){
+  .hero-bg img{object-position:100% 50%}
+  .hero-bg::after{background:linear-gradient(90deg,rgba(11,18,32,.9),rgba(11,18,32,.87) 48%,rgba(14,28,60,.22) 62%,rgba(20,41,90,0) 85%)}
+  #hero .hero-in{display:grid;grid-template-columns:minmax(0,1fr) 360px;align-items:end;column-gap:64px;padding:40px 32px 48px}
+  .hb-wrap{align-self:start}
+  .hero-left{display:flex;flex-direction:column;gap:22px}
+  #hero .hero-copy{padding:0;grid-area:auto;align-self:auto}
+  #hero .hero-left>.hero-list.car-only{max-width:480px;align-self:auto;padding:4px 24px;margin:0}
+  .hero-list li{padding:14px 0;font-size:19px}
+  .hb-wrap{grid-column:2}
+  #hero h1{max-width:10.6em;font-size:clamp(38px,3.9vw,52px);margin-bottom:16px}
+  .hero-offer{font-size:clamp(32px,3.4vw,46px);margin-bottom:14px}
+  .hero-offer small{font-size:15px;margin-top:6px}
+  #hero .lead{font-size:20px}
+  .hb{padding:20px}.hb h2{font-size:22px}.hb-sub{font-size:14px}
+  .hb .veh{margin-top:12px}.hb-f{margin-top:12px}
 }

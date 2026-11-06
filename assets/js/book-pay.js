@@ -19,6 +19,8 @@
     var a = engineFromModel(model), b = RANK.hasOwnProperty(sent) ? sent : null;
     if (a && b) return RANK[a] >= RANK[b] ? a : b; return a || b;
   }
+  /* The home page card sends only ?vehicle= and ?pincode=. A valid Bengaluru PIN (560000 to 562999) prefills the PIN field; anything else is ignored. */
+  function pinFromQuery(v) { v = String(v == null ? '' : v).replace(/\s/g, ''); return /^56[0-2][0-9]{3}$/.test(v) ? v : ''; }
   function feeFor(o, rows) {
     var price = function (id) { return clamp(rows && rows[id] != null ? rows[id] : DEFAULTS[id]); };
     if (o.vehicle === 'car') return { amount: price('confirm_car'), unknown: false };
@@ -157,12 +159,13 @@
     if (q.get('vehicle') === 'car' || q.get('vehicle') === 'bike') set('vehicle', q.get('vehicle'));   // a link wins over a saved draft
     if (q.get('brand') && BIKES[q.get('brand')]) set('brand', q.get('brand')); fillModels();
     if (q.get('model')) set('model', q.get('model')); if (['basic', 'general', 'full', 'repair'].indexOf(q.get('service')) > -1) set('service_id', q.get('service')); if (q.get('area')) set('area', q.get('area'));
+    var linkPin = pinFromQuery(q.get('pincode')), linked = !!(linkPin || q.get('vehicle') === 'car' || q.get('vehicle') === 'bike'); if (linkPin) set('pincode', linkPin);   // the home card: a link wins over a saved draft
     if (q.get('vehicle') === 'car') {   // a car link (from Mechu or an ad): the model goes to the car field, and service or problem to what the car needs
       set('car_model', String(q.get('model') || '').slice(0, 60));
       if (['service', 'problem'].indexOf(q.get('service')) > -1) set('car_need', q.get('service'));
     }
     if (!saved.model && q.get('model') && q.get('vehicle') !== 'car') guessEngine();
-    setVehicle(); show(saved.step && saved.step < 3 ? saved.step : 1); started = true;
+    setVehicle(); show(!linked && saved.step && saved.step < 3 ? saved.step : 1);   // a link from the home card starts at step 1 (vehicle, model and service); the PIN is already filled for step 2 started = true;
 
     /* live fee rows (public, active prices); the defaults above are used if this fails */
     if (C.supabaseUrl && C.supabaseAnonKey && win.fetch) {
@@ -215,5 +218,5 @@
       }).catch(function () { free(); msg.textContent = 'No connection. Your details are saved on this phone. Please try again.'; });
     });
   }
-  return { init: init, feeFor: feeFor, feeLine: feeLine, engineFromModel: engineFromModel, problems: problems, payload: payload, clamp: clamp, FEE_MIN: FEE_MIN, FEE_MAX: FEE_MAX };
+  return { init: init, pinFromQuery: pinFromQuery, feeFor: feeFor, feeLine: feeLine, engineFromModel: engineFromModel, problems: problems, payload: payload, clamp: clamp, FEE_MIN: FEE_MIN, FEE_MAX: FEE_MAX };
 });
