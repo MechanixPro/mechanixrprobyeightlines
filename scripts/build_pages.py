@@ -323,8 +323,8 @@ def body_pic(stem, alt):
     return (f'<figure class="bodypic"><img src="/assets/img/hero/{stem}-700.webp" srcset="/assets/img/hero/{stem}-700.webp 700w, /assets/img/hero/{stem}-1200.webp 1200w" sizes="(min-width:960px) 880px, calc(100vw - 40px)" '
             f'width="1200" height="594" loading="lazy" decoding="async" alt="{html.escape(alt)}"></figure>')
 VID_GARAGE = vid('garage', 'A workshop owner in a dark cap and a Mechanix Pro polo shirt smiling in a workshop.', 'A partner workshop')
-VID_HEADS = {'societies': vid('societies', 'A mechanic checks a motorcycle on a tablet in apartment parking while residents talk nearby.', 'A service day in apartment parking'),
-             'fleet': vid('fleet', 'Two mechanics check a row of motorcycles at a hub in the evening.', 'Servicing a group of bikes at a hub')}
+# The fleet video (assets/video/fleet.mp4) has a visible vertical seam in the footage itself, so it is not shown until a clean re-export is supplied.
+VID_HEADS = {'societies': vid('societies', 'A mechanic checks a motorcycle on a tablet in apartment parking while residents talk nearby.', 'A service day in apartment parking')}
 VID_CODE = vid('code-handover', 'A customer shows a one-time code on a phone to the mechanic.', 'Show the code on your phone to the mechanic when they arrive.')
 HERO_VIDEO_TAG = '<script src="/assets/js/hero-video.js" defer></script>'
 # Mechu appears on the home, model, area, car, services, help and workshop pages. Never on the single-task pages (book, pay, track, job, rate, warranty, unsubscribe).
@@ -631,7 +631,7 @@ for slug, (title, desc, h1, lead, points, msg, cta) in GROUP.items():
     body = f'''<h1 style="font-size:clamp(32px,6vw,50px)">{h1}</h1>
 <p class="muted" style="font-size:20px">{lead}</p>
 <p><a class="btn btn-wa" href="#" data-wa="Bengaluru" data-wa-text="{html.escape(msg)}">{cta}</a></p>
-{VID_HEADS[slug]}
+{VID_HEADS.get(slug, "")}
 <h2>What you get</h2>
 <ul>{''.join(f'<li>{p}</li>' for p in points)}</ul>
 <h2>Prices</h2>

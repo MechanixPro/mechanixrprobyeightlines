@@ -104,7 +104,7 @@ test('new videos: files exist, under 1.3 MB, no audio track, no AI-tool tags; po
   }
 });
 test('videos sit on the right pages with poster, muted loop, sizes, aria-label, caption; hero-video.js is loaded only where a hm-v video is', () => {
-  const where = { 'garage-partners': 'garage', 'join': 'garage', 'verified-bike-garages-bangalore': 'garage', 'help': 'code-handover', 'societies': 'societies', 'fleet': 'fleet' };
+  const where = { 'garage-partners': 'garage', 'join': 'garage', 'verified-bike-garages-bangalore': 'garage', 'help': 'code-handover', 'societies': 'societies' };   // fleet video withheld: seam in the footage
   for (const [s, n] of Object.entries(where)) {
     const h = read(s + '/index.html'), v = h.match(/<video\b[^>]*class="hm-v"[^>]*>/)[0];
     for (const a of ['autoplay', 'muted', 'loop', 'playsinline']) assert.match(v, new RegExp('\\b' + a + '\\b'), s + ' ' + a);
