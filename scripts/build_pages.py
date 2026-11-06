@@ -892,6 +892,34 @@ write('warranty/index.html', _wr + '''<h1 style="font-size:40px">Your warranty c
 <p class="tiny muted">Cards are issued when a booking is completed and fully paid. If something looks wrong, message us on WhatsApp with your booking number.</p>''' + foot(dock=False))
 
 
+# Partner garage app (/garage/): a private, installable single-task page for partner garages. Own minimal document: no site header or footer, no header picture, no Mechu, no phone bottom bar,
+# no analytics tags. Kept out of search (noindex here and X-Robots-Tag in _headers), out of the sitemap (never added to `urls`) and out of llms.txt. All behaviour is in assets/js/garage.js.
+GARAGE_PAGE = '''<!doctype html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mechanix Pro Garage</title>
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
+<meta name="description" content="Private jobs screen for Mechanix Pro partner garages.">
+<meta name="theme-color" content="#0B1220">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="MX Garage"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/garage.webmanifest">
+<link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32"><link rel="icon" href="/assets/img/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/css/garage.css">
+<script src="/assets/js/config.js" defer></script>
+<script src="/assets/js/install.js" defer></script>
+<script src="/assets/js/garage.js" defer></script>
+</head>
+<body class="garage">
+<div id="app"><p class="g-lead" role="status" style="padding:24px">Opening Mechanix Pro Garage</p></div>
+<noscript><p style="padding:24px">Mechanix Pro Garage needs JavaScript. Please turn it on in your browser and open your garage link again.</p></noscript>
+</body>
+</html>
+'''
+os.makedirs(os.path.join(ROOT, 'garage'), exist_ok=True)
+open(os.path.join(ROOT, 'garage', 'index.html'), 'w', encoding='utf-8').write(GARAGE_PAGE.replace(' style="padding:24px"', ' class="g-lead"').replace('<p class="g-lead" role="status" class="g-lead">', '<p class="g-lead" role="status">'))
+
 # Rate page: a customer rates a finished job from the link we send on WhatsApp. The link carries the booking reference and a signature (checked by the submit-rating function).
 _rt = HEAD.format(title='Rate Your Service | Mechanix Pro', desc='Tell us how your Mechanix Pro service went.', url=f'{SITE}/rate/', site=SITE, schema='', scripts=LEGAL_JS + '<script src="/assets/js/rate.js" defer></script>', body='', nav=NAV, main='page')
 _rt = _rt.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
