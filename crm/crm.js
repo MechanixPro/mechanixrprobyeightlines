@@ -18,6 +18,7 @@ import * as callnow from './pages/callnow.js';
 import { newBooking, editBooking } from './pages/booking.js';
 import { sendPaymentLink } from './pages/payment.js';
 import { createFlow } from './flow-core.js';
+import { skeleton, errorState } from './ds.js';
 import * as dispatch from './pages/dispatch.js';
 import * as issues from './pages/issues.js';
 import { findByPin } from './pages/pinsearch.js';
@@ -79,6 +80,8 @@ const flow = createFlow({
   photoUrl: async (path) => { const { data, error } = await sb.storage.from(PHOTO_BUCKET).createSignedUrl(path, 600); if (error) throw error; return data.signedUrl; },   // customer photos: private bucket, 10-minute links, only for the roles the database allows
 });
 flow.bind($('#sheetPanel'), () => S.detail && S.detail.lead, () => S.flow);
+const LOADING = skeleton();
+$('#view').addEventListener('click', (e) => { if (e.target.closest('[data-retry]') && S.view) go(S.view); });   // the Try again button of a page that failed to load
 
 /* ---------- sign in (emailed 6-digit code) ---------- */
 let codeEmail = '';
@@ -117,6 +120,7 @@ async function boot() {
     $('#loginErr').textContent = 'This account is not on the team. Ask your supervisor to add you.'; await sb.auth.signOut(); return;
   }
   $('#login').hidden = true; $('#app').hidden = false;
+  { const top = $('.top'), sync = () => document.documentElement.style.setProperty('--top-h', top.offsetHeight + 'px'); sync(); if (window.ResizeObserver) new ResizeObserver(sync).observe(top); }   // the tab bar sticks just under the header
   $('#who').textContent = S.me.name + ' · Care Buddy' + (S.me.role === 'supervisor' ? ' (supervisor)' : '');
   renderTabs(); loadWaiting();
   rpc('crm_dispositions_list').then((d) => { S.dispositions = d; }).catch(() => {});
@@ -212,12 +216,12 @@ async function go(view, keepScroll) {
   const y = keepScroll ? window.scrollY : 0;
   S.view = view; S.open = null; S.busy = true; location.hash = view;
   $$('#tabs [data-view]').forEach((b) => b.setAttribute('aria-current', b.dataset.view === view ? 'page' : 'false'));
-  if (!keepScroll) $('#view').innerHTML = '<p class="muted pad">Loading…</p>';
+  if (!keepScroll) $('#view').innerHTML = LOADING;
   try {
     S.me = await rpc('crm_me'); renderHeader(); loadWaiting();
     if (sc.mod) { const root = document.createElement('div'); root.style.display = 'contents'; await sc.mod.render(root, ctx); $('#view').replaceChildren(root); }  // root stays in the page, so a page can look things up in it when a button is pressed later
     else { await loadList(); renderBody(); }
-  } catch (e) { $('#view').innerHTML = '<p class="err pad">' + esc(clean(e)) + '</p>'; }
+  } catch (e) { $('#view').innerHTML = errorState({ title: 'This page could not load.', detail: clean(e) }); }
   S.busy = false; if (y) window.scrollTo(0, y);
 }
 

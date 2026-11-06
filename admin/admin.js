@@ -21,6 +21,7 @@ import { customerList, bookingRows, summarize } from './customer-bookings.js';
 import { adsConversions } from './ads-export.js';
 import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge } from './booking-steps.js';
 import { createFlow } from './flow-core.js';
+import { STATUS, skeleton, errorState } from './ds.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
 const C = window.MXP || {};
@@ -30,7 +31,9 @@ const rupee = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 const when = (d) => (d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
 const BOOKED_STATUSES = ['paid', 'scheduled', 'completed'];
 const STATUSES = ['new', 'contacted', 'quoted', 'payment_sent', 'paid', 'scheduled', 'completed', 'lost'];
-const LABEL = { new: 'New', contacted: 'Contacted', quoted: 'Quoted', payment_sent: 'Payment sent', paid: 'Paid', scheduled: 'Scheduled', completed: 'Completed', lost: 'Lost', junk: 'Junk' };
+// One vocabulary (ds.js): paid and scheduled both read "Booked" in pills, lists and the pipeline. The status dropdown must still be able to set either stored value, so its second entry reads "Booked (visit scheduled)".
+const LABEL = Object.fromEntries(Object.entries(STATUS).map(([k, v]) => [k, v.label]));
+const OPTION_LABEL = { ...LABEL, scheduled: 'Booked (visit scheduled)' };
 // A lead has no booking ID until it is confirmed: show the ID when there is one, else the word Lead. The private ref (L-...) is never shown.
 const bid = (l) => (l && l.booking_id) || 'Lead';
 const bkg = (l) => (l && l.booking_id ? 'booking ' + l.booking_id : 'booking');
@@ -96,6 +99,20 @@ $('#resetForm').addEventListener('submit', async (e) => {
 });
 $('#signOut').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
 
+const LOADING = skeleton();
+const errorHtml = (title, e, retry) => errorState({ title, detail: (e && e.message) || e || 'Something went wrong', retry: { label: 'Retry', attr: `data-retry="${retry}"` } });
+const LOADERS = [['bookings', () => loadLeads()], ['services', () => loadServices()], ['settings', () => loadSettings()], ['customers and mechanics', () => loadPeople()], ['home images', () => loadHome()], ['issues', () => loadIssues()], ['PIN codes', () => loadPins()], ['waitlist', () => loadWaitlist()], ['invoices', () => loadInvoices()], ['money ledger', () => loadLedger()]];
+// Load everything the panel needs. Bookings are essential: without them the page shows an error and Retry. Another table that fails shows a notice above the page.
+async function bootData() {
+  $('#view').innerHTML = LOADING; S.failed = [];
+  try {
+    const r = await Promise.allSettled(LOADERS.map(([, f]) => f()));
+    r.forEach((x, i) => { if (x.status === 'rejected') failed(LOADERS[i][0]); });
+    if (S.failed.includes('bookings')) throw new Error('Bookings could not be loaded. Check your connection.');
+    render();
+  } catch (e) { console.error('boot', e); $('#view').innerHTML = errorHtml('The admin panel could not load.', e, 'boot'); }
+}
+$('#view').addEventListener('click', (e) => { const b = e.target.closest('[data-retry]'); if (!b) return; if (b.dataset.retry === 'render') render(); else bootData(); });
 async function boot() {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return;
@@ -103,9 +120,8 @@ async function boot() {
   if (!me) { $('#loginErr').textContent = 'This account is not an admin. Ask the owner to add you.'; await sb.auth.signOut(); return; }
   S.me = me;
   $('#login').hidden = true; $('#view').hidden = false; $('#tabs').hidden = false; $('#subtabs').hidden = false; $('#signOut').hidden = false;
-  await Promise.all([loadLeads(), loadServices(), loadSettings(), loadPeople(), loadHome(), loadIssues(), loadPins(), loadWaitlist(), loadInvoices(), loadLedger()]);
-  render();
-  S.channel = sb.channel('mxp-admin')
+  await bootData();
+  if (!S.channel) S.channel = sb.channel('mxp-admin')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async (p) => { if (p.eventType === 'INSERT') toast('New lead'); await loadLeads(); if (!['prices', 'settings', 'offers', 'homeimgs'].includes(S.tab)) render(); if (S.open) openLead(S.open, true); })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ledger_entries' }, async () => { await Promise.all([loadLedger(), loadLeads()]); if (['sales', 'mechledger'].includes(S.tab)) render(); })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (p) => { if (S.open && p.new?.lead_id === S.open) openLead(S.open, true); })
@@ -141,31 +157,33 @@ function engineField(prefix, bike, enabled) {
 function engineRead(prefix) { const s = $('#' + prefix + '-engine'); return s ? { engine: s.value } : { bigBike: !!$('#' + prefix + '-big')?.checked }; }
 
 /* ---------- data ---------- */
+// A table that cannot be read is remembered here, so the page says so (with a Retry button) instead of quietly showing "nothing yet".
+const failed = (name) => { (S.failed ||= []); if (!S.failed.includes(name)) S.failed.push(name); };
 async function loadLeads() {
   const { data, error } = await sb.from('leads').select('*').is('deleted_at', null).order('created_at', { ascending: false }).limit(500);
-  if (error) toast('Could not load bookings'); else { S.leads = data.filter((l) => l.status !== 'junk'); S.junkLeads = data.filter((l) => l.status === 'junk'); }
+  if (error) { toast('Could not load bookings'); failed('bookings'); } else { S.leads = data.filter((l) => l.status !== 'junk'); S.junkLeads = data.filter((l) => l.status === 'junk'); }
 }
 async function loadInvoices() {
   const { data, error } = await sb.from('invoices').select('*').order('issued_at', { ascending: false }).limit(3000);
-  if (error) toast('Could not load invoices: ' + error.message); else { S.invoicesAll = data ?? []; S.invoices = S.invoicesAll.filter((r) => !r.voided_at); }
+  if (error) { toast('Could not load invoices: ' + error.message); failed('invoices'); } else { S.invoicesAll = data ?? []; S.invoices = S.invoicesAll.filter((r) => !r.voided_at); }
   const { data: nos } = await sb.from('invoice_numbers').select('lead_id,number'); for (const r of nos ?? []) S.invNo[r.lead_id] = r.number;
   const { data: cat } = await sb.from('invoice_items').select('*').order('uses', { ascending: false }).order('name'); S.itemsAll = cat ?? []; S.catalog = S.itemsAll.filter((r) => r.active);
 }
 async function loadLedger() {
   const { data, error } = await sb.from('ledger_entries').select('*').order('created_at', { ascending: false }).limit(5000);
-  if (error) toast('Could not load the money ledger: ' + error.message); else S.ledger = data ?? [];
+  if (error) { toast('Could not load the money ledger: ' + error.message); failed('money ledger'); } else S.ledger = data ?? [];
 }
 async function loadPeople() {
   const [c, b, m, cp] = await Promise.all([sb.from('customers').select('*').order('created_at', { ascending: false }).limit(1000), sb.from('bikes').select('*').limit(2000), sb.from('mechanics').select('*').order('name'), sb.from('coupons').select('*').order('code')]);
   S.customers = c.data ?? []; S.bikes = b.data ?? []; S.mechanics = m.data ?? []; S.coupons = cp.data ?? [];
-  if (c.error || b.error || m.error || cp.error) toast('Could not load customers or mechanics');
+  if (c.error || b.error || m.error || cp.error) { toast('Could not load customers or mechanics'); failed('customers and mechanics'); }
 }
-async function loadHome() { const { data } = await sb.from('home_images').select('*').order('position').order('created_at'); S.homeimgs = data ?? []; }
-async function loadIssues() { const { data } = await sb.from('issues').select('*').order('created_at', { ascending: false }).limit(500); S.issues = data ?? []; }
-async function loadPins() { const { data } = await sb.from('service_pincodes').select('*').order('pin').limit(2000); S.pins = data ?? []; }
-async function loadWaitlist() { const { data } = await sb.from('waitlist').select('*').order('created_at', { ascending: false }).limit(2000); S.waitlist = data ?? []; }
-async function loadServices() { const { data } = await sb.from('services').select('*').order('sort'); S.services = data ?? []; }
-async function loadSettings() { const { data } = await sb.from('settings').select('*'); S.settings = Object.fromEntries((data ?? []).map((r) => [r.key, r.value])); }
+async function loadHome() { const { data, error } = await sb.from('home_images').select('*').order('position').order('created_at'); S.homeimgs = data ?? []; if (error) failed('home images'); }
+async function loadIssues() { const { data, error } = await sb.from('issues').select('*').order('created_at', { ascending: false }).limit(500); S.issues = data ?? []; if (error) failed('issues'); }
+async function loadPins() { const { data, error } = await sb.from('service_pincodes').select('*').order('pin').limit(2000); S.pins = data ?? []; if (error) failed('PIN codes'); }
+async function loadWaitlist() { const { data, error } = await sb.from('waitlist').select('*').order('created_at', { ascending: false }).limit(2000); S.waitlist = data ?? []; if (error) failed('waitlist'); }
+async function loadServices() { const { data, error } = await sb.from('services').select('*').order('sort'); S.services = data ?? []; if (error) failed('services'); }
+async function loadSettings() { const { data, error } = await sb.from('settings').select('*'); S.settings = Object.fromEntries((data ?? []).map((r) => [r.key, r.value])); if (error) failed('settings'); }
 const svcName = (id) => S.services.find((s) => s.id === id)?.name ?? id ?? '—';
 
 /* ---------- views ---------- */
@@ -213,7 +231,9 @@ function syncNav() {
   const bd = navBadges({ leads: S.leads, issues: S.issues });
   document.querySelectorAll('[data-badge]').forEach((el) => { const n = bd[el.dataset.badge] || 0; el.textContent = n > 99 ? '99+' : String(n); el.hidden = !n; });
 }
-function render() { syncNav(); const v = $('#view'); v.innerHTML = ({ dash, dispatch, board, leads, customers, mechanics, coupons, issues, pins, waitlist, offers, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function render() { try { renderPage(); } catch (e) { console.error('render', S.tab, e); $('#view').innerHTML = errorHtml('This page could not be shown.', e, 'render'); } }
+const failBanner = () => ((S.failed || []).length ? `<div class="alert" role="alert"><b>Some data could not be loaded:</b> ${esc(S.failed.join(', '))}. What you see may be incomplete. <button class="btn btn-ghost btn-sm" type="button" data-retry="boot">Retry</button></div>` : '');
+function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, dispatch, board, leads, customers, mechanics, coupons, issues, pins, waitlist, offers, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -232,7 +252,7 @@ function dash() {
   const waiting = L.filter((l) => l.status === 'new' && Date.now() - new Date(l.created_at) > 30 * 6e4 && new Date(l.created_at) > dayAgo);
   const by = (k) => { const m = {}; week.forEach((l) => { const v = (k === 'utm' ? l.utm?.utm_source : l[k]) || (k === 'utm' ? 'direct' : '—'); m[v] = (m[v] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 8); };
   const bars = (rows) => { const mx = Math.max(1, ...rows.map((r) => r[1])); return '<div class="bars">' + rows.map(([k, v]) => `<div class="b"><span>${esc(LABEL[k] ?? k)}</span><span class="t"><i style="width:${Math.round((v / mx) * 100)}%"></i></span><b>${v}</b></div>`).join('') + '</div>'; };
-  const funnel = STATUSES.map((s) => [s, week.filter((l) => l.status === s).length]);
+  const funnel = STATUSES.filter((s) => s !== 'scheduled').map((s) => [s, week.filter((l) => (s === 'paid' ? ['paid', 'scheduled'].includes(l.status) : l.status === s)).length]);   // one Booked row: paid and scheduled together
   return `<h1 style="font-size:34px">Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, ${esc(S.me.name)}</h1>
   ${filterBar}
   <div class="kpis">
@@ -656,7 +676,7 @@ const flow = createFlow({
   photoUrl: async (path) => { const { data, error } = await sb.storage.from('booking-updates').createSignedUrl(path, 600); if (error) throw error; return data.signedUrl; },   // customer photos: private bucket, 10-minute links
   mechanics: async () => { const { data } = await sb.from('mechanics').select('id,name,area').eq('active', true).in('onboarding_status', ['live', 'pilot']).order('name'); return data || []; },
 });
-// Bind after the flow object exists (const is not available before its line runs).
+// Wire the shared flow card to the page. This must come after `const flow` above: calling it earlier is a temporal-dead-zone error that stops the whole module.
 flow.bind($('#sheetPanel'), () => leadOf(S.open), () => S.flow);
 flow.bindDispatch($('#view'), () => S.dispatchRows || []);
 flow.bindIssues($('#view'), () => loadCustIssues());
@@ -687,7 +707,7 @@ async function openLeadBase(id, silent) {
   ${panel('booking', `${DETAILS}
     ${customerVehicleCard(l)}
     <div class="card" style="margin-top:12px"><h3>Update</h3>
-      <label class="label" for="ls">Status</label><select id="ls">${STATUSES.map((s) => `<option value="${s}"${s === l.status ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
+      <label class="label" for="ls">Status</label><select id="ls">${STATUSES.map((s) => `<option value="${s}"${s === l.status ? ' selected' : ''}>${OPTION_LABEL[s]}</option>`).join('')}</select>
       <div id="lostBox" hidden><label class="label" for="lr">Why was it lost? (required)</label><select id="lr"><option value="">Choose a reason</option>${LOST_REASONS.map((r) => `<option>${esc(r)}</option>`).join('')}</select>
         <label class="label" for="lrn">Note (Other needs at least 5 characters)</label><input id="lrn" maxlength="200"></div>
       <label class="label" for="lm">Mechanic</label><select id="lm"><option value="">Not assigned</option>${MECH}</select>
@@ -1523,7 +1543,7 @@ function offerForm() {
 const WARRANTY_DAYS = 30;
 function issues() {
   const rows = issueRows(S.issues, S.leads, S.ifilter);
-  return `<section class="cust-issues" aria-label="Reported by customers"><h3>Reported by customers</h3><div class="flow-seg" role="group" aria-label="Show">${[['open', 'Open'], ['resolved', 'Resolved'], ['all', 'All']].map(([k, t]) => `<button class="flow-btn" type="button" data-ci="${k}" aria-pressed="${(S.ciFilter || 'open') === k}">${t}</button>`).join('')}</div><div id="ciList" aria-live="polite"><p class="muted">Loading…</p></div></section>`
+  return `<section class="cust-issues" aria-label="Reported by customers"><h3>Reported by customers</h3><div class="flow-seg" role="group" aria-label="Show">${[['open', 'Open'], ['resolved', 'Resolved'], ['all', 'All']].map(([k, t]) => `<button class="flow-btn" type="button" data-ci="${k}" aria-pressed="${(S.ciFilter || 'open') === k}">${t}</button>`).join('')}</div><div id="ciList" aria-live="polite">${LOADING}</div></section>`
   + `<div class="toolbar"><p class="small muted" style="margin:0;flex:1">Log complaints, refund requests and warranty redo jobs against a booking. Refund money is still paid back through Razorpay; this is the record.</p>
   <select id="ifs" aria-label="Show">${[['open', 'Open'], ['resolved', 'Resolved'], ['all', 'All']].map(([v, t]) => `<option value="${v}"${S.ifilter === v ? ' selected' : ''}>${t}</option>`).join('')}</select>
   <button class="btn btn-primary btn-sm" type="button" data-act="newIssue">Log an issue</button></div>
@@ -1784,15 +1804,15 @@ function boardCard(l) {
     <select id="bm-${l.id}" class="bsel" data-board-mech="${l.id}"><option value="">Not assigned</option>${S.mechanics.filter((x) => x.active || x.id === l.mechanic_id).map((x) => `<option value="${x.id}"${x.id === l.mechanic_id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
     <div class="bbtns"><a class="btn btn-wa btn-sm" href="https://wa.me/91${esc(l.phone)}" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a>${n ? `<button class="btn btn-primary btn-sm" type="button" data-act="boardNext" data-id="${l.id}">${n.label}</button>` : ''}<button class="btn btn-ghost btn-sm" type="button" data-lead="${l.id}">Open</button></div></article>`;
 }
-function dispatch() { return '<div class="view-head"><h2>Dispatch</h2><p class="muted">Paid bookings for the next days. Unassigned first, by slot time. Assign or reassign a mechanic here.</p></div><div id="dpWrap" aria-live="polite"><p class="muted">Loading…</p></div>'; }
+function dispatch() { return '<div class="view-head"><h2>Dispatch</h2><p class="muted">Paid bookings for the next days. Unassigned first, by slot time. Assign or reassign a mechanic here.</p></div><div id="dpWrap" aria-live="polite">' + LOADING + '</div>'; }
 async function loadCustIssues() {
   const w = $('#ciList'); if (!w) return;
   try { const { data, error } = await sb.rpc('crm_open_issues', { p_status: S.ciFilter || 'open', p_limit: 100 }); if (error) throw error; w.innerHTML = flow.issuesHtml(data || []); document.querySelectorAll('[data-ci]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ci === (S.ciFilter || 'open')))); }
-  catch (e) { w.innerHTML = '<p class="err">Could not load customer issues: ' + esc(e.message || e) + '</p>'; }
+  catch (e) { w.innerHTML = errorHtml('Could not load customer issues.', e, 'render'); }
 }
 async function loadDispatch() {
   const w = $('#dpWrap'); if (!w) return;
-  try { const { data, error } = await sb.rpc('crm_dispatch_list', { p_days: 7 }); if (error) throw error; S.dispatchRows = data || []; let seen = {}; try { const r = await sb.rpc('crm_tech_seen', { p_ids: S.dispatchRows.filter((x) => x.mechanic_id).map((x) => x.id) }); seen = r.data || {}; } catch (x) { /* older database: no last seen */ } w.innerHTML = flow.dispatchHtml(S.dispatchRows, seen); } catch (e) { w.innerHTML = '<p class="err">Could not load Dispatch: ' + esc(e.message || e) + '</p>'; }
+  try { const { data, error } = await sb.rpc('crm_dispatch_list', { p_days: 7 }); if (error) throw error; S.dispatchRows = data || []; let seen = {}; try { const r = await sb.rpc('crm_tech_seen', { p_ids: S.dispatchRows.filter((x) => x.mechanic_id).map((x) => x.id) }); seen = r.data || {}; } catch (x) { /* older database: no last seen */ } w.innerHTML = flow.dispatchHtml(S.dispatchRows, seen); } catch (e) { w.innerHTML = errorHtml('Could not load Dispatch.', e, 'render'); }
 }
 function board() {
   const g = boardGroups(S.leads), total = Object.values(g).reduce((t, a) => t + a.length, 0);
