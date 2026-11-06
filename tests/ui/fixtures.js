@@ -104,6 +104,8 @@ const extraLeads = [
   lead(15, { status: 'new', crm_owner: null, owner_name: null }),
 ];
 const ok = (v) => () => v;
+const bookingCatalog = { tiers: { mid: {}, big: {} }, services: [{ id: 'svc-1', name: 'Basic service', price: 499, vehicle: 'bike', kind: 'service' }], addons: [], coupons: [], areas: [{ pin: '560038', name: 'Indiranagar' }], mechanics: [] };
+
 const writeResults = {
   crm_claim: ok(null), crm_assign: ok(null), crm_log: ok(null), crm_set_outcome: ok(null), crm_mark_done: ok(null), confirm_booking: ok('MP-2611-0099'), mark_lead_junk: ok(null), restore_lead_junk: ok('contacted'), set_lead_vehicle: (a) => a.p_vehicle,
   crm_confirm_booking: ok({ ok: true, already: false, mechanic_name: '[Mechanic Name]' }), crm_assign_technician: ok({ ok: true, changed: true, mechanic_name: '[Mechanic Name]' }),
@@ -114,7 +116,6 @@ const writeResults = {
   crm_rsa_create: ok({ id: 'rsa-1' }), crm_rsa_update: ok(null), crm_ticket_create: ok({ id: 't-1' }), crm_ticket_set: ok(null), crm_ticket_note: ok(null), crm_visit_schedule: ok(null), crm_visit_update: ok(null), crm_visit_complete: ok(null),
   crm_playbook_save: ok({ id: 'p-1' }), crm_playbook_publish: ok(null), crm_playbook_flag: ok(null), crm_fitment_save: ok(null), crm_sop_save: ok(null), crm_delete_leads: ok(null), crm_assign_many: ok(null), crm_roster_set: ok(null), crm_automation_set: ok(null),
 };
-const bookingCatalog = { tiers: { mid: {}, big: {} }, services: [{ id: 'svc-1', name: 'Basic service', price: 499, vehicle: 'bike', kind: 'service' }], addons: [], coupons: [], areas: [{ pin: '560038', name: 'Indiranagar' }], mechanics: [] };
 const functionReply = (fn, body) => {
   if (fn === 'desk-chat-sync') return { ok: false };
   if (fn === 'desk-payment-link' || fn === 'payment-link') return { ok: true, url: 'https://example.invalid/pay/abc', amount: 49, suggested: 49, whatsapp_sent: false, whatsapp_note: 'not_connected', whatsapp_text: 'Hi, pay here https://example.invalid/pay/abc', has_email: true, review: false, nudge_minutes: 15 };

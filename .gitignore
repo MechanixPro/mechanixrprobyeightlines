@@ -13,3 +13,4 @@ dist-site/
 !.dev.vars.example
 !.env.example
 dist-crm/
+dist-clicks/
