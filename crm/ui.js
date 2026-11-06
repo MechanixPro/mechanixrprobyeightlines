@@ -1,5 +1,6 @@
 // Shared helpers for the desk screens. Nothing here talks to the database except rpc().
 import { bookingStep, paidBadge } from './crm-rules.js';
+import { STATUS, showToast } from './ds.js';
 let client = null;
 export const setClient = (c) => { client = c; };
 export const supabase = () => client;
@@ -29,10 +30,7 @@ export async function rpc(name, args) {
   return data;
 }
 
-export function toast(m, bad) {
-  const t = document.createElement('div'); t.className = 'toast fade' + (bad ? ' bad' : ''); t.setAttribute('role', 'status'); t.textContent = m;
-  document.body.appendChild(t); setTimeout(() => t.remove(), 4200);
-}
+export function toast(m, bad) { showToast(m, bad); }
 
 /** One labelled form field. type: text, tel, number, date, datetime-local, textarea, select, checks (options = [[value, label]]). */
 export function field(label, name, o = {}) {
@@ -129,7 +127,8 @@ export function downloadFile(name, text, type = 'text/csv') {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
-export const STAGE = { new: 'New', contacted: 'Contacted', quoted: 'Quote sent', payment_sent: 'Advance link sent', paid: 'Booked', scheduled: 'Scheduled', completed: 'Won', lost: 'Lost' };
+/** Stored status -> words, from the one vocabulary in ds.js (Scheduled shows as Booked, completed as Done). */
+export const STAGE = Object.fromEntries(Object.entries(STATUS).map(([k, v]) => [k, v.label]));
 export const SLOTS = [['morning', 'Morning'], ['afternoon', 'Afternoon'], ['evening', 'Evening'], ['asap', 'As soon as possible']];
 export const PROBLEMS = [['puncture', 'Puncture'], ['battery', 'Dead battery'], ['wont_start', 'Will not start'], ['chain_or_brake', 'Chain or brake'], ['fuel', 'Out of fuel'], ['overheating', 'Overheating or smoke'], ['accident', 'Accident'], ['electric_fault', 'Electric bike fault'], ['other', 'Other']];
 export const PIPE = [['applied', 'Applied'], ['visited', 'Visited'], ['kyc_done', 'KYC done'], ['trained', 'Trained'], ['pilot', 'Pilot'], ['live', 'Live'], ['paused', 'Paused']];

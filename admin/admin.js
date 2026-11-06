@@ -21,6 +21,7 @@ import { customerList, bookingRows, summarize } from './customer-bookings.js';
 import { adsConversions } from './ads-export.js';
 import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge } from './booking-steps.js';
 import { createFlow } from './flow-core.js';
+import { STATUS, skeleton, errorState } from './ds.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
 const C = window.MXP || {};
@@ -30,7 +31,8 @@ const rupee = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 const when = (d) => (d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
 const BOOKED_STATUSES = ['paid', 'scheduled', 'completed'];
 const STATUSES = ['new', 'contacted', 'quoted', 'payment_sent', 'paid', 'scheduled', 'completed', 'lost'];
-const LABEL = { new: 'New', contacted: 'Contacted', quoted: 'Quoted', payment_sent: 'Payment sent', paid: 'Paid', scheduled: 'Scheduled', completed: 'Completed', lost: 'Lost', junk: 'Junk' };
+// One vocabulary (ds.js). Paid and Scheduled are both "Booked" in Crew; here they are told apart because the status list and the pipeline show every stored value.
+const LABEL = { ...Object.fromEntries(Object.entries(STATUS).map(([k, v]) => [k, v.label])), paid: 'Booked (paid)', scheduled: 'Booked (scheduled)' };
 // A lead has no booking ID until it is confirmed: show the ID when there is one, else the word Lead. The private ref (L-...) is never shown.
 const bid = (l) => (l && l.booking_id) || 'Lead';
 const bkg = (l) => (l && l.booking_id ? 'booking ' + l.booking_id : 'booking');
@@ -96,8 +98,8 @@ $('#resetForm').addEventListener('submit', async (e) => {
 });
 $('#signOut').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
 
-const LOADING = '<div class="skel" role="status" aria-live="polite"><span class="sr">Loading</span><i></i><i></i><i></i></div>';
-const errorHtml = (title, e, retry) => `<div class="card load-err" role="alert"><h2>${esc(title)}</h2><p class="small muted">${esc((e && e.message) || e || 'Something went wrong')}</p><button class="btn btn-primary" type="button" data-retry="${retry}">Retry</button></div>`;
+const LOADING = skeleton();
+const errorHtml = (title, e, retry) => errorState({ title, detail: (e && e.message) || e || 'Something went wrong', retry: { label: 'Retry', attr: `data-retry="${retry}"` } });
 const LOADERS = [['bookings', () => loadLeads()], ['services', () => loadServices()], ['settings', () => loadSettings()], ['customers and mechanics', () => loadPeople()], ['home images', () => loadHome()], ['issues', () => loadIssues()], ['PIN codes', () => loadPins()], ['waitlist', () => loadWaitlist()], ['invoices', () => loadInvoices()], ['money ledger', () => loadLedger()]];
 // Load everything the panel needs. Bookings are essential: without them the page shows an error and Retry. Another table that fails shows a notice above the page.
 async function bootData() {
@@ -1805,11 +1807,11 @@ function dispatch() { return '<div class="view-head"><h2>Dispatch</h2><p class="
 async function loadCustIssues() {
   const w = $('#ciList'); if (!w) return;
   try { const { data, error } = await sb.rpc('crm_open_issues', { p_status: S.ciFilter || 'open', p_limit: 100 }); if (error) throw error; w.innerHTML = flow.issuesHtml(data || []); document.querySelectorAll('[data-ci]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ci === (S.ciFilter || 'open')))); }
-  catch (e) { w.innerHTML = '<p class="err">Could not load customer issues: ' + esc(e.message || e) + '</p>'; }
+  catch (e) { w.innerHTML = errorHtml('Could not load customer issues.', e, 'render'); }
 }
 async function loadDispatch() {
   const w = $('#dpWrap'); if (!w) return;
-  try { const { data, error } = await sb.rpc('crm_dispatch_list', { p_days: 7 }); if (error) throw error; S.dispatchRows = data || []; let seen = {}; try { const r = await sb.rpc('crm_tech_seen', { p_ids: S.dispatchRows.filter((x) => x.mechanic_id).map((x) => x.id) }); seen = r.data || {}; } catch (x) { /* older database: no last seen */ } w.innerHTML = flow.dispatchHtml(S.dispatchRows, seen); } catch (e) { w.innerHTML = '<p class="err">Could not load Dispatch: ' + esc(e.message || e) + '</p>'; }
+  try { const { data, error } = await sb.rpc('crm_dispatch_list', { p_days: 7 }); if (error) throw error; S.dispatchRows = data || []; let seen = {}; try { const r = await sb.rpc('crm_tech_seen', { p_ids: S.dispatchRows.filter((x) => x.mechanic_id).map((x) => x.id) }); seen = r.data || {}; } catch (x) { /* older database: no last seen */ } w.innerHTML = flow.dispatchHtml(S.dispatchRows, seen); } catch (e) { w.innerHTML = errorHtml('Could not load Dispatch.', e, 'render'); }
 }
 function board() {
   const g = boardGroups(S.leads), total = Object.values(g).reduce((t, a) => t + a.length, 0);

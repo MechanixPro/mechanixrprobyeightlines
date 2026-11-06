@@ -82,3 +82,45 @@ test('shared JS files touch no DOM globals when they are loaded', async () => {
 });
 
 test('ds.css has no dark-mode block yet (light only for now)', () => assert.doesNotMatch(css, /prefers-color-scheme:\s*dark/));
+
+/* ---------- ds.js (Step 3) ---------- */
+const ds = await import(new URL('../crm/ds.js', import.meta.url));
+
+test('ds.js: one vocabulary for the stored statuses, values unchanged', () => {
+  const want = { new: 'New', contacted: 'Contacted', quoted: 'Quote sent', payment_sent: 'Advance link sent', paid: 'Booked', scheduled: 'Booked', completed: 'Done', lost: 'Lost', junk: 'Junk' };
+  assert.deepEqual(Object.keys(ds.STATUS).sort(), Object.keys(want).sort());
+  for (const [k, v] of Object.entries(want)) assert.equal(ds.statusLabel(k), v, k);
+  assert.equal(ds.statusLabel('something_new'), 'something_new');
+  assert.equal(ds.statusTone('lost'), 'bad'); assert.equal(ds.statusTone('completed'), 'good');
+  assert.match(ds.statusChip('payment_sent'), /mx-chip mx-chip--warn">Advance link sent</);
+});
+
+test('ds.js: crm-rules STATUS_LABEL (the Crew lead views) agrees with the vocabulary', async () => {
+  const { STATUS_LABEL } = await import(new URL('../crm/crm-rules.js', import.meta.url));
+  for (const k of Object.keys(STATUS_LABEL)) assert.equal(STATUS_LABEL[k], ds.statusLabel(k), k);
+});
+
+test('ds.js: builders escape their text and keep the hooks the pages bind to', () => {
+  assert.match(ds.chip('<b>x</b>', 'good'), /&lt;b&gt;x&lt;\/b&gt;/);
+  const e = ds.errorState({ title: 'Could not load', detail: 'Network down' });
+  assert.match(e, /role="alert"/); assert.match(e, /data-retry/); assert.match(e, /Try again/); assert.match(e, /mx-error/);
+  assert.doesNotMatch(ds.errorState({ retry: null }), /<button/);
+  assert.match(ds.errorState({ retry: { label: 'Retry', attr: 'data-flow="reloadFlow"' } }), /data-flow="reloadFlow"/);
+  const s = ds.skeleton(2); assert.match(s, /aria-busy="true"/); assert.equal((s.match(/mx-skeleton--card/g) || []).length, 2);
+  assert.match(ds.emptyState({ title: 'Nothing', text: 'Come back later' }), /mx-empty[\s\S]*Nothing[\s\S]*Come back later/);
+  assert.match(ds.emptyState({ title: 'x', action: { label: 'Add', attr: 'data-add' } }), /<button[^>]*data-add/);
+});
+
+test('ds.js: showToast looks the document up when called and works with a stand-in', () => {
+  assert.equal(ds.showToast('hi', false, null), null);
+  const made = []; const doc = { createElement: () => { const el = { attrs: {}, setAttribute(k, v) { this.attrs[k] = v; }, remove() {} }; made.push(el); return el; }, body: { appendChild() {} } };
+  const t = ds.showToast('Saved', true, doc, 1); assert.equal(t.textContent, 'Saved'); assert.match(t.className, /toast fade bad/); assert.equal(t.attrs.role, 'status');
+});
+
+test('flow-core, Crew and Admin use ds.js; the status words come from it', () => {
+  assert.match(read('crm/flow-core.js'), /from '\.\/ds\.js'/);
+  assert.doesNotMatch(read('crm/flow-core.js'), /flow-chip|flow-empty/);
+  assert.match(read('crm/ui.js'), /STAGE = Object\.fromEntries\(Object\.entries\(STATUS\)/);
+  assert.match(read('crm/crm.js'), /from '\.\/ds\.js'/); assert.match(read('admin/admin.js'), /from '\.\/ds\.js'/);
+  assert.match(read('admin/admin.js'), /paid: 'Booked \(paid\)', scheduled: 'Booked \(scheduled\)'/);
+});

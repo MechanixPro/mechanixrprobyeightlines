@@ -18,6 +18,7 @@ import * as callnow from './pages/callnow.js';
 import { newBooking, editBooking } from './pages/booking.js';
 import { sendPaymentLink } from './pages/payment.js';
 import { createFlow } from './flow-core.js';
+import { skeleton, errorState } from './ds.js';
 import * as dispatch from './pages/dispatch.js';
 import * as issues from './pages/issues.js';
 import { findByPin } from './pages/pinsearch.js';
@@ -79,7 +80,7 @@ const flow = createFlow({
   photoUrl: async (path) => { const { data, error } = await sb.storage.from(PHOTO_BUCKET).createSignedUrl(path, 600); if (error) throw error; return data.signedUrl; },   // customer photos: private bucket, 10-minute links, only for the roles the database allows
 });
 flow.bind($('#sheetPanel'), () => S.detail && S.detail.lead, () => S.flow);
-const LOADING = '<div class="skel" role="status" aria-live="polite"><span class="sr">Loading</span><i></i><i></i><i></i></div>';
+const LOADING = skeleton();
 $('#view').addEventListener('click', (e) => { if (e.target.closest('[data-retry]') && S.view) go(S.view); });   // the Try again button of a page that failed to load
 
 /* ---------- sign in (emailed 6-digit code) ---------- */
@@ -220,7 +221,7 @@ async function go(view, keepScroll) {
     S.me = await rpc('crm_me'); renderHeader(); loadWaiting();
     if (sc.mod) { const root = document.createElement('div'); root.style.display = 'contents'; await sc.mod.render(root, ctx); $('#view').replaceChildren(root); }  // root stays in the page, so a page can look things up in it when a button is pressed later
     else { await loadList(); renderBody(); }
-  } catch (e) { $('#view').innerHTML = '<div class="alert load-err" role="alert"><b>This page could not load.</b><p class="small">' + esc(clean(e)) + '</p><button class="btn primary" type="button" data-retry>Try again</button></div>'; }
+  } catch (e) { $('#view').innerHTML = errorState({ title: 'This page could not load.', detail: clean(e) }); }
   S.busy = false; if (y) window.scrollTo(0, y);
 }
 

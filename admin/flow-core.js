@@ -1,6 +1,7 @@
 // The paid-confirmation flow screens, shared by Crew and the Admin: Send payment link, the Call script, door code, mechanic assignment, the itemised quote with delivery estimate,
 // phone approval, Ready and Delivered, the notification log with Resend, and the Dispatch list. ONE file: crm/flow-core.js is the source and admin/flow-core.js is a copy (a test checks they are identical).
 // It holds no business rules of its own. Every action calls the same database functions and Edge Functions, which check who may do what (admins pass, agents and technicians keep their limits).
+import { chip, emptyState, errorState, NOTICE_TONE, ISSUE_TONE } from './ds.js';
 import { paidBadge, visitSub, callScript, quoteTotals, quoteCheck, QUOTE_KINDS, NOTICE_LABEL, resendable, dispatchOrder, confirmPending, confirmPaid, ISSUE_TYPES, seenLine, mapsUrl, issueOrder } from './flow-rules.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -53,11 +54,11 @@ export function createFlow(deps) {
     const badge = paidBadge(l), sub = visitSub(l), bt = [];
     const open = !confirmPaid(l) && !['completed'].includes(l.status);
     const amount = c && c.fee != null ? c.fee : null;
-    if (badge) bt.push(`<span class="flow-chip ${badge.tone}">${esc(badge.text)}</span>`);
-    if (c && c.review) bt.push('<span class="flow-chip warn" title="Engine size was not clear, so the fee needs a check">Fee needs a check</span>');
-    if (sub) bt.push(`<span class="flow-chip">${esc(sub.label)}</span>`);
+    if (badge) bt.push(chip(badge.text, badge.tone));
+    if (c && c.review) bt.push(chip('Fee needs a check', 'warn'));
+    if (sub) bt.push(chip(sub.label));
     let h = `<section class="flow-card" aria-label="Paid confirmation"><h3>Paid confirmation ${bt.join(' ')}</h3>`;
-    if (flow && flow.failed && flow.failed.length) h += `<p class="flow-warn" role="alert" data-flow-failed>Could not load: ${esc(flow.failed.join(', '))}. What you see may be incomplete. <button class="flow-btn flow-sm" type="button" data-flow="reloadFlow">Retry</button></p>`;
+    if (flow && flow.failed && flow.failed.length) h += `<div data-flow-failed>${errorState({ title: 'Could not load: ' + flow.failed.join(', '), detail: 'What you see may be incomplete.', retry: { label: 'Retry', attr: 'data-flow="reloadFlow"' } })}</div>`;
     if (open && (can('send_payment_link') || can('assign_leads'))) {
       h += `<div class="flow-row"><button class="flow-btn flow-primary" type="button" data-flow="payLink">${confirmPending(l) ? 'Resend payment link' : 'Send payment link'}</button></div>`;
       h += `<details class="flow-script" open><summary>Call script</summary><p>${esc(callScript(amount ?? '49 to 99'))}</p><button class="flow-btn flow-ghost" type="button" data-flow="copyScript" data-amount="${esc(amount ?? '')}">Copy script</button></details>`;
@@ -77,7 +78,7 @@ export function createFlow(deps) {
     h += seenBlock(l, flow) + customerBlock(flow);
     const rs = resendable(flow && flow.notes);
     if (flow && flow.notes && flow.notes.length) {
-      h += `<h4>Messages</h4><ul class="flow-list">${flow.notes.map((n) => { const k = String(n.kind).split(':'); return `<li><span class="flow-chip ${n.status === 'sent' ? 'good' : n.status === 'failed' ? 'bad' : n.status === 'skipped' ? 'warn' : ''}">${esc(n.status)}</span> ${esc(NOTICE_LABEL[k[0]] || n.kind)}${k[1] ? ' v' + esc(k[1]) : ''} <small class="flow-muted">${esc(when(n.at))}${n.error ? ' · ' + esc(n.error) : ''}</small>${rs.includes(n) ? ` <button class="flow-btn flow-sm" type="button" data-flow="resend" data-kind="${esc(k[0])}" data-n="${esc(k[1] || '')}">Resend</button>` : ''}</li>`; }).join('')}</ul>`;
+      h += `<h4>Messages</h4><ul class="flow-list">${flow.notes.map((n) => { const k = String(n.kind).split(':'); return `<li>${chip(n.status, NOTICE_TONE[n.status] || '')} ${esc(NOTICE_LABEL[k[0]] || n.kind)}${k[1] ? ' v' + esc(k[1]) : ''} <small class="flow-muted">${esc(when(n.at))}${n.error ? ' · ' + esc(n.error) : ''}</small>${rs.includes(n) ? ` <button class="flow-btn flow-sm" type="button" data-flow="resend" data-kind="${esc(k[0])}" data-n="${esc(k[1] || '')}">Resend</button>` : ''}</li>`; }).join('')}</ul>`;
     }
     return h + '</section>';
   }
@@ -95,10 +96,10 @@ export function createFlow(deps) {
     const d = u.details || {}, rows = [['Landmark', d.landmark], ['Gate or parking', d.access_note], ['Registration', d.reg_no], ['Kilometres', d.kms != null ? String(d.kms) : null], ['About the vehicle', d.vehicle_note], ['What the customer says is wrong', d.issue_text]].filter((r) => r[1]);
     const issues = u.issues || [], open = issues.filter((i) => i.status === 'open').length;
     if (!rows.length && !u.photo_count && !issues.length) return '';
-    let h = `<h4>Added by customer ${open ? `<span class="flow-chip bad">${open} open ${open === 1 ? 'issue' : 'issues'}</span>` : ''}</h4>`;
+    let h = `<h4>Added by customer ${open ? chip(`${open} open ${open === 1 ? 'issue' : 'issues'}`, 'bad') : ''}</h4>`;
     if (rows.length) h += `<dl class="flow-kv">${rows.map((r) => `<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>`;
     if (u.photo_count) h += u.photos && u.photos.length ? `<div class="flow-row"><button class="flow-btn" type="button" data-flow="showPhotos">See ${esc(u.photos.length)} customer ${u.photos.length === 1 ? 'photo' : 'photos'}</button></div>` : `<p class="flow-muted">${esc(u.photo_count)} customer ${u.photo_count === 1 ? 'photo' : 'photos'} (supervisors and the Technician lead can open them).</p>`;
-    if (issues.length) h += `<ul class="flow-list">${issues.map((i) => `<li><span class="flow-chip ${i.status === 'open' ? 'bad' : 'good'}">${i.status === 'open' ? 'Open' : 'Resolved'}</span> <b>${esc(ISSUE_TYPES[i.category] || i.category)}</b>: ${esc(i.body)}<br><span class="flow-muted">${esc(when(i.created_at))}${i.status === 'resolved' ? ` · resolved by ${esc(i.resolved_by || 'the team')} ${esc(when(i.resolved_at))}${i.note ? ' · ' + esc(i.note) : ''}` : ''}</span>${i.status === 'open' ? ` <button class="flow-btn flow-sm" type="button" data-flow="resolveIssue" data-id="${esc(i.id)}">Resolve</button>` : ''}</li>`).join('')}</ul>`;
+    if (issues.length) h += `<ul class="flow-list">${issues.map((i) => `<li>${chip(i.status === 'open' ? 'Open' : 'Resolved', ISSUE_TONE[i.status] || 'good')} <b>${esc(ISSUE_TYPES[i.category] || i.category)}</b>: ${esc(i.body)}<br><span class="flow-muted">${esc(when(i.created_at))}${i.status === 'resolved' ? ` · resolved by ${esc(i.resolved_by || 'the team')} ${esc(when(i.resolved_at))}${i.note ? ' · ' + esc(i.note) : ''}` : ''}</span>${i.status === 'open' ? ` <button class="flow-btn flow-sm" type="button" data-flow="resolveIssue" data-id="${esc(i.id)}">Resolve</button>` : ''}</li>`).join('')}</ul>`;
     return h;
   }
   function quoteBlock(l, flow) {
@@ -202,8 +203,8 @@ export function createFlow(deps) {
   const seenRow = (s) => (s ? `<div class="flow-muted" data-seen>${esc(seenLine(s.age_s) || '')}${mapsUrl(s.lat, s.lng) ? ` · <a href="${esc(mapsUrl(s.lat, s.lng))}" target="_blank" rel="noopener">Open in Maps</a>` : ''}</div>` : '');
   function dispatchHtml(rows, seen) {
     const list = dispatchOrder(rows || []);
-    if (!list.length) return '<p class="flow-empty">No paid bookings waiting. New paid bookings appear here first.</p>';
-    return `<ul class="flow-dispatch">${list.map((r) => `<li class="flow-d ${r.mechanic_id ? '' : 'flow-d-open'}" data-id="${esc(r.id)}"><div><b>${esc(r.booking_id || 'Booking')}</b> <span class="flow-chip">${esc(String(r.vehicle || 'bike').toUpperCase())}</span> ${r.confirm_fee != null ? `<span class="flow-chip good">Paid ₹${esc(r.confirm_fee)}</span>` : ''} ${r.review ? '<span class="flow-chip warn">Fee needs a check</span>' : ''}</div>
+    if (!list.length) return emptyState({ title: 'No paid bookings waiting', text: 'New paid bookings appear here first.' });
+    return `<ul class="flow-dispatch">${list.map((r) => `<li class="flow-d ${r.mechanic_id ? '' : 'flow-d-open'}" data-id="${esc(r.id)}"><div><b>${esc(r.booking_id || 'Booking')}</b> ${chip(String(r.vehicle || 'bike').toUpperCase())} ${r.confirm_fee != null ? chip('Paid ₹' + r.confirm_fee, 'good') : ''} ${r.review ? chip('Fee needs a check', 'warn') : ''}</div>
       <div>${esc(r.first_name || '')} · ${esc([r.area, r.pincode].filter(Boolean).join(' ') || 'No area')}</div><div class="flow-muted">${esc(r.preferred_date || '')} · ${esc(SLOT[r.preferred_slot] || r.preferred_slot || '')}${r.bike ? ' · ' + esc(r.bike) : ''}${r.service_name ? ' · ' + esc(r.service_name) : ''}</div>
       <div>${r.mechanic_name ? `Mechanic: <b>${esc(r.mechanic_name)}</b>${r.visit_stage ? ' · ' + esc(STAGE[r.visit_stage] || r.visit_stage) : ''}` : '<b class="flow-bad">Unassigned</b>'}</div>${seenRow(seen && seen[r.id])}
       <div class="flow-row"><button class="flow-btn ${r.mechanic_id ? '' : 'flow-primary'}" type="button" data-dispatch="assign">${r.mechanic_id ? 'Reassign' : 'Assign mechanic'}</button><button class="flow-btn flow-ghost" type="button" data-dispatch="open">Open</button></div></li>`).join('')}</ul>`;
@@ -211,8 +212,8 @@ export function createFlow(deps) {
   /* ----- Issues: what customers reported, open first, with who resolved the others ----- */
   function issuesHtml(rows) {
     const list = issueOrder(rows || []);
-    if (!list.length) return '<p class="flow-empty">No issues here. When a customer reports a problem it appears here and the team is emailed.</p>';
-    return `<ul class="flow-dispatch" data-issues>${list.map((i) => `<li class="flow-d ${i.status === 'open' ? 'flow-d-open' : ''}" data-id="${esc(i.id)}" data-lead="${esc(i.lead_id)}"><div><b>${esc(i.booking_id || 'Booking')}</b> <span class="flow-chip ${i.status === 'open' ? 'bad' : 'good'}">${i.status === 'open' ? 'Open' : 'Resolved'}</span> <span class="flow-chip">${esc(ISSUE_TYPES[i.category] || i.category)}</span></div>
+    if (!list.length) return emptyState({ title: 'No issues here', text: 'When a customer reports a problem it appears here and the team is emailed.' });
+    return `<ul class="flow-dispatch" data-issues>${list.map((i) => `<li class="flow-d ${i.status === 'open' ? 'flow-d-open' : ''}" data-id="${esc(i.id)}" data-lead="${esc(i.lead_id)}"><div><b>${esc(i.booking_id || 'Booking')}</b> ${chip(i.status === 'open' ? 'Open' : 'Resolved', ISSUE_TONE[i.status] || 'good')} ${chip(ISSUE_TYPES[i.category] || i.category)}</div>
       <div>${esc(i.first_name || '')} · ${esc(i.area || 'No area')}</div><div>${esc(i.body)}</div><div class="flow-muted">Reported ${esc(when(i.created_at))}${i.status === 'resolved' ? ` · resolved by ${esc(i.resolved_by || 'the team')} ${esc(when(i.resolved_at))}${i.note ? ' · ' + esc(i.note) : ''}` : ''}</div>
       <div class="flow-row">${i.status === 'open' ? '<button class="flow-btn flow-primary" type="button" data-issue="resolve">Resolve</button>' : ''}<button class="flow-btn flow-ghost" type="button" data-issue="open">Open booking</button></div></li>`).join('')}</ul>`;
   }
