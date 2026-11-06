@@ -11,8 +11,11 @@ test('the video and its poster are in the project and small enough for phones', 
   assert.ok(size('assets/video/how-it-works.mp4') < 3 * 1024 * 1024);
   assert.ok(size('assets/video/how-it-works-poster.webp') < 150 * 1024);
 });
-test('the home page has no autoplay video; every video is muted tap-to-play, and the first is the booking demo', () => {
-  const vids = read('index.html').match(/<video[^>]*>/g) || [];
+// Changed on purpose (owner's hero video): the home page now has ONE autoplay video, the muted hero loop (tests/hero.test.mjs covers it). Every other video stays muted tap-to-play, and the first of those is the booking demo.
+test('the home page has one muted autoplay hero loop; every other video is muted tap-to-play, and the first of those is the booking demo', () => {
+  const all = read('index.html').match(/<video[^>]*>/g) || [];
+  const hero = all.filter((v) => /class="hm-v"/.test(v)), vids = all.filter((v) => !/class="hm-v"/.test(v));
+  assert.equal(hero.length, 1); assert.match(hero[0], /muted/); assert.match(hero[0], /autoplay/); assert.match(hero[0], /loop/); assert.match(hero[0], /playsinline/);
   assert.equal(vids.length, 3, 'booking demo plus the two oil-change videos in Our work');
   vids.forEach((v) => { assert.match(v, /muted/); assert.doesNotMatch(v, /autoplay/); assert.match(v, /preload="none"/); });
   assert.match(vids[0], /how-to-book-poster/); assert.match(vids[0], /\bcontrols\b/);

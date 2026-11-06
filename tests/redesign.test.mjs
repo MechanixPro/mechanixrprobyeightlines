@@ -154,7 +154,7 @@ test('the shared hero photo is on bike pages only: car, roadside, Axlio and part
   // Changed on purpose (hero redesign): the home hero no longer uses the hero-minimal cut-out (hard right edge). Its first photo is the workshop front, eager and high priority. See tests/hero.test.mjs.
   // Changed again (animated garage): the home hero is now the animated garage illustration, eager and high priority. See tests/hero.test.mjs.
   // Changed again (hero v3): the garage illustration is gone; the backdrop is the designed garage scene <img>, eager and high priority. See tests/hero.test.mjs.
-  assert.match(main, /<figure class="hero-art"><img src="\/assets\/img\/hero-garage-scene\.svg"[^>]*fetchpriority="high"/);
+  assert.match(main, /<figure class="hero-media">[\s\S]*<video class="hm-v" autoplay muted loop playsinline preload="metadata" poster="\/assets\/img\/hero\/hero-garage-poster\.webp"/);
   assert.doesNotMatch(main.slice(0, main.indexOf('id="brief"')), /hero-minimal/);
 });
 test('the footer keeps the company line and GSTIN from company.json, and the Areas links', () => {

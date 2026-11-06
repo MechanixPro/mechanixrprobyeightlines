@@ -1,14 +1,23 @@
 <input class="veh-in" type="radio" name="vehicle" id="veh-bike" value="bike" form="hero-book" checked><input class="veh-in" type="radio" name="vehicle" id="veh-car" value="car" form="hero-book">
 <section id="hero" class="stage" aria-labelledby="hero-h">
-  <div class="wrap hero-in">
-    <div class="hero-left">
+  <div class="hero-top">
+    <div class="wrap hero-in">
     <div class="hero-copy">
       <h1 id="hero-h">Bike and car service at your door in Bengaluru.</h1>
       <p class="hero-offer bike-only">Bike service from {{price:basic}} <small>excluding GST</small></p>
       <p class="hero-offer car-only">Car service, quoted first</p>
       <p class="lead">Quote first. You approve before we start.</p>
     </div>
-    <div class="hb-wrap">
+    <ul class="hero-chips bike-only" aria-label="Why people book with us"><li>10,000+ services done</li><li>1,300+ gated communities trust us</li></ul>
+    <ul class="hero-list car-only" aria-label="Car services we arrange"><li>Periodic service</li><li>Brake service</li><li>Jump start and flat tyre</li><li>Towing and fuel delivery</li></ul>
+    </div>
+    <figure class="hero-media">
+      <div class="bike-only"><video class="hm-v" autoplay muted loop playsinline preload="metadata" poster="/assets/img/hero/hero-garage-poster.webp" width="1280" height="572" aria-label="The Mechanix Pro garage: a smiling mechanic with a spanner beside a motorcycle on a service stand."><source src="/assets/video/hero-garage.mp4" type="video/mp4"></video></div>
+      <img class="car-only" src="/assets/img/hero/hero-car-1200.webp" srcset="/assets/img/hero/hero-car-700.webp 700w, /assets/img/hero/hero-car-1200.webp 1200w, /assets/img/hero/hero-car-2000.webp 2000w" sizes="(min-width:960px) 62vw, 100vw" width="2752" height="1361" alt="The Mechanix Pro garage: a mechanic checks a car with its bonnet open on a service ramp." decoding="async">
+      <figcaption class="hm-ill">Illustration</figcaption>
+    </figure>
+  </div>
+  <div class="wrap hero-book">
     <form id="hero-book" class="hb" action="/book/" method="get" aria-labelledby="hb-h">
       <h2 id="hb-h">Book your service</h2>
       <p class="hb-sub">Pick your vehicle and PIN code. See the price and book in a minute.</p>
@@ -17,13 +26,15 @@
       <button class="hb-go" type="submit">See price and book &rarr;</button>
     </form>
     <p class="hb-links"><a class="bike-only" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a service for my bike in Bengaluru.&#10;Bike model: &#10;Area: "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp us</a><a class="car-only" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a car service in Bangalore.&#10;Car make and model: &#10;Area: "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>WhatsApp us</a><a href="#" data-call aria-label="Call now"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call</a><a class="car-only" href="/car-service-bangalore/">See car services</a></p>
-    </div>
-    <ul class="hero-chips bike-only" aria-label="Why people book with us"><li>10,000+ services done</li><li>1,300+ gated communities trust us</li></ul>
-    <ul class="hero-list car-only" aria-label="Car services we arrange"><li>Periodic service</li><li>Brake service</li><li>Jump start and flat tyre</li><li>Towing and fuel delivery</li></ul>
-    </div>
-    <figure class="hero-art"><img src="/assets/img/hero-garage-scene.svg" width="920" height="690" alt="The Mechanix Pro garage at dusk: a glowing neon Mechanix Pro sign, and a mechanic with a wrench beside a motorbike, both in silhouette against the warm light of the open shutter." fetchpriority="high" decoding="async"></figure>
   </div>
+  <div class="wrap why"><h2>Why choose Mechanix Pro</h2><ul>
+    <li><img src="/assets/img/hero/why-quote.webp" width="360" height="360" alt="" loading="lazy" decoding="async"><b>Quote first</b><span>An itemised quote on WhatsApp before any work.</span></li>
+    <li><img src="/assets/img/hero/why-approve.webp" width="360" height="360" alt="" loading="lazy" decoding="async"><b>You approve first</b><span>Nothing starts until you say yes.</span></li>
+    <li><img src="/assets/img/hero/why-code.webp" width="360" height="360" alt="" loading="lazy" decoding="async"><b>Your code protects your vehicle</b><span>It leaves only after you share a one-time code.</span></li>
+    <li><img src="/assets/img/hero/why-door.webp" width="360" height="360" alt="" loading="lazy" decoding="async"><b>Service at your door</b><span>At your home, office or society parking.</span></li>
+  </ul></div>
 </section>
+<script src="/assets/js/hero-video.js" defer></script>
 <div class="sheet">
 <section id="brief" aria-labelledby="brief-h">
   <div class="wrap how-grid">

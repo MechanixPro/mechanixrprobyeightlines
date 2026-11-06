@@ -1,7 +1,5 @@
 /* Home hero: full-bleed designed garage scene (one <img>, assets/img/hero-garage-scene.svg, its own gentle motion stops for reduced motion), navy overlay, offer headline and an inline booking card. No script, no inline style. */
-#hero.stage{padding:0;background:radial-gradient(900px 520px at 78% 55%,rgba(242,128,31,.22),transparent 70%),linear-gradient(135deg,#070d1c,#0d1a38 60%,#14295a);min-height:clamp(560px,calc(100svh - 120px),760px);display:flex;align-items:center}
-#hero .hero-in{width:100%;padding:12px 20px 26px;gap:12px}
-.hero-left{display:contents}
+#hero.stage{padding:0;background:linear-gradient(135deg,#070d1c,#0d1a38 60%,#14295a)}
 #hero .hero-copy{animation:none}
 #hero h1{font-size:clamp(24px,7vw,34px);line-height:1.04;letter-spacing:-.035em;text-transform:uppercase;font-weight:800;margin:0 0 10px;max-width:14em;text-wrap:balance}
 .hero-offer{margin:0 0 6px;font-size:clamp(22px,6.6vw,32px);font-weight:800;line-height:1.05;letter-spacing:-.03em;color:var(--acc)!important;text-transform:uppercase}
@@ -33,16 +31,12 @@
   #veh-car:checked ~ * .hero-list.car-only{margin:0;padding:2px 18px;border:1px solid var(--hair-d);border-radius:20px;background:rgba(11,18,32,.6)}
   .hero-list li{padding:12px 0;font-size:17px;font-weight:600;color:var(--on)}
   .hero-list li+li{border-top:1px solid var(--hair-d)}
-  #hero .hero-in{display:flex;flex-direction:column}
-  .hero-copy{order:0}.hb-wrap{order:1}.hero-art{order:2}.hero-chips,.hero-list.car-only{order:3}
+  
 }
 @media(max-width:959px) and (min-width:0){@supports(animation-timeline:scroll()){body:has(#hero-book) .mechu-btn{animation:mh linear both;animation-timeline:scroll(root);animation-range:0 140px}}}
 @keyframes mh{from{opacity:0;pointer-events:none}50%{pointer-events:none}51%{pointer-events:auto}to{opacity:1;pointer-events:auto}}
 @media(min-width:960px){
-      #hero .hero-in{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);align-items:center;column-gap:56px;padding:44px 32px 52px}
-  .hero-left{display:flex;flex-direction:column;gap:20px}
-  .hb-wrap{max-width:520px}
-  #hero .hero-copy{padding:0;grid-area:auto;align-self:auto}
+      #hero .hero-copy{padding:0;grid-area:auto;align-self:auto}
   #hero .hero-left>.hero-list.car-only{max-width:480px;align-self:auto;padding:4px 24px;margin:0}
   .hero-list li{padding:14px 0;font-size:19px}
   #hero h1{max-width:10.6em;font-size:clamp(38px,3.9vw,52px);margin-bottom:16px}
@@ -53,6 +47,44 @@
   .hb .veh{margin-top:12px}.hb-f{margin-top:12px}
 }
 
-.hero-art{position:relative;width:100%;margin:4px 0 0;border-radius:24px;overflow:hidden;border:1px solid rgba(255,255,255,.18);box-shadow:0 30px 60px -26px rgba(0,0,0,.85),0 0 80px -20px rgba(242,128,31,.35)}
-.hero-art img{display:block;width:100%;height:auto;aspect-ratio:4/3}
-@media(min-width:960px){.hero-art{margin:0;border-radius:30px}}
+
+/* ---- layout: text on solid navy, the garage video beside it, a booking bar under both ---- */
+.hero-top{display:flex;flex-direction:column}
+#hero .hero-in{order:1;width:100%;min-height:0;padding:18px 20px 16px;display:flex;flex-direction:column;gap:12px;grid-template-columns:none}
+.hero-media{order:2;position:relative;margin:0;width:100%;height:clamp(210px,58vw,300px);overflow:hidden;background:#0B1220}
+.hero-media video,.hero-media img,.hero-media>div{display:block;width:100%;height:100%}
+.hero-media video,.hero-media img{object-fit:cover;object-position:78% 50%}
+.hero-media::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,13,28,.35),rgba(7,13,28,0) 28%,rgba(7,13,28,0) 70%,rgba(7,13,28,.5));pointer-events:none}
+.hm-ill{position:absolute;z-index:2;right:10px;bottom:8px;padding:3px 9px;border-radius:999px;background:rgba(7,13,28,.7);color:var(--on2);font-size:11px;line-height:1.4}
+.hero-book{position:relative;z-index:3;margin-top:-34px;padding:0 20px 8px}
+.hero-book .hb{box-shadow:0 30px 60px -24px rgba(0,0,0,.85);background:rgba(11,18,32,.94)}
+.hero-book .hb-links{background:none;padding:0;margin:6px 0 0}
+.hero-book .hb-links a{color:var(--on)}
+.why{padding-top:26px;padding-bottom:30px}
+.why h2{margin:0 0 14px;text-align:center;font-size:clamp(20px,5vw,26px);letter-spacing:-.02em;color:var(--on)}
+.why ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.why li{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px;border-radius:18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14)}
+.why li img{width:56px;height:56px;border-radius:14px;background:#fff;object-fit:cover}
+.why li b{font-size:15px;line-height:1.25;color:var(--on)}
+.why li span{font-size:13px;line-height:1.35;color:var(--on2)}
+@media(min-width:960px){
+  .hero-top{position:relative;display:block;min-height:540px}
+  #hero .hero-in{position:relative;z-index:2;order:0;width:100%;max-width:1180px;min-height:540px;padding:56px 32px 84px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:18px;grid-template-columns:none}
+  #hero .hero-in>*{max-width:470px;align-self:flex-start}
+  #hero .hero-copy{align-self:flex-start;padding-bottom:0}
+  #hero h1{font-size:clamp(34px,3.2vw,46px);max-width:11.6em;margin-bottom:12px}
+  .hero-offer{font-size:clamp(26px,2.5vw,34px)}
+  .hero-media{position:absolute;top:0;right:0;bottom:0;width:62%;height:auto;order:0}
+  .hero-media video,.hero-media img{object-position:100% 50%}
+  .hero-media{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 30%);mask-image:linear-gradient(90deg,transparent 0,#000 30%)}
+  .hero-book{margin-top:-52px;padding:0 32px 6px;max-width:1180px}
+  .hero-book .hb{display:grid;grid-template-columns:minmax(170px,.8fr) 1.1fr minmax(0,1fr) auto;align-items:end;gap:6px 18px;padding:18px 22px;max-width:none;border-radius:22px}
+  .hero-book .hb h2{grid-column:1/-1;font-size:20px}
+  .hero-book .hb-sub{display:none}
+  .hero-book .hb .veh{margin:0}.hero-book .hb-f{margin:0}
+  .hero-book .hb-go{margin:0;width:auto;min-width:230px;padding:0 26px}
+  .hero-book .hb-links{margin:10px 0 0}
+  .why{max-width:1180px;padding:44px 32px 52px}
+  .why ul{grid-template-columns:repeat(4,1fr);gap:16px}
+}
+@media(prefers-reduced-motion:reduce){.hm-v{animation:none}}

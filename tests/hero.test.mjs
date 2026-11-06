@@ -5,37 +5,44 @@ const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const home = read('index.html');
 const css = read('assets/css/hero.css');
 const hero = home.slice(home.indexOf('<section id="hero"'), home.indexOf('id="brief"'));
-const art = hero.slice(hero.indexOf('<figure class="hero-art"'), hero.indexOf('</figure>') + 9);
+const art = hero.slice(hero.indexOf('<figure class="hero-media"'), hero.indexOf('</figure>') + 9);
 const imgs = [...art.matchAll(/<img\b[^>]*>/g)].map((m) => m[0]);
 const scene = read('assets/img/hero-garage-scene.svg');
 
 test('hero.css is linked from the home page only and stays small', () => {
   assert.match(home, /<link rel="stylesheet" href="\/assets\/css\/hero\.css(\?v=\w+)?">/);
   for (const f of ['book/index.html', 'help/index.html', 'car-service-bangalore/index.html', 'services/index.html']) assert.doesNotMatch(read(f), /hero\.css/, f);
-  // Raised on purpose from 4,500 to 7,000 bytes: the full-bleed scene hero and the booking card need more CSS than the old garage illustration.
-  assert.ok(statSync(new URL('../assets/css/hero.css', import.meta.url)).size < 7000, 'hero.css budget 7,000 bytes');
+  // Raised on purpose to 9,500 bytes: the video hero, the booking bar and the Why choose row need more CSS than the earlier hero.
+  assert.ok(statSync(new URL('../assets/css/hero.css', import.meta.url)).size < 9500, 'hero.css budget 9,500 bytes');
   assert.ok(Buffer.byteLength(read('assets/css/site.css')) < 32000);
   assert.ok(Buffer.byteLength(home) < 42500, 'home HTML ' + Buffer.byteLength(home));
 });
-// Changed on purpose (owner: the garage must be designed, aesthetic and fully visible): the scene is now a framed panel beside the headline and the booking card, not a full-bleed backdrop that the card covered.
-test('the hero art is one designed garage scene as an <img> in a framed panel: eager, high priority, sized, with alt text; no photos, no CSS background image', () => {
-  assert.equal(imgs.length, 1);
-  const t = imgs[0];
-  assert.match(t, / src="\/assets\/img\/hero-garage-scene\.svg"/); assert.ok(existsSync(new URL('../assets/img/hero-garage-scene.svg', import.meta.url)));
-  assert.match(t, /\bwidth="920"/); assert.match(t, /\bheight="690"/); assert.match(t, /fetchpriority="high"/); assert.doesNotMatch(t, /loading="lazy"/);
-  assert.match(t.match(/alt="([^"]*)"/)[1], /Mechanix Pro garage/);
-  assert.match(art, /^<figure class="hero-art"/);
+// Changed on purpose (owner's own garage render and video): the hero shows the owner's illustrated Mechanix Pro garage as a short muted loop (bike view) and a still (car view), beside the headline.
+test('the hero media: a muted looping garage video with a poster (bike view) and a car still (car view); sized, alt text, honest "Illustration" tag, no audio, files exist', () => {
+  assert.match(art, /^<figure class="hero-media"/);
+  const v = art.match(/<video\b[^>]*>/)[0];
+  for (const a of ['autoplay', 'muted', 'loop', 'playsinline']) assert.match(v, new RegExp('\\b' + a + '\\b'), a);
+  assert.match(v, /poster="\/assets\/img\/hero\/hero-garage-poster\.webp"/); assert.match(v, /width="1280"/); assert.match(v, /height="572"/); assert.match(v, /aria-label="[^"]+"/);
+  const src = art.match(/<source src="([^"]+)" type="video\/mp4">/)[1];
+  assert.ok(existsSync(new URL('..' + src, import.meta.url)), src); assert.ok(statSync(new URL('..' + src, import.meta.url)).size < 1_600_000, 'video under 1.6 MB');
+  assert.ok(existsSync(new URL('../assets/img/hero/hero-garage-poster.webp', import.meta.url)));
+  assert.equal(imgs.length, 1); const t = imgs[0];
+  assert.match(t, /class="car-only"/); assert.match(t, /\balt="[^"]{20,}"/); assert.match(t, /width="2752"/); assert.match(t, /height="1361"/);
+  for (const m of t.matchAll(/\/assets\/img\/hero\/[\w-]+\.webp/g)) assert.ok(existsSync(new URL('..' + m[0], import.meta.url)), m[0]);
+  assert.match(art, /<figcaption class="hm-ill">Illustration<\/figcaption>/);
   assert.doesNotMatch(hero, /\/assets\/img\/workshop\//, 'the real workshop photos are not in the hero');
-  assert.match(css, /\.hero-art img\{[^}]*aspect-ratio:4\/3/);
-  assert.doesNotMatch(css, /background(-image)?:[^;}]*url\(/, 'the scene is an <img>, not a CSS background, so the LCP image can be preloaded');
+  assert.doesNotMatch(css, /background(-image)?:[^;}]*url\(/);
 });
-test('the scene SVG is self-contained: no scripts or outside addresses, small, true claims only, motion stops for reduced motion', () => {
-  assert.ok(Buffer.byteLength(scene) < 40000, 'under 40 KB');
-  assert.doesNotMatch(scene, /<script|<foreignObject|\son\w+=|https?:\/\/(?!www\.w3\.org\/2000\/svg)|<image\b|xlink:href/i);
-  assert.match(scene, /@media \(prefers-reduced-motion:reduce\)\{\*\{animation:none!important\}/);
-  assert.match(scene, /MECHANIX PRO/);
-  const words = [...scene.matchAll(/>([^<]+)<\/text>/g)].map((m) => m[1]).join(' ');
-  assert.doesNotMatch(words, /\d|certified|rating|★/i, 'no numbers or certification claims painted in the scene');
+test('the video file has no audio track and no metadata beyond the container basics', () => {
+  const b = readFileSync(new URL('../assets/video/hero-garage.mp4', import.meta.url));
+  assert.ok(!b.includes(Buffer.from('mp4a')), 'no AAC audio track');
+  for (const bad of ['gemini', 'Gemini', 'Google', 'Veo']) assert.ok(!b.includes(Buffer.from(bad)), 'no ' + bad + ' tag');
+});
+test('the small video script respects reduced motion and data saving, and makes no outside request', () => {
+  const j = read('assets/js/hero-video.js');
+  assert.match(j, /prefers-reduced-motion: reduce/); assert.match(j, /saveData/); assert.match(j, /\.pause\(\)/);
+  assert.doesNotMatch(j, /fetch\(|XMLHttpRequest|https?:\/\//);
+  assert.match(home, /<script src="\/assets\/js\/hero-video\.js(\?v=\w+)?" defer><\/script>/);
 });
 test('headline, accent price line, trust line and the two allowed chips; no other claims', () => {
   assert.match(hero, /<h1 id="hero-h">Bike and car service at your door in Bengaluru\.<\/h1>/);
@@ -63,12 +70,12 @@ test('booking card: plain GET form to /book/, only vehicle (attached radios) and
 test('WhatsApp and Call use the site hooks, no hard-coded numbers; the old garage is gone from the home page', () => {
   assert.match(hero, /<p class="hb-links">[\s\S]*data-wa="general"[\s\S]*data-call/);
   assert.doesNotMatch(hero, /wa\.me|tel:|\b9[1]?\d{9,11}\b/);
-  assert.doesNotMatch(hero, /hero-garage\.svg|class="hg"/);
+  assert.doesNotMatch(hero, /hero-garage\.svg|hero-garage-scene|class="hg"/);
   assert.doesNotMatch(css, /\.hg\b/);
   assert.match(hero, /<ul class="hero-list car-only"/); assert.match(css, /#veh-car:checked ~ \* \.hero-list\.car-only/);
 });
 test('CSP: no inline scripts, handlers or style attributes in the hero; no outside hosts', () => {
-  assert.doesNotMatch(hero, /<script|\son\w+=|\sstyle=|https?:\/\//i);
+  assert.doesNotMatch(hero.replace(/<script src="\/assets\/js\/hero-video\.js(\?v=\w+)?" defer><\/script>/, ''), /<script|\son\w+=|\sstyle=|https?:\/\//i);
   assert.doesNotMatch(css, /@import|url\(\s*["']?https?:/); assert.doesNotMatch(css, /expression\(|javascript:/i);
 });
 // WCAG contrast. The text sits on the dark navy stage gradient (and its faint orange glow), never on the picture.
@@ -77,16 +84,15 @@ const lum = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
 const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
 const over = (fg, a, under) => fg.map((c, i) => c * a + under[i] * (1 - a));
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-test('contrast: light text and the orange accent pass on every colour of the stage gradient, and the card text passes on its glass', () => {
-  const stage = css.match(/#hero\.stage\{[^}]*background:radial-gradient\([^,]+,rgba\((\d+),(\d+),(\d+),([.\d]+)\),transparent 70%\),linear-gradient\(135deg,(#[0-9a-f]{6}),(#[0-9a-f]{6}) 60%,(#[0-9a-f]{6})\)/i);
+test('contrast: light text and the orange accent pass on every colour of the solid navy stage gradient, and the card text passes on its glass', () => {
+  const stage = css.match(/#hero\.stage\{[^}]*linear-gradient\(135deg,(#[0-9a-f]{6}),(#[0-9a-f]{6}) 60%,(#[0-9a-f]{6})\)/i);
   assert.ok(stage, 'stage gradient found');
-  const glow = { c: [+stage[1], +stage[2], +stage[3]], a: +stage[4] };
-  const bgs = [hex(stage[5]), hex(stage[6]), hex(stage[7])]; bgs.push(over(glow.c, glow.a, bgs[2]));
+  const bgs = [hex(stage[1]), hex(stage[2]), hex(stage[3])];
   const TXT = [0xF4, 0xF6, 0xFA], ORANGE = [0xF2, 0x80, 0x1F];
-  // The orange line is large bold text (at least 22px, 700+), which needs 3:1; on the three plain navy stops it also clears 4.5:1. The glow sits behind the picture on the right, not behind the text.
-  bgs.forEach((b, i) => { assert.ok(ratio(TXT, b) >= 7, 'light text ' + ratio(TXT, b).toFixed(2)); assert.ok(ratio(ORANGE, b) >= (i < 3 ? 4.5 : 3), 'orange ' + ratio(ORANGE, b).toFixed(2)); });
-  const card = css.match(/\.hb\{[^}]*background:rgba\((\d+),(\d+),(\d+),([.\d]+)\)/);
-  const behindCard = over([+card[1], +card[2], +card[3]], +card[4], bgs[3]);
+  // The headline, price line and chips sit on this plain navy (the video lives in its own panel to the right and fades into it).
+  for (const b of bgs) { assert.ok(ratio(TXT, b) >= 7, 'light text ' + ratio(TXT, b).toFixed(2)); assert.ok(ratio(ORANGE, b) >= 4.5, 'orange ' + ratio(ORANGE, b).toFixed(2)); }
+  const card = css.match(/\.hero-book \.hb\{[^}]*background:rgba\((\d+),(\d+),(\d+),([.\d]+)\)/);
+  const behindCard = over([+card[1], +card[2], +card[3]], +card[4], bgs[2]);
   assert.ok(ratio(TXT, behindCard) >= 7, 'text in the card ' + ratio(TXT, behindCard).toFixed(2));
   assert.ok(ratio([0x1A, 0x0E, 0x03], ORANGE) >= 7, 'button label on orange');
   assert.ok(ratio([0xFF, 0xC9, 0xA0], behindCard) >= 4.5, 'error text in the card');
