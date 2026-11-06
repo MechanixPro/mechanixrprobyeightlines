@@ -11,6 +11,7 @@ import { gstSplit } from './confirm-fee.ts';
 import { formatWhen } from './when.ts';
 import { idParam } from './booking-id.ts';
 import { deliver, deliverAll, dueKinds, olderThan, teamPaidMessage, teamNudgeMessage, teamIssueMessage, type Kind, type Result, type Store } from './notify.ts';
+import { teamGarageMessage } from './garage.ts';
 
 type Db = ReturnType<typeof adminDb>;
 const FROM_DESK = 'Mechanix Pro Desk <no-reply@mechanixpro.in>';
@@ -188,4 +189,13 @@ export async function notifyTeamIssue(db: Db, leadId: string, n: number, categor
     const k = `team_issue:${Math.max(1, Math.min(999, n || 1))}` as Kind;
     return await deliver(dbStore(db), leadId, k, () => mailTeam(db, teamIssueMessage({ bookingId: lead.booking_id, vehicle: lead.vehicle ?? 'bike', area: lead.area, category, deskUrl: deskUrl() }), 'team_issue'));
   } catch (e) { console.error('notifyTeamIssue', (e as Error).message); return 'failed'; }
+}
+/** A partner garage sent an estimate (n = its number for this job) or marked the vehicle ready: one team email each, logged in booking_notifications. No customer name or number. Never throws. */
+export async function notifyTeamGarage(db: Db, leadId: string, kind: 'estimate' | 'ready', n: number, garageName: string, total?: number): Promise<string> {
+  try {
+    const { data: lead } = await db.from('leads').select('booking_id,vehicle').eq('id', leadId).maybeSingle();
+    if (!lead) return 'not found';
+    const k = (kind === 'ready' ? 'team_garage_ready' : `team_garage_estimate:${Math.max(1, Math.min(999, n || 1))}`) as Kind;
+    return await deliver(dbStore(db), leadId, k, () => mailTeam(db, teamGarageMessage(kind, { bookingId: lead.booking_id, vehicle: lead.vehicle ?? 'bike', garageName, total, deskUrl: deskUrl() }), 'team_garage'));
+  } catch (e) { console.error('notifyTeamGarage', (e as Error).message); return 'failed'; }
 }

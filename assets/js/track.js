@@ -137,7 +137,7 @@
         ['Estimated delivery', tl && tl.eta], ['Confirmation fee', v.confirmation ? '₹' + v.confirmation.fee + (v.confirmation.paid ? ' paid. Adjusted in your final bill.' : ' (not paid yet)') : null], ['Starting estimate', !tl && v.estimate ? '₹' + Number(v.estimate).toLocaleString('en-IN') + ', GST included' : null]]
         .filter(function (r) { return r[1]; }).map(function (r) { return '<div><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('');
       var code = v.door_code ? '<div class="card track-card tcode"><h3>Your code</h3><p class="tcode-n" aria-label="Your code is ' + esc(v.door_code.split('').join(' ')) + '">' + esc(v.door_code) + '</p><p><b>' + esc(v.door_line) + '</b></p></div>' : '';
-      var next = tl && tl.next ? '<p class="track-next"><b>What happens next.</b> ' + esc(tl.next) + '</p>' : '';
+      var next = (v.partner_garage ? '<p class="track-next"><b>' + esc(v.partner_garage.line) + '.</b> ' + esc(v.partner_garage.detail) + '</p>' : '') + (tl && tl.next ? '<p class="track-next"><b>What happens next.</b> ' + esc(tl.next) + '</p>' : '');
       var main = '<div class="card track-card fade" id="trMainCard">' + steps(list, closed) + '<p class="track-note"><b>' + esc(head) + '.</b> ' + esc(note) + '</p>' + next + '<dl class="rcpt-rows track-rows">' + rows + '</dl><div class="row"><a class="btn btn-wa btn-sm" href="#" data-wa="general">Message us on WhatsApp</a></div></div>';
       if (!tok) { put('trMain', main); return; }
       var J = v.journey || null, I = win.MXP_INSTALL, st = J && J.stage ? J.stage : '';

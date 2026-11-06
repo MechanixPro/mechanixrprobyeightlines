@@ -1,6 +1,6 @@
 // Delivery of the paid-confirmation messages, one kind at a time. Pure (no Deno APIs): the store is injected so Node can test idempotency and failure isolation.
 // Every kind runs on its own: it is claimed first (so a retry or a duplicate webhook cannot send twice), the send is wrapped (a throw becomes "failed"), and the result is recorded.
-export const KINDS = ['confirm_email', 'receipt_email', 'confirm_whatsapp', 'team_paid', 'team_link_unpaid', 'team_unassigned', 'ontheway_email', 'team_issue'] as const;
+export const KINDS = ['confirm_email', 'receipt_email', 'confirm_whatsapp', 'team_paid', 'team_link_unpaid', 'team_unassigned', 'ontheway_email', 'team_issue', 'team_garage_estimate', 'team_garage_ready'] as const;
 export type Kind = (typeof KINDS)[number];
 export const CUSTOMER_KINDS: Kind[] = ['confirm_email', 'receipt_email', 'confirm_whatsapp'];
 export type Result = { ok: boolean; skipped?: boolean; error?: string };

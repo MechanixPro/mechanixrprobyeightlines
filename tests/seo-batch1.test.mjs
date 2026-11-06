@@ -158,11 +158,11 @@ test('6a. model pages: FAQPage, 2-level BreadcrumbList, Service (provider #busin
     assert.doesNotMatch(h, /<p class="breadcrumb">/);
   }
 });
-test('6b. home: one @graph with the full AutoRepair, WebSite and WebPage; no openingHoursSpecification; FAQPage kept', () => {
+test('6b. home: one @graph with the full AutoRepair, WebSite and WebPage; 24/7 openingHoursSpecification (owner confirmed 2026-11-07); FAQPage kept', () => {
   const h = read('index.html'), docs = jsonld(h);
   const g = docs.find((d) => d['@graph'])['@graph']; assert.deepEqual(g.map((x) => x['@type']), ['AutoRepair', 'WebSite', 'WebPage']);
   const biz = g[0]; assert.equal(biz['@id'], SITE + '/#business');
-  assert.equal(biz.openingHoursSpecification, undefined); assert.equal(biz.contactPoint.telephone, biz.telephone); assert.equal(biz.contactPoint.email, 'hello@mechanixpro.in');
+  assert.deepEqual(biz.openingHoursSpecification, { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], opens: '00:00', closes: '23:59' }); assert.equal(biz.contactPoint.telephone, biz.telephone); assert.equal(biz.contactPoint.email, 'hello@mechanixpro.in');
   assert.deepEqual(biz.hasOfferCatalog, { '@id': SITE + '/services/#catalog' });
   assert.equal(g[1]['@id'], SITE + '/#website'); assert.deepEqual(g[1].publisher, { '@id': SITE + '/#business' });
   assert.ok(docs.some((d) => d['@type'] === 'FAQPage')); assert.equal(docs.filter((d) => d['@type'] === 'WebSite').length, 0);

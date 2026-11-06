@@ -115,7 +115,8 @@ test('structured data parses and holds only facts from company.json', () => {
   const biz = [...read('index.html').matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].flatMap((m) => { const d = JSON.parse(m[1]); return d['@graph'] || [d]; }).find((b) => b['@type'] === 'AutoRepair');
   assert.equal(biz.address.postalCode, company.pincode); assert.equal(biz.legalName, company.legalName);
   assert.equal(biz.address.streetAddress, company.addressLines.join(', '));
-  for (const k of ['geo', 'openingHours', 'openingHoursSpecification', 'aggregateRating', 'review']) assert.equal(biz[k], undefined, k);
+  // openingHoursSpecification (24/7) is allowed since the owner confirmed it on 2026-11-07
+  for (const k of ['geo', 'openingHours', 'aggregateRating', 'review']) assert.equal(biz[k], undefined, k);
 });
 test('the home teaser shows three photos and links to /workshop/ in the bike view only', () => {
   const t = home.match(/<section id="shop"[\s\S]*?<\/section>/)[0];

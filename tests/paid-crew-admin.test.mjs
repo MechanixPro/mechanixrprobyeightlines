@@ -101,8 +101,8 @@ test('the admin can do everything Crew does in this flow: each Crew action also 
   assert.match(read('admin/nav.js'), /\['dispatch', 'Dispatch'\]/);
 });
 test('on a real local Postgres: admin passes every step, strangers and agents do not, gating and idempotency hold (skipped when no Postgres tools are installed)', (t) => {
-  const r = spawnSync('sh', [new URL('../supabase/local-test/run.sh', import.meta.url).pathname], { encoding: 'utf8', timeout: 170000 });
+  const r = spawnSync('sh', [new URL('../supabase/local-test/run.sh', import.meta.url).pathname], { encoding: 'utf8', timeout: 400000 });
   if (r.status === 3) return t.skip('no local Postgres tools');
   assert.equal(r.status, 0, (r.stdout + r.stderr).slice(-1500));
-  assert.match(r.stdout, /ALL PAID CONFIRMATION SQL CHECKS PASSED/);
+  assert.match(r.stdout, /ALL PAID CONFIRMATION SQL CHECKS PASSED/); assert.match(r.stdout, /ALL GARAGE APP SQL CHECKS PASSED/);
 });

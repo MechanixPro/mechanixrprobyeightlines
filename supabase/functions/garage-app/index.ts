@@ -1,0 +1,174 @@
+// POST /functions/v1/garage-app  { action, ... } — the partner garage app at /garage/. Public (deploy with --no-verify-jwt): the garage's private link token + PIN is the only key.
+//   login            { token, pin }                          -> { session, expires_at, garage }   (5 wrong PINs lock 15 minutes; per-IP and per-link rate limits)
+//   me               { session }                             -> { garage }
+//   jobs             { session }                             -> { jobs: [...] }                   (never a phone, address or email)
+//   job              { session, id }                         -> { job }                           (the customer's phone ONLY for this garage's OPEN assignment; each view is logged without the number)
+//   progress         { session, id, event, photos?, note? }  event: received | work_started | ready (work_started waits for the customer's approval of the latest quote)
+//   photo_upload_url { session, id, types: [...] }           -> signed upload URLs into the private bucket 'garage-updates'
+//   estimate_save / estimate_submit { session, id, lines, notes?, hours? | day? }
+//   statement        { session }                             -> completed jobs, amounts entered by Admin, settled or pending
+//   team_contact     { session }                             -> the team's WhatsApp and call numbers when set as secrets (else the page uses its public config)
+// Every response is built in _shared/garage.ts from a whitelist. Customer address and email are never selected from the database at all.
+import { adminDb, env, json, corsHeaders, sha256Hex } from '../_shared/util.ts';
+import { notifyTeamGarage } from '../_shared/after-payment.ts';
+import { signSession, verifySession, garageJobListItem, garageJobDetail, garageStatement, cleanUpload, cleanEstimate, photoPath, photoPathOk, LINK_RE, PIN_RE, UUID_RE, EVENTS, LOGIN_MESSAGE, isOpen, type RawJob } from '../_shared/garage.ts';
+
+const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact'];
+const BAD = 'Could not save. Please try again.', SESSION_OVER = 'Your session has ended. Enter your PIN again.';
+const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
+  if (req.method !== 'POST') return json(req, { error: 'Method not allowed' }, 405);
+  const origin = req.headers.get('origin') ?? '';
+  if (origin && corsHeaders(req)['Access-Control-Allow-Origin'] !== origin) return json(req, { error: 'Not allowed' }, 403);
+  const b = await req.json().catch(() => ({}));
+  const action = String(b?.action ?? '');
+  if (!ACTIONS.includes(action)) return json(req, { error: 'Unknown action' }, 400);
+  const db = adminDb();
+  const rpc = async (fn: string, args: Record<string, unknown>) => { const { data, error } = await db.rpc(fn, args); if (error) { console.error('garage-app', fn, error.code); return null; } return data as any; };
+  const ip = req.headers.get('cf-connecting-ip') ?? req.headers.get('x-forwarded-for')?.split(',').pop()?.trim() ?? '';
+  const ipHash = await sha256Hex((ip || 'unknown') + env('IP_SALT', 'mxp'));
+  const secret = env('GARAGE_SESSION_SECRET');
+  if (!secret) { console.error('garage-app: GARAGE_SESSION_SECRET is not set'); return json(req, { error: 'The garage app is not switched on yet.' }, 503); }
+
+  /* ---------- login ---------- */
+  if (action === 'login') {
+    const token = String(b?.token ?? '').toLowerCase(), pin = String(b?.pin ?? '');
+    const tok16 = LINK_RE.test(token) ? (await sha256Hex(token)).slice(0, 16) : 'bad';
+    const since = ago(10);
+    const [{ count: perIp }, { count: perLink }] = await Promise.all([
+      db.from('audit_log').select('id', { count: 'exact', head: true }).eq('action', 'garage_login_try').eq('details->>ip', ipHash).gte('created_at', since),
+      db.from('audit_log').select('id', { count: 'exact', head: true }).eq('action', 'garage_login_try').eq('details->>tok', tok16).gte('created_at', since),
+    ]);
+    if ((perIp ?? 0) >= 20 || (perLink ?? 0) >= 15) return json(req, { error: 'Too many tries. Wait a few minutes.' }, 429);
+    await db.from('audit_log').insert({ action: 'garage_login_try', details: { ip: ipHash, tok: tok16 } });
+    if (!LINK_RE.test(token)) return json(req, { error: LOGIN_MESSAGE.link, code: 'link' }, 404);
+    if (!PIN_RE.test(pin)) return json(req, { error: 'Enter your 4 to 6 digit PIN.', code: 'pin' }, 400);
+    const r = await rpc('garage_login', { p_token: token, p_pin: pin });
+    if (!r) return json(req, { error: BAD }, 500);
+    if (!r.ok) return json(req, { error: LOGIN_MESSAGE[r.error] ?? LOGIN_MESSAGE.link, code: r.error, left: r.left ?? null }, r.error === 'locked' ? 423 : r.error === 'pin' ? 401 : r.error === 'off' ? 403 : 404);
+    const s = await signSession(secret, { access: r.access_id, garage: r.garage_id, version: r.session_version });
+    return json(req, { ok: true, session: s.token, expires_at: s.expires_at, garage: { name: r.garage_name, label: r.label } });
+  }
+
+  /* ---------- every other action needs a live session ---------- */
+  const claims = await verifySession(secret, b?.session);
+  if (!claims) return json(req, { error: SESSION_OVER, code: 'session' }, 401);
+  const who = await rpc('garage_session_check', { p_access: claims.a, p_ver: claims.v });
+  if (!who) return json(req, { error: BAD }, 500);
+  if (!who.ok || who.garage_id !== claims.g) return json(req, { error: SESSION_OVER, code: 'session' }, 401);
+  const garageId: string = who.garage_id, accessId: string = who.access_id, garageName: string = who.garage_name;
+  const jobId = String(b?.id ?? '');
+
+  if (action === 'me') return json(req, { ok: true, garage: { name: garageName, label: who.label } });
+
+  if (action === 'team_contact') {
+    const wa = env('GARAGE_TEAM_WHATSAPP').replace(/\D/g, ''), tel = env('GARAGE_TEAM_PHONE').replace(/\D/g, '');
+    return json(req, { ok: true, whatsapp: /^\d{12}$/.test(wa) ? wa : null, call: /^\d{12}$/.test(tel) ? tel : null });
+  }
+
+  /* ---------- reading jobs: only this garage's own assignments ---------- */
+  const mine = (id?: string) => { let q = db.from('garage_assignments').select('id,lead_id,status,eta,notes,assigned_at,received_at,started_at,ready_at,returned_at').eq('garage_id', garageId).neq('status', 'cancelled'); if (id) q = q.eq('id', id); return q; };
+  // Lead columns: never address, email or phone here. The phone is fetched separately, only after the contact view is allowed.
+  const LEAD_COLS = 'id,name,booking_id,vehicle,service_id,bike_id,status';
+  async function context(rows: any[]) {
+    const leadIds = [...new Set(rows.map((r) => r.lead_id))];
+    const [leads, quotes] = await Promise.all([db.from('leads').select(LEAD_COLS).in('id', leadIds), db.from('job_quotes').select('lead_id,status,version').in('lead_id', leadIds).in('status', ['sent', 'approved', 'declined']).order('version', { ascending: false })]);
+    const L = new Map((leads.data ?? []).map((l: any) => [l.id, l])), Q = new Map<string, any>();
+    for (const q of quotes.data ?? []) if (!Q.has(q.lead_id)) Q.set(q.lead_id, q);
+    const sIds = [...new Set([...L.values()].map((l: any) => l.service_id).filter(Boolean))], bIds = [...new Set([...L.values()].map((l: any) => l.bike_id).filter(Boolean))];
+    const [sv, bk] = await Promise.all([sIds.length ? db.from('services').select('id,name').in('id', sIds) : Promise.resolve({ data: [] }), bIds.length ? db.from('bikes').select('id,brand,model,reg_no').in('id', bIds) : Promise.resolve({ data: [] })]);
+    const S = new Map((sv.data ?? []).map((x: any) => [x.id, x.name])), K = new Map((bk.data ?? []).map((x: any) => [x.id, x]));
+    return { L, Q, S, K };
+  }
+  const rawOf = (a: any, c: Awaited<ReturnType<typeof context>>): RawJob => { const l: any = c.L.get(a.lead_id) ?? {}; return { assignment: a, lead: l, service: c.S.get(l.service_id) ?? null, vehicle: c.K.get(l.bike_id) ?? null, quote: c.Q.get(a.lead_id) ?? null }; };
+  const sign = async (bucket: string, paths: string[]) => { const out: string[] = []; for (const p of paths.slice(0, 12)) { const { data } = await db.storage.from(bucket).createSignedUrl(p, 600); if (data?.signedUrl) out.push(data.signedUrl); } return out; };
+
+  if (action === 'jobs') {
+    const { data: rows, error } = await mine().order('assigned_at', { ascending: false }).limit(200);
+    if (error) { console.error('garage-app jobs', error.code); return json(req, { error: 'Could not load your jobs. Please try again.' }, 500); }
+    const c = await context(rows ?? []);
+    return json(req, { ok: true, garage: { name: garageName }, jobs: (rows ?? []).map((a: any) => garageJobListItem(rawOf(a, c))) });
+  }
+
+  if (action === 'statement') {
+    const { data: rows } = await mine().in('status', ['ready', 'returned']).order('assigned_at', { ascending: false }).limit(200);
+    const ids = (rows ?? []).map((r: any) => r.id);
+    const [c, st] = await Promise.all([context(rows ?? []), ids.length ? db.from('garage_settlements').select('assignment_id,amount,settled,settled_at,note').in('assignment_id', ids) : Promise.resolve({ data: [] })]);
+    const S = new Map((st.data ?? []).map((s: any) => [s.assignment_id, s]));
+    return json(req, { ok: true, statement: garageStatement((rows ?? []).map((a: any) => { const r = rawOf(a, c); return { assignment: a, lead: r.lead, vehicle: r.vehicle, settlement: S.get(a.id) ?? null }; })) });
+  }
+
+  // Everything below is about one job.
+  if (!UUID_RE.test(jobId)) return json(req, { error: 'This job is not available.' }, 404);
+
+  if (action === 'job') {
+    const { count } = await db.from('audit_log').select('id', { count: 'exact', head: true }).eq('action', 'garage_detail').eq('details->>access', accessId).gte('created_at', ago(10));
+    if ((count ?? 0) >= 60) return json(req, { error: 'Too many opens. Wait a few minutes.' }, 429);
+    await db.from('audit_log').insert({ action: 'garage_detail', details: { access: accessId } });
+    const { data: a } = await mine(jobId).maybeSingle();
+    if (!a) return json(req, { error: 'This job is not available.' }, 404);
+    const c = await context([a]), raw = rawOf(a, c);
+    const [bd, ho, pr, es] = await Promise.all([
+      db.from('booking_details').select('issue_text').eq('lead_id', a.lead_id).maybeSingle(),
+      db.from('handovers').select('note,photo_paths').eq('lead_id', a.lead_id).eq('kind', 'pickup').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      db.from('garage_progress').select('event,at,note,photos').eq('assignment_id', a.id).order('at'),
+      db.from('garage_estimates').select('id,status,lines,notes,hours,return_day,review_note,submitted_at').eq('assignment_id', a.id).order('created_at', { ascending: false }).limit(10),
+    ]);
+    raw.issue = (bd.data as any)?.issue_text ?? null;
+    raw.pickup = { note: (ho.data as any)?.note ?? null, photos: await sign('handover', ((ho.data as any)?.photo_paths ?? []) as string[]) };
+    raw.progress = await Promise.all((pr.data ?? []).map(async (p: any) => ({ event: p.event, at: p.at, note: p.note, photos: await sign('garage-updates', p.photos ?? []) })));
+    raw.estimates = es.data ?? [];
+    // The number: only for an open assignment, and only after the view is logged (the database also refuses a closed lead, a switched-off access and more than 40 views in 10 minutes).
+    let contact = false, limited = false;
+    if (isOpen(a.status)) {
+      contact = (await rpc('garage_contact_view', { p_access: accessId, p_assignment: a.id })) === true;
+      limited = !contact;
+      if (contact) { const { data: ph } = await db.from('leads').select('phone').eq('id', a.lead_id).maybeSingle(); (raw.lead as any).phone = (ph as any)?.phone ?? null; }
+    }
+    return json(req, { ok: true, job: { ...garageJobDetail(raw, contact), contact_limited: limited } });
+  }
+
+  if (action === 'photo_upload_url') {
+    const v = cleanUpload(b);
+    if (!v.ok) return json(req, { error: v.error }, 400);
+    const { data: a } = await mine(jobId).maybeSingle();
+    if (!a || !isOpen(a.status)) return json(req, { error: 'This job is not available.' }, 404);
+    const { count } = await db.from('audit_log').select('id', { count: 'exact', head: true }).eq('action', 'garage_upload').eq('details->>access', accessId).gte('created_at', ago(10));
+    if ((count ?? 0) >= 60) return json(req, { error: 'Too many photos. Wait a few minutes.' }, 429);
+    await db.from('audit_log').insert({ action: 'garage_upload', details: { access: accessId, n: v.value.length } });
+    const uploads: { path: string; url: string }[] = [];
+    for (const ext of v.value) {
+      const path = photoPath(garageId, a.id, crypto.randomUUID(), ext);
+      const { data, error } = await db.storage.from('garage-updates').createSignedUploadUrl(path);
+      if (error || !data) { console.error('garage-app upload url'); return json(req, { error: BAD }, 500); }
+      uploads.push({ path, url: data.signedUrl });
+    }
+    return json(req, { ok: true, uploads });
+  }
+
+  if (action === 'progress') {
+    const event = String(b?.event ?? '');
+    if (!EVENTS.includes(event)) return json(req, { error: 'Choose a valid update.' }, 400);
+    const photos = Array.isArray(b?.photos) ? b.photos.map((p: unknown) => String(p)) : [];
+    if (!photos.every((p: string) => photoPathOk(p, garageId, jobId))) return json(req, { error: 'A photo is not valid. Take it again.' }, 400);
+    const r = await rpc('garage_progress_set', { p_access: accessId, p_assignment: jobId, p_event: event, p_photos: photos, p_note: b?.note ? String(b.note).slice(0, 300) : null });
+    if (!r) return json(req, { error: BAD }, 500);
+    if (!r.ok) return json(req, { error: r.error, blocked: r.blocked ?? null }, r.blocked ? 409 : 400);
+    if (event === 'ready' && !r.already) await notifyTeamGarage(db, r.lead_id, 'ready', 1, garageName);
+    return json(req, { ok: true, status: r.status, already: !!r.already });
+  }
+
+  if (action === 'estimate_save' || action === 'estimate_submit') {
+    const v = cleanEstimate(b);
+    if (!v.ok) return json(req, { error: v.error }, 400);
+    const submit = action === 'estimate_submit';
+    const r = await rpc('garage_estimate_save', { p_access: accessId, p_assignment: jobId, p_lines: v.value.lines, p_notes: v.value.notes, p_hours: v.value.hours, p_day: v.value.day, p_submit: submit });
+    if (!r) return json(req, { error: BAD }, 500);
+    if (!r.ok) return json(req, { error: r.error }, 400);
+    if (submit) await notifyTeamGarage(db, r.lead_id, 'estimate', Number(r.n), garageName, Number(r.total));
+    return json(req, { ok: true, submitted: submit, subtotal: r.subtotal, gst: r.gst, total: r.total });
+  }
+  return json(req, { error: 'Unknown action' }, 400);
+});
