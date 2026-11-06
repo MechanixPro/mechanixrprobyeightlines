@@ -84,12 +84,14 @@ const SHOTS = [
   crew('leadsheet', 'mine', { step: `document.querySelector('.lead-card[data-id="lead-5"] [data-act="open"]').click()`, after: '#sheetPanel .flow-card', noFull: true }),
   crew('myday-scrolled', 'mine', { scroll: 420, only390: true }),
   crew('myday-empty', 'mine', { scenario: 'empty' }), crew('callnow-empty', 'callnow', { scenario: 'empty' }), crew('leads-empty', 'leads', { scenario: 'empty' }), crew('dispatch-empty', 'dispatch', { scenario: 'empty' }), crew('issues-empty', 'issues', { scenario: 'empty' }), crew('dashboard-empty', 'dashboard', { scenario: 'empty' }),
-  crew('dispatch-loading', 'dispatch', { scenario: 'loading', wait: '#view .muted, #view .mx-skeleton', hold: 300 }), crew('issues-loading', 'issues', { scenario: 'loading', wait: '#view .muted, #view .mx-skeleton', hold: 300 }),
+  crew('dispatch-loading', 'dispatch', { scenario: 'loading', wait: '#view .skel, #view .mx-skeleton', hold: 300 }), crew('issues-loading', 'issues', { scenario: 'loading', wait: '#view .skel, #view .mx-skeleton', hold: 300 }),
   crew('dispatch-error', 'dispatch', { scenario: 'error' }), crew('dashboard-error', 'dashboard', { scenario: 'error' }),
+  crew('leadsheet-card', 'mine', { step: `document.querySelector('.lead-card[data-id="lead-5"] [data-act="open"]').click()`, after: '#sheetPanel .flow-card', reveal: '#sheetPanel .flow-card', noFull: true }),
+  crew('leadsheet-card-flowerror', 'mine', { fail: ['crm_confirmation', 'crm_quote_get'], step: `document.querySelector('.lead-card[data-id="lead-5"] [data-act="open"]').click()`, after: '#sheetPanel .flow-card', reveal: '#sheetPanel .flow-card', noFull: true }),
   crew('leadsheet-flowerror', 'mine', { fail: ['crm_confirmation', 'crm_quote_get'], step: `document.querySelector('.lead-card[data-id="lead-5"] [data-act="open"]').click()`, after: '#sheetPanel .flow-card', noFull: true }),
   adm('dashboard', null), adm('bookings', 'leads'), adm('dispatch', 'dispatch'), adm('issues', 'issues'), adm('money-sales', 'sales'), adm('money-prices', 'prices'),
   adm('bookings-empty', 'leads', { scenario: 'empty' }), adm('dispatch-empty', 'dispatch', { scenario: 'empty' }), adm('issues-empty', 'issues', { scenario: 'empty' }),
-  adm('boot-error', null, { fail: ['ledger_entries'], wait: '#login:not([hidden]), #view, #app', hold: 900 }), adm('boot-loading', null, { hang: ['leads'], wait: '#login, #view', hold: 700 }),
+  adm('boot-error', null, { fail: ['leads'], wait: '#view .load-err, #view .mx-error', hold: 500 }), adm('boot-partial', null, { fail: ['ledger_entries'], hold: 300 }), adm('boot-loading', null, { hang: ['leads'], wait: '#view .skel, #view .mx-skeleton', hold: 400 }),
   adm('dispatch-error', 'dispatch', { fail: ['crm_dispatch_list'] }),
 ];
 const SIZES = [{ w: 390, h: 844, dpr: 2, mobile: true }, { w: 1280, h: 800, dpr: 1, mobile: false }];
@@ -111,6 +113,7 @@ for (const s of SHOTS) {
     if (s.step) {
       try { await ev(s.step); } catch (e) { log.push({ shot: current, type: 'step-failed', text: e.message.slice(0, 200) }); }
       if (s.after) { let got = false; for (let i = 0; i < 40 && !got; i++) { await sleep(150); got = await ev(`!!document.querySelector(${JSON.stringify(s.after)})`).catch(() => false); } if (!got) ok = false; }
+      if (s.reveal) await ev(`(document.querySelector(${JSON.stringify(s.reveal)})||document.body).scrollIntoView({block:'start'})`).catch(() => {});
       await sleep(450);
     }
     if (s.hold) await sleep(s.hold);

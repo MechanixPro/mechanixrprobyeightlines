@@ -37,10 +37,11 @@ export function createFlow(deps) {
 
   /* ----- what the card needs, fetched in one go. Each part may fail on its own (an older database) without breaking the sheet. ----- */
   async function load(leadId) {
-    const safe = (p) => p.then((x) => x, () => null);
-    const [conf, notes, quote, updates, seen] = await Promise.all([safe(rpc('crm_confirmation', { p_lead: leadId })), safe(rpc('crm_notifications', { p_lead: leadId })), safe(rpc('crm_quote_get', { p_lead: leadId })),
-      safe(rpc('crm_booking_updates', { p_lead: leadId })), safe(rpc('crm_tech_location', { p_lead: leadId }))]);
-    return { conf, notes: notes || [], quote, updates, seen };
+    // A part that fails is NOT shown as "none yet": its name goes into `failed`, and the card says so with a Retry button.
+    const failed = [], safe = (name, p) => p.then((x) => x, () => { failed.push(name); return null; });
+    const [conf, notes, quote, updates, seen] = await Promise.all([safe('payment status', rpc('crm_confirmation', { p_lead: leadId })), safe('messages', rpc('crm_notifications', { p_lead: leadId })), safe('quote', rpc('crm_quote_get', { p_lead: leadId })),
+      safe('customer details', rpc('crm_booking_updates', { p_lead: leadId })), safe('mechanic location', rpc('crm_tech_location', { p_lead: leadId }))]);
+    return { conf, notes: notes || [], quote, updates, seen, failed };
   }
   /** Fold the confirmation fields into the lead the step bar reads. */
   const withFlow = (lead, flow) => (flow && flow.conf ? { ...lead, confirm_fee: flow.conf.fee, confirm_paid_at: flow.conf.paid ? (flow.conf.paid_at || 'paid') : null, visit_stage: flow.conf.stage, quote_state: flow.conf.quote ? flow.conf.quote.status : null } : lead);
@@ -56,13 +57,14 @@ export function createFlow(deps) {
     if (c && c.review) bt.push('<span class="flow-chip warn" title="Engine size was not clear, so the fee needs a check">Fee needs a check</span>');
     if (sub) bt.push(`<span class="flow-chip">${esc(sub.label)}</span>`);
     let h = `<section class="flow-card" aria-label="Paid confirmation"><h3>Paid confirmation ${bt.join(' ')}</h3>`;
+    if (flow && flow.failed && flow.failed.length) h += `<p class="flow-warn" role="alert" data-flow-failed>Could not load: ${esc(flow.failed.join(', '))}. What you see may be incomplete. <button class="flow-btn flow-sm" type="button" data-flow="reloadFlow">Retry</button></p>`;
     if (open && (can('send_payment_link') || can('assign_leads'))) {
       h += `<div class="flow-row"><button class="flow-btn flow-primary" type="button" data-flow="payLink">${confirmPending(l) ? 'Resend payment link' : 'Send payment link'}</button></div>`;
       h += `<details class="flow-script" open><summary>Call script</summary><p>${esc(callScript(amount ?? '49 to 99'))}</p><button class="flow-btn flow-ghost" type="button" data-flow="copyScript" data-amount="${esc(amount ?? '')}">Copy script</button></details>`;
       if (c && c.link_sent_at) h += `<p class="flow-muted">Link sent ${esc(when(c.link_sent_at))}. If it is unpaid after ${esc(c.nudge_minutes)} minutes the team is reminded.</p>`;
     }
     if (confirmPaid(l)) {
-      h += `<p class="flow-muted">Paid ${esc(when(c && c.paid_at))}. Door code: <b>${esc(DOOR[c && c.door] || '')}</b>${c && c.stage ? ' · Visit: <b>' + esc(STAGE[c.stage] || c.stage) + '</b>' : ''}</p>`;
+      if (c) h += `<p class="flow-muted">Paid ${esc(when(c && c.paid_at))}. Door code: <b>${esc(DOOR[c && c.door] || '')}</b>${c && c.stage ? ' · Visit: <b>' + esc(STAGE[c.stage] || c.stage) + '</b>' : ''}</p>`;
       const row = [];
       if (can('assign_leads') || can('manage_technicians')) row.push(`<button class="flow-btn" type="button" data-flow="assign">${l.mechanic_name ? 'Reassign mechanic' : 'Assign mechanic'}</button>`);
       if ((can('assign_leads') || can('manage_technicians')) && l.mechanic_name) row.push('<button class="flow-btn" type="button" data-flow="jobLink">Job link for the mechanic</button>');
@@ -128,6 +130,7 @@ export function createFlow(deps) {
           f.querySelector('#fl-copy').addEventListener('click', () => copy(r.whatsapp_text)); f.querySelector('button[type=submit]').remove(); deps.reload();
         } });
     },
+    reloadFlow() { deps.reload(); },
     copyScript(lead, flow, btn) { copy(callScript(btn.dataset.amount || '49 to 99')); },
     async assign(lead) {
       const list = await (deps.mechanics ? deps.mechanics() : rpc('crm_mechanic_picker'));

@@ -138,3 +138,11 @@ details.board{background:var(--card);border:1px solid var(--line);border-radius:
 @media(max-width:640px){.cq-row{grid-template-columns:1fr}.cq-act{justify-content:flex-start}}
 /* Conversion view */
 .conv-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+
+/* Step 1: header and tab bar no longer both stick at top 0; loading skeleton; retry box */
+@media(max-width:699px){.top{position:static}}
+@media(min-width:700px){.tabs{top:var(--top-h,0px)}}
+.skel{display:grid;gap:12px;padding:20px 0}.skel i{display:block;height:72px;border-radius:16px;background:linear-gradient(90deg,#E3E6EC,#F3F5F8,#E3E6EC);background-size:200% 100%;animation:skel 1.2s linear infinite}.skel i:first-of-type{height:36px;width:40%}.skel .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@keyframes skel{to{background-position:-200% 0}}
+.load-err{max-width:560px}.load-err .btn{margin-top:10px}
+#app .tabs{background:#FAFAF8!important;box-shadow:0 1px 0 var(--line)}   /* minimal.css made the bar transparent, so content showed through it while it sticks */
