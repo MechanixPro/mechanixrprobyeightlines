@@ -3,7 +3,7 @@
 -- Idempotent and safe to dry-run (add column if not exists, create table if not exists, create or replace, on conflict).
 -- Roll back (as the database owner):
 --   drop function if exists public.crm_wa_inbox(text, text, int), public.crm_wa_thread(text, int), public.crm_wa_claim(text), public.crm_wa_close(text, text), public.crm_wa_reopen(text), public.crm_wa_note(text, text),
---     public.crm_wa_mark_read(text), public.crm_wa_ai(text, boolean), public.crm_wa_send_context(text), public.admin_wa_overview(timestamptz, timestamptz, int), public.admin_wa_list(uuid, int, timestamptz, timestamptz, int),
+--     public.crm_wa_mark_read(text), public.crm_wa_ai(text, boolean), public.crm_wa_send_context(text), public.crm_wa_media_ok(text), public.admin_wa_overview(timestamptz, timestamptz, int), public.admin_wa_list(uuid, int, timestamptz, timestamptz, int),
 --     public.wa_record_inbound(text, uuid, text, text, jsonb, text, text, timestamptz), public.wa_record_outbound(text, uuid, text, text, text, jsonb, text, uuid, text), public.wa_apply_status(text, text, text), public.wa_need(), public.wa_rank(text);
 --   drop table if exists public.wa_reads, public.wa_notes, public.wa_conversations;
 --   (the new messages columns can stay: they are empty or defaulted for old rows. alter table public.messages drop column ... if you want them gone.)
@@ -229,6 +229,16 @@ begin
   return jsonb_build_object('ok', true, 'ai_auto', p_on);
 end; $$;
 -- What wa-send needs, checked as the signed-in person: the window, the opt-out, and whether a colleague holds the conversation.
+-- Media Load button: the media id must belong to a message in a conversation this person may open. Returns the mime and phone, nothing else.
+create or replace function public.crm_wa_media_ok(p_media_id text) returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare m public.messages;
+begin
+  perform public.wa_need();
+  select * into m from public.messages where channel = 'cloud' and media ->> 'id' = p_media_id order by created_at desc limit 1;
+  if not found then raise exception 'file not found' using errcode = 'P0002'; end if;
+  return jsonb_build_object('phone', m.phone, 'mime', m.media ->> 'mime', 'type', m.media ->> 'type');
+end; $$;
+
 create or replace function public.crm_wa_send_context(p_phone text) returns jsonb language plpgsql stable security definer set search_path = public as $$
 declare ph text := right(regexp_replace(coalesce(p_phone, ''), '\D', '', 'g'), 10); c public.wa_conversations; l public.leads; boss boolean;
 begin
@@ -287,6 +297,6 @@ begin
 end; $$;
 
 revoke all on function public.crm_wa_inbox(text, text, int), public.crm_wa_thread(text, int), public.crm_wa_claim(text), public.crm_wa_close(text, text), public.crm_wa_reopen(text), public.crm_wa_note(text, text), public.crm_wa_mark_read(text),
-  public.crm_wa_ai(text, boolean), public.crm_wa_send_context(text), public.admin_wa_overview(timestamptz, timestamptz, int), public.admin_wa_list(uuid, int, timestamptz, timestamptz, int) from public, anon;
+  public.crm_wa_ai(text, boolean), public.crm_wa_send_context(text), public.crm_wa_media_ok(text), public.admin_wa_overview(timestamptz, timestamptz, int), public.admin_wa_list(uuid, int, timestamptz, timestamptz, int) from public, anon;
 grant execute on function public.crm_wa_inbox(text, text, int), public.crm_wa_thread(text, int), public.crm_wa_claim(text), public.crm_wa_close(text, text), public.crm_wa_reopen(text), public.crm_wa_note(text, text), public.crm_wa_mark_read(text),
-  public.crm_wa_ai(text, boolean), public.crm_wa_send_context(text), public.admin_wa_overview(timestamptz, timestamptz, int), public.admin_wa_list(uuid, int, timestamptz, timestamptz, int) to authenticated;
+  public.crm_wa_ai(text, boolean), public.crm_wa_send_context(text), public.crm_wa_media_ok(text), public.admin_wa_overview(timestamptz, timestamptz, int), public.admin_wa_list(uuid, int, timestamptz, timestamptz, int) to authenticated;

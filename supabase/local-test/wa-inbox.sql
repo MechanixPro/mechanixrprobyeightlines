@@ -51,6 +51,7 @@ reset role;
 -- Crew: an agent reads, claims and notes; a person with no role is refused; no money data
 set role authenticated; select pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
 select pg_temp.fails($$select public.crm_wa_inbox('all')$$, 'access', 'no role, no inbox');
+select pg_temp.fails($$select public.crm_wa_media_ok('MEDIA1')$$, 'access', 'no role, no media');
 select pg_temp.as_user('00000000-0000-0000-0000-0000000000c4');
 select pg_temp.ok((public.crm_wa_inbox('all') -> 'rows' -> 0 ->> 'paid')::boolean = true and (public.crm_wa_inbox('mine') -> 'rows') = '[]'::jsonb, 'agent sees the conversation with a paid flag; not mine');
 select pg_temp.ok((public.crm_wa_inbox('all', '980000') -> 'rows' -> 0 ->> 'phone') = '9800000001' and public.crm_wa_inbox('all', 'zzz-no-match') -> 'rows' = '[]'::jsonb, 'search by phone digits and text');
@@ -59,6 +60,8 @@ select pg_temp.ok(not ((public.crm_wa_thread('+91 98000 00001') -> 'lead')::json
 select pg_temp.ok(jsonb_array_length(public.crm_wa_thread('9800000001') -> 'items') = 6, 'thread holds old AiSensy and Cloud rows');
 select pg_temp.fails($$select public.crm_wa_claim('9800000001')$$, 'already taken', 'a colleague cannot steal a claimed conversation');
 select pg_temp.fails($$select public.crm_wa_send_context('9800000001')$$, 'claimed by', 'a colleague cannot reply on a claimed conversation');
+select pg_temp.fails($$select public.crm_wa_media_ok('NO_SUCH_MEDIA')$$, 'not found', 'unknown media id is refused');
+select pg_temp.ok((public.crm_wa_media_ok('MEDIA1') ->> 'mime') = 'image/jpeg' and (public.crm_wa_media_ok('MEDIA1') ->> 'phone') = '9800000001', 'media check returns mime and phone only');
 select public.crm_wa_mark_read('9800000001');
 select pg_temp.ok((public.crm_wa_inbox('unread') -> 'counts' ->> 'unread')::int = 0, 'mark read clears my unread');
 select public.crm_wa_note('9800000001', 'internal note');

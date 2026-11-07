@@ -3,6 +3,10 @@
 verify_jwt = false
 [functions.whatsapp-webhook]
 verify_jwt = false
+[functions.wa-send]
+verify_jwt = false
+[functions.wa-media]
+verify_jwt = false
 [functions.razorpay-webhook]
 verify_jwt = false
 [functions.follow-up]
