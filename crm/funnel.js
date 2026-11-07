@@ -104,15 +104,35 @@ export function timingOf(lead, targets = DEFAULT_TARGETS, now = Date.now()) {
 export function routeInfo(lead, { targets = DEFAULT_TARGETS, now = Date.now(), next = null, ownerName = '' } = {}) {
   const l = lead && typeof lead === 'object' ? lead : {};
   const owner = String(ownerName || l.owner_name || l.crm_owner_name || '').trim() || (l.crm_owner || l.owner_id ? 'Assigned' : 'Unassigned');
-  return { owner, next: next && next.label ? { key: next.key || '', label: String(next.label) } : null, timing: timingOf(l, targets, now), ref: String(l.ref || '') };
+  return { owner, next: next && next.label ? { key: next.key || '', label: String(next.label) } : null, timing: timingOf(l, targets, now), ref: String(l.ref || ''), id: l.id || '' };
 }
 /** The small chip: "Asha · Next: Send quote · Late 2 h". Late shows red, on time shows plain. Returns '' when there is nothing to say. */
 export function routeChipHtml(info, { action = 'routeNext' } = {}) {
   if (!info) return '';
   const late = info.timing && info.timing.late, bits = [chip(info.owner, info.owner === 'Unassigned' ? 'warn' : '')];
-  if (info.next) bits.push(`<button class="mx-chip mx-chip--info route-next" type="button" data-act="${esc(action)}" data-step="${esc(info.next.key)}">Next: ${esc(info.next.label)}</button>`);
+  if (info.next) bits.push(`<button class="mx-chip mx-chip--info route-next" type="button" data-id="${esc(info.id)}" data-act="${esc(action)}" data-step="${esc(info.next.key)}">Next: ${esc(info.next.label)}</button>`);
   if (info.timing && info.timing.label && (late || info.timing.kind)) bits.push(chip(info.timing.label, late ? 'bad' : '', late ? 'route-late' : ''));
   return `<span class="route-chip" data-late="${late ? '1' : '0'}">${bits.join(' ')}</span>`;
+}
+
+/** Fetches the targets and the Crew names once, then answers for every card without another call. `onReady` redraws the screen once the first answer arrives. */
+export function createRouting({ rpc, onReady } = {}) {
+  let tg = null, names = new Map(), started = false;
+  const start = () => {
+    if (started || !rpc) return; started = true;
+    Promise.all([rpc('funnel_targets', {}).catch(() => null), rpc('crm_funnel_options', {}).catch(() => null)]).then(([a, b]) => {
+      if (a && typeof a === 'object') tg = { ...DEFAULT_TARGETS, ...a };
+      if (b && Array.isArray(b.owners)) names = new Map(b.owners.filter((o) => o && o.id).map((o) => [o.id, String(o.name || '')]));
+      if (onReady) onReady();
+    });
+  };
+  const targets = () => tg || DEFAULT_TARGETS, ownerName = (id) => (id && names.get(id)) || '';
+  /** The chip for one lead: the owner (the technician once a mechanic is assigned to a booked job), the late flag, and the Next step button when `next` is given. */
+  const chip = (lead, next = null, now = Date.now()) => {
+    start(); const l = lead || {}, booked = ['paid', 'scheduled'].includes(l.status) && l.mechanic_name;
+    return routeChipHtml(routeInfo(l, { targets: targets(), now, next, ownerName: booked ? l.mechanic_name : l.owner_name || ownerName(l.crm_owner) }));
+  };
+  return { start, targets, ownerName, chip };
 }
 
 /* ---------- the screen ---------- */

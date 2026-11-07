@@ -23,7 +23,7 @@ import { adsConversions } from './ads-export.js';
 import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge } from './booking-steps.js';
 import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
-import { createFunnelDesk } from "./funnel.js";   // Conversion screen
+import { createFunnelDesk, createRouting } from "./funnel.js";   // Conversion screen
 import { createQuoteDoc } from "./quote-doc.js";   // numbered quote page
 import { createMechanicDesk } from './mechanic-desk.js';
 import { STATUS, skeleton, errorState, labelTables } from './ds.js';
@@ -697,6 +697,7 @@ const garageDesk = createGarageDesk({ rpc: adminRpc, toast, can: () => isOwner()
 // The Mechanic app card (on a mechanic's sheet) is the same code as in Crew: admin/mechanic-desk.js. Owner only here.
 // Conversion screen (funnel): admin/funnel.js, counts come from the crm_funnel database function.
 const funnelDesk = createFunnelDesk({ rpc: adminRpc, openLead: (id) => { S.tab = "leads"; render(); openLead(id); }, download: (name, text) => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); } });
+const routing = createRouting({ rpc: adminRpc, onReady: () => { if (S.tab === "board") render(); } });   // owner, Next step and late chip on the Today board
 const conversion = () => `<div class="view-head"><h2>Conversion</h2><p class="muted">Lead to quote to booking to visit to invoice. Counts and median times, by period, source, campaign, Crew member and vehicle.</p></div><div id="fnRoot"></div>`;
 const mechanicDesk = createMechanicDesk({ rpc: adminRpc, toast, can: () => isOwner(), dialog: (o) => flow.dialog(o) });
 const flow = createFlow({
@@ -981,6 +982,7 @@ const ACT = {
     await audit('lead_updated', { ref: l.ref, status: upd.status, lost_reason: toLost ? upd.crm_lost_reason : undefined, lost_note: toLost && lostNote ? lostNote : undefined, mechanic_id: upd.mechanic_id, service_changed: !!svc, amount_due: upd.amount_due });
     toast(svc && svc.lead.est_total != null ? 'Saved. New estimate ' + rupee(svc.lead.est_total) : 'Saved'); await Promise.all([loadLeads(), loadPeople()]); if (upd.status === 'completed' && l.status !== 'completed') await autoInvoiceFor(l.id); renderList(); openLead(l.id, true);
   },
+  async routeNext(btn) { const id = btn.getAttribute('data-id'), key = btn.getAttribute('data-step'); await openLead(id); if (key && key !== 'call') await ACT.stepNext({ getAttribute: (k) => (k === 'data-key' ? key : null) }); },   // the chip's Next step runs the lead sheet's own step
   async boardNext(btn) {
     const l = S.leads.find((x) => x.id === btn.getAttribute('data-id')), n = l && nextStep(l.status); if (!n) return;
     const upd = { status: n.to }; if (n.to === 'completed') upd.completed_at = new Date().toISOString();
@@ -1875,6 +1877,7 @@ function boardCard(l) {
   return `<article class="bcard"><div class="bhead"><button class="bref" type="button" data-lead="${l.id}">${esc(bid(l))}</button><span class="pill ${l.status}">${LABEL[l.status]}</span></div>
     ${stepBar(l, true)}<p class="bname"><b>${esc(l.name)}</b> <span class="muted">${esc(svcName(l.service_id))}${l.est_total ? ' · ' + rupee(l.est_total) : ''}</span></p>
     <p class="meta" style="margin:2px 0 8px">${esc([when, l.area, l.pincode].filter(Boolean).join(' · ') || 'No time or place yet')}</p>
+    <p class="bchip" style="margin:0 0 8px">${routing.chip(l, stepAction(l))}</p>
     <label class="tiny muted" for="bm-${l.id}">Mechanic</label>
     <select id="bm-${l.id}" class="bsel" data-board-mech="${l.id}"><option value="">Not assigned</option>${S.mechanics.filter((x) => x.active || x.id === l.mechanic_id).map((x) => `<option value="${x.id}"${x.id === l.mechanic_id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
     <div class="bbtns"><a class="btn btn-wa btn-sm" href="https://wa.me/91${esc(l.phone)}" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a>${n ? `<button class="btn btn-primary btn-sm" type="button" data-act="boardNext" data-id="${l.id}">${n.label}</button>` : ''}<button class="btn btn-ghost btn-sm" type="button" data-lead="${l.id}">Open</button></div></article>`;

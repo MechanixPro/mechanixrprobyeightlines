@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { normalizeFunnel, stageRows, biggestDrop, fmtHours, fmtAge, funnelCsv, timingOf, routeInfo, routeChipHtml, periodDates, createFunnelDesk, STAGES } from '../admin/funnel.js';
+import { normalizeFunnel, stageRows, biggestDrop, fmtHours, fmtAge, funnelCsv, timingOf, routeInfo, routeChipHtml, periodDates, createFunnelDesk, createRouting, STAGES } from '../admin/funnel.js';
 
 const rpcData = { targets: { claim_minutes: 15, quote_hours: 2, valid_days: 3 }, money: false,
   stages: [['lead', 100, null], ['contacted', 80, 0.2], ['quote_sent', 40, 1.5], ['quote_approved', 30, 3], ['paid', 25, 0.5], ['completed', 20, 26], ['invoiced', 18, 5]].map(([key, n, h]) => ({ key, label: key, n, median_hours: h })),
@@ -85,4 +85,21 @@ test('screen: loading, data, empty and error states; filters go to the RPC; CSV 
   root.h.click({ target: { closest: () => ({ getAttribute: (k) => (k === 'data-fn' ? 'csv' : null) }) } }); assert.match(dl[0], /^mechanix-funnel-/); assert.match(dl[1], /^﻿Funnel/);
   mode = 'empty'; await desk.reload(); assert.match(root.innerHTML, /No leads in this period/);
   mode = 'err'; await desk.reload(); assert.match(root.innerHTML, /role="alert"/); assert.match(root.innerHTML, /boom/); assert.match(root.innerHTML, /Try again/);
+});
+
+test('routing cache: targets and Crew names load once; the chip shows owner, late and the Next step button; failures fall back to the defaults', async () => {
+  const calls = []; let ready = 0;
+  const r = createRouting({ rpc: async (n) => { calls.push(n); if (n === 'funnel_targets') return { claim_minutes: 30, quote_hours: 4, valid_days: 3 }; return { owners: [{ id: 'u1', name: 'Asha' }, null, {}] }; }, onReady: () => { ready++; } });
+  assert.match(r.chip({ id: 'l1', status: 'new', created_at: ago(20) }, { key: 'call', label: 'Call now' }, NOW), /Unassigned[\s\S]*Next: Call now[\s\S]*Unclaimed 20 min/, 'default 15 minute target before the settings arrive');
+  r.chip({ status: 'new' }); await new Promise((x) => setTimeout(x, 5));
+  assert.deepEqual(calls.sort(), ['crm_funnel_options', 'funnel_targets'], 'asked once'); assert.equal(ready, 1);
+  assert.equal(r.targets().claim_minutes, 30); assert.equal(r.ownerName('u1'), 'Asha'); assert.equal(r.ownerName('zz'), '');
+  const h = r.chip({ id: 'l2', status: 'new', created_at: ago(20), crm_owner: 'u1', crm_first_contact_at: ago(10) }, null, NOW); assert.match(h, /Asha/); assert.match(h, /data-late="0"/);
+  assert.match(r.chip({ status: 'paid', mechanic_name: 'Ravi K', crm_owner: 'u1' }, null, NOW), /Ravi K/, 'a booked job is owned by its technician');
+  const bad = createRouting({ rpc: async () => { throw new Error('down'); } }); assert.doesNotThrow(() => bad.chip(null)); await new Promise((x) => setTimeout(x, 5)); assert.equal(bad.targets().quote_hours, 2);
+  assert.doesNotThrow(() => createRouting().chip({}));
+});
+test('hooks: the Today board card and the Crew lead sheet show the chip, and the Next step uses the existing nextAction', () => {
+  const a = fs.readFileSync('admin/admin.js', 'utf8'), c = fs.readFileSync('crm/crm.js', 'utf8');
+  assert.match(a, /routing\.chip\(l, stepAction\(l\)\)/); assert.match(a, /async routeNext\(btn\)/); assert.match(a, /ACT\.stepNext/); assert.match(c, /routing\.chip\(l\)/);
 });
