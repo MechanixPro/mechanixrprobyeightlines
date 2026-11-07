@@ -29,6 +29,7 @@ import * as garageapp from './pages/garageapp.js';
 import { skeleton, errorState, labelTables, initShell, initials } from './ds.js';
 import * as dispatch from './pages/dispatch.js';
 import * as issues from './pages/issues.js';
+import * as dupes from './pages/dupes.js';
 import { findByPin } from './pages/pinsearch.js';
 
 // A failed action that nobody caught must still tell the person, never fail silently.
@@ -53,6 +54,7 @@ const SCREENS = [
   { id: 'mine', title: 'My day', page: 'leads' },
   { id: 'dispatch', title: 'Dispatch', page: 'leads', tech: true, mod: dispatch },
   { id: 'issues', title: 'Issues', page: 'leads', mod: issues },
+  { id: 'dupes', title: 'Duplicates', page: 'leads', action: 'assign_leads', mod: dupes },
   { id: 'unassigned', title: 'Unassigned', page: 'leads', action: 'take_leads' },
   { id: 'leads', title: 'Leads', page: 'leads', mod: leads },
   { id: 'web', title: 'Web leads', page: 'leads', mod: webleads },

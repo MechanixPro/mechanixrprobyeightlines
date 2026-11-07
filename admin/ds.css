@@ -434,3 +434,5 @@ h1 .count{vertical-align:middle;margin-left:var(--s2)}
 .dp-undo{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;justify-content:space-between;margin-bottom:var(--s3)}
 .dp-more{width:100%}
 .dp-confirm p{margin:0 0 var(--s2);overflow-wrap:anywhere}.dp-confirm ul{margin:0 0 var(--s2);padding-left:var(--s4)}
+.dp-det{margin:0 0 var(--s4);border:var(--bw) solid var(--border);border-radius:var(--radius);background:var(--surface)}
+.dp-det>summary{padding:var(--s3) var(--s4);font-weight:800;cursor:pointer;min-height:var(--tap)}
