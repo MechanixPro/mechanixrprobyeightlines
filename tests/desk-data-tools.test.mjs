@@ -67,21 +67,16 @@ test('garage operating state, mechanic performance and the roster are wired and 
   assert.ok(t.includes('crm_roster_set') && t.includes('Duty roster')); assert.ok(d.includes('crm_on_duty') && d.includes('On duty today'));
 });
 
-test('the desk and the admin load the minimal theme and the builds ship it', () => {
-  assert.match(rd('crm/index.html'), /assets\/css\/minimal\.css/); assert.match(rd('admin/index.html'), /assets\/css\/minimal\.css/);
-  assert.match(rd('scripts/build_crm.sh'), /minimal\.css/); assert.match(rd('scripts/build_admin.sh'), /minimal\.css/);
-  assert.match(rd('assets/css/minimal.css'), /@media print/);
+// Phase 1 (design system): Crew and Admin no longer load the site layers minimal.css, theme.css, maxi.css (and Admin no longer loads the public style.css).
+// ds.css is the one stylesheet that defines colours and components, so the bento gradients, glass bars and !important patches are gone. The public site still uses those files.
+test('the desk and the admin load ds.css as the single design layer, not the site theme layers', () => {
+  for (const f of ['crm/index.html', 'admin/index.html']) for (const old of ['minimal.css', 'theme.css', 'maxi.css', 'style.css']) assert.doesNotMatch(rd(f), new RegExp('assets/css/' + old.replace('.', '\\.')), f + ' still loads ' + old);
+  assert.match(rd('crm/index.html'), /\/crm\/ds\.css/); assert.match(rd('admin/index.html'), /\/admin\/ds\.css/);
+  assert.match(rd('crm/ds.css'), /@media print/);
 });
 
-test('desk, admin and site load the maximalist bento layers and the builds ship them', () => {
-  assert.match(rd('crm/index.html'), /assets\/css\/maxi\.css/); assert.match(rd('admin/index.html'), /assets\/css\/maxi\.css/);
-  assert.match(rd('scripts/build_crm.sh'), /maxi\.css/); assert.match(rd('scripts/build_admin.sh'), /maxi\.css/);
-  assert.match(rd('assets/css/maxi.css'), /@media print/);
-  assert.match(rd('scripts/build_pages.py'), /assets\/css\/site\.css/, 'the public site loads its own layer, site.css, in place of the bento and theme overrides');
-});
-
-test('desk and admin share one theme file (the public site now has site.css instead)', () => {
-  for (const f of ['crm/index.html', 'admin/index.html', 'scripts/build_crm.sh', 'scripts/build_admin.sh']) assert.match(rd(f), /theme\.css/);
+test('the public site loads its own layer, site.css, in place of the bento and theme overrides', () => {
+  assert.match(rd('scripts/build_pages.py'), /assets\/css\/site\.css/);
 });
 
 test('the desk date range has an All time option that reads back as All time', async () => {

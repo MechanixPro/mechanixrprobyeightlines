@@ -37,24 +37,31 @@ test('the build scripts ship ds.css (it sits inside the copied crm/ and admin/ f
 
 /* ---------- colour ---------- */
 const css = read('crm/ds.css');
-const tok = (n) => { const m = css.match(new RegExp('--mx-' + n + ':(#[0-9A-Fa-f]{6})')); assert.ok(m, '--mx-' + n + ' missing'); return m[1]; };
+// Phase 1: the canonical tokens are now the 22 role names (--navy, --text, --accent ...) plus --info; --mx-* are aliases. Tints (*-bg) are translucent, so they are blended over white for the contrast check.
+const tokRaw = (n) => { const m = css.match(new RegExp('--' + n + ':(#[0-9A-Fa-f]{6}|rgba\\([^)]*\\))[;}]')); assert.ok(m, '--' + n + ' missing'); return m[1]; };
+const tok = (n) => { const v = tokRaw(n); if (v[0] === '#') return v; const [r, g, b, a] = v.match(/[\d.]+/g).map(Number); const mix = (c) => Math.round(c * a + 255 * (1 - a)).toString(16).padStart(2, '0'); return ('#' + mix(r) + mix(g) + mix(b)).toUpperCase(); };
 const lum = (hex) => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
 const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
 
 test('brand tokens have the agreed values', () => {
-  const want = { navy: '#14295A', ink: '#0B1220', ember: '#F2801F', 'on-ember': '#1A0E03', paper: '#FAFAF8', card: '#FFFFFF', line: '#E3E6EC', muted: '#556075', good: '#157A3E', 'good-bg': '#E6F5EC', bad: '#B3261E', 'bad-bg': '#FCEBEA', warn: '#9A4B00', 'warn-bg': '#FFF1E2', info: '#1D4ED8', 'info-bg': '#DBEAFE', wa: '#25D366', 'on-wa': '#063B1C' };
-  for (const [k, v] of Object.entries(want)) assert.equal(tok(k).toUpperCase(), v, '--mx-' + k);
+  const want = { navy: '#14295A', text: '#0B1220', accent: '#F2801F', 'on-accent': '#1A0E03', bg: '#FAFAF8', surface: '#FFFFFF', border: '#E3E6EC', text3: '#556075', good: '#157A3E', bad: '#B3261E', 'accent-text': '#9A4B00', info: '#1D4ED8', wa: '#25D366', 'on-wa': '#063B1C' };
+  for (const [k, v] of Object.entries(want)) assert.equal(tok(k).toUpperCase(), v, '--' + k);
+});
+
+test('the 22 colour roles, the six type sizes, the spacing and radius scales exist', () => {
+  for (const r of ['bg', 'surface', 'surface2', 'surface3', 'border', 'border2', 'text', 'text2', 'text3', 'accent', 'accent-bg', 'accent-text', 'good', 'good-bg', 'good-text', 'warn', 'warn-bg', 'warn-text', 'bad', 'bad-bg', 'bad-text']) tokRaw(r);
+  for (const [k, v] of Object.entries({ 'fs-1': '10px', 'fs-2': '12px', 'fs-3': '14px', 'fs-4': '16px', 'fs-5': '20px', 'fs-6': '24px', s1: '4px', s2: '8px', s3: '12px', s4: '16px', s5: '24px', radius: '10px', 'radius-field': '8px', 'radius-pill': '999px', 'radius-sheet': '24px', tap: '44px' })) assert.match(css, new RegExp('--' + k + ':' + v + '[;}]'), '--' + k);
 });
 
 test('every text and background pair meets 4.5:1', () => {
-  const pairs = [['ink', 'paper'], ['ink', 'card'], ['muted', 'paper'], ['muted', 'card'], ['on-ember', 'ember'], ['card', 'navy'], ['good', 'good-bg'], ['bad', 'bad-bg'], ['warn', 'warn-bg'], ['info', 'info-bg'], ['on-wa', 'wa'], ['bad', 'card'], ['good', 'card'], ['info', 'card'], ['warn', 'card']];
+  const pairs = [['text', 'bg'], ['text', 'surface'], ['text2', 'surface'], ['text3', 'bg'], ['text3', 'surface'], ['text3', 'surface2'], ['on-accent', 'accent'], ['on-navy', 'navy'], ['good-text', 'good-bg'], ['bad-text', 'bad-bg'], ['accent-text', 'accent-bg'], ['warn-text', 'warn-bg'], ['info-text', 'info-bg'], ['on-wa', 'wa'], ['bad-text', 'surface'], ['good-text', 'surface'], ['info-text', 'surface'], ['accent-text', 'surface'], ['on-good', 'good'], ['on-bad', 'bad']];
   for (const [fg, bg] of pairs) { const r = ratio(tok(fg), tok(bg)); assert.ok(r >= 4.5, `${fg} on ${bg} is ${r.toFixed(2)}:1`); }
-  assert.ok(ratio(tok('on-ember'), tok('ember')) >= 7, 'text on ember should be about 7:1');
+  assert.ok(ratio(tok('on-accent'), tok('accent')) >= 7, 'text on the accent should be about 7:1');
 });
 
-test('the legacy variables point at the brand tokens', () => {
-  for (const [legacy, token] of [['bg', 'paper'], ['card', 'card'], ['ink', 'ink'], ['line', 'line'], ['muted', 'muted'], ['navy', 'navy'], ['ember', 'ember'], ['ember-ink', 'on-ember'], ['good', 'good'], ['bad', 'bad']]) {
-    assert.match(css, new RegExp('--' + legacy + ':var\\(--mx-' + token + '\\)'), '--' + legacy);
+test('the old variable names still resolve to the new tokens (alias layer)', () => {
+  for (const [legacy, token] of [['card', 'surface'], ['ink', 'text'], ['line', 'border'], ['muted', 'text3'], ['ember', 'accent'], ['ember-ink', 'on-accent'], ['mx-navy', 'navy'], ['mx-ember', 'accent'], ['mx-paper', 'bg'], ['mx-card', 'surface'], ['mx-line', 'border'], ['mx-ink', 'text'], ['m-ink', 'text']]) {
+    assert.match(css, new RegExp('--' + legacy + ':var\\(--' + token + '\\)'), '--' + legacy);
   }
 });
 

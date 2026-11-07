@@ -52,5 +52,6 @@ test('every page footer credits ziyam.me as the website developer, with a safe e
 });
 
 test('the admin and the CRM also credit ziyam.me', () => {
-  for (const f of ['admin/index.html', 'crm/index.html']) assert.match(read(f), /Developed by <a href="https:\/\/ziyam\.me" target="_blank" rel="noopener"/, f);
+  // Phase 1 (owner-approved): the "Developed by ziyam.me" footer is removed from every desk page, so Crew and Admin must NOT carry it.
+  for (const f of ['admin/index.html', 'crm/index.html']) assert.doesNotMatch(read(f), /Developed by/, f);
 });

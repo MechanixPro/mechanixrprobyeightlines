@@ -37,3 +37,18 @@ export function showToast(message, bad = false, doc = globalThis.document, ms = 
   const t = doc.createElement('div'); t.className = 'toast fade' + (bad ? ' bad' : ''); t.setAttribute('role', 'status'); t.textContent = message;
   doc.body.appendChild(t); setTimeout(() => t.remove(), ms); return t;
 }
+
+/** Phone card twin for wide tables (ds.css .mx-table--cards). Marks every table with 5 or more columns inside root and copies each header cell's text onto its column's cells as data-label.
+ *  Pure markup attributes, no behaviour: on desktop the table looks the same; under 700px ds.css shows each row as a card. Returns how many tables it marked. */
+export function labelTables(root) {
+  if (!root || !root.querySelectorAll) return 0;
+  let n = 0;
+  for (const t of root.querySelectorAll('table:not(.inv-table):not(.gd-lines):not(.mx-table--cards)')) {
+    const hr = t.querySelector('thead tr'); if (!hr) continue;
+    const heads = [...hr.children]; if (heads.length < 5) continue;
+    const labels = heads.map((h) => (h.textContent || '').trim());
+    for (const tr of t.querySelectorAll('tbody tr')) [...tr.children].forEach((td, i) => { if (labels[i] && td.tagName === 'TD') td.setAttribute('data-label', labels[i]); });
+    t.classList.add('mx-table--cards'); n++;
+  }
+  return n;
+}

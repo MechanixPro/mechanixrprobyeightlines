@@ -34,10 +34,11 @@ test('the Admin paid-confirmation card says so when it cannot load, and the Retr
 });
 
 test('a message is never hidden under a dialog', () => {
-  const crm = read('crm/crm.css'), flow = read('crm/flow.css'), adm = read('admin/admin.css');
+  // Phase 1: the toast and dialog rules moved into ds.css.
+  const crm = read('crm/ds.css'), flow = read('crm/ds.css'), adm = read('admin/ds.css');
   const z = (css, sel) => Number((css.match(new RegExp(sel + '\\{[^}]*z-index:(\\d+)')) || [])[1]);
-  assert.ok(z(crm, '\\.toast') > z(flow, '\\.flow-modal'), 'Crew toast sits above flow dialogs');
-  assert.match(adm, /\.toast\{z-index:1100!important\}/);
+  assert.ok(z(crm, '\\.toast,\\.mx-toast') > z(flow, '\\.modal,\\.modal-back,\\.flow-modal'), 'Crew toast sits above flow dialogs');
+  assert.ok(z(adm, '\\.toast,\\.mx-toast') >= 1100, 'Admin toast sits above dialogs');
 });
 
 test('the Admin money pages show an error with Retry instead of a blank page if the money model throws', () => {

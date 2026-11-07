@@ -24,7 +24,7 @@ import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST
 import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
 import { createMechanicDesk } from './mechanic-desk.js';
-import { STATUS, skeleton, errorState } from './ds.js';
+import { STATUS, skeleton, errorState, labelTables } from './ds.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
 const C = window.MXP || {};
@@ -2062,3 +2062,6 @@ async function loadActivity() {
 }
 
 sb.auth.getSession().then(({ data }) => { if (data.session && !recovering) boot(); });
+
+// Phone card twin (design system phase 1): wide tables get data-label attributes so ds.css can show each row as a card under 700px. Attributes only, no behaviour.
+{ let queued = false; new MutationObserver(() => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; labelTables(document.body); }); }).observe(document.body, { childList: true, subtree: true }); }

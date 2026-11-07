@@ -1,43 +1,86 @@
-.admin .nav .wrap{gap:10px}
-.tabs{display:flex;gap:4px;overflow-x:auto;margin-left:12px;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
-.tabs button{border:0;background:transparent;color:var(--ink-2);font:500 15px var(--font);padding:8px 12px;border-radius:980px;cursor:pointer;white-space:nowrap}
-.tabs button[aria-current="page"]{background:var(--ink);color:var(--card)}
+/* Admin LAYOUT only (phase 1). Colours, type sizes, radii, shadows and the look of buttons, fields, chips, cards, tabs, tables, dialogs and notices live in ds.css (loaded last).
+   The invoice block below is a printed document (navy and ember on white by design), not desk UI, so it keeps its own values. */
 #signOut{margin-left:auto}
-.login{max-width:400px;margin:40px auto}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
-.kpi{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:16px 18px}
-.kpi b{display:block;font-size:30px;letter-spacing:-.03em}.kpi span{font-size:14px;color:var(--muted)}
-.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
-.toolbar input,.toolbar select{width:auto;flex:1;min-width:160px}
-.list{background:var(--card);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
-.row{display:grid;grid-template-columns:96px 1fr auto;gap:4px 14px;align-items:center;width:100%;text-align:left;padding:14px 16px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;cursor:pointer}
-.row:hover{background:var(--soft)}.row:last-child{border-bottom:0}
-.row .ref{font-weight:700;font-size:15px}.row .meta{font-size:13px;color:var(--muted)}
-.pill{display:inline-block;padding:3px 10px;border-radius:980px;font-size:12.5px;font-weight:600;background:var(--soft);white-space:nowrap}
-.pill.new{background:#FFE8D1;color:#9A4A00}.pill.payment_sent{background:#E3EDFF;color:#1F4FB8}.pill.paid,.pill.scheduled,.pill.completed{background:#DDF5E4;color:#14692F}.pill.lost{background:#FBE3E0;color:#A3261A}
-.bars .b{display:grid;grid-template-columns:130px 1fr 40px;gap:10px;align-items:center;font-size:14px;margin:8px 0}
-.bars .t{height:10px;border-radius:6px;background:var(--soft);overflow:hidden}.bars .t i{display:block;height:100%;background:var(--ember)}
+.login{max-width:400px;margin:24px auto}
+.toolbar{margin-bottom:12px}
+.list{overflow:hidden}
+.row{display:grid;grid-template-columns:minmax(64px,auto) minmax(0,1fr) auto;gap:4px 12px;align-items:center;width:100%;text-align:left;padding:12px 16px;border-bottom:1px solid var(--border);color:var(--text);font:inherit;cursor:pointer;min-height:56px}
+.row:hover{background:var(--surface2)}.row:last-child{border-bottom:0}
+.row .ref{font-weight:700;font-size:14px;align-self:center}.row .meta{font-size:12px;color:var(--text3)}
+.row .chk{font-size:16px;margin-right:4px}
+.bars .b{display:grid;grid-template-columns:130px 1fr 40px;gap:8px;align-items:center;font-size:14px;margin:8px 0}
+.bars .t i{display:block;height:100%}
 .split2{display:grid;gap:16px}@media(min-width:900px){.split2{grid-template-columns:1fr 1fr}}
-.sheet{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.35);display:flex;justify-content:flex-end}
-.sheet[hidden]{display:none}
-.sheet-panel{width:min(620px,100%);height:100%;overflow:auto;background:var(--bg);padding:20px 20px calc(30px + env(safe-area-inset-bottom,0px));padding-top:calc(20px + env(safe-area-inset-top,0px))}
-.kv{display:grid;grid-template-columns:120px 1fr;gap:6px 12px;font-size:15px}.kv dt{color:var(--muted)}.kv dd{margin:0}
+.split2>.card{margin:0}
+.sheet-panel{width:min(620px,100%);height:100%;overflow:auto;padding:20px 20px calc(30px + env(safe-area-inset-bottom,0px));padding-top:calc(20px + env(safe-area-inset-top,0px))}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:6px 12px;font-size:14px}.kv dd{margin:0}
 .chat{display:flex;flex-direction:column;gap:8px;max-height:380px;overflow:auto;padding:4px}
-.bubble{max-width:82%;padding:9px 12px;border-radius:16px;font-size:14.5px;white-space:pre-wrap;word-break:break-word}
-.bubble.in{align-self:flex-start;background:var(--card);box-shadow:var(--shadow)}
-.bubble.out{align-self:flex-end;background:#DCF8C6;color:#102A13}
-.bubble small{display:block;font-size:11px;opacity:.65;margin-top:3px}
-.ptable{width:100%;border-collapse:collapse;font-size:15px}.ptable td,.ptable th{padding:10px;border-bottom:1px solid var(--line);text-align:left}
-.ptable input{padding:8px 10px}
+.bubble{max-width:82%;padding:8px 12px;font-size:14px;white-space:pre-wrap;word-break:break-word}
+.bubble.in{align-self:flex-start}.bubble.out{align-self:flex-end}
+.bubble small{display:block;font-size:12px;opacity:.7;margin-top:3px}
 .crow{grid-template-columns:minmax(0,1.2fr) minmax(0,1.4fr) auto}
 @media(max-width:640px){.crow{grid-template-columns:1fr auto}.crow>:nth-child(2){display:none}}
 .mrow{grid-template-columns:minmax(0,1.4fr) repeat(3,auto)}
 @media(max-width:640px){.mrow{grid-template-columns:1fr auto}}
-.pill.off{background:var(--soft);color:var(--muted)}
-.pill.veh-bike,.pill.veh-car,.pill.veh-parts{font-size:11px;letter-spacing:.04em;padding:2px 8px}.pill.veh-bike{background:#E3EDFF;color:#1F4FB8}.pill.veh-car{background:#FFEBD2;color:#9a4c05}.pill.veh-parts{background:#DDF5E4;color:#14692F}
 .inline-form{display:grid;gap:8px}
-.rtable{width:100%;border-collapse:collapse;font-size:15px}.rtable th,.rtable td{padding:8px 4px;border-bottom:1px solid var(--line);text-align:right}.rtable th:first-child,.rtable td:first-child{text-align:left}.rtable th{color:var(--muted);font-weight:600;font-size:13px}.rtable tr:last-child td{border-bottom:0}
+.item-picker{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
+.splitbar{display:inline-block;width:72px;height:6px;vertical-align:middle;overflow:hidden}.splitbar i{display:block;height:100%}
+.split-card{padding:12px;margin:12px 0}
+.split-inputs{display:flex;align-items:center;gap:12px}.split-inputs input[type=range]{flex:1}
+.split-num{display:inline-flex;align-items:center;gap:4px}.split-num input{width:72px;text-align:right}
+.split-bar{display:flex;height:32px;overflow:hidden;margin-top:12px;font:700 12px var(--font)}
+.split-bar .sb-mech,.split-bar .sb-co{display:grid;place-items:center;transition:width .25s ease;white-space:nowrap}
+.split-sample{margin:8px 0 0;font-size:14px;color:var(--text2)}
+.wl-bar{width:100%;border:0;background:transparent;cursor:pointer;text-align:left;font:inherit;color:inherit;padding:2px 0}.wl-bar.on .t i{background:var(--navy)}.wl-bar:hover span:first-child{text-decoration:underline}
+.inv-adjust,.inv-edit{margin:12px 0;padding:12px}
+.inv-adjust-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.inv-adjust-row input,.inv-adjust-row select{min-width:0}.inv-adjust-row #inv-disc{width:96px}.inv-adjust-row #inv-disc-note{flex:1;min-width:180px}
+.inv-edit .ie-row input[data-ie=name]{flex:1;min-width:160px}.inv-edit .ie-row input[data-ie=amount]{width:110px}
+.inv-need{margin:12px 0;padding:12px}
+.remit-box{margin:12px 0;padding:12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.sum-strip{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:8px;margin:12px 0}
+.sum-strip>div{padding:8px 12px;display:flex;flex-direction:column;gap:1px}
+@media(max-width:560px){.sum-strip{grid-template-columns:1fr 1fr}}
+.fin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.fin-tr{cursor:pointer}.fin-tr.row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;text-align:left;min-height:56px}
+.fin-tr:focus-visible{outline:2px solid var(--focus)}
+.inv-cards{display:none}.inv-tr{cursor:pointer}.inv-tr:hover td{background:var(--accent-bg)}
+@media(max-width:760px){.inv-table-wide{display:none}.inv-cards{display:grid;gap:8px}.inv-row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;text-align:left;min-height:56px}}
+.inv-cut{margin-top:16px;border:1.5px dashed var(--accent)}
+/* Today board */
+.bgrid{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:900px){.bgrid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1280px){.bgrid{grid-template-columns:repeat(4,1fr)}}
+.bgroup h2{font-size:var(--fs-4);margin:0 0 4px;display:flex;align-items:center;gap:8px}.bgroup .count{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 8px;border-radius:var(--radius-pill);background:var(--navy);color:var(--on-navy);font:700 12px var(--font)}
+.bcard{padding:12px;margin:0 0 8px}
+.bhead{display:flex;justify-content:space-between;align-items:center;gap:8px}.bref{border:0;background:none;font:700 14px var(--font);color:var(--text);cursor:pointer;min-height:44px;padding:0;text-decoration:underline}
+.bname{margin:4px 0}.bsel{margin:2px 0 8px}
+.bbtns{display:flex;gap:8px;flex-wrap:wrap}.bempty{padding:8px 0}
+/* customer bookings */
+.cb-grid{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:16px;align-items:start}
+.cb-list{position:sticky;top:12px;max-height:calc(100vh - 40px);overflow:auto}
+.crow.on{box-shadow:inset 0 0 0 2px var(--accent)}
+@media(max-width:860px){.cb-grid{grid-template-columns:1fr}.cb-list{position:static;max-height:none}}
+/* booking drawer: quick actions, four sections, one Save bar */
+.qa{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
+.sheet-save{position:sticky;bottom:0;display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:16px -20px -30px;padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));z-index:3}
+details.card>summary{list-style:none;cursor:pointer}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary::after{content:"  \25BE";color:var(--text3)}
+details.card[open]>summary::after{content:"  \25B4"}
+/* Booking step bar */
+.steps{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:8px 0}
+.step.done span::before{content:"\2713 "}.step.current span::before{content:"\25CF "}.step.stopped span::before{content:"\00D7 "}
+.steps.compact{gap:2px;margin:8px 0 0;min-width:210px}.steps.compact .step span::before{content:""}
+.next-step{margin:8px 0}
+/* phone */
+@media(max-width:700px){
+  .sheet-panel{width:100%;padding-inline:16px}
+  .sheet-save{margin-inline:-16px;padding-inline:16px}
+  .modal-box input{font-size:16px}
+}
+@media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}}
 
+/* invoice (printed document) */
 /* invoice */
 .inv-wrap{position:fixed;inset:0;z-index:120;background:rgba(10,18,40,.55);display:grid;place-items:start center;overflow:auto;padding:24px 12px}
 .inv-gen{align-self:center;background:#fff;border-radius:24px;padding:28px 32px;text-align:center;min-width:min(340px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.25);display:grid;gap:10px;justify-items:center;margin-top:14vh}
@@ -75,137 +118,11 @@
   .inv-line{opacity:1;animation:none}.inv-stamp{opacity:.9;animation:none}
 }
 
-/* select-to-delete mode */
-.row.picked{background:#FFF1E3;box-shadow:inset 3px 0 0 var(--ember)}
-.row .chk{font-size:18px;margin-right:4px}
-
-/* revenue split: mini bar in lists, big two-colour bar in the editor */
-.splitbar{display:inline-block;width:72px;height:6px;border-radius:6px;background:var(--navy);vertical-align:middle;overflow:hidden}
-.splitbar i{display:block;height:100%;background:var(--ember)}
-.split-card{border:1px solid var(--line);border-radius:16px;padding:14px;margin:12px 0;background:var(--card)}
-.split-inputs{display:flex;align-items:center;gap:14px}.split-inputs input[type=range]{flex:1;min-height:44px;accent-color:var(--ember)}
-.split-num{display:inline-flex;align-items:center;gap:4px}.split-num input{width:72px;text-align:right}
-.split-bar{display:flex;height:34px;border-radius:12px;overflow:hidden;margin-top:12px;font:700 13px var(--font);color:#fff}
-.split-bar .sb-mech{background:var(--ember);color:#1F1206;display:grid;place-items:center;transition:width .25s ease;white-space:nowrap}
-.split-bar .sb-co{background:var(--navy);display:grid;place-items:center;transition:width .25s ease;white-space:nowrap}
-.split-sample{margin:10px 0 0;font-size:14px;color:var(--ink-2)}
-.rtable .tot td{border-top:2px solid var(--line)}
-@media(prefers-reduced-motion:reduce){.split-bar .sb-mech,.split-bar .sb-co{transition:none}}
-
-.inv-adjust{margin:16px 0 4px;padding:12px;border:1px dashed #C9D1E0;border-radius:14px;background:#FAFBFD}
 .inv-adjust-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.inv-adjust-row input,.inv-adjust-row select{min-width:0}.inv-adjust-row #inv-disc{width:96px}.inv-adjust-row #inv-disc-note{flex:1;min-width:180px}
 @media print{.inv-adjust{display:none!important}}
-
-.wl-bar{width:100%;border:0;background:transparent;cursor:pointer;text-align:left;font:inherit;color:inherit;padding:2px 0}.wl-bar.on .t i{background:var(--navy)}.wl-bar:hover span:first-child{text-decoration:underline}
-.inv-edit{margin:12px 0;padding:14px;border:1px dashed #C9D1E0;border-radius:14px;background:#FAFBFD}
 .inv-edit .ie-row input[data-ie=name]{flex:1;min-width:160px}.inv-edit .ie-row input[data-ie=amount]{width:110px}
 @media print{.inv-edit,.inv-actions{display:none!important}}
-
-.inv-cards{display:none}.inv-tr{cursor:pointer}.inv-tr:hover td{background:rgba(242,128,31,.07)}
-@media(max-width:760px){.inv-table-wide{display:none}.inv-cards{display:grid;gap:8px}.inv-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;min-height:56px}}
 @media print{.inv-cut{display:none!important}}
-.inv-cut{margin-top:14px;border:1.5px dashed var(--ember)}
-
-/* Navigation: five sections, and a row of pages for the section you are in */
-.groups{display:flex;gap:6px;overflow-x:auto;margin-left:12px;scrollbar-width:none}.groups::-webkit-scrollbar{display:none}
-.groups button{border:0;background:transparent;color:var(--ink-2);font:600 15px var(--font);padding:0 16px;min-height:44px;border-radius:980px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
-.groups button[aria-current="page"]{background:var(--ink);color:var(--card)}
-.badge{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--ember);color:#1F1206;font:700 12px var(--font)}
-.subtabs{background:var(--card);border-bottom:1px solid var(--line)}
-.subtabs .sub{display:flex;gap:4px;overflow-x:auto;padding:6px 0;scrollbar-width:none}.subtabs .sub::-webkit-scrollbar{display:none}
-.subtabs button{border:0;background:transparent;color:var(--ink-2);font:500 15px var(--font);padding:0 14px;min-height:44px;border-radius:980px;cursor:pointer;white-space:nowrap}
-.subtabs button[aria-current="page"]{background:rgba(242,128,31,.16);color:var(--ink);font-weight:700}
-@media(max-width:760px){.groups{margin-left:0}.groups button{padding:0 12px}}
-.subtabs .sub[hidden],.badge[hidden]{display:none}
-
-/* Today board */
-.bgrid{display:grid;gap:18px;grid-template-columns:1fr}
-@media(min-width:900px){.bgrid{grid-template-columns:repeat(2,1fr)}}
-@media(min-width:1280px){.bgrid{grid-template-columns:repeat(4,1fr)}}
-.bgroup h2{font-size:19px;margin:0 0 4px;display:flex;align-items:center;gap:8px}.bgroup .count{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 8px;border-radius:99px;background:var(--ink);color:var(--card);font:700 13px var(--font)}
-.bcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px;margin:0 0 10px}
-.bhead{display:flex;justify-content:space-between;align-items:center;gap:8px}.bref{border:0;background:none;font:700 15px var(--font);color:var(--ink);cursor:pointer;min-height:44px;padding:0;text-decoration:underline}
-.bname{margin:4px 0}.bsel{width:100%;min-height:44px;font-size:16px;border-radius:12px;border:1px solid var(--line);padding:0 10px;margin:2px 0 10px;background:var(--card);color:var(--ink)}
-.bbtns{display:flex;gap:8px;flex-wrap:wrap}.bbtns .btn{min-height:44px}.bempty{padding:8px 0}
-
-/* sales and collections */
-.fin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
-.fin-panel{border:2px solid var(--ember,#F2801F)}
-.fin-tr{cursor:pointer}.fin-tr.row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;min-height:56px}
-.fin-tr:focus-visible{outline:2px solid var(--ember,#F2801F)}
 @media (max-width:700px){.fin-panel input,.fin-panel select,.fin-grid input,.fin-grid select{font-size:16px}.fin-panel .btn,.fin-grid .btn{min-height:44px}.inv-table-wide{display:none}}
-
-/* phone-friendly admin: full-screen sheets, 16px inputs (no iOS zoom), 44px buttons, tables scroll sideways */
-@media (max-width:700px){
-  .sheet-panel{width:100%}
-  #view input,#view select,#view textarea,.sheet-panel input,.sheet-panel select,.sheet-panel textarea{font-size:16px;min-height:44px}
-  #view .btn,.sheet-panel .btn,#subtabs button,#tabs button{min-height:44px}
-  .rtable{min-width:640px}
-  .toolbar{flex-direction:column;align-items:stretch}
-  .toolbar select,.toolbar input,.toolbar .btn{width:100%}
-  .kpis{grid-template-columns:repeat(2,1fr)}
-}
-
-/* customer bookings */
-.cb-grid{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:18px;align-items:start}
-.cb-list{position:sticky;top:12px;max-height:calc(100vh - 40px);overflow:auto}
-.crow.on{border-color:var(--ember,#F2801F);box-shadow:inset 0 0 0 1px var(--ember,#F2801F)}
-@media (max-width:860px){.cb-grid{grid-template-columns:1fr}.cb-list{position:static;max-height:none}}
-
-/* reason box (delete payment, delete invoice) */
-.modal{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px}
-.modal-box{background:var(--bg,#fff);color:var(--ink,#14295A);border-radius:16px;padding:20px;width:min(440px,100%);box-shadow:0 20px 50px rgba(0,0,0,.3)}
-.modal-box input{width:100%;font-size:16px;min-height:44px}
-.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
-.modal-btns .btn{min-height:44px}
-
-/* booking drawer: quick actions, four sections, one Save bar */
-.qa{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
-.dtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto}
-.dtabs button{border:0;background:none;padding:10px 14px;font-weight:600;color:var(--muted,#5a6678);min-height:44px;border-bottom:3px solid transparent;white-space:nowrap}
-.dtabs button[aria-selected="true"]{color:var(--ink,#14295A);border-bottom-color:var(--ember,#F2801F)}
-.sheet-save{position:sticky;bottom:0;display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--bg);border-top:1px solid var(--line);margin:16px -20px -30px;padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));z-index:3}
-.sheet-save .btn{min-height:44px;padding-inline:22px}
-details.card>summary{list-style:none}
-details.card>summary::-webkit-details-marker{display:none}
-details.card>summary::after{content:"  ▾";color:var(--muted,#5a6678)}
-details.card[open]>summary::after{content:"  ▴"}
-.inv-need{margin:12px 0;padding:12px;border-radius:14px}.inv-need.warn{border-color:#E8A33D;background:#FFF8EC}
 @media print{.inv-need{display:none!important}}
-
-.sum-strip{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:8px;margin:10px 0 12px}
-.sum-strip>div{border:1px solid var(--line,#dfe4ef);border-radius:12px;padding:8px 10px;background:#fff;display:flex;flex-direction:column;gap:1px}
-.sum-strip span{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#5b6785}.sum-strip b{font-size:16px;color:#14295A}.sum-strip small{font-size:12px;color:#5b6785}
-.sum-strip em{font-style:normal;font-weight:600;color:#9a4c05;font-size:13px}.sum-strip .due b{color:#B4540A}.sum-strip .ok b{color:#14703f}
-@media(max-width:560px){.sum-strip{grid-template-columns:1fr 1fr}}
-
-.inv-tr.picked,.inv-row.picked{background:#FFF4E6}.inv-tr{cursor:pointer}
-
-.remit-box{margin:10px 0;padding:12px;border-radius:14px;background:#EAF7EF;border:1px solid #b9e3c9;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
-/* Theme polish: calmer cards, navy numbers, clear paid / due colours, roomier tap targets */
-.kpi{border:1px solid rgba(20,41,90,.08);border-top:3px solid var(--ember)}.kpi b{color:#14295A}
-.list,.card{border:1px solid rgba(20,41,90,.07)}
-.row{min-height:56px}.row:hover{background:#F4F6FB}
-.pill.paid,.pill.completed{background:#DFF5E8;color:#14703f}.pill.payment_sent{background:#FFEBD2;color:#9a4c05}
-.tabs button{min-height:40px}.tabs button[aria-current="page"]{background:#14295A;color:#fff}
-.btn-sm{min-height:40px}
-.sheet-panel{background:#F6F8FC}
-@media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.sheet-panel{padding-inline:14px}}
-
-.item-picker{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}.item-picker .chip{min-height:36px;cursor:pointer}
 .inv-meta span:first-of-type{font-weight:600;letter-spacing:.02em}
-
-/* Booking step bar (Lead, Called, Quote sent, Confirmed, Scheduled, Done). A tick or dot is shown as well as colour. */
-.steps{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:8px 0}
-.step{font-size:12px;font-weight:700;text-align:center;padding:7px 2px;border-radius:8px;background:var(--soft);color:var(--muted);line-height:1.15;min-width:0}
-.step span{display:block;overflow-wrap:anywhere}
-.step.done{background:#DDF5E4;color:#14692F}.step.done span::before{content:"\2713 "}
-.step.current{background:#14295A;color:#fff;box-shadow:0 0 0 2px #F2801F}.step.current span::before{content:"\25CF "}
-.step.stopped{background:#FBE3E0;color:#B3261E}.step.stopped span::before{content:"\00D7 "}
-.steps.compact{gap:2px;margin:6px 0 0;min-width:210px}.steps.compact .step{padding:2px 0;font-size:10px;border-radius:4px}.steps.compact .step span::before{content:""}
-.next-step{margin:8px 0}.next-step .btn{min-height:44px}
-
-.toast{z-index:1100!important}
-/* desk polish: tables scroll inside their card, the page never scrolls sideways */
-@media(max-width:700px){.rtable{min-width:0}.toolbar{flex-direction:row;align-items:center}.toolbar select,.toolbar input,.toolbar .btn{width:auto}}
-.row .ref{align-self:center}

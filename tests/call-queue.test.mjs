@@ -51,7 +51,7 @@ test('the Call now tab, count badge, Take this lead and assign use the existing 
   assert.doesNotMatch(page, /\.from\(\s*['"`]/);
 });
 test('the queue colours are in the stylesheet and are not colour alone', () => {
-  const css = read('crm/crm.css');
+  const css = read('crm/ds.css') + read('crm/crm.css')  // phase 1: queue colours live in ds.css, the layout (unowned outline) in crm.css;
   for (const c of ['w-amber', 'w-red', 'w-dark', 'unowned']) assert.ok(css.includes('.cq-row.' + c) || css.includes('.' + c + ' .cq-wait'), c);
   assert.match(read('crm/pages/callnow.js'), /cq-wait/);   // the number of minutes is always written out
 });

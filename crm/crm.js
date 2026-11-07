@@ -21,7 +21,7 @@ import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
 import { createMechanicDesk } from './mechanic-desk.js';
 import * as garageapp from './pages/garageapp.js';
-import { skeleton, errorState } from './ds.js';
+import { skeleton, errorState, labelTables } from './ds.js';
 import * as dispatch from './pages/dispatch.js';
 import * as issues from './pages/issues.js';
 import { findByPin } from './pages/pinsearch.js';
@@ -683,3 +683,6 @@ $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') clos
 setInterval(() => { if (S.me && !document.hidden && ['mine', 'unassigned'].includes(S.view) && $('#sheet').hidden && !$('.modal-back') && document.activeElement?.id !== 'q') renderBody(); }, 30e3);
 
 boot();
+
+// Phone card twin (design system phase 1): wide tables get data-label attributes so ds.css can show each row as a card under 700px. Attributes only, no behaviour.
+{ let queued = false; new MutationObserver(() => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; labelTables(document.body); }); }).observe(document.body, { childList: true, subtree: true }); }

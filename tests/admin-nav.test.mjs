@@ -32,9 +32,11 @@ test('the admin script switches sections, remembers the last page in each, and s
   assert.match(a, /data-group/); assert.match(a, /lastTab/); assert.match(a, /navBadges/); assert.match(a, /from '\.\/nav\.js'/);
 });
 test('the navigation is readable on a phone: sections scroll sideways and every button is at least 44px high', () => {
-  const c = read('admin/admin.css');
-  assert.match(c, /\.groups/); assert.match(c, /\.subtabs/); assert.match(c, /min-height:44px/); assert.match(c, /overflow-x:auto/);
+  // Phase 1: the tab look moved from admin.css to the shared ds.css (underline tabs); the rules are the same promises.
+  const c = read('admin/ds.css');
+  assert.match(c, /\.groups/); assert.match(c, /\.subtabs/); assert.match(c, /min-height:var\(--tap\)/); assert.match(c, /overflow-x:auto/); assert.match(c, /--tap:44px/);
 });
 test('a hidden section row and an empty badge really disappear (the display rules must not override the hidden attribute)', () => {
-  assert.match(read('admin/admin.css'), /\.subtabs \.sub\[hidden\][^{]*\{display:none\}/); assert.match(read('admin/admin.css'), /\.badge\[hidden\]/);
+  // Phase 1: ds.css has one global [hidden]{display:none!important} rule, so no display rule can override the hidden attribute.
+  assert.match(read('admin/ds.css'), /\[hidden\]\{display:none!important\}/);
 });
