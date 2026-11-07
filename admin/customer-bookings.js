@@ -28,7 +28,7 @@ export function summarize(rows) {
 
 // ONE source of truth for the Customers screen. Bookings, paid total and last booking date come from the same customerLeads() the detail uses.
 export function customerSummaries({ customers, leads, bikes = [], q = '', filter = '' }) {
-  const needle = String(q || '').trim().toLowerCase();
+  const needle = String(q || '').trim().toLowerCase(), nd = needle.replace(/\D/g, '');   // digits typed in any format (+91, spaces) still find the number
   const byPhone = new Map();
   for (const c of customers) { const p = normPhone(c.phone); if (p) byPhone.set(p, (byPhone.get(p) || 0) + 1); }
   const OPEN = ['new', 'contacted', 'quoted', 'payment_sent', 'paid', 'scheduled'];
@@ -39,8 +39,8 @@ export function customerSummaries({ customers, leads, bikes = [], q = '', filter
       lastAt: ls[0] ? time(ls[0]) : 0, paid: r2(ls.reduce((t, l) => t + (Number(l.paid_amount) || 0), 0)), duplicate: !!p && byPhone.get(p) > 1, blocked: !!c.blocked };
   });
   return rows
-    .filter((r) => !needle || [r.name, r.phone, r.phone10, r.email, ...r.bikes].some((v) => String(v || '').toLowerCase().includes(needle)))
+    .filter((r) => !needle || [r.name, r.phone, r.phone10, r.email, ...r.bikes].some((v) => String(v || '').toLowerCase().includes(needle)) || (nd.length >= 3 && r.phone10.includes(nd.slice(-10))))
     .filter((r) => !filter || (filter === 'open' ? r.open > 0 : filter === 'paid' ? r.paid > 0 : filter === 'noname' ? !r.name : filter === 'dup' ? r.duplicate : true))
-    .sort((a, b) => b.lastAt - a.lastAt || String(a.name).localeCompare(String(b.name)));
+    .sort((a, b) => b.lastAt - a.lastAt || Number(!a.name) - Number(!b.name) || String(a.name).localeCompare(String(b.name)));   // newest first; blank names after named ones on a tie
 }
 export const customerList = customerSummaries;

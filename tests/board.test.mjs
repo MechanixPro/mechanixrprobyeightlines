@@ -41,11 +41,13 @@ test('the Today board is the first page in the Bookings section, and the markup 
   assert.equal(tabsOf('bookings')[0][0], 'board');
   assert.match(read('admin/index.html'), /data-tab="board"/);
 });
-test('each card has WhatsApp, Call, a mechanic menu, the next step and Open, and the actions are logged', () => {
-  const a = read('admin/admin.js');
-  for (const s of ['function board()', 'boardGroups', 'data-act="boardNext"', 'id="bm-', 'boardMech', "audit('board_step'", "audit('board_mechanic'", 'data-lead="${l.id}"']) assert.ok(a.includes(s), s);
+// Changed for the compact board: the row markup moved from admin.js (boardCard) to admin/board-view.js, and the controls are 32px on a mouse and 44px on touch.
+test('each row has WhatsApp, Call, a mechanic menu, the next step and Open, and the actions are logged', () => {
+  const a = read('admin/admin.js'), v = read('admin/board-view.js');
+  for (const s of ['function board()', 'boardGroups', 'boardHtml(', 'boardMech', "audit('board_step'", "audit('board_mechanic'"]) assert.ok(a.includes(s), s);
+  for (const s of ['data-act="boardNext"', 'data-board-mech', 'wa.me/91', 'tel:+91', 'data-lead="${esc(l.id)}"']) assert.ok(v.includes(s), s);
 });
-test('the board works on a phone: cards stack and every control is 44px', () => {
+test('the board works on a phone: one group at a time, and every control is 44px on touch', () => {
   const c = read('admin/admin.css');
-  assert.match(c, /\.bcard/); assert.match(c, /\.bgroup/); assert.match(c, /min-height:44px/);
+  assert.match(c, /\.brow/); assert.match(c, /\.bgroup/); assert.match(c, /\.btabs/); assert.match(c, /pointer:coarse[^}]*min-height:var\(--tap\)/);
 });
