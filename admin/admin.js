@@ -26,6 +26,7 @@ import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
 import { createMechanicDesk } from './mechanic-desk.js';
 import { STATUS, skeleton, errorState, labelTables } from './ds.js';
+import { moneyCell, shareCompact, chipsHtml, totalsRow, tableHtml, rupeeText, clip, dateText, moneyWhole } from './money-table.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
 const C = window.MXP || {};
@@ -517,7 +518,11 @@ function adsInfoText() {
 }
 function reports() {
   const r = reportData(), t = r.totals;
-  const table = (title, rows) => `<div class="card"><h3>${title}</h3>${rows.length ? `<table class="rtable"><thead><tr><th></th><th>Bookings</th><th>Collected</th></tr></thead><tbody>${rows.map((x) => `<tr><td>${esc(x.name)}</td><td>${x.count}</td><td>${rupee(x.collected)}</td></tr>`).join('')}</tbody></table>` : '<p class="small muted">No bookings in this period.</p>'}</div>`;
+  const table = (title, rows) => `<div class="card"><h3>${title}</h3>${rows.length ? tableHtml({ rowCls: '', rows, cols: [
+    { k: 'n', label: title.replace(/^By /, '').replace(/^./, (c) => c.toUpperCase()), w: 190, sticky: 1, cell: (x) => `<span class="mt-name" title="${esc(x.name ?? '')}">${esc(x.name || '–')}</span>` },
+    { k: 'c', label: 'Bookings', w: 90, kind: 'num', cell: (x) => Number(x.count) || 0 },
+    { k: 'm', label: 'Collected', w: 120, kind: 'num', cell: (x) => moneyWhole(x.collected) },
+  ] }) : '<p class="small muted">No bookings in this period.</p>'}</div>`;
   return `<div class="toolbar"><select id="rr" aria-label="Period">${RANGES.map(([k, n]) => `<option value="${k}"${S.range === k ? ' selected' : ''}>${n}</option>`).join('')}</select><button class="btn btn-ghost btn-sm" type="button" data-act="reportCsv">Download CSV</button></div>
   <div class="kpis">
     <div class="kpi"><b>${t.bookings}</b><span>Bookings</span></div>
@@ -1912,18 +1917,59 @@ function iPeriod(k) {
 function registerRows() {
   const f = S.ifl; return filterRegister(S.invoices, { gst: f.gst, rate: f.rate, mechanic: f.mechanic, q: f.q, ...iPeriod(f.period) });
 }
+function invRegisterTable(rows, t, pill) {
+  const W = moneyWhole, pick = (r) => S.isel.has(r.lead_id);
+  const cols = [
+    ...(S.imode ? [{ k: 'sel', label: 'Pick', w: 52, kind: 'text', sticky: 1, cell: (r) => `<input type="checkbox" data-isel="${r.lead_id}" aria-label="Select ${esc(r.number)}"${pick(r) ? ' checked' : ''}>` }] : []),
+    { k: 'no', label: 'Invoice', w: 140, kind: 'inv', sticky: 1, cell: (r) => `<b class="mt-inv">${esc(r.number)}</b>${r.old_number ? `<span class="mt-sub">was ${esc(r.old_number)}</span>` : ''}` },
+    { k: 'date', card: 'detail', label: 'Date', w: 156, cell: (r) => esc(when(r.issued_at)) },
+    { k: 'cust', label: 'Customer', w: 190, sticky: S.imode ? 0 : 1, cell: (r) => `<span class="mt-name" title="${esc(r.customer_company || r.customer_name || '')}">${esc(r.customer_company || r.customer_name || '–')}</span>${r.customer_gstin ? `<span class="mt-sub">${esc(r.customer_gstin)}</span>` : ''}` },
+    { k: 'veh', card: 'detail', label: 'Vehicle', w: 130, cell: (r) => esc(r.vehicle_reg || '–') },
+    { k: 'mech', card: 'detail', label: 'Mechanic', w: 150, cell: (r) => `<span class="mt-name" title="${esc(r.mechanic_name || '')}">${esc(r.mechanic_name || 'None')}</span>` },
+    { k: 'gst', card: 'detail', label: 'GST', w: 120, cell: (r) => pill(r) },
+    { k: 'tx', card: 'detail', label: 'Taxable', w: 104, kind: 'num', cell: (r) => W(r.taxable) },
+    { k: 'ga', card: 'detail', label: 'GST amt', w: 96, kind: 'num', cell: (r) => W(r.cgst + r.sgst) },
+    { k: 'tot', label: 'Total', w: 108, kind: 'num', cell: (r) => `<b>${W(r.total)}</b>` },
+    { k: 'paid', card: 'detail', label: 'Paid', w: 104, kind: 'num', cell: (r) => W(r.paid) },
+    { k: 'pct', card: 'detail', label: 'Mech %', w: 80, kind: 'num', cell: (r) => (r.mechanic_name ? r.mechanic_rate + '%' : '') },
+    { k: 'cut', card: 'detail', label: 'Mechanic cut', w: 112, kind: 'num', cell: (r) => `<b>${W(r.mechanic_cut)}</b>` },
+    { k: 'co', card: 'detail', label: 'Company', w: 104, kind: 'num', cell: (r) => W(r.company_share) },
+    { k: 'pay', card: 'detail', label: 'Payable now', w: 112, kind: 'num', cell: (r) => W(r.payable_now) },
+  ];
+  const foot = { no: `Total (${t.count})`, tx: `<b>${W(t.taxable)}</b>`, ga: `<b>${W(t.gst)}</b>`, tot: `<b>${W(t.total)}</b>`, paid: `<b>${W(t.paid)}</b>`, cut: `<b>${W(t.cut)}</b>`, co: `<b>${W(t.company)}</b>`, pay: `<b>${W(t.payable)}</b>` };
+  const cardHead = (r) => `<div class="mt-ch"><span>${S.imode ? `<input type="checkbox" data-isel="${r.lead_id}" aria-label="Select ${esc(r.number)}"${pick(r) ? ' checked' : ''}> ` : ''}<b class="mt-inv">${esc(r.number)}</b><span class="mt-sub">${esc(when(r.issued_at))}</span></span><span class="mt-ct"><b>${W(r.total)}</b><span class="mt-sub">${r.has_gst ? 'GST ' + r.gst_rate + '%' : 'No GST'}</span></span></div><div class="mt-cn"><span class="mt-name">${esc(r.customer_company || r.customer_name || '–')}</span><span class="mt-sub">${esc(r.mechanic_name || 'No mechanic')}</span></div>`;
+  return tableHtml({ cols, rows, foot, cardHead, rowCls: (r) => 'inv-tr' + (pick(r) ? ' picked' : ''), rowAttrs: (r) => `data-lead="${r.lead_id}"` });
+}
 function invoices() {
   const f = S.ifl, rows = registerRows(), t = registerTotals(rows), mech = byMechanic(rows), gs = gstSummary(rows);
   const opt = (v, cur, label) => `<option value="${v}"${String(cur) === String(v) ? ' selected' : ''}>${label}</option>`;
   const pill = (r) => r.has_gst ? `<span class="pill paid">GST ${r.gst_rate}%</span>` : '<span class="pill lost">No GST</span>';
   const cards = rows.map((r) => `<button class="row inv-row${S.isel.has(r.lead_id) ? ' picked' : ''}" data-lead="${r.lead_id}" style="border-radius:12px">${S.imode ? `<input type="checkbox" data-isel="${r.lead_id}" aria-label="Select ${esc(r.number)}"${S.isel.has(r.lead_id) ? ' checked' : ''}>` : ''}<span class="ref">${esc(r.number)}${r.vehicle_reg ? '<br><span class="meta">' + esc(r.vehicle_reg) + '</span>' : ''}</span><span>${esc(r.customer_company || r.customer_name)}<br><span class="meta">${esc(when(r.issued_at))} · ${esc(r.mechanic_name || 'No mechanic')}${r.customer_gstin ? ' · GSTIN ' + esc(r.customer_gstin) : ''}</span></span><span>${pill(r)}<br><b>${rupee(r.total)}</b><br><span class="meta">Cut ${rupee(r.mechanic_cut)}</span></span></button>`).join('');
-  const table = rows.length ? `<div style="overflow-x:auto"><table class="rtable"><thead><tr>${S.imode ? '<th></th>' : ''}<th>Invoice</th><th>Date</th><th>Customer</th><th>Vehicle</th><th>Mechanic</th><th>GST</th><th>Taxable</th><th>GST amt</th><th>Total</th><th>Paid</th><th>Mech %</th><th>Mechanic cut</th><th>Company</th><th>Payable now</th></tr></thead><tbody>${rows.map((r) => `<tr class="inv-tr${S.isel.has(r.lead_id) ? ' picked' : ''}" data-lead="${r.lead_id}" tabindex="0">${S.imode ? `<td><input type="checkbox" data-isel="${r.lead_id}" aria-label="Select ${esc(r.number)}"${S.isel.has(r.lead_id) ? ' checked' : ''}></td>` : ''}<td><b>${esc(r.number)}</b>${r.old_number ? '<br><span class="tiny muted">was ' + esc(r.old_number) + '</span>' : ''}</td><td>${esc(when(r.issued_at))}</td><td>${esc(r.customer_company || r.customer_name)}${r.customer_gstin ? '<br><span class="tiny muted">' + esc(r.customer_gstin) + '</span>' : ''}</td><td>${esc(r.vehicle_reg || '—')}</td><td>${esc(r.mechanic_name || 'None')}</td><td>${pill(r)}</td><td>${rupee(r.taxable)}</td><td>${rupee(r.cgst + r.sgst)}</td><td><b>${rupee(r.total)}</b></td><td>${rupee(r.paid)}</td><td>${r.mechanic_name ? r.mechanic_rate + '%' : ''}</td><td><b>${rupee(r.mechanic_cut)}</b></td><td>${rupee(r.company_share)}</td><td>${rupee(r.payable_now)}</td></tr>`).join('')}<tr class="tot"><td><b>Total (${t.count})</b></td><td></td><td></td><td></td><td></td><td><b>${rupee(t.taxable)}</b></td><td><b>${rupee(t.gst)}</b></td><td><b>${rupee(t.total)}</b></td><td><b>${rupee(t.paid)}</b></td><td></td><td><b>${rupee(t.cut)}</b></td><td><b>${rupee(t.company)}</b></td><td><b>${rupee(t.payable)}</b></td></tr></tbody></table></div>` : '<p class="muted">No saved invoices match. An invoice is saved each time you print it or email it from a booking.</p>';
-  const mechTable = mech.length ? `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Mechanic</th><th>Invoices</th><th>With GST</th><th>Cut on GST invoices</th><th>Without GST</th><th>Cut on no-GST invoices</th><th>Total cut</th><th>Payable now</th><th>Still to pay</th></tr></thead><tbody>${mech.map((m) => `<tr><td><b>${esc(m.name)}</b></td><td>${m.count}</td><td>${m.withGst.count} · ${rupee(m.withGst.total)}</td><td>${rupee(m.withGst.cut)}</td><td>${m.withoutGst.count} · ${rupee(m.withoutGst.total)}</td><td>${rupee(m.withoutGst.cut)}</td><td><b>${rupee(m.cut)}</b></td><td>${rupee(m.payable)}</td><td>${rupee(m.owed)}</td></tr>`).join('')}</tbody></table></div>` : '';
-  const gstTable = gs.length ? `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>GST rate</th><th>Invoices</th><th>Taxable value</th><th>CGST</th><th>SGST</th><th>Total GST</th><th>Invoice total</th></tr></thead><tbody>${gs.map((g) => `<tr><td>${g.rate ? g.rate + '%' : 'No GST'}</td><td>${g.count}</td><td>${rupee(g.taxable)}</td><td>${rupee(g.cgst)}</td><td>${rupee(g.sgst)}</td><td>${rupee(g.gst)}</td><td>${rupee(g.total)}</td></tr>`).join('')}</tbody></table></div>` : '';
+  const table = rows.length ? invRegisterTable(rows, t, pill) : '<p class="muted">No saved invoices match. An invoice is saved each time you print it or email it from a booking.</p>';
+  const W = moneyWhole, mechTable = mech.length ? tableHtml({ rowCls: '', cols: [
+    { k: 'm', label: 'Mechanic', w: 180, sticky: 1, cell: (m) => `<span class="mt-name" title="${esc(m.name || '')}">${esc(m.name || '–')}</span>` },
+    { k: 'n', label: 'Invoices', w: 80, kind: 'num', cell: (m) => m.count },
+    { k: 'wg', label: 'With GST', w: 140, kind: 'num', cell: (m) => `${m.withGst.count} · ${W(m.withGst.total)}` },
+    { k: 'wgc', label: 'Cut on GST invoices', w: 130, kind: 'num', cell: (m) => W(m.withGst.cut) },
+    { k: 'ng', label: 'Without GST', w: 140, kind: 'num', cell: (m) => `${m.withoutGst.count} · ${W(m.withoutGst.total)}` },
+    { k: 'ngc', label: 'Cut on no-GST invoices', w: 130, kind: 'num', cell: (m) => W(m.withoutGst.cut) },
+    { k: 'cut', label: 'Total cut', w: 110, kind: 'num', cell: (m) => `<b>${W(m.cut)}</b>` },
+    { k: 'pay', label: 'Payable now', w: 110, kind: 'num', cell: (m) => W(m.payable) },
+    { k: 'owed', label: 'Still to pay', w: 110, kind: 'num', cell: (m) => W(m.owed) },
+  ], rows: mech }) : '';
+  const gstTable = gs.length ? tableHtml({ rowCls: '', cols: [
+    { k: 'r', label: 'GST rate', w: 110, sticky: 1, cell: (g) => (g.rate ? g.rate + '%' : 'No GST') },
+    { k: 'n', label: 'Invoices', w: 90, kind: 'num', cell: (g) => g.count },
+    { k: 'tx', label: 'Taxable value', w: 130, kind: 'num', cell: (g) => W(g.taxable) },
+    { k: 'c', label: 'CGST', w: 110, kind: 'num', cell: (g) => W(g.cgst) },
+    { k: 's', label: 'SGST', w: 110, kind: 'num', cell: (g) => W(g.sgst) },
+    { k: 'g', label: 'Total GST', w: 120, kind: 'num', cell: (g) => W(g.gst) },
+    { k: 't', label: 'Invoice total', w: 130, kind: 'num', cell: (g) => W(g.total) },
+  ], rows: gs }) : '';
   const basisNote = basis() === 'before_gst' ? 'The mechanic\'s cut is worked out on the amount <b>before GST</b>. On an invoice with no GST that is the whole amount, so the same percentage gives a different rupee amount.' : 'The mechanic\'s cut is worked out on the <b>whole amount including GST</b>. You can change this in Settings.';
   return `<h1>Invoices</h1><p class="muted">Every invoice you print or email is saved here, with its GST and the mechanic's cut as they were on that day.</p>${bannerHtml(missingList().length)}
   <div class="toolbar" style="flex-wrap:wrap;gap:8px"><select id="if-period" aria-label="Period">${IPERIODS.map(([k, n]) => opt(k, f.period, n)).join('')}</select>
-    <select id="if-gst" aria-label="GST">${opt('', f.gst, 'With and without GST')}${opt('with', f.gst, 'With GST only')}${opt('without', f.gst, 'No GST only')}</select>
+    <select id="if-gst" aria-label="GST">${opt('', f.gst, 'Any invoice')}${opt('with', f.gst, 'With GST only')}${opt('without', f.gst, 'No GST only')}</select>
     <select id="if-rate" aria-label="GST rate">${opt('', f.rate, 'Any rate')}${[18, 12, 5, 0].map((r) => opt(r, f.rate, r ? r + '%' : '0% (no GST)')).join('')}</select>
     <select id="if-mech" aria-label="Mechanic">${opt('', f.mechanic, 'All mechanics')}${S.mechanics.map((m) => opt(m.id, f.mechanic, esc(m.name))).join('')}${opt('none', f.mechanic, 'No mechanic')}</select>
     <input id="if-q" type="search" placeholder="Search number, name, GSTIN" value="${esc(f.q)}" aria-label="Search invoices" style="min-width:200px">
@@ -1931,7 +1977,7 @@ function invoices() {
   <div class="kpis"><div class="kpi"><b>${t.count}</b><span>Invoices</span></div><div class="kpi"><b>${rupee(t.total)}</b><span>Invoice total</span></div><div class="kpi"><b>${rupee(t.gst)}</b><span>GST in these invoices</span></div><div class="kpi"><b>${rupee(t.cut)}</b><span>Mechanic cut</span></div><div class="kpi"><b>${rupee(t.company)}</b><span>Company share</span></div><div class="kpi"><b>${rupee(t.cut - t.payable)}</b><span>Mechanic cut still to pay</span></div></div>
   <div class="card" style="margin-top:14px"><h3>Mechanic cut, with and without GST</h3><p class="tiny muted" style="margin:0 0 8px">${basisNote}</p>${mechTable || '<p class="muted">No invoices yet.</p>'}</div>
   ${gstTable ? `<div class="card" style="margin-top:14px"><h3>GST summary for your accountant</h3>${gstTable}</div>` : ''}
-  <div class="card" style="margin-top:14px"><h3>All invoices</h3><div class="inv-table-wide">${table}</div><div class="inv-cards">${cards}</div></div>`;
+  <div class="card" style="margin-top:14px"><h3>All invoices</h3>${table}</div>`;
 }
 /* ---------- sales and collections ---------- */
 const rupee2 = (n) => { const v = Math.round((Number(n) || 0) * 100) / 100; return '₹' + v.toLocaleString('en-IN', { minimumFractionDigits: Number.isInteger(v) ? 0 : 2, maximumFractionDigits: 2 }); };
@@ -2004,24 +2050,59 @@ function finPanel(a) {
     <h3 style="margin:14px 0 6px">Money history</h3>${entryRows(S.ledger.filter((e) => e.lead_id === a.lead_id).sort((x, y) => new Date(y.created_at) - new Date(x.created_at)))}
     <div class="row-btns" style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button" data-act="openBooking" data-id="${a.lead_id}">Open booking</button></div></div>${forms}`;
 }
+/* Money tables: one component (admin/money-table.js) for Sales, Mechanic ledgers, Invoices and Reports. Formatting only; every figure still comes from the same model fields. */
+function salesTable(rows) {
+  const t = totalsRow(rows), sh = (a) => shareCompact(a), mc = moneyCell;
+  const cust = (a) => `<span class="mt-name" title="${esc(a.customer || '')}">${esc(a.customer || '–')}</span>${a.phone ? `<span class="mt-sub">${esc(a.phone)}</span>` : ''}`;
+  const cols = [
+    { k: 'inv', label: 'Invoice', w: 132, kind: 'inv', sticky: 1, card: 'head', cell: (a) => `<b class="mt-inv">${esc(a.number)}</b><span class="mt-sub">${esc(dateText(a.issuedAt))}</span>` },
+    { k: 'cust', label: 'Customer', w: 168, kind: 'text', sticky: 1, card: 'head', cell: cust },
+    { k: 'mech', label: 'Mechanic', w: 120, kind: 'text', card: 'detail', cell: (a) => `<span class="mt-name" title="${esc(a.mechanicName || '')}">${esc(a.mechanicName || '–')}</span>` },
+    { k: 'share', label: 'Share', w: 84, kind: 'text', card: 'detail', cell: (a) => { const s = sh(a); return `<span class="mt-share" title="${esc(s.title)}">${esc(s.text)}${s.pct == null ? '' : `<i class="mt-bar" style="--p:${s.pct}%"></i>`}</span>`; } },
+    { k: 'total', label: 'Total', w: 116, kind: 'num', card: 'head', cell: (a) => `<b>${mc(a.total)}</b>` },
+    { k: 'company', label: 'Company', w: 112, kind: 'num', card: 'detail', cell: (a) => mc(a.byChannel.company_manual) },
+    { k: 'online', label: 'Online', w: 112, kind: 'num', card: 'detail', cell: (a) => mc(a.byChannel.company_portal) },
+    { k: 'mechanic', label: 'Mechanic', w: 112, kind: 'num', card: 'detail', cell: (a) => mc(a.byChannel.mechanic) },
+    { k: 'outstanding', label: 'Customer owes', w: 116, kind: 'num', card: 'head', cell: (a) => mc(a.outstanding) },
+    { k: 'remitDue', label: 'Mechanic owes us', w: 116, kind: 'num', card: 'detail', cell: (a) => mc(a.remitDue) },
+    { k: 'payoutDue', label: 'We owe mechanic', w: 116, kind: 'num', card: 'detail', cell: (a) => mc(a.payoutDue) },
+    { k: 'status', label: 'Status', w: 296, kind: 'chips', card: 'head', cell: (a) => chipsHtml(a.statusLabels) },
+  ];
+  const foot = { inv: `Total (${t.count})`, total: `<b>${mc(t.total)}</b>`, company: mc(t.company), online: mc(t.online), mechanic: mc(t.mechanic), outstanding: mc(t.outstanding), remitDue: mc(t.remitDue), payoutDue: mc(t.payoutDue) };
+  const cardHead = (a) => `<div class="mt-ch"><span><b class="mt-inv">${esc(a.number)}</b><span class="mt-sub">${esc(dateText(a.issuedAt))}</span></span><span class="mt-ct"><b>${mc(a.total)}</b><span class="mt-sub">${Number(a.outstanding) ? "Owes " + mc(a.outstanding) : "Nothing owed"}</span></span></div><div class="mt-cn">${cust(a)}</div><div class="mt-cs">${chipsHtml(a.statusLabels)}</div>`;
+  return tableHtml({ cols, rows, foot, cardHead, cls: 'mt-sales', label: 'All jobs', rowAttrs: (a) => `data-lead="${a.lead_id}"` });
+}
 function sales() {
   const f = S.sf, m = salesModel(), rows = filterAccounts(m.accounts, { mechanic: f.mechanic, status: f.status, q: f.q, channel: f.channel, gst: f.gst, ...sfRange() }).sort((a, b) => new Date(b.issuedAt) - new Date(a.issuedAt));
   const c = summaryCards(rows, S.ledger), opt = (v, cur, label) => `<option value="${v}"${String(cur) === String(v) ? ' selected' : ''}>${label}</option>`;
   const fin = S.finJob && m.accounts.find((a) => a.lead_id === S.finJob);
   const kpi = (v, l) => `<div class="kpi"><b>${rupee2(v)}</b><span>${l}</span></div>`;
   const STAT = ['Unpaid', 'Partially Paid', 'Fully Paid', 'Customer Due', 'Overdue', 'Mechanic Remittance Due', 'Mechanic Payout Due', 'Settled'];
-  const table = rows.length ? `<div class="inv-table-wide"><table class="rtable"><thead><tr><th>Invoice</th><th>Customer</th><th>Mechanic</th><th>Share</th><th>Total</th><th>Company</th><th>Online</th><th>Mechanic</th><th>Customer owes</th><th>Mechanic owes us</th><th>We owe mechanic</th><th>Status</th></tr></thead><tbody>${rows.map((a) => `<tr class="fin-tr" data-lead="${a.lead_id}" tabindex="0"><td><b>${esc(a.number)}</b><br><span class="tiny muted">${esc(when(a.issuedAt))}</span></td><td>${esc(a.customer)}<br><span class="tiny muted">${esc(a.phone || '')}</span></td><td>${esc(a.mechanicName || '—')}</td><td class="tiny">${a.mechanicName ? 'Mechanic ' + a.mechanicPct + '%<br>Company ' + a.companyPct + '%' : '—'}</td><td><b>${rupee2(a.total)}</b></td><td>${rupee2(a.byChannel.company_manual)}</td><td>${rupee2(a.byChannel.company_portal)}</td><td>${rupee2(a.byChannel.mechanic)}</td><td>${rupee2(a.outstanding)}</td><td>${rupee2(a.remitDue)}</td><td>${rupee2(a.payoutDue)}</td><td>${a.statusLabels.map(statusPill).join(' ')}</td></tr>`).join('')}</tbody></table></div><div class="inv-cards">${rows.map((a) => `<button class="row fin-tr" data-lead="${a.lead_id}" style="border-radius:12px"><span class="ref">${esc(a.number)}</span><span>${esc(a.customer)}<br><span class="meta">${esc(a.mechanicName || 'No mechanic')} · ${a.statusLabels.join(', ')}</span></span><span><b>${rupee2(a.total)}</b><br><span class="meta">Owes ${rupee2(a.outstanding)}</span></span></button>`).join('')}</div>` : '<p class="muted">No jobs match. Jobs appear here once they are completed or have a payment.</p>';
+  const table = rows.length ? salesTable(rows) : '<p class="muted">No jobs match. Jobs appear here once they are completed or have a payment.</p>';
   return `<h1>Sales and collections</h1><p class="muted">Every invoice, who collected the money, and what the customer, the mechanic and the company each still owe.</p>
   <div class="kpis">${kpi(c.invoiceSales, 'Invoice sales')}${kpi(c.collectedManual, 'Collected by the company')}${kpi(c.collectedPortal, 'Collected online')}${kpi(c.collectedMechanic, 'Collected by mechanics')}${kpi(c.customerOutstanding, 'Customers still owe')}${kpi(c.gst, 'GST in these invoices')}${kpi(c.mechanicsOweCompany, 'Mechanics owe the company')}${kpi(c.payoutsPending, 'Company owes mechanics')}${kpi(c.payoutsPaid, 'Mechanic payouts paid')}${c.gatewayFees ? kpi(c.gatewayFees, 'Gateway fees paid') : ''}</div>
   ${fin ? finPanel(fin) : ''}
-  <div class="toolbar" style="flex-wrap:wrap;gap:8px;margin-top:14px"><select id="sf-period" aria-label="Period">${IPERIODS.map(([k, n]) => opt(k, f.period, n)).join('')}</select>
-    <select id="sf-mech" aria-label="Mechanic">${opt('', f.mechanic, 'All mechanics')}${S.mechanics.map((x) => opt(x.id, f.mechanic, esc(x.name))).join('')}${opt('none', f.mechanic, 'No mechanic')}</select>
-    <select id="sf-status" aria-label="Status">${opt('', f.status, 'Any status')}${STAT.map((x) => opt(x, f.status, x)).join('')}</select>
-    <select id="sf-channel" aria-label="Collected by">${opt('', f.channel, 'Collected by anyone')}${opt('company_manual', f.channel, 'Company, manual')}${opt('company_portal', f.channel, 'Company, online')}${opt('mechanic', f.channel, 'Mechanic')}</select>
-    <select id="sf-gst" aria-label="Invoice type">${opt('', f.gst, 'With and without GST')}${opt('with', f.gst, 'With GST')}${opt('without', f.gst, 'No GST')}</select>
-    <label class="tiny muted">From <input id="sf-from" type="date" value="${esc(f.from)}" aria-label="From date"></label><label class="tiny muted">To <input id="sf-to" type="date" value="${esc(f.to)}" aria-label="To date"></label>
-    <input id="sf-q" type="search" placeholder="Search invoice, name, booking" value="${esc(f.q)}" aria-label="Search" style="min-width:200px"><button class="btn btn-ghost btn-sm" type="button" data-act="salesCsv">Download jobs CSV</button><button class="btn btn-ghost btn-sm" type="button" data-act="ledgerCsv">Download all transactions CSV</button></div>
+  <div class="mt-filters" role="search"><label class="mt-f"><span>Period</span><select id="sf-period" aria-label="Period">${IPERIODS.map(([k, n]) => opt(k, f.period, n)).join('')}</select></label>
+    <label class="mt-f"><span>Mechanic</span><select id="sf-mech" aria-label="Mechanic">${opt('', f.mechanic, 'All mechanics')}${S.mechanics.map((x) => opt(x.id, f.mechanic, esc(x.name))).join('')}${opt('none', f.mechanic, 'No mechanic')}</select></label>
+    <label class="mt-f"><span>Status</span><select id="sf-status" aria-label="Status">${opt('', f.status, 'Any status')}${STAT.map((x) => opt(x, f.status, x)).join('')}</select></label>
+    <label class="mt-f"><span>Collected by</span><select id="sf-channel" aria-label="Collected by">${opt('', f.channel, 'Anyone')}${opt('company_manual', f.channel, 'Company, manual')}${opt('company_portal', f.channel, 'Company, online')}${opt('mechanic', f.channel, 'Mechanic')}</select></label>
+    <label class="mt-f"><span>Invoice type</span><select id="sf-gst" aria-label="Invoice type">${opt('', f.gst, 'Any invoice')}${opt('with', f.gst, 'With GST')}${opt('without', f.gst, 'No GST')}</select></label>
+    <label class="mt-f mt-f-date"><span>From</span><input id="sf-from" type="date" value="${esc(f.from)}" aria-label="From date"></label>
+    <label class="mt-f mt-f-date"><span>To</span><input id="sf-to" type="date" value="${esc(f.to)}" aria-label="To date"></label>
+    <label class="mt-f mt-f-q"><span>Search</span><input id="sf-q" type="search" placeholder="Invoice, name, booking" value="${esc(f.q)}" aria-label="Search"></label>
+    <div class="mt-f-btns"><button class="btn btn-ghost btn-sm" type="button" data-act="salesCsv">Jobs CSV</button><button class="btn btn-ghost btn-sm" type="button" data-act="ledgerCsv">All transactions CSV</button></div></div>
   <div class="card" style="margin-top:14px"><h3>All jobs (${rows.length})</h3>${table}</div>`;
+}
+function mlJobsTable(jobs) {
+  const M = moneyCell;
+  return tableHtml({ rowAttrs: (j) => `data-lead="${j.lead_id}"`, cols: [
+    { k: 'no', label: 'Invoice', w: 140, kind: 'inv', sticky: 1, cell: (j) => `<b class="mt-inv">${esc(j.number)}</b><span class="mt-sub">${esc(dateText(j.issuedAt))}</span>` },
+    { k: 'tot', label: 'Total', w: 112, kind: 'num', cell: (j) => `<b>${M(j.total)}</b>` },
+    { k: 'mc', label: 'Collected by mechanic', w: 140, kind: 'num', cell: (j) => M(j.byChannel.mechanic) },
+    { k: 'earn', label: 'Earnings', w: 112, kind: 'num', cell: (j) => M(j.payoutObligation + j.inHand) },
+    { k: 'owes', label: 'Owes the company', w: 128, kind: 'num', cell: (j) => M(j.remitDue) },
+    { k: 'due', label: 'Company owes', w: 120, kind: 'num', cell: (j) => M(j.payoutDue) },
+  ], rows: jobs });
 }
 function mechledger() {
   const m = salesModel(), list = m.mechAccts.sort((a, b) => (b.remitRemaining + b.payoutRemaining) - (a.remitRemaining + a.payoutRemaining));
@@ -2032,7 +2113,7 @@ function mechledger() {
     return `<div class="card" style="margin-top:12px"><button class="row" type="button" data-act="mlOpen" data-id="${id}" style="border-radius:12px;width:100%"><span><b>${esc(a.mechanic.name)}</b><br><span class="meta">${a.mechanic.phone ? '+91 ' + esc(a.mechanic.phone) + ' · ' : ''}${a.mechanic.area ? esc(a.mechanic.area) + ' · ' : ''}${a.jobs} job${a.jobs === 1 ? '' : 's'} · ${a.mechanic.payout_rate || 0}% of the service amount</span></span><span>${statusPill(a.status)}</span><span><b>${a.net === 0 ? '' : rupee2(Math.abs(a.net))}</b><br><span class="meta">${esc(a.netLabel)}</span></span></button>
     <div class="kpis" style="margin-top:10px"><div class="kpi"><b>${rupee2(a.serviceSales)}</b><span>Service sales</span></div><div class="kpi"><b>${rupee2(a.directCollected)}</b><span>Collected directly</span></div><div class="kpi"><b>${rupee2(a.earnings)}</b><span>Earnings</span></div><div class="kpi"><b>${rupee2(a.remitRemaining)}</b><span>Owes the company</span></div><div class="kpi"><b>${rupee2(a.payoutRemaining)}</b><span>Company owes</span></div><div class="kpi"><b>${rupee2(a.remitted)}</b><span>Paid to the company</span></div><div class="kpi"><b>${rupee2(a.paidOut)}</b><span>Paid out to the mechanic</span></div></div>
     ${(() => { const mm = S.mechanics.find((x) => x.id === id); if (!mm || !mm.phone) return ''; const jobsS = [...a.jobAccounts].sort((x, y) => new Date(y.issuedAt) - new Date(x.issuedAt)); const t = statementShareText({ mechanicName: mm.name, rows: jobsS.map((j) => ({ ref: j.ref, date: new Date(j.issuedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }), place: j.jobPlace, earnings: j.earningsTotal })), totals: { earnings: a.earnings, remitDue: a.remitRemaining, payoutDue: a.payoutRemaining, net: a.net, netLabel: a.netLabel } }); return `<p style="margin:10px 0 0"><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="${esc(waLink(mm.phone, t))}">Share statement on WhatsApp</a></p>`; })()}
-    ${open ? `<h3 style="margin:14px 0 6px">Jobs</h3><div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Invoice</th><th>Total</th><th>Collected by mechanic</th><th>Earnings</th><th>Owes the company</th><th>Company owes</th></tr></thead><tbody>${jobs.map((j) => `<tr class="fin-tr" data-lead="${j.lead_id}" tabindex="0"><td>${esc(j.number)}</td><td>${rupee2(j.total)}</td><td>${rupee2(j.byChannel.mechanic)}</td><td>${rupee2(j.payoutObligation + j.inHand)}</td><td>${rupee2(j.remitDue)}</td><td>${rupee2(j.payoutDue)}</td></tr>`).join('')}</tbody></table></div>
+    ${open ? `<h3 style="margin:14px 0 6px">Jobs</h3>${mlJobsTable(jobs)}
     <h3 style="margin:14px 0 6px">Settlements</h3>${entryRows(entries)}<div class="fin-grid">${f('remittance', esc(a.mechanic.name) + ' paid the company')}${f('payout', 'The company paid ' + esc(a.mechanic.name))}</div>` : '<p class="tiny muted" style="margin:8px 0 0">Tap to see the jobs and record a settlement.</p>'}</div>`;
   };
   const totOwe = list.reduce((t, a) => t + a.remitRemaining, 0), totDue = list.reduce((t, a) => t + a.payoutRemaining, 0), totNet = totDue - totOwe;

@@ -98,6 +98,9 @@ const SHOTS = [
   ...['inbox', 'unassigned', 'web', 'rsa', 'tickets', 'visits', 'garages', 'garageapp', 'mechanics', 'knowledge', 'team'].map((v) => crew('tab-' + v, v, { wait: '#view > *' })),
   ...['dash', 'board', 'dispatch', 'leads', 'customers', 'custbook', 'issues', 'sales', 'mechledger', 'invoices', 'reports', 'coupons', 'prices', 'mechanics', 'garageapp', 'pins', 'offers', 'waitlist', 'homeimgs', 'settings', 'activity'].map((t) => adm('tab-' + t, t)),
 ];
+SHOTS.push(...['sales', 'mechledger', 'invoices', 'reports'].map((t) => adm('mt-' + t, t, { money: true })));
+SHOTS.push(adm('mt-sales-right', 'sales', { money: true, step: `(async()=>{await ${clickTab('sales')};await new Promise(r=>setTimeout(r,600));const s=document.querySelector('.mt-scroll');if(s)s.scrollLeft=99999})()` }));
+SHOTS.push(adm('mt-mlopen', 'mechledger', { money: true, step: `(async()=>{await ${clickTab('mechledger')};await new Promise(r=>setTimeout(r,500));const b=document.querySelector('[data-act="mlOpen"]');if(b)b.click()})()` }));
 const SIZES = [{ w: 390, h: 844, dpr: 2, mobile: true }, { w: 1280, h: 800, dpr: 1, mobile: false }];
 
 const summary = [];
@@ -109,7 +112,7 @@ for (const s of SHOTS) {
     await send('Emulation.setDeviceMetricsOverride', { width: z.w, height: z.h, deviceScaleFactor: z.dpr, mobile: z.mobile });
     await send('Emulation.setEmulatedMedia', { media: 'screen', features: [{ name: 'prefers-reduced-motion', value: 'reduce' }, { name: 'prefers-color-scheme', value: 'light' }] });
     await send('Page.navigate', { url: 'about:blank' }); await sleep(50);
-    const { identifier } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__UI=${JSON.stringify({ scenario: s.scenario || 'ok', fail: s.fail || [], hang: s.hang || [] })};try{sessionStorage.clear();localStorage.clear()}catch(e){}` });
+    const { identifier } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__UI=${JSON.stringify({ scenario: s.scenario || 'ok', fail: s.fail || [], hang: s.hang || [], money: !!s.money })};try{sessionStorage.clear();localStorage.clear()}catch(e){}` });
     await send('Page.navigate', { url: BASE + s.url });
     let ok = false;
     for (let i = 0; i < 60 && !ok; i++) { await sleep(150); ok = await ev(`!!document.querySelector(${JSON.stringify(s.wait)})`).catch(() => false); }
