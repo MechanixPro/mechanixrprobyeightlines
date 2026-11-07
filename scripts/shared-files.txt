@@ -6,3 +6,4 @@ flow-rules.js
 flow.css
 ds.js
 garage-desk.js
+mechanic-desk.js

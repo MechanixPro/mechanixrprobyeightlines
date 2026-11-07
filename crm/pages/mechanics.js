@@ -16,13 +16,14 @@ export async function render(root, ctx) {
     ${chips([['', 'All'], ...PIPE.map(([k, t]) => [k, t])], st.status)}
     ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Name</th><th>Mobile</th><th>Stage</th><th>Skills</th><th>PIN codes</th><th>Garage</th><th class="n">Checklist</th><th class="n">Jobs</th><th class="n">Completed</th><th class="n">Avg time to finish</th><th class="n">Customer rating</th><th></th></tr></thead><tbody>
       ${list.map((m) => `<tr><td><b>${esc(m.name)}</b><br><small class="muted">${esc(m.area || '')}</small></td><td>${esc(m.phone)}</td><td>${tag(label(PIPE, m.status), m.status === 'live' ? 'st-completed' : m.status === 'paused' ? 'late' : 'st-new')}</td><td>${esc((m.skills || []).join(', ') || '—')}</td><td>${esc((m.pincodes || []).join(', ') || '—')}</td><td>${esc(m.garage || '—')}</td><td class="n">${m.docs_done} / 5</td>${pcell(m)}
-      <td>${ctx.can('manage_mechanics') ? `<button class="btn sm" type="button" data-edit="${m.id}">Edit</button> ${step(m)}` : ''}</td></tr>`).join('')}</tbody></table></div>` : empty('No mechanics in this view.')}`;
+      <td>${ctx.can('manage_mechanics') ? `<button class="btn sm" type="button" data-edit="${m.id}">Edit</button> ${step(m)}` : ''}${ctx.mechanicDesk && ctx.mechanicDesk.visible() ? ` <button class="btn ghost sm" type="button" data-app="${m.id}">Mechanic app</button>` : ''}</td></tr>`).join('')}</tbody></table></div>` : empty('No mechanics in this view.')}`;
   root.querySelectorAll('[data-f]').forEach((b) => b.addEventListener('click', () => { st.status = b.dataset.f; ctx.reload(); }));
   const q = root.querySelector('#q'); q.addEventListener('change', () => { st.q = q.value.trim(); ctx.reload(); });
   const mp = root.querySelector('#mpre'); mp.addEventListener('change', () => { const r = presetRange(mp.value); st.from = r.from; st.to = r.to; ctx.reload(); });
   const nb = root.querySelector('#new'); if (nb) nb.addEventListener('click', () => edit(null, ctx));
   const ps = root.querySelector('#pinSearch'); if (ps) ps.addEventListener('click', () => findByPin());
   root.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => edit(list.find((m) => m.id === b.dataset.edit), ctx)));
+  root.querySelectorAll('[data-app]').forEach((b) => b.addEventListener('click', () => { const m = list.find((x) => x.id === b.dataset.app); try { ctx.mechanicDesk.openCard({ id: m.id, name: m.name, phone: m.phone }); } catch (e) { toast('That did not work: ' + e.message, true); } }));
   root.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => move(b.dataset.step, b.dataset.to, ctx)));
 }
 

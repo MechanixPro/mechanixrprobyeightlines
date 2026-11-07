@@ -23,6 +23,7 @@ import { adsConversions } from './ads-export.js';
 import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge } from './booking-steps.js';
 import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
+import { createMechanicDesk } from './mechanic-desk.js';
 import { STATUS, skeleton, errorState } from './ds.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
@@ -432,8 +433,9 @@ function openMechanic(id) {
     <label class="check"><input type="checkbox" id="mcert"${m.certified !== false ? ' checked' : ''}${ro}><span>Mechanix Pro certified (shown to the customer in the confirmation)</span></label>
     <label class="check"><input type="checkbox" id="mc"${m.active ? ' checked' : ''}${ro}><span>Active (can be assigned new jobs)</span></label>
     ${isOwner() ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-primary" type="button" data-act="saveMechanic">Save</button>' + (id !== 'new' ? '<button class="btn btn-ghost" type="button" data-act="deleteMechanic">Delete mechanic</button>' : '') + '</div>' : '<p class="tiny muted">Only the owner can change mechanics.</p>'}</div></div>
-  ${id === 'new' ? '' : mechDetail(id, st)}`;
+  ${id === 'new' ? '' : '<div class="card" style="margin-top:12px" id="mxRoot"></div>' + mechDetail(id, st)}`;
   updateSplitPreview();
+  if (id !== 'new' && isOwner()) { const mr = $('#mxRoot'); if (mr) mechanicDesk.mountCard(mr, { id: m.id, name: m.name, phone: m.phone }); } else { const mr = $('#mxRoot'); if (mr) mr.remove(); }
   $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
 }
 
@@ -690,6 +692,8 @@ function moneyCardBody(l) {
 const adminRpc = async (n, a) => { const { data, error } = await sb.rpc(n, a); if (error) throw error; return data; };
 const garageDesk = createGarageDesk({ rpc: adminRpc, toast, can: () => isOwner(), canSettle: () => isOwner(), dialog: (o) => flow.dialog(o), openLead: (id) => { S.tab = 'leads'; render(); openLead(id); },
   reload: async () => { await loadLeads(); render(); if (S.open) openLead(S.open, true); } });
+// The Mechanic app card (on a mechanic's sheet) is the same code as in Crew: admin/mechanic-desk.js. Owner only here.
+const mechanicDesk = createMechanicDesk({ rpc: adminRpc, toast, can: () => isOwner(), dialog: (o) => flow.dialog(o) });
 const flow = createFlow({
   garageDesk,
   rpc: adminRpc,
