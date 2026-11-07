@@ -89,7 +89,7 @@ const SHOTS = [
   crew('leadsheet-card', 'mine', { step: `document.querySelector('.lead-card[data-id="lead-5"] [data-act="open"]').click()`, after: '#sheetPanel .flow-card', reveal: '#sheetPanel .flow-card', noFull: true }),
   crew('leadsheet-card-flowerror', 'mine', { fail: ['crm_confirmation', 'crm_quote_get'], step: `document.querySelector('.lead-card[data-id="lead-5"] [data-act="open"]').click()`, after: '#sheetPanel .flow-card', reveal: '#sheetPanel .flow-card', noFull: true }),
   crew('leadsheet-flowerror', 'mine', { fail: ['crm_confirmation', 'crm_quote_get'], step: `document.querySelector('.lead-card[data-id="lead-5"] [data-act="open"]').click()`, after: '#sheetPanel .flow-card', noFull: true }),
-  adm('dashboard', null), adm('bookings', 'leads'), adm('dispatch', 'dispatch'), adm('issues', 'issues'), adm('money-sales', 'sales'), adm('money-prices', 'prices'),
+  adm('dashboard', null), adm('bookings', 'leads'), adm('dispatch', 'dispatch'), adm('issues', 'issues'), adm('money-sales', 'sales'), adm('speed-empty', 'sales', { scenario: 'empty' }), adm('money-prices', 'prices'),
   adm('bookings-empty', 'leads', { scenario: 'empty' }), adm('dispatch-empty', 'dispatch', { scenario: 'empty' }), adm('issues-empty', 'issues', { scenario: 'empty' }),
   adm('boot-error', null, { fail: ['leads'], wait: '#view .load-err, #view .mx-error', hold: 500 }), adm('boot-partial', null, { fail: ['ledger_entries'], hold: 300 }), adm('boot-loading', null, { hang: ['leads'], wait: '#view .skel, #view .mx-skeleton', hold: 400 }),
   adm('dispatch-error', 'dispatch', { fail: ['crm_dispatch_list'] }),

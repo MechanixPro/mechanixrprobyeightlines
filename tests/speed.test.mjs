@@ -54,8 +54,23 @@ test('snooze is 10 AM IST', () => {
   assert.equal(snoozeAt(1, new Date('2027-01-10T20:00:00Z').getTime()), '2027-01-12T04:30:00.000Z'); // already 01:30 IST on the 11th
 });
 test('format and money', () => {
-  assert.equal(fmtMinutes(null), 'n/a'); assert.equal(fmtMinutes(0), 'under 1 min'); assert.equal(fmtMinutes(12), '12 min'); assert.equal(fmtMinutes(120), '2 h');
+  assert.equal(fmtMinutes(null), 'n/a'); assert.equal(fmtMinutes(0), '<1 min'); assert.equal(fmtMinutes(12), '12 min'); assert.equal(fmtMinutes(120), '2 h');
   assert.equal('est_total' in withoutMoney([{ est_total: 5, value: 5, a: 1 }], false)[0], false);
   assert.equal(withoutMoney([{ est_total: 5 }], true)[0].est_total, 5);
 });
 test('admin copy matches after sync', () => { if (fs.existsSync('admin/speed.js')) assert.equal(fs.readFileSync('admin/speed.js', 'utf8'), fs.readFileSync('crm/speed.js', 'utf8')); });
+
+import { speedPanelHtml, inPeriod } from '../admin/speed-panel.js';
+test('panel html: table per person, no money, escapes names, empty state', () => {
+  const leads = [L({ crm_owner: 'a1', est_total: 7777, crm_first_contact_at: '2027-01-10T06:05:00Z' }), L({ crm_owner: 'a1', id: 'w' })];
+  const h = speedPanelHtml(leads, { names: { a1: '<b>Asha</b>' }, days: 30, now: NOW });
+  assert.match(h, /&lt;b&gt;Asha/); assert.ok(!h.includes('7777') && !h.includes('₹')); assert.match(h, /Within 15 min/); assert.match(h, /Longest waiting/);
+  assert.match(speedPanelHtml([], { now: NOW }), /No leads in this period/);
+  assert.equal(inPeriod([L({ created_at: '2026-01-01T00:00:00Z' }), L({})], 7, NOW).length, 1);
+  assert.equal(inPeriod(null, 7, NOW).length, 0);
+});
+test('admin and crew wiring', () => {
+  assert.match(fs.readFileSync('crm/crm.js', 'utf8'), /id: 'followups'/);
+  const a = fs.readFileSync('admin/admin.js', 'utf8'); assert.match(a, /id="spRoot"/); assert.match(a, /speedPanel\.mount/);
+  assert.ok(!/est_total|rupee/.test(fs.readFileSync('admin/speed-panel.js', 'utf8')));
+});

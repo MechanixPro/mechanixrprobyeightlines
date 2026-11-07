@@ -253,3 +253,16 @@ tr.is-paid td:first-child{box-shadow:inset 4px 0 0 var(--good)}
   .mt-wrap .mt-table.mx-table--cards tr.late{border-left:0}
   .mt-wrap:has(.mt-table){border:0}
 }
+
+/* Lead speed panel (S1a) */
+.sp-card{margin:14px 0}.sp-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}.sp-head h3{margin:0}.sp-head .mt-f{max-width:200px;flex:0 1 200px}
+.sp-kpis{margin:12px 0}.sp-scroll{overflow-x:auto;max-width:100%}.sp-table{width:100%;border-collapse:collapse;font-size:14px}.sp-table th,.sp-table td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}.sp-table th[scope=row]{white-space:normal;min-width:120px}.sp-table .num{text-align:right}
+.sp-total th,.sp-total td{font-weight:700;border-top:2px solid var(--border)}
+.sp-wait{list-style:none;margin:8px 0 0;padding:0}.sp-wait li{display:flex;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border)}.sp-age{margin-left:auto;font-weight:700}
+.sp-card .sp-table th{background:none;padding:8px 10px;font-size:12px;color:var(--text3)}.sp-card .sp-table td{padding:8px 10px}.sp-card .sp-table th[scope=row]{text-transform:none;letter-spacing:0;font-size:14px;color:var(--text);font-weight:600}.sp-card .sp-table{table-layout:auto}
+.sp-kpis{grid-template-columns:repeat(3,1fr)}.sp-kpis .kpi{padding:10px 12px}.sp-kpis .kpi b{font-size:20px;overflow-wrap:anywhere}.sp-h4{margin:14px 0 0}
+.sp-head{align-items:flex-end}.sp-head .mt-f select{height:44px}
+@media(max-width:640px){.sp-kpis{grid-template-columns:1fr 1fr 1fr}.sp-kpis .kpi b{font-size:17px}.sp-kpis .kpi span{font-size:11px}}
+.sp-card .sp-kpis{grid-template-columns:repeat(3,1fr)}
+@media(max-width:640px){.sp-card .sp-kpis{grid-template-columns:repeat(3,1fr);gap:8px}.sp-card .sp-table th,.sp-card .sp-table td{padding:8px 4px;font-size:13px;white-space:normal}.sp-card .sp-table th{font-size:10px;letter-spacing:0}.sp-card .sp-table th[scope=row]{min-width:0;font-size:13px}.sp-card{padding:12px}}
+.sp-card .sp-table th{overflow-wrap:normal;word-break:normal}.sp-card .sp-kpis .kpi b{white-space:normal;text-overflow:clip}

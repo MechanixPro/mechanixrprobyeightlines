@@ -48,7 +48,7 @@ export function longestWaiting(leads, now = Date.now(), limit = 10) {
 export function fmtMinutes(m) {
   if (m == null || !Number.isFinite(Number(m)) || Number(m) < 0) return 'n/a';
   m = Number(m);
-  if (m < 1) return 'under 1 min';
+  if (m < 1) return '<1 min';
   if (m < 90) return Math.round(m) + ' min';
   if (m < 48 * 60) return (Math.round(m / 6) / 10) + ' h';
   return (Math.round(m / 144) / 10) + ' days';

@@ -25,6 +25,7 @@ import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST
 import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
 import { createFunnelDesk, createRouting } from "./funnel.js";   // Conversion screen
+import { createSpeedPanel } from "./speed-panel.js";   // lead speed on the Sales page
 import { createQuoteDoc } from "./quote-doc.js";   // numbered quote page
 import { createMechanicDesk } from './mechanic-desk.js';
 import { STATUS, skeleton, errorState, labelTables, initShell, initials } from './ds.js';
@@ -266,7 +267,7 @@ function syncNav() {
 }
 function render() { try { renderPage(); } catch (e) { console.error('render', S.tab, e); $('#view').innerHTML = errorHtml('This page could not be shown.', e, 'render'); } }
 const failBanner = () => ((S.failed || []).length ? `<div class="alert" role="alert"><b>Some data could not be loaded:</b> ${esc(S.failed.join(', '))}. What you see may be incomplete. <button class="btn btn-ghost btn-sm" type="button" data-retry="boot">Retry</button></div>` : '');
-function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, dispatch, board, leads, customers, mechanics, garageapp, coupons, issues, pins, waitlist, offers, conversion, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'conversion') funnelDesk.mount($('#fnRoot')); if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, dispatch, board, leads, customers, mechanics, garageapp, coupons, issues, pins, waitlist, offers, conversion, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'conversion') funnelDesk.mount($('#fnRoot')); if (S.tab === "sales") speedPanel.mount($("#spRoot")); if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -730,6 +731,7 @@ const garageDesk = createGarageDesk({ rpc: adminRpc, toast, can: () => isOwner()
   reload: async () => { await loadLeads(); render(); if (S.open) openLead(S.open, true); } });
 // The Mechanic app card (on a mechanic's sheet) is the same code as in Crew: admin/mechanic-desk.js. Owner only here.
 // Conversion screen (funnel): admin/funnel.js, counts come from the crm_funnel database function.
+const speedPanel = createSpeedPanel({ rpc: (n, a) => adminRpc(n, a), getLeads: () => S.leads });
 const funnelDesk = createFunnelDesk({ rpc: adminRpc, openLead: (id) => { S.tab = "leads"; render(); openLead(id); }, download: (name, text) => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); } });
 const routing = createRouting({ rpc: adminRpc, onReady: () => { if (S.tab === "board") render(); } });   // owner, Next step and late chip on the Today board
 const conversion = () => `<div class="view-head"><h2>Conversion</h2><p class="muted">Lead to quote to booking to visit to invoice. Counts and median times, by period, source, campaign, Crew member and vehicle.</p></div><div id="fnRoot"></div>`;
@@ -2098,6 +2100,7 @@ function sales() {
   const STAT = ['Unpaid', 'Partially Paid', 'Fully Paid', 'Customer Due', 'Overdue', 'Mechanic Remittance Due', 'Mechanic Payout Due', 'Settled'];
   const table = rows.length ? salesTable(rows) : '<p class="muted">No jobs match. Jobs appear here once they are completed or have a payment.</p>';
   return `<h1>Sales and collections</h1><p class="muted">Every invoice, who collected the money, and what the customer, the mechanic and the company each still owe.</p>
+  <div id="spRoot"></div>
   <div class="kpis">${kpi(c.invoiceSales, 'Invoice sales')}${kpi(c.collectedManual, 'Collected by the company')}${kpi(c.collectedPortal, 'Collected online')}${kpi(c.collectedMechanic, 'Collected by mechanics')}${kpi(c.customerOutstanding, 'Customers still owe')}${kpi(c.gst, 'GST in these invoices')}${kpi(c.mechanicsOweCompany, 'Mechanics owe the company')}${kpi(c.payoutsPending, 'Company owes mechanics')}${kpi(c.payoutsPaid, 'Mechanic payouts paid')}${c.gatewayFees ? kpi(c.gatewayFees, 'Gateway fees paid') : ''}</div>
   ${fin ? finPanel(fin) : ''}
   <div class="mt-filters" role="search"><label class="mt-f"><span>Period</span><select id="sf-period" aria-label="Period">${IPERIODS.map(([k, n]) => opt(k, f.period, n)).join('')}</select></label>
