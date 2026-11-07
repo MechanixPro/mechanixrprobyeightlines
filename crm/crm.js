@@ -15,6 +15,7 @@ import * as knowledge from './pages/knowledge.js';
 import * as team from './pages/team.js';
 import * as inbox from './pages/inbox.js';
 import * as callnow from './pages/callnow.js';
+import * as followups from './pages/followups.js';
 import { newBooking, editBooking } from './pages/booking.js';
 import { sendPaymentLink } from './pages/payment.js';
 import { createFlow } from './flow-core.js';
@@ -46,6 +47,7 @@ const SCREENS = [
   { id: 'dashboard', title: 'Dashboard', page: 'dashboard', mod: dashboard },
   { id: 'inbox', title: 'Inbox', page: 'inbox', mod: inbox },
   { id: 'callnow', title: 'Call now', page: 'leads', mod: callnow },
+  { id: 'followups', title: 'Follow-ups', page: 'leads', mod: followups },
   { id: 'mine', title: 'My day', page: 'leads' },
   { id: 'dispatch', title: 'Dispatch', page: 'leads', tech: true, mod: dispatch },
   { id: 'issues', title: 'Issues', page: 'leads', mod: issues },

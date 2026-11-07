@@ -80,7 +80,7 @@ const clickTab = (t) => `(async()=>{const b=document.querySelector('#side [data-
 const crew = (name, hash, o = {}) => ({ name: 'crew-' + name, app: 'crm', url: '/crm/#' + hash, wait: '#view > div > *, #view .alert, #view .err', ...o });
 const adm = (name, tab, o = {}) => ({ name: 'admin-' + name, app: 'admin', url: '/admin/', wait: '#view:not([hidden]) > *, #view .err', step: tab ? clickTab(tab) : null, ...o });
 const SHOTS = [
-  crew('dashboard', 'dashboard'), crew('myday', 'mine'), crew('callnow', 'callnow'), crew('leads', 'leads'), crew('dispatch', 'dispatch'), crew('issues', 'issues'),
+  crew('dashboard', 'dashboard'), crew('myday', 'mine'), crew('callnow', 'callnow'), crew('followups', 'followups'), crew('followups-empty', 'followups', { scenario: 'empty' }), crew('followups-error', 'followups', { fail: ['crm_queue'], wait: '#view .mx-error' }), crew('followups-loading', 'followups', { hang: ['crm_queue'], wait: '#view .mx-skeleton', hold: 300 }), crew('leads', 'leads'), crew('dispatch', 'dispatch'), crew('issues', 'issues'),
   crew('leadsheet', 'mine', { step: `document.querySelector('.lead-card[data-id="lead-5"] [data-act="open"]').click()`, after: '#sheetPanel .flow-card', noFull: true }),
   crew('myday-scrolled', 'mine', { scroll: 420, only390: true }),
   crew('myday-empty', 'mine', { scenario: 'empty' }), crew('callnow-empty', 'callnow', { scenario: 'empty' }), crew('leads-empty', 'leads', { scenario: 'empty' }), crew('dispatch-empty', 'dispatch', { scenario: 'empty' }), crew('issues-empty', 'issues', { scenario: 'empty' }), crew('dashboard-empty', 'dashboard', { scenario: 'empty' }),

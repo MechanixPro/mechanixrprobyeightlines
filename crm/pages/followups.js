@@ -1,0 +1,76 @@
+import { rpc, esc, head, toast, clean, modal, field, vehicleTag } from '../ui.js';
+import { emptyState, errorState, skeleton, chip } from '../ds.js';
+import { LOST_REASONS, lostReasonCheck, sourceName, vehicleOf, telUrl, waUrl, firstMessage } from '../crm-rules.js';
+import { followUpQueue, bucketCounts, snoozeAt } from '../speed.js';
+
+// Follow-ups: open leads whose next follow-up is due, overdue first, then today, then later. One tap to call, WhatsApp, snooze or mark lost.
+// Mine for an agent, everyone's for a supervisor. Money shows only to the admin (supervisors never see it).
+const st = { bucket: 'due' };
+const BUCKETS = [['due', 'Overdue and today'], ['overdue', 'Overdue'], ['today', 'Today'], ['later', 'Later'], ['nodate', 'No date set']];
+const money = (ctx) => !!(ctx.me && ctx.me.is_admin);
+const rupee = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
+
+export async function render(root, ctx) {
+  root.innerHTML = head('Follow-ups', 'Overdue first, then due today. Call, message, snooze or close each one.') + skeleton(4, 'Loading follow-ups');
+  try { await draw(root, ctx); } catch (e) {
+    root.innerHTML = head('Follow-ups', '') + errorState({ title: 'Follow-ups could not load.', detail: clean(e) });
+    root.querySelector('[data-retry]')?.addEventListener('click', () => render(root, ctx));
+  }
+}
+
+async function draw(root, ctx) {
+  const all = ctx.can('view_all_leads');
+  const raw = await rpc('crm_queue', { p_view: all ? 'all' : 'mine', p_search: null });
+  const queue = followUpQueue(raw), counts = bucketCounts(queue), showMoney = money(ctx);
+  const pick = (b) => queue.filter((l) => (b === 'due' ? l.bucket === 'overdue' || l.bucket === 'today' : l.bucket === b));
+  const rows = pick(st.bucket), me = ctx.me;
+  const tabs = BUCKETS.map(([k, t]) => { const n = k === 'due' ? counts.overdue + counts.today : counts[k]; return `<button type="button" class="chip pick${k === st.bucket ? ' on' : ''}" data-fu-tab="${k}" aria-pressed="${k === st.bucket}">${esc(t)} <b>${n}</b></button>`; }).join('');
+  const summary = `<p class="small muted">${counts.overdue} overdue · ${counts.today} due today · ${counts.later} later${counts.nodate ? ' · ' + counts.nodate + ' with no date' : ''}</p>`;
+  root.innerHTML = head('Follow-ups', 'Overdue first, then due today. Call, message, snooze or close each one.') + summary + `<div class="filters fu-tabs" role="group">${tabs}</div>` +
+    (rows.length ? rows.map((l) => card(l, me, ctx, showMoney)).join('') : emptyState({ title: st.bucket === 'due' ? 'Nothing due. You are on top of it.' : 'Nothing here.', text: st.bucket === 'due' ? 'Check Later for what is coming up.' : '' }));
+  root.onclick = async (e) => {
+    const t = e.target.closest('[data-fu-tab]'); if (t) { st.bucket = t.dataset.fuTab; return draw(root, ctx).catch((x) => toast(clean(x), true)); }
+    const b = e.target.closest('[data-fu]'); if (!b) return;
+    const id = b.dataset.id, lead = queue.find((x) => x.id === id), act = b.dataset.fu;
+    if (act === 'call' || act === 'wa') return;   // plain links; the lead sheet logs the outcome
+    if (act === 'open') return ctx.openLead(id, 'call');
+    if (act === 'lost') return lostDialog(lead, ctx, () => draw(root, ctx));
+    if (act === 'snooze') {
+      const days = Number(b.dataset.days); b.disabled = true;
+      try { await rpc('crm_log', { p_id: id, p_kind: 'note', p_body: 'Snoozed ' + (days === 1 ? 'until tomorrow' : days + ' days'), p_next_action: snoozeAt(days), p_status: null, p_lost_reason: null }); toast('Snoozed. It comes back ' + (days === 1 ? 'tomorrow' : 'in ' + days + ' days') + ' at 10 AM.'); await draw(root, ctx); }
+      catch (err) { b.disabled = false; toast(clean(err), true); }
+    }
+  };
+}
+
+function card(l, me, ctx, showMoney) {
+  const src = sourceName(l.utm_source || l.source), late = l.bucket === 'overdue';
+  const due = l.crm_next_action_at ? new Date(l.crm_next_action_at).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : 'No follow-up date';
+  const tone = late ? 'bad' : l.bucket === 'today' ? 'warn' : '';
+  const who = ctx.can('view_all_leads') ? ` · ${esc(l.owner_name || 'No owner')}` : '';
+  return `<article class="fu-card${late ? ' fu-late' : ''}" data-id="${esc(l.id)}">
+    <div class="fu-main"><b>${esc(l.name)}</b>${vehicleTag(vehicleOf(l))} <small class="muted">${esc(src)}</small>
+      <p class="small muted">${esc([l.bike, l.service_name, l.area].filter(Boolean).join(' · ') || 'No details yet')}</p>
+      <p class="small">${chip((late ? 'Overdue · ' : l.bucket === 'today' ? 'Today · ' : '') + due, tone)}${showMoney && l.value ? ` <b>${rupee(l.value)}</b>` : ''}<span class="muted">${who}</span></p></div>
+    <div class="fu-act">
+      <a class="btn call" href="${telUrl(l.phone)}" data-fu="call" data-id="${esc(l.id)}">Call</a>
+      <a class="btn wa" href="${waUrl(l.phone, firstMessage(l, me && me.name))}" target="_blank" rel="noopener" data-fu="wa" data-id="${esc(l.id)}">WhatsApp</a>
+      <button class="btn" type="button" data-fu="snooze" data-days="1" data-id="${esc(l.id)}">Tomorrow</button>
+      <button class="btn" type="button" data-fu="snooze" data-days="3" data-id="${esc(l.id)}">3 days</button>
+      <button class="btn ghost" type="button" data-fu="open" data-id="${esc(l.id)}">Open</button>
+      <button class="btn ghost" type="button" data-fu="lost" data-id="${esc(l.id)}">Mark lost</button>
+    </div></article>`;
+}
+
+function lostDialog(lead, ctx, done) {
+  if (!lead) return;
+  modal({
+    title: 'Mark ' + lead.name + ' as lost', intro: 'Pick the reason. This closes the lead.', submit: 'Mark lost', danger: true,
+    body: field('Reason', 'reason', { type: 'select', options: LOST_REASONS.map((r) => [r, r]), required: true }) + field('Note', 'note', { type: 'textarea', rows: 2, hint: 'Needed for "Other". No Aadhaar, PAN or bank numbers.' }),
+    onSubmit: async (f, v, close) => {
+      const ok = lostReasonCheck(v.reason, v.note); if (!ok.ok) throw new Error(ok.error);
+      await rpc('crm_log', { p_id: lead.id, p_kind: 'note', p_body: String(v.note || '').trim() || null, p_next_action: null, p_status: 'lost', p_lost_reason: v.reason });
+      close(); toast('Marked lost.'); await done();
+    },
+  });
+}

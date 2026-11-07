@@ -76,3 +76,9 @@ td .steps.compact .step{overflow:visible}
 
 /* Crew only: 16px body text for the call team (owner decision 2026-11-08). Admin keeps 14px. */
 body:not(.admin){font-size:var(--fs-4)}
+
+/* Follow-ups (S1a) */
+.fu-tabs{margin:8px 0 12px}.fu-card{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:14px;margin:0 0 8px;border:1px solid var(--border);border-radius:var(--r,12px);background:var(--surface,#fff);font-size:16px}
+.fu-card.fu-late{border-left:4px solid var(--bad,#c0392b)}.fu-main{min-width:0;overflow-wrap:anywhere}.fu-main p{margin:4px 0 0}
+.fu-act{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:520px}.fu-act .btn{min-height:44px}
+@media(max-width:640px){.fu-card{grid-template-columns:1fr}.fu-act{justify-content:flex-start;max-width:none}.fu-act .btn{flex:1 1 calc(50% - 8px)}}
