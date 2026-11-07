@@ -13,3 +13,4 @@ speed.js
 targets.js
 targets-view.js
 dupes.js
+dupes-view.js

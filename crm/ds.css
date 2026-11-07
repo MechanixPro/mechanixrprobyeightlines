@@ -414,3 +414,23 @@ h1 .count{vertical-align:middle;margin-left:var(--s2)}
 .kpis>*,.stat-row>*{min-width:0}
 @media(max-width:480px){.kpi b,.stat b,.mx-kpi b{font-size:var(--fs-5)}}
 @media(max-width:640px){button.row[data-act=mlOpen]{grid-template-columns:minmax(0,1fr) auto}button.row[data-act=mlOpen]>:first-child{grid-column:1/-1}}
+
+/* Duplicates screen (crm/dupes-view.js) */
+.dp-wrap{max-width:960px;margin:0 auto;padding:var(--s4);font-size:var(--fs-4)}
+.dp-title{font-size:var(--fs-6);margin:0 0 var(--s1)}.dp-top p{margin:0 0 var(--s3)}
+.dp-count{margin:0 0 var(--s3);color:var(--text3)}
+.dp-group{margin-bottom:var(--s4);padding:var(--s4)}
+.dp-h{font-size:var(--fs-5);margin:0 0 var(--s3);display:flex;flex-wrap:wrap;gap:var(--s2);align-items:baseline}
+.dp-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:var(--s3)}
+.dp-card{position:relative;display:flex;flex-direction:column;gap:var(--s2);min-width:0;padding:var(--s3);border:var(--bw) solid var(--border);border-radius:var(--radius);background:var(--surface);cursor:pointer}
+.dp-card.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.dp-card:focus-within{outline:2px solid var(--info);outline-offset:2px}
+.dp-pick{font-size:var(--fs-3);font-weight:800;color:var(--text3)}.dp-card.on .dp-pick{color:var(--accent-text)}
+.dp-name{font-size:var(--fs-4);font-weight:800;overflow-wrap:anywhere}
+.dp-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2)}
+.dp-f{display:flex;flex-direction:column;min-width:0}.dp-f span{font-size:var(--fs-2);color:var(--text3)}.dp-f b{font-size:var(--fs-4);overflow-wrap:anywhere}
+.dp-actions{display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s3)}
+.dp-actions .mx-btn{max-width:100%;white-space:normal}
+.dp-undo{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;justify-content:space-between;margin-bottom:var(--s3)}
+.dp-more{width:100%}
+.dp-confirm p{margin:0 0 var(--s2);overflow-wrap:anywhere}.dp-confirm ul{margin:0 0 var(--s2);padding-left:var(--s4)}
