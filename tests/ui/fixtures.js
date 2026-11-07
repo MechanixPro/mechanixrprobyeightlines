@@ -123,6 +123,7 @@ const adminTables = {
 };
 adminTables.dense = { leads: adminLeads.concat(bulkLeads), customers: adminTables.customers.concat(bulkCustomers), bikes: adminTables.bikes.concat(bulkBikes) };   // used by the 'dense' scenario in the stub
 const adminRpc = {
+  crm_import_leads_csv: (a) => ({ added: ((a && a.p_rows) || []).length, skipped: 0 }),
   crm_duplicate_customers: crewHandlers.crm_duplicate_customers, crm_customer_summary: crewHandlers.crm_customer_summary,
   crm_dispatch_list: crewHandlers.crm_dispatch_list, crm_tech_seen: crewHandlers.crm_tech_seen, crm_open_issues: crewHandlers.crm_open_issues, crm_mechanic_picker: crewHandlers.crm_mechanic_picker,
   crm_targets_progress: crewHandlers.crm_targets_progress, crm_targets_set: crewHandlers.crm_targets_set, crm_paid_badges: crewHandlers.crm_paid_badges, crm_confirmation: crewHandlers.crm_confirmation, crm_notifications: crewHandlers.crm_notifications, crm_quote_get: crewHandlers.crm_quote_get, crm_booking_updates: crewHandlers.crm_booking_updates, crm_tech_location: crewHandlers.crm_tech_location,

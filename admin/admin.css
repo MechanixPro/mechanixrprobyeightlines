@@ -279,3 +279,18 @@ tr.is-paid td:first-child{box-shadow:inset 4px 0 0 var(--good)}
 @media(max-width:640px){.tg-cols{grid-template-columns:1fr}.tg-table th,.tg-table td{white-space:normal}}
 .tg-table .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .tg-who{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}.tg-table td.num{font-size:16px;vertical-align:top;min-width:64px}.tg-table th[scope=row]{font-size:16px!important}.tg-who .btn{min-height:40px}
+
+/* Import leads panel (Sales page, owner only) */
+.ip-det{margin:0 0 var(--s4);border:var(--bw) solid var(--border);border-radius:var(--radius);background:var(--surface)}
+.ip-det>summary{padding:var(--s3) var(--s4);font-weight:800;cursor:pointer;min-height:var(--tap);font-size:16px}
+.ip-card{margin:0;border:0;box-shadow:none}
+.ip-text{width:100%;box-sizing:border-box;font:16px/1.4 var(--font);padding:var(--s3);border:var(--bw) solid var(--border2);border-radius:var(--radius);background:var(--surface);color:var(--text);resize:vertical}
+.ip-actions{display:flex;flex-wrap:wrap;gap:var(--s2);margin:var(--s3) 0}
+.ip-file-in{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.ip-file:focus-within,.ip-file-in:focus+.ip-file{outline:2px solid var(--accent)}
+.ip-counts{display:flex;flex-wrap:wrap;gap:var(--s2);margin:var(--s3) 0;font-size:16px}
+.ip-warn{margin:var(--s2) 0;font-size:16px;font-weight:700}
+.ip-scroll{overflow-x:auto;max-width:100%}
+.ip-table{width:100%;border-collapse:collapse;font-size:16px}
+.ip-table th,.ip-table td{padding:var(--s2);text-align:left;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+.ip-done{font-size:16px;margin:var(--s3) 0}

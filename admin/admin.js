@@ -27,6 +27,7 @@ import { createGarageDesk } from './garage-desk.js';
 import { createFunnelDesk, createRouting } from "./funnel.js";   // Conversion screen
 import { createSpeedPanel } from "./speed-panel.js";
 import { createDupesPanel } from "./dupes-panel.js";
+import { createImportPanel, phoneSet } from "./import-panel.js";
 import { createTargetsPanel } from "./targets-panel.js";   // sales targets on the Sales page   // lead speed on the Sales page
 import { createQuoteDoc } from "./quote-doc.js";   // numbered quote page
 import { createMechanicDesk } from './mechanic-desk.js';
@@ -269,7 +270,7 @@ function syncNav() {
 }
 function render() { try { renderPage(); } catch (e) { console.error('render', S.tab, e); $('#view').innerHTML = errorHtml('This page could not be shown.', e, 'render'); } }
 const failBanner = () => ((S.failed || []).length ? `<div class="alert" role="alert"><b>Some data could not be loaded:</b> ${esc(S.failed.join(', '))}. What you see may be incomplete. <button class="btn btn-ghost btn-sm" type="button" data-retry="boot">Retry</button></div>` : '');
-function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, dispatch, board, leads, customers, mechanics, garageapp, coupons, issues, pins, waitlist, offers, conversion, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'conversion') funnelDesk.mount($('#fnRoot')); if (S.tab === "sales") { speedPanel.mount($("#spRoot")); targetsPanel.mount($("#tgRoot")); } if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); if (S.tab === 'customers') bindDupes(); if (S.tab === 'activity') loadActivity(); }
+function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, dispatch, board, leads, customers, mechanics, garageapp, coupons, issues, pins, waitlist, offers, conversion, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'conversion') funnelDesk.mount($('#fnRoot')); if (S.tab === "sales") { speedPanel.mount($("#spRoot")); targetsPanel.mount($("#tgRoot")); importPanel.mount($("#ipRoot")); } if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); if (S.tab === 'customers') bindDupes(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -734,6 +735,7 @@ const garageDesk = createGarageDesk({ rpc: adminRpc, toast, can: () => isOwner()
 // The Mechanic app card (on a mechanic's sheet) is the same code as in Crew: admin/mechanic-desk.js. Owner only here.
 // Conversion screen (funnel): admin/funnel.js, counts come from the crm_funnel database function.
 const targetsPanel = createTargetsPanel({ rpc: (n, a) => adminRpc(n, a), canSet: () => isOwner(), toast });
+const importPanel = createImportPanel({ rpc: (n, a) => adminRpc(n, a), canImport: () => isOwner(), phones: () => phoneSet(S.leads, S.customers), dialog: (o) => flow.dialog(o), toast });
 const dupesPanel = createDupesPanel({ rpc: (n, a) => adminRpc(n, a), toast });
 function bindDupes() { const d = $('#dpDet'); if (d) d.addEventListener('toggle', () => { if (d.open && !d.dataset.on) { d.dataset.on = '1'; dupesPanel.mount($('#dpRoot')); } }); }
 const speedPanel = createSpeedPanel({ rpc: (n, a) => adminRpc(n, a), getLeads: () => S.leads });
@@ -2106,6 +2108,7 @@ function sales() {
   const table = rows.length ? salesTable(rows) : '<p class="muted">No jobs match. Jobs appear here once they are completed or have a payment.</p>';
   return `<h1>Sales and collections</h1><p class="muted">Every invoice, who collected the money, and what the customer, the mechanic and the company each still owe.</p>
   <div id="tgRoot"></div>
+  ${isOwner() ? '<details class="ip-det"><summary>Import leads</summary><div id="ipRoot"></div></details>' : ''}
   <div id="spRoot"></div>
   <div class="kpis">${kpi(c.invoiceSales, 'Invoice sales')}${kpi(c.collectedManual, 'Collected by the company')}${kpi(c.collectedPortal, 'Collected online')}${kpi(c.collectedMechanic, 'Collected by mechanics')}${kpi(c.customerOutstanding, 'Customers still owe')}${kpi(c.gst, 'GST in these invoices')}${kpi(c.mechanicsOweCompany, 'Mechanics owe the company')}${kpi(c.payoutsPending, 'Company owes mechanics')}${kpi(c.payoutsPaid, 'Mechanic payouts paid')}${c.gatewayFees ? kpi(c.gatewayFees, 'Gateway fees paid') : ''}</div>
   ${fin ? finPanel(fin) : ''}
