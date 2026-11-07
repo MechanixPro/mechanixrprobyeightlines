@@ -206,3 +206,6 @@ details.card[open]>summary::after{content:"  ▴"}
 .next-step{margin:8px 0}.next-step .btn{min-height:44px}
 
 .toast{z-index:1100!important}
+/* desk polish: tables scroll inside their card, the page never scrolls sideways */
+@media(max-width:700px){.rtable{min-width:0}.toolbar{flex-direction:row;align-items:center}.toolbar select,.toolbar input,.toolbar .btn{width:auto}}
+.row .ref{align-self:center}
