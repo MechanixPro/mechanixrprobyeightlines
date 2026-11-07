@@ -4,3 +4,5 @@ https://www.mechanixpro.in/* https://mechanixpro.in/:splat 301
 /sos /book/?service=sos 302
 /coming-soon/car-service/ /car-service-bangalore/ 301
 /coming-soon/car-service /car-service-bangalore/ 301
+/workshop/ / 301
+/workshop / 301

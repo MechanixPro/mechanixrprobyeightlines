@@ -9,7 +9,7 @@ const SAMPLE = ['index.html', 'bike-service-hsr-layout/index.html', 'bike-servic
 
 test('the home page has six sections, in the order a visitor decides', () => {
   const ids = [...main.matchAll(/<section[^>]*id="([a-z-]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(ids, ['hero', 'brief', 'work', 'prices', 'team', 'trust', 'shop', 'areas', 'faq', 'tools']);
+  assert.deepEqual(ids, ['hero', 'brief', 'work', 'prices', 'team', 'trust', 'areas', 'faq', 'tools']);
   assert.ok(main.indexOf('class="stage"') < main.indexOf('class="sheet"'), 'a navy stage first, then the light sheet');
   assert.equal((main.match(/<h1[ >]/g) || []).length, 1);
 });

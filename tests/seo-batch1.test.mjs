@@ -81,7 +81,7 @@ test('4. every link in llms.txt points to a page that exists', () => {
   const t = read('llms.txt'); const links = [...new Set([...t.matchAll(/\]\((https:\/\/mechanixpro\.in[^)]*)\)/g)].map((m) => m[1]))];
   assert.ok(links.length >= 15);
   for (const u of links) { const path = u.replace(SITE, ''); assert.ok(publicFiles().includes(path.replace(/^\//, '') + 'index.html'), u); }
-  for (const u of ['/garage-partners/', '/workshop/']) assert.ok(t.includes(SITE + u), u);
+  for (const u of ['/garage-partners/']) assert.ok(t.includes(SITE + u), u);
 });
 
 const FEE = /a small confirmation fee, ₹49 to ₹99 depending on your vehicle's engine size/;
@@ -181,13 +181,6 @@ test('6d. /societies/ and /fleet/: BreadcrumbList and a Service for #business, n
     assert.ok(n.some((x) => x['@type'] === 'BreadcrumbList'), f); assert.equal(svc.provider['@id'], SITE + '/#business'); assert.equal(svc.offers, undefined, f);
   }
 });
-test('6e. /workshop/: WebPage about #business (no partial AutoRepair); VideoObjects with the date the video was first published on the site', () => {
-  const n = nodesOf(read('workshop/index.html'));
-  assert.ok(!n.some((x) => x['@type'] === 'AutoRepair')); const wp = n.find((x) => x['@type'] === 'WebPage');
-  assert.deepEqual(wp.about, { '@id': SITE + '/#business' }); assert.deepEqual(wp.mainEntity, { '@id': SITE + '/#business' });
-  const vids = n.filter((x) => x['@type'] === 'VideoObject'); assert.equal(vids.length, 2);
-  for (const v of vids) { assert.match(v.uploadDate, /^\d{4}-\d{2}-\d{2}$/); assert.ok(v.thumbnailUrl.startsWith(SITE) && v.contentUrl.endsWith('.mp4') && v.name && v.description); }
-});
 test('6f. area pages and guides do not use the build date as dateModified; guides carry a real first-published date', () => {
   for (const f of htmlFiles().filter((x) => /^bike-service-[^/]+\/index\.html$/.test(x) || x.startsWith('guides/'))) {
     walk(jsonld(read(f)), (o) => assert.equal(o.dateModified, undefined, f));
@@ -224,9 +217,9 @@ test('7a/7b. home: the hidden car hero image is lazy and not preloaded; the bike
   for (const f of htmlFiles()) if (f !== 'index.html') assert.doesNotMatch(read(f), /rel="preload" as="image"/, f);
   assert.ok(statSync(ROOT + 'assets/img/hero/hero-garage-poster.webp').size > 1000);
 });
-test('7c. hero video: about 450 to 600 KB, 1280x572, no audio, faststart (moov before mdat)', () => {
+test('7c. hero video: about 1 to 2.2 MB (sharper encode, owner request 2026-11-07), 1280x572, no audio, faststart (moov before mdat)', () => {
   const b = readFileSync(ROOT + 'assets/video/hero-garage.mp4');
-  assert.ok(b.length >= 450 * 1024 && b.length <= 600 * 1024, 'size ' + b.length);
+  assert.ok(b.length >= 1024 * 1024 && b.length <= 2.2 * 1024 * 1024, 'size ' + b.length);
   assert.ok(b.indexOf('moov') > -1 && b.indexOf('moov') < b.indexOf('mdat'), 'faststart');
   assert.ok(!b.includes(Buffer.from('mp4a')));
   assert.match(read('index.html'), /<video class="hm-v"[^>]*width="1280" height="572"/);

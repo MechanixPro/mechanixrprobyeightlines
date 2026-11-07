@@ -25,7 +25,7 @@ test('the hero media: a muted looping garage video with a poster (bike view) and
   for (const a of ['autoplay', 'muted', 'loop', 'playsinline']) assert.match(v, new RegExp('\\b' + a + '\\b'), a);
   assert.match(v, /poster="\/assets\/img\/hero\/hero-garage-poster\.webp"/); assert.match(v, /width="1280"/); assert.match(v, /height="572"/); assert.match(v, /aria-label="[^"]+"/);
   const src = art.match(/<source src="([^"]+)" type="video\/mp4">/)[1];
-  assert.ok(existsSync(new URL('..' + src, import.meta.url)), src); assert.ok(statSync(new URL('..' + src, import.meta.url)).size < 1_600_000, 'video under 1.6 MB');
+  assert.ok(existsSync(new URL('..' + src, import.meta.url)), src); assert.ok(statSync(new URL('..' + src, import.meta.url)).size < 2_200_000, 'video under 2.2 MB');
   assert.ok(existsSync(new URL('../assets/img/hero/hero-garage-poster.webp', import.meta.url)));
   // Changed on purpose (hero carousel): the pictures are now carousel slides (data-src, car set is the second carousel). See tests/hero-slider.test.mjs.
   assert.equal(imgs.length, 6); const t = imgs.find((i) => /hero-car-1200/.test(i));

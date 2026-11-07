@@ -27,7 +27,7 @@ test('manifest: own scope and start URL, existing icons, site colours', () => {
   for (const i of m.icons) assert.ok(existsSync(new URL('..' + i.src, import.meta.url)));
 });
 test('built into the site, and no service worker caches the app', () => {
-  const b = read('scripts/build_site.sh'); assert.match(b, /garage\.webmanifest/); assert.match(b, /for d in workshop job garage /);
+  const b = read('scripts/build_site.sh'); assert.match(b, /garage\.webmanifest/); assert.match(b, /for d in job garage /);
   assert.match(read('sw.js'), /startsWith\('\/garage\/'\)\) return/);
   assert.ok(!/serviceWorker\.register/.test(read('assets/js/garage.js')), 'the garage app registers no worker');
   assert.match(read('package.json'), /node --check assets\/js\/garage\.js/);

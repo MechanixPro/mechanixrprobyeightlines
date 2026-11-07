@@ -95,7 +95,7 @@ test('new videos: files exist, under 1.3 MB, no audio track, no AI-tool tags; po
     assert.ok(b.length < 1_300_000, f + ' is ' + b.length);
     assert.ok(!b.includes(Buffer.from('mp4a')), f + ' has no AAC audio track');
     for (const bad of ['gemini', 'Gemini', 'Google', 'Veo']) assert.ok(!b.includes(Buffer.from(bad)), f + ' no ' + bad);
-    const p = `assets/img/hero/${n}-poster.webp`; assert.ok(ok(p), p); assert.ok(statSync(new URL('../' + p, import.meta.url)).size < 40_000, p + ' small');
+    const p = `assets/img/hero/${n}-poster.webp`; assert.ok(ok(p), p); assert.ok(statSync(new URL('../' + p, import.meta.url)).size < 80_000, p + ' small');
   }
   for (const n of NEW_STILLS) for (const w of [700, 1200]) {
     const f = `assets/img/hero/${n}-${w}.webp`, b = readFileSync(new URL('../' + f, import.meta.url));

@@ -70,13 +70,13 @@ test('the button is on the right pages and absent from the single-task pages', (
   const has = (p) => read(p).includes(tag);
   const models = readdirSync(new URL('../bike-service/', import.meta.url)).filter((d) => existsSync(new URL('../bike-service/' + d + '/index.html', import.meta.url)));
   const areas = readdirSync(new URL('../', import.meta.url)).filter((d) => /^bike-service-/.test(d) && existsSync(new URL('../' + d + '/index.html', import.meta.url)));
-  for (const p of ['index.html', 'car-service-bangalore/index.html', 'services/index.html', 'help/index.html', 'workshop/index.html', 'bike-service/' + models[0] + '/index.html', areas[0] + '/index.html']) assert.ok(has(p), p + ' has Mechu');
+  for (const p of ['index.html', 'car-service-bangalore/index.html', 'services/index.html', 'help/index.html', 'bike-service/' + models[0] + '/index.html', areas[0] + '/index.html']) assert.ok(has(p), p + ' has Mechu');
   assert.ok(models.every((m) => has('bike-service/' + m + '/index.html')) && areas.every((a) => has(a + '/index.html')), 'every model and area page');
   for (const p of ['book', 'pay', 'track', 'job', 'rate', 'warranty', 'unsubscribe', 'quote', 'refund-policy', 'terms', 'privacy', 'contact'])
     if (existsSync(new URL('../' + p + '/index.html', import.meta.url))) assert.ok(!has(p + '/index.html'), p + ' must not have Mechu');
   // belt and braces: the script itself stays away from those paths even if a page loaded it
   for (const p of ['/book/', '/book/?vehicle=car', '/pay/', '/track/', '/job/abc/', '/rate/', '/warranty/', '/unsubscribe/']) assert.equal(boot.isExcluded(p.split('?')[0]), true, p);
-  for (const p of ['/', '/services/', '/help/', '/workshop/', '/car-service-bangalore/', '/bike-service-hsr-layout/', '/bike-service/honda-activa-6g/', '/rate-card/']) assert.equal(boot.isExcluded(p), false, p);
+  for (const p of ['/', '/services/', '/help/', '/car-service-bangalore/', '/bike-service-hsr-layout/', '/bike-service/honda-activa-6g/', '/rate-card/']) assert.equal(boot.isExcluded(p), false, p);
 });
 
 test('no inline script or inline event handler is added; the page stays whole if the script fails', () => {
