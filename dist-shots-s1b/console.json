@@ -1,0 +1,36 @@
+{
+  "errors": [],
+  "blockedExternalRequests": [],
+  "shots": [
+    {
+      "file": "crew-myday-targets-error-390.png",
+      "overflowX": false,
+      "ready": true
+    },
+    {
+      "file": "crew-myday-targets-error-1280.png",
+      "overflowX": false,
+      "ready": true
+    },
+    {
+      "file": "admin-targets-error-390.png",
+      "overflowX": false,
+      "ready": true
+    },
+    {
+      "file": "admin-targets-error-1280.png",
+      "overflowX": false,
+      "ready": true
+    },
+    {
+      "file": "admin-targets-staff-390.png",
+      "overflowX": false,
+      "ready": true
+    },
+    {
+      "file": "admin-targets-staff-1280.png",
+      "overflowX": false,
+      "ready": true
+    }
+  ]
+}

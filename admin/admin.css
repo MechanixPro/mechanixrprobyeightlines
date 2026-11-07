@@ -278,3 +278,4 @@ tr.is-paid td:first-child{box-shadow:inset 4px 0 0 var(--good)}
 .tg-none{font-size:16px;color:var(--text3);margin-top:4px}.tg-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;margin-top:12px}.tg-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
 @media(max-width:640px){.tg-cols{grid-template-columns:1fr}.tg-table th,.tg-table td{white-space:normal}}
 .tg-table .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tg-who{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}.tg-table td.num{font-size:16px;vertical-align:top;min-width:64px}.tg-table th[scope=row]{font-size:16px!important}.tg-who .btn{min-height:40px}
