@@ -194,3 +194,33 @@ export function partnerGarageLine(status: string | null | undefined): { line: st
     default: return null;
   }
 }
+
+/* ---------- dashboard (the first screen) ---------- */
+/** IST calendar day (YYYY-MM-DD) of a timestamp, or null. */
+export const istDay = (iso: unknown): string | null => { const t = Date.parse(String(iso ?? '')); return Number.isFinite(t) ? new Date(t + 5.5 * 3600e3).toISOString().slice(0, 10) : null; };
+export type DashboardInput = { today: string; garage: { name?: string | null; city?: string | null; is_open?: boolean | null; shop_loc_at?: string | null }; rows: RawStatementRow[] };
+/** Greeting, today's count, open count, month figures and the amounts Admin entered that are still unpaid. Nothing is worked out beyond counting and averaging the amounts Admin typed:
+ *  there is no rate or share here. Amounts are what Mechanix Pro owes the garage ("We owe you"); the settlement data has no amount the garage owes the company. */
+export function garageDashboard(inp: DashboardInput) {
+  const month = inp.today.slice(0, 7), live = inp.rows.filter((r) => r.assignment.status !== 'cancelled');
+  const doneRows = live.filter((r) => ['ready', 'returned'].includes(String(r.assignment.status)) && (istDay(r.assignment.returned_at ?? r.assignment.ready_at) ?? '').startsWith(month));
+  const amounts = doneRows.map((r) => (r.settlement ? Number(r.settlement.amount) : NaN)).filter((n) => Number.isFinite(n));
+  const unsettled = live.filter((r) => r.settlement && !r.settlement.settled).slice(0, 100).map((r) => {
+    const v = r.vehicle ?? {};
+    return { id: String(r.assignment.id), booking_id: typeof r.lead?.booking_id === 'string' ? r.lead.booking_id.slice(0, 24) : null, vehicle: [v.brand && v.brand !== 'Other' ? v.brand : '', v.model].filter(Boolean).join(' ') || 'Vehicle',
+      completed_at: r.assignment.returned_at ?? r.assignment.ready_at ?? null, amount: Math.round(Number(r.settlement!.amount) * 100) / 100, direction: 'we_owe_you' as const, label: 'We owe you' };
+  });
+  return {
+    name: String(inp.garage.name ?? '').slice(0, 80), city: inp.garage.city ? String(inp.garage.city).slice(0, 40) : null, is_open: inp.garage.is_open !== false,
+    today_jobs: live.filter((r) => istDay(r.assignment.assigned_at) === inp.today).length, open_jobs: live.filter((r) => isOpen(r.assignment.status)).length,
+    month: { jobs: live.filter((r) => (istDay(r.assignment.assigned_at) ?? '').startsWith(month)).length, completed: doneRows.length, avg_ticket: amounts.length ? Math.round((amounts.reduce((t, n) => t + n, 0) / amounts.length) * 100) / 100 : null },
+    unsettled, unsettled_total: Math.round(unsettled.reduce((t, u) => t + u.amount, 0) * 100) / 100,
+    location: { set: !!inp.garage.shop_loc_at, at: inp.garage.shop_loc_at ?? null },
+  };
+}
+/** A browser position: only finite numbers inside India's box; accuracy rounded. */
+export function cleanLocation(b: any): { ok: true; lat: number; lng: number; acc: number | null } | { ok: false } {
+  const lat = Number(b?.lat), lng = Number(b?.lng), acc = b?.acc == null || b?.acc === '' ? null : Number(b.acc);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 6 || lat > 38 || lng < 68 || lng > 98) return { ok: false };
+  return { ok: true, lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6, acc: acc != null && Number.isFinite(acc) && acc >= 0 && acc <= 100000 ? Math.round(acc) : null };
+}

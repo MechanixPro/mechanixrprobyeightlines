@@ -7,13 +7,16 @@
 //   photo_upload_url { session, id, types: [...] }           -> signed upload URLs into the private bucket 'garage-updates'
 //   estimate_save / estimate_submit { session, id, lines, notes?, hours? | day? }
 //   statement        { session }                             -> completed jobs, amounts entered by Admin, settled or pending
+//   dashboard        { session }                             -> greeting, today's jobs, Open/Closed, month figures, unsettled amounts Admin entered ("We owe you"), whether the shop location is saved
+//   location_set     { session, lat, lng, acc? }             -> saves the shop location the phone reported (asked politely, never required)
+//   open_set         { session, open }                       -> the Open / Closed switch
 //   team_contact     { session }                             -> the team's WhatsApp and call numbers when set as secrets (else the page uses its public config)
 // Every response is built in _shared/garage.ts from a whitelist. Customer address and email are never selected from the database at all.
 import { adminDb, env, json, corsHeaders, sha256Hex } from '../_shared/util.ts';
 import { notifyTeamGarage } from '../_shared/after-payment.ts';
-import { signSession, verifySession, garageJobListItem, garageJobDetail, garageStatement, cleanUpload, cleanEstimate, photoPath, photoPathOk, LINK_RE, PIN_RE, UUID_RE, EVENTS, LOGIN_MESSAGE, isOpen, type RawJob } from '../_shared/garage.ts';
+import { signSession, verifySession, garageJobListItem, garageJobDetail, garageStatement, garageDashboard, cleanLocation, cleanUpload, cleanEstimate, photoPath, photoPathOk, LINK_RE, PIN_RE, UUID_RE, EVENTS, LOGIN_MESSAGE, isOpen, type RawJob } from '../_shared/garage.ts';
 
-const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact'];
+const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set'];
 const BAD = 'Could not save. Please try again.', SESSION_OVER = 'Your session has ended. Enter your PIN again.';
 const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
 
@@ -68,6 +71,22 @@ Deno.serve(async (req) => {
     return json(req, { ok: true, whatsapp: /^\d{12}$/.test(wa) ? wa : null, call: /^\d{12}$/.test(tel) ? tel : null });
   }
 
+  if (action === 'location_set') {
+    const v = cleanLocation(b);
+    if (!v.ok) return json(req, { error: 'That location does not look right.' }, 400);
+    const r = await rpc('garage_location_set', { p_access: accessId, p_lat: v.lat, p_lng: v.lng, p_acc: v.acc });
+    if (!r) return json(req, { error: BAD }, 500);
+    if (!r.ok) return json(req, { error: r.error }, 400);
+    return json(req, { ok: true, at: r.at });
+  }
+  if (action === 'open_set') {
+    if (typeof b?.open !== 'boolean') return json(req, { error: 'Choose Open or Closed.' }, 400);
+    const r = await rpc('garage_open_set', { p_access: accessId, p_open: b.open });
+    if (!r) return json(req, { error: BAD }, 500);
+    if (!r.ok) return json(req, { error: r.error }, 400);
+    return json(req, { ok: true, open: r.open });
+  }
+
   /* ---------- reading jobs: only this garage's own assignments ---------- */
   const mine = (id?: string) => { let q = db.from('garage_assignments').select('id,lead_id,status,eta,notes,assigned_at,received_at,started_at,ready_at,returned_at').eq('garage_id', garageId).neq('status', 'cancelled'); if (id) q = q.eq('id', id); return q; };
   // Lead columns: never address, email or phone here. The phone is fetched separately, only after the contact view is allowed.
@@ -84,6 +103,16 @@ Deno.serve(async (req) => {
   }
   const rawOf = (a: any, c: Awaited<ReturnType<typeof context>>): RawJob => { const l: any = c.L.get(a.lead_id) ?? {}; return { assignment: a, lead: l, service: c.S.get(l.service_id) ?? null, vehicle: c.K.get(l.bike_id) ?? null, quote: c.Q.get(a.lead_id) ?? null }; };
   const sign = async (bucket: string, paths: string[]) => { const out: string[] = []; for (const p of paths.slice(0, 12)) { const { data } = await db.storage.from(bucket).createSignedUrl(p, 600); if (data?.signedUrl) out.push(data.signedUrl); } return out; };
+
+  if (action === 'dashboard') {
+    const [{ data: rows, error }, { data: g }] = await Promise.all([mine().order('assigned_at', { ascending: false }).limit(500), db.from('garages').select('name,city,is_open,shop_loc_at').eq('id', garageId).maybeSingle()]);
+    if (error) { console.error('garage-app dashboard', error.code); return json(req, { error: 'Could not load your dashboard. Please try again.' }, 500); }
+    const done = (rows ?? []).filter((r: any) => ['ready', 'returned'].includes(r.status)), ids = done.map((r: any) => r.id);
+    const [c, st] = await Promise.all([context(done), ids.length ? db.from('garage_settlements').select('assignment_id,amount,settled,settled_at,note').in('assignment_id', ids.slice(0, 200)) : Promise.resolve({ data: [] })]);
+    const S = new Map((st.data ?? []).map((s: any) => [s.assignment_id, s]));
+    const all = (rows ?? []).map((a: any) => ({ assignment: a, lead: ((c.L.get(a.lead_id) as any) ?? {}), vehicle: ((c.K.get(((c.L.get(a.lead_id) as any) ?? {}).bike_id) as any) ?? null), settlement: (S.get(a.id) as any) ?? null }));
+    return json(req, { ok: true, dashboard: garageDashboard({ today: new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 10), garage: { name: g?.name ?? garageName, city: g?.city, is_open: g?.is_open, shop_loc_at: g?.shop_loc_at }, rows: all }) });
+  }
 
   if (action === 'jobs') {
     const { data: rows, error } = await mine().order('assigned_at', { ascending: false }).limit(200);
