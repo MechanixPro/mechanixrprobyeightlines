@@ -1,5 +1,6 @@
 import { rpc, esc, head, chips, empty, when, day, tag, modal, field, toast, label, parseCsv, downloadFile, PIPE, confirmBox } from '../ui.js';
 import { schedule } from './visits.js';
+import { parseLatLng, COORD_HELP } from '../geo-parse.js';
 
 const CATS = [['2-wheeler', 'Two-wheeler'], ['4-wheeler', 'Four-wheeler'], ['heavy', 'Heavy vehicles'], ['ev', 'Electric'], ['bodywork', 'Bodywork']];
 const NEXT = { applied: 'visited', visited: 'kyc_done', kyc_done: 'trained', trained: 'pilot', pilot: 'live' };
@@ -33,7 +34,7 @@ function form(g, hubs) {
     ${field('Owner mobile', 'mobile', { type: 'tel', inputmode: 'tel', required: true, value: g?.mobile, half: true })}${field('Trade licence id', 'trade_id', { value: g?.trade_id, half: true })}</div>
     ${field('Address', 'address', { type: 'textarea', rows: 2, required: true, max: 300, value: g?.address })}
     <div class="grid2">${field('Landmark', 'landmark', { value: g?.landmark, half: true })}${field('PIN code', 'pincode', { inputmode: 'numeric', required: true, value: g?.pincode, half: true })}
-    ${field('Latitude', 'lat', { inputmode: 'decimal', required: true, value: g?.lat, half: true })}${field('Longitude', 'lng', { inputmode: 'decimal', required: true, value: g?.lng, half: true })}
+    ${field('Latitude', 'lat', { inputmode: 'text', hint: 'Paste the Google Maps location here', required: true, value: g?.lat, half: true })}${field('Longitude', 'lng', { inputmode: 'text', hint: 'Or here (either box works)', required: true, value: g?.lng, half: true })}
     ${field('Working days', 'open_days', { required: true, value: g?.open_days || 'Mon-Sat', half: true })}${field('Repair bays', 'bays', { type: 'number', min: 1, max: 60, required: true, value: g?.bays, half: true })}
     ${field('Opens (HH:MM)', 'open_time', { required: true, value: g?.open_time || '09:00', half: true })}${field('Closes (HH:MM)', 'close_time', { required: true, value: g?.close_time || '19:00', half: true })}
     ${field('Hub', 'hub_id', { type: 'select', blank: 'Suggest from location', value: g?.hub_id || '', options: hubs.map((h) => [h.id, `${h.id}. ${h.name}`]), half: true })}</div>
@@ -42,7 +43,9 @@ function form(g, hubs) {
 
 function edit(g, ctx, hubs) {
   modal({ title: g ? 'Edit garage' : 'New garage', wide: true, body: form(g, hubs), submit: 'Save', onSubmit: async (f, d, close) => {
-    const r = await rpc('crm_garage_save', { p: { ...d, id: g?.id || null, categories: d.categories || [], hub_id: d.hub_id || null }, p_commit: true });
+    const ll = parseLatLng(d.lat, d.lng);   // accepts 'lat, lng', degrees from Google Maps, or a Google Maps link in either box
+    if (!ll) throw new Error(COORD_HELP);
+    const r = await rpc('crm_garage_save', { p: { ...d, lat: ll.lat, lng: ll.lng, id: g?.id || null, categories: d.categories || [], hub_id: d.hub_id || null }, p_commit: true });
     if (!r.ok) throw new Error(r.errors.join('. '));
     close(); toast('Garage saved.'); ctx.reload(); } });
 }
