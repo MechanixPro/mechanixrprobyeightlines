@@ -9,7 +9,7 @@ const SAMPLE = ['index.html', 'bike-service-hsr-layout/index.html', 'bike-servic
 
 test('the home page has six sections, in the order a visitor decides', () => {
   const ids = [...main.matchAll(/<section[^>]*id="([a-z-]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(ids, ['hero', 'brief', 'work', 'prices', 'team', 'trust', 'areas', 'faq', 'tools']);
+  assert.deepEqual(ids, ['hero', 'brief', 'work', 'prices', 'team', 'garages', 'trust', 'areas', 'faq', 'tools']);
   assert.ok(main.indexOf('class="stage"') < main.indexOf('class="sheet"'), 'a navy stage first, then the light sheet');
   assert.equal((main.match(/<h1[ >]/g) || []).length, 1);
 });
@@ -117,7 +117,7 @@ test('one font, one accent; tap targets, focus, reduced motion and contrast toke
 });
 test('the home page stays light: one eager hero photo (lazy extras), no chat script, no script slideshow', () => {
   assert.doesNotMatch(home, /hero-rain|chatstart\.js|hero\.js|showcase\.js|class="ticker"/);
-  assert.ok(Buffer.byteLength(home) < 48000, 'home HTML is ' + Buffer.byteLength(home) + ' bytes');   // raised on purpose from 44,000 (hero carousel slides)
+  assert.ok(Buffer.byteLength(home) < 54000, 'home HTML is ' + Buffer.byteLength(home) + ' bytes');   // raised on purpose from 44,000 then 48,000 (hero carousel slides, then the garages gallery and welcome video)
   assert.ok(readdirSync(new URL('../assets/css/', import.meta.url)).includes('site.css'));
   assert.ok(Buffer.byteLength(css) < 32000, 'site.css is ' + Buffer.byteLength(css) + ' bytes');
 });
