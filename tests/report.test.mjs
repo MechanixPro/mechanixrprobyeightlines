@@ -47,3 +47,18 @@ test('reportCsv has a header, one row per booking, no names or phone numbers, an
   assert.match(row, /^MP-9,2026-10-08,General service,"HSR, Layout",Kiran,completed,1299,1299,0,,direct,"say ""hi"""$/);
   assert.doesNotMatch(csv, /phone|name/i);
 });
+
+// Regression: Admin > Money > Reports crashed with "Cannot read properties of null (reading 'rate')" for a completed job with a mechanic but no invoice_override (null).
+test('payoutReport renders when invoice_override is null, missing or has no rate', async () => {
+  const { payoutReport, invoiceGstRate } = await import('../admin/report.js');
+  const mechs = [{ id: 'm1', name: '[Mechanic Name]', payout_rate: 50 }];
+  for (const io of [null, undefined, {}, { rate: null }, { rate: '' }]) {
+    const r = payoutReport([{ status: 'completed', mechanic_id: 'm1', paid_amount: 118, invoice_override: io }], mechs, 'before_gst');
+    assert.equal(r.rows.length, 1); assert.equal(r.rows[0].jobs, 1); assert.equal(invoiceGstRate({ invoice_override: io }), 18);
+  }
+  assert.equal(invoiceGstRate({ invoice_override: { rate: 0 } }), 0);
+  assert.equal(invoiceGstRate({ invoice_override: { rate: 12 } }), 12);
+  assert.equal(invoiceGstRate(null), 18);
+  assert.deepEqual(payoutReport(null, null).rows, []);
+  assert.deepEqual(payoutReport([null, { status: 'completed', mechanic_id: 'm1', paid_amount: 100 }], [null, ...mechs]).rows.length, 1);
+});
