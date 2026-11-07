@@ -142,11 +142,11 @@ details.card[open]>summary::after{content:"  \25B4"}
 .mt-wrap .mt-table tbody tr:last-child td{border-bottom:1px solid var(--border)}
 .mt-wrap .mt-chips{display:inline-flex;gap:var(--s1);flex-wrap:nowrap;align-items:center}
 .mt-wrap .mt-table td.mc-chips{white-space:normal}
-.mt-wrap .mt-table .mt-s1{position:sticky;left:0;z-index:2}
-.mt-wrap .mt-table .mt-s2{position:sticky;left:var(--mt-s1,132px);z-index:2;box-shadow:1px 0 0 var(--border)}
-.mt-wrap .mt-table thead .mt-s1,.mt-wrap .mt-table thead .mt-s2{z-index:4;background:var(--surface2)}
+.mt-wrap .mt-table .mt-sk{position:sticky;z-index:2}
+.mt-wrap .mt-table .mt-skl{box-shadow:1px 0 0 var(--border)}
+.mt-wrap .mt-table thead .mt-sk{z-index:4;background:var(--surface2)}
 .mt-wrap .mt-table tfoot td{position:sticky;bottom:0;z-index:3;background:var(--surface2);font-weight:700;border-top:2px solid var(--border2);border-bottom:0}
-.mt-wrap .mt-table tfoot .mt-s1,.mt-wrap .mt-table tfoot .mt-s2{z-index:4}
+.mt-wrap .mt-table tfoot .mt-sk{z-index:4}
 .mt-inv{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs-3);white-space:nowrap}
 .mt-sub{display:block;font-size:var(--fs-2);color:var(--text3);font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mt-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
@@ -158,7 +158,7 @@ details.card[open]>summary::after{content:"  \25B4"}
 .mt-dl{display:grid;grid-template-columns:1fr auto;gap:var(--s1) var(--s3);margin:var(--s2) 0 0}
 .mt-dl dt{color:var(--text3);font-size:var(--fs-2)}.mt-dl dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-size:var(--fs-3)}
 @media(max-width:760px){
-  .mt-wrap>.mt-scroll{display:none}
+  .mt-has-cards>.mt-scroll{display:none}
   .mt-cards{display:grid;gap:var(--s2)}
   .mt-card{display:block;padding:var(--s3);border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow-sm);min-width:0}
   .mt-ch{display:flex;justify-content:space-between;gap:var(--s3);align-items:flex-start}.mt-ct{text-align:right}
@@ -174,3 +174,18 @@ details.card[open]>summary::after{content:"  \25B4"}
 .mt-f-btns{display:flex;gap:var(--s2);margin-left:auto;flex-wrap:wrap}
 .mt-f-btns .btn{min-height:44px}
 @media(max-width:760px){.mt-f,.mt-f-date,.mt-f-q{flex:1 1 calc(50% - var(--s3));max-width:none}.mt-f-q{flex-basis:100%}.mt-f-btns{margin-left:0;width:100%}.mt-f-btns .btn{flex:1}}
+/* labelTables (ds.js) tags every 5+ column table as a phone card list; the Money tables scroll inside their card instead (Sales swaps to its own cards), so undo that here. */
+@media(max-width:699px){
+  .mt-wrap .mt-table.mx-table--cards{display:table;table-layout:fixed;width:max(100%,var(--tw,0px))}
+  .mt-wrap .mt-table.mx-table--cards thead{display:table-header-group}
+  .mt-wrap .mt-table.mx-table--cards tbody{display:table-row-group}
+  .mt-wrap .mt-table.mx-table--cards tfoot{display:table-footer-group}
+  .mt-wrap .mt-table.mx-table--cards tr{display:table-row;width:auto;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;background:none}
+  .mt-wrap .mt-table.mx-table--cards td,.mt-wrap .mt-table.mx-table--cards th{display:table-cell;width:auto;padding:var(--s2) var(--s3);border-bottom:1px solid var(--border);overflow-wrap:normal}
+  .mt-wrap .mt-table.mx-table--cards td::before{content:none}
+  .mt-wrap .mt-table.mx-table--cards td.mc-num{text-align:right}
+  .mt-wrap .mt-table.mx-table--cards td:empty{display:table-cell}
+  .mt-wrap .mt-table.mx-table--cards td:first-child{font-weight:inherit}
+  .mt-wrap .mt-table.mx-table--cards tr.late{border-left:0}
+  .mt-wrap:has(.mt-table){border:0}
+}

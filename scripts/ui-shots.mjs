@@ -99,6 +99,7 @@ const SHOTS = [
 ];
 SHOTS.push(...['sales', 'mechledger', 'invoices', 'reports'].map((t) => adm('mt-' + t, t, { money: true })));
 SHOTS.push(adm('mt-sales-right', 'sales', { money: true, step: `(async()=>{await ${clickTab('sales')};await new Promise(r=>setTimeout(r,600));const s=document.querySelector('.mt-scroll');if(s)s.scrollLeft=99999})()` }));
+SHOTS.push(adm('mt-mlopen', 'mechledger', { money: true, step: `(async()=>{await ${clickTab('mechledger')};await new Promise(r=>setTimeout(r,500));const b=document.querySelector('[data-act="mlOpen"]');if(b)b.click()})()` }));
 const SIZES = [{ w: 390, h: 844, dpr: 2, mobile: true }, { w: 1280, h: 800, dpr: 1, mobile: false }];
 
 const summary = [];

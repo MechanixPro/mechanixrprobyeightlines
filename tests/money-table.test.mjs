@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { rupeeText, moneyCell, shareCompact, orderChips, chipView, chipsHtml, totalsRow, clip, tableHtml } from '../admin/money-table.js';
+import { rupeeText, moneyCell, moneyWhole, shareCompact, orderChips, chipView, chipsHtml, totalsRow, clip, tableHtml } from '../admin/money-table.js';
 
 // The previous renderer (copied from admin.js before this change) is the reference for "no number changed".
 const oldRupee2 = (n) => { const v = Math.round((Number(n) || 0) * 100) / 100; return '₹' + v.toLocaleString('en-IN', { minimumFractionDigits: Number.isInteger(v) ? 0 : 2, maximumFractionDigits: 2 }); };
@@ -80,6 +80,15 @@ test('snapshot: displayed values and totals equal the old renderer for a fixture
 });
 test('tableHtml survives empty, null rows data and keeps sticky classes and a colgroup', () => {
   const h = tableHtml({ cols: COLS.map((c, i) => ({ ...c, sticky: i < 2 })), rows: [] });
-  assert.match(h, /<colgroup>/); assert.match(h, /mt-s1/); assert.match(h, /mt-s2/);
+  assert.match(h, /<colgroup>/); assert.match(h, /mt-sk mt-skl/); assert.match(h, /left:120px/);
   assert.doesNotThrow(() => tableHtml({ cols: COLS, rows: null }));
+});
+test('whole-rupee cells match the old rupee() and show a dash for zero', () => {
+  const oldRupee = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
+  for (const n of [1, 499.5, 44.91, 99999.999, 12345678.9, 1e7]) assert.equal(moneyWhole(n), oldRupee(n));
+  for (const n of [0, null, undefined, NaN, 'x', 0.4]) assert.match(moneyWhole(n), /mt-zero/);
+});
+test('row class can be a function and sticky offsets add up', () => {
+  const h = tableHtml({ cols: COLS.map((c, i) => ({ ...c, sticky: i < 2 })), rows: FIX, rowCls: (a) => 'r-' + a.lead_id });
+  assert.match(h, /class="r-l"/); assert.match(h, /class="r-m"/);
 });
