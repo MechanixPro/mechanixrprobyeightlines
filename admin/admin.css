@@ -294,3 +294,4 @@ tr.is-paid td:first-child{box-shadow:inset 4px 0 0 var(--good)}
 .ip-table{width:100%;border-collapse:collapse;font-size:16px}
 .ip-table th,.ip-table td{padding:var(--s2);text-align:left;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
 .ip-done{font-size:16px;margin:var(--s3) 0}
+.ip-ph{white-space:nowrap}
