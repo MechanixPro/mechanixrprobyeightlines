@@ -60,3 +60,73 @@
 
 /* Admin header on a phone: the brand and the section buttons were drawn on top of each other. */
 .nav .brand{flex:0 0 auto}.nav .groups{flex:1 1 auto;min-width:0}.nav #signOut{flex:0 0 auto}
+
+/* ---------- Desk layout layer (Crew and Admin): one spacing scale, one control height, one card, one table, one page header ----------
+   Scale: 4 8 12 16 24. Controls are 44px high with the same radius. Cards are 16px padded with the same radius, 16px apart. Tables scroll inside their card, never the page. */
+:root{--mx-s1:4px;--mx-s2:8px;--mx-s3:12px;--mx-s4:16px;--mx-s5:24px;--mx-ctl:44px}
+#view{min-width:0}
+#view>h1,#view>.view-head h1{font-size:clamp(24px,3vw,30px)!important;line-height:1.2;margin:0 0 var(--mx-s1)!important}
+#view>h1+p,#view>.view-head p{margin:0 0 var(--mx-s4);max-width:46em;font-size:15px}
+.view-head{align-items:center!important;margin-bottom:var(--mx-s4)!important}
+/* toolbars: equal height, equal radius, even gaps, actions pushed right on wide screens */
+.toolbar,.view-tools{display:flex;flex-wrap:wrap;gap:var(--mx-s2)!important;align-items:center;margin:0 0 var(--mx-s4)}
+.toolbar>*,.view-tools>*{margin-top:0!important;margin-bottom:0!important}
+.toolbar .btn,.view-tools .btn,.toolbar select,.view-tools select,.toolbar input:not([type=checkbox]):not([type=radio]),.view-tools input:not([type=checkbox]):not([type=radio]){min-height:var(--mx-ctl)!important;height:var(--mx-ctl);box-sizing:border-box;border-radius:var(--mx-pill)!important;padding-top:0;padding-bottom:0}
+.toolbar .btn,.view-tools .btn{padding-inline:18px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}
+.toolbar select,.view-tools select{padding-inline:16px}
+.toolbar label,.view-tools label{font-size:13px;color:var(--mx-muted);display:inline-flex;align-items:center}
+/* fields */
+#view input:not([type=checkbox]):not([type=radio]):not([type=range]),#view select{min-height:var(--mx-ctl);box-sizing:border-box;border-radius:var(--mx-r)}
+#view .btn.btn-sm,#view .mx-btn--sm{min-height:var(--mx-ctl)}
+/* cards: one padding, one radius, one gap */
+#view .card,#view .mx-card,#view .split-card{padding:var(--mx-s4) var(--mx-s5);border-radius:var(--mx-r)}
+#view .card[style*="margin-top"]{margin-top:var(--mx-s4)!important}
+#view .card>h3:first-child,#view .card>h2:first-child{margin:0 0 var(--mx-s3);font-size:16px;line-height:1.3}
+#view .card{margin-block:var(--mx-s4)}
+#view .cards,#view .split2{gap:var(--mx-s4)}
+.split2>.card{margin:0!important}
+/* equal KPI tiles instead of one double-width tile that leaves holes in the grid */
+.kpis,.stat-row{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))!important;gap:var(--mx-s3)!important;margin:0 0 var(--mx-s4)!important}
+.kpis>*:nth-child(1),.stat-row>*:nth-child(1),.stat.wide{grid-column:auto!important}
+.kpi,.stat{min-height:96px;display:flex;flex-direction:column;justify-content:center}
+.kpi b,.stat b{font-size:clamp(24px,3vw,32px)!important;line-height:1.1}
+.kpis>*:nth-child(1) b,.stat-row>*:nth-child(1) b{font-size:clamp(24px,3vw,32px)!important}
+@media(max-width:700px){.kpis,.stat-row{grid-template-columns:1fr 1fr!important}}
+/* tables: one look, scroll inside the card on narrow screens */
+#view table{border-collapse:collapse;font-size:14px}
+#view table th{font-size:12px;font-weight:600;color:var(--mx-muted);text-transform:none;letter-spacing:0;white-space:nowrap;padding:var(--mx-s3) var(--mx-s3)}
+#view table td{padding:10px var(--mx-s3);vertical-align:middle}
+#view .rtable th,#view .rtable td{padding:10px var(--mx-s3)}
+.table-wrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media(max-width:700px){#view table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}#view .rtable{min-width:0!important}#view .rtable thead,#view .rtable tbody{display:table;min-width:560px;width:100%}}
+/* pipeline step pills: never clip the label */
+.step{font-size:11px!important;padding:6px 1px!important;overflow:hidden;text-overflow:ellipsis}
+.step span{overflow-wrap:normal!important;word-break:normal;hyphens:auto}
+@media(max-width:700px){.step{font-size:10px!important}.step span::before{content:""!important}}
+/* phone: header and tab bars */
+@media(max-width:700px){
+  .top{padding-block:8px;gap:8px;grid-template-columns:1fr auto}
+  .top .who{flex-wrap:wrap;justify-content:flex-end;gap:6px;font-size:12px}
+  .top .who span{max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .top .who .btn{min-height:36px;padding:0 12px;white-space:nowrap;font-size:13px}
+  .tabs{top:0;scroll-snap-type:x proximity;mask-image:linear-gradient(90deg,#000 92%,transparent)}
+  .tabs button{scroll-snap-align:start;white-space:nowrap}
+  #view .btn,.lc-actions .btn{white-space:nowrap}
+}
+/* badges sit on the baseline of their label */
+.badge,.pill,.mx-chip{vertical-align:middle}
+/* Crew content as wide as Admin's (1280), so wide tables clip less */
+.body{max-width:1280px}
+.steps.compact{min-width:300px}.steps.compact .step{font-size:10px!important;padding:3px 1px!important}
+td .steps.compact .step{overflow:visible;text-overflow:clip}
+@media(max-width:700px){
+  .toolbar>*,.view-tools>*{flex:1 1 calc(50% - 8px);min-width:0}
+  .toolbar>input[type=search],.view-tools>input[type=search],.toolbar>label,.view-tools>label{flex-basis:100%}
+  .toolbar>label,.view-tools>label{margin-bottom:-4px!important}
+  .toolbar .btn,.view-tools .btn{flex:1 1 auto}
+}
+#view>*,#view .card,#view .split2>*,#view .cards>*{min-width:0;max-width:100%}
+#view .card{overflow-x:auto}
+/* section headings between blocks: one size and one rhythm */
+#view>h3,#view>.sec-head,#view>div>h3:not(.card h3){font-size:16px;line-height:1.3;margin:var(--mx-s5) 0 var(--mx-s3)}
+#view h3 .btn,#view h3 button{margin-left:var(--mx-s2);vertical-align:middle}

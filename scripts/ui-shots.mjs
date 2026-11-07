@@ -93,6 +93,8 @@ const SHOTS = [
   adm('bookings-empty', 'leads', { scenario: 'empty' }), adm('dispatch-empty', 'dispatch', { scenario: 'empty' }), adm('issues-empty', 'issues', { scenario: 'empty' }),
   adm('boot-error', null, { fail: ['leads'], wait: '#view .load-err, #view .mx-error', hold: 500 }), adm('boot-partial', null, { fail: ['ledger_entries'], hold: 300 }), adm('boot-loading', null, { hang: ['leads'], wait: '#view .skel, #view .mx-skeleton', hold: 400 }),
   adm('dispatch-error', 'dispatch', { fail: ['crm_dispatch_list'] }),
+  ...['inbox', 'unassigned', 'web', 'rsa', 'tickets', 'visits', 'garages', 'garageapp', 'mechanics', 'knowledge', 'team'].map((v) => crew('tab-' + v, v, { wait: '#view > *' })),
+  ...['dash', 'board', 'dispatch', 'leads', 'customers', 'custbook', 'issues', 'sales', 'mechledger', 'invoices', 'reports', 'coupons', 'prices', 'mechanics', 'garageapp', 'pins', 'offers', 'waitlist', 'homeimgs', 'settings', 'activity'].map((t) => adm('tab-' + t, t)),
 ];
 const SIZES = [{ w: 390, h: 844, dpr: 2, mobile: true }, { w: 1280, h: 800, dpr: 1, mobile: false }];
 
