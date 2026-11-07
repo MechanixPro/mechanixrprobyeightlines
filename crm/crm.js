@@ -16,6 +16,7 @@ import * as team from './pages/team.js';
 import * as inbox from './pages/inbox.js';
 import * as callnow from './pages/callnow.js';
 import * as followups from './pages/followups.js';
+import * as playbooks from './pages/playbooks.js';
 import { myRows } from './targets.js';
 import { myTargetsHtml } from './targets-view.js';
 import { newBooking, editBooking } from './pages/booking.js';
@@ -51,6 +52,7 @@ const SCREENS = [
   { id: 'inbox', title: 'Inbox', page: 'inbox', mod: inbox },
   { id: 'callnow', title: 'Call now', page: 'leads', mod: callnow },
   { id: 'followups', title: 'Follow-ups', page: 'leads', mod: followups },
+  { id: 'playbooks', title: 'Playbooks', page: 'leads', mod: playbooks },
   { id: 'mine', title: 'My day', page: 'leads' },
   { id: 'dispatch', title: 'Dispatch', page: 'leads', tech: true, mod: dispatch },
   { id: 'issues', title: 'Issues', page: 'leads', mod: issues },
