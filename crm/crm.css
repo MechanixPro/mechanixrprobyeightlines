@@ -94,3 +94,4 @@ body:not(.admin){font-size:var(--fs-4)}
 .tg-pill.tg-good{background:var(--good-bg);color:var(--good-text)}.tg-pill.tg-bad{background:var(--bad-bg);color:var(--bad-text)}.tg-pill.tg-ok{background:var(--warn-bg);color:var(--accent-text)}
 .tg-none{font-size:16px;color:var(--text3);margin-top:4px}
 @media(max-width:640px){.tg-cols{grid-template-columns:1fr}}
+.tg-table .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

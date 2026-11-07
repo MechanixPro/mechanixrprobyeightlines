@@ -51,3 +51,19 @@ test('migration: no money columns returned, owner-only set', () => {
   assert.ok(!/est_total|paid_amount|\btotal\b|subtotal|balance|fee_credit|confirm_fee/.test(prog));
   assert.ok(/crm_targets_set[\s\S]*?is_owner\(\)/.test(sql));
 });
+
+import { targetsPanelHtml } from '../admin/targets-panel.js';
+import { myTargetsHtml, barsHtml } from '../crm/targets-view.js';
+import { myRows as mr } from '../crm/targets.js';
+const P = { now_ist: '2027-01-12T15:00:00', people: [{ user_id: 'a', name: '<b>Asha</b>', day: { target: { calls: 10, quotes_sent: 2, paid_bookings: 1 }, actual: { calls: 1, quotes_sent: 0, paid_bookings: 1 } }, week: null }] };
+test('panel: escapes names, owner gets the form, supervisor does not, empty state', () => {
+  const owner = targetsPanelHtml(P, { canSet: true }), sup = targetsPanelHtml(P, { canSet: false });
+  assert.ok(!owner.includes('<b>Asha</b>') && owner.includes('&lt;b&gt;Asha')); assert.ok(owner.includes('id="tgForm"') && owner.includes('Behind'));
+  assert.ok(!sup.includes('tgForm') && !sup.includes('data-tg-set') && !/₹|rupee/i.test(sup));
+  assert.ok(targetsPanelHtml({ people: [] }, {}).includes('No team members yet'));
+});
+test('crew card: no target message, bars carry progressbar roles', () => {
+  const none = myTargetsHtml({ day: mr({ people: [{ user_id: 'z', name: 'Z' }] }, 'z', 'day'), week: mr({ people: [{ user_id: 'z', name: 'Z' }] }, 'z', 'week') });
+  assert.ok(none.includes('No targets set for you yet')); assert.equal(myTargetsHtml(null), '');
+  const h = barsHtml(mr(P, 'a', 'day').rows); assert.ok(h.includes('role="progressbar"') && h.includes('1 of 10'));
+});

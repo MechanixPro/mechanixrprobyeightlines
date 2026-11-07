@@ -18,8 +18,8 @@ export function myTargetsHtml(mine) {
 }
 
 /** Admin team table for one period: one row per person with a short count and status per metric. */
-export function teamTableHtml(team) {
+export function teamTableHtml(team, canSet = false) {
   const cell = (r) => `<td class="num">${r.target ? `${r.actual}/${r.target}` : `${r.actual}`}${r.target ? `<div class="tg-mini"><span class="tg-fill tg-${statusTone(r.status)}" style="width:${r.width}%"></span></div>` : ''}</td>`;
-  return `<div class="sp-scroll"><table class="inv-table sp-table tg-table"><thead><tr><th scope="col">Person</th><th scope="col" class="num">Calls</th><th scope="col" class="num">Quotes</th><th scope="col" class="num">Paid</th><th scope="col">Status</th><th scope="col"></th></tr></thead><tbody>
-    ${team.map((p) => `<tr><th scope="row">${esc(p.name)}</th>${p.rows.map(cell).join('')}<td>${pill(p.status)}</td><td><button type="button" class="btn sm" data-tg-set="${esc(p.id)}">Set targets</button></td></tr>`).join('')}</tbody></table></div>`;
+  return `<div class="sp-scroll"><table class="inv-table sp-table tg-table"><thead><tr><th scope="col">Person</th><th scope="col" class="num">Calls</th><th scope="col" class="num">Quotes</th><th scope="col" class="num">Paid</th><th scope="col">Status</th>${canSet ? '<th scope="col"><span class="sr-only">Action</span></th>' : ''}</tr></thead><tbody>
+    ${team.map((p) => `<tr><th scope="row">${esc(p.name)}</th>${p.rows.map(cell).join('')}<td>${pill(p.status)}</td>${canSet ? `<td><button type="button" class="btn sm" data-tg-set="${esc(p.id)}">Set targets</button></td>` : ''}</tr>`).join('')}</tbody></table></div>`;
 }
