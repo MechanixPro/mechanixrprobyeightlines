@@ -13,11 +13,11 @@ export function phoneSet(...lists) { const s = new Set(); for (const l of lists)
 export function previewHtml(rows, res) {
   const nV = res.valid.length, nD = res.duplicates.length, nI = res.invalid.length;
   const reasons = [...res.invalid.map((x) => ({ ...x, kind: 'Invalid' })), ...res.duplicates.map((x) => ({ ...x, kind: 'Duplicate' }))].sort((a, b) => a.row - b.row);
-  const first = res.valid.slice(0, 20).map((v) => `<tr><td>${esc(v.name)}</td><td class="ip-ph">${esc(v.phone)}</td><td>${esc(v.source || 'phone')}</td><td>Ready</td></tr>`);
+  const first = res.valid.slice(0, 20).map((v) => `<tr><td>${esc(v.name)}</td><td class="ip-ph">${esc(v.phone)}</td><td class="ip-src">${esc(v.source || 'phone')}</td><td>Ready</td></tr>`);
   const bad = reasons.slice(0, Math.max(0, 20 - first.length)).map((x) => `<tr><td>Row ${esc(x.row)}</td><td colspan="3">${esc(x.kind)}: ${esc(x.reason)}</td></tr>`);
   const warn = (res.warnings || []).map((w) => `<p class="ip-warn" role="status">${esc(w)}</p>`).join('');
   const many = res.tooMany ? `<p class="ip-warn" role="alert">This file has more than ${MAX_ROWS} rows. Split it and import ${MAX_ROWS} or fewer at a time.</p>` : '';
-  const table = (first.length + bad.length) ? `<div class="ip-scroll"><table class="ip-table"><thead><tr><th>Name</th><th>Phone</th><th>Source</th><th>Result</th></tr></thead><tbody>${first.join('')}${bad.join('')}</tbody></table></div><p class="small muted">Showing up to 20 rows.</p>` : '<p class="muted">No rows found. Check the first line has column names such as name and phone.</p>';
+  const table = (first.length + bad.length) ? `<div class="ip-scroll"><table class="ip-table"><thead><tr><th>Name</th><th>Phone</th><th class="ip-src">Source</th><th>Result</th></tr></thead><tbody>${first.join('')}${bad.join('')}</tbody></table></div><p class="small muted">Showing up to 20 rows.</p>` : '<p class="muted">No rows found. Check the first line has column names such as name and phone.</p>';
   const go = `<button class="btn btn-primary" type="button" data-ip="go"${nV && !res.tooMany ? '' : ' disabled'}>Import ${nV} lead${nV === 1 ? '' : 's'}</button>`;
   return `<div class="ip-counts"><span class="pill p-ok"><b>${nV}</b> valid</span><span class="pill"><b>${nD}</b> duplicates</span><span class="pill p-bad"><b>${nI}</b> invalid</span></div>${many}${warn}${table}<div class="ip-actions">${go}</div>`;
 }
