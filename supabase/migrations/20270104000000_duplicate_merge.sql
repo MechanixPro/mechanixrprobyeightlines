@@ -180,19 +180,24 @@ end $$;
 
 -- Puts every recorded row back on p_to (the original owner). A row that was deleted since is ignored; one that now sits elsewhere stops the undo.
 create or replace function public.merge_restore_rows(p_kind text, p_merge uuid, p_from uuid, p_to uuid) returns integer language plpgsql security definer set search_path = public as $$
-declare r record; pk text[]; w text; n integer; total integer := 0; holder integer; anywhere integer;
+declare r record; pk text[]; w text; n integer; total integer := 0; holder integer; anywhere integer; exact_key boolean;
 begin
   for r in select * from public.merge_moved_rows where kind = p_kind and merge_id = p_merge order by id loop
     select array_agg(a.attname::text) into pk from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any (i.indkey)
      where i.indrelid = r.tbl::regclass and i.indisprimary;
+    exact_key := true;
     if pk is not null then
-      select string_agg(format('t.%I is not distinct from (jsonb_populate_record(null::%s, $3)).%I', x, r.tbl, x), ' and ') into w from unnest(pk) x;
+      -- the moved column itself cannot identify the row (its value changed): match on the rest of the key, and be lenient if the row is gone
+      if r.col = any (pk) then exact_key := false; pk := array_remove(pk, r.col); end if;
+      if cardinality(pk) = 0 then w := 'true';
+      else select string_agg(format('t.%I is not distinct from (jsonb_populate_record(null::%s, $3)).%I', x, r.tbl, x), ' and ') into w from unnest(pk) x;
+      end if;
     else
       w := format('to_jsonb(t) - %L = $3 - %L', r.col, r.col);
     end if;
     execute format('select count(*) from %s t where %s', r.tbl, w) into anywhere using null::uuid, null::uuid, r.row;
     execute format('select count(*) from %s t where %s and t.%I = $1', r.tbl, w, r.col) into holder using p_from, null::uuid, r.row;
-    if anywhere > 0 and holder = 0 then raise exception 'cannot undo: a moved row in % was changed or moved again since the merge', r.tbl using errcode = 'P0001'; end if;
+    if exact_key and anywhere > 0 and holder = 0 then raise exception 'cannot undo: a moved row in % was changed or moved again since the merge', r.tbl using errcode = 'P0001'; end if;
     if holder > 0 then
       execute format('update %s t set %I = $1 where %s and t.%I = $2', r.tbl, r.col, w, r.col) using p_to, p_from, r.row;
       get diagnostics n = row_count; total := total + n;
@@ -467,6 +472,7 @@ begin
   n := public.merge_restore_rows('lead', m.id, m.kept, m.dropped);
   delete from public.merge_moved_rows where kind = 'lead' and merge_id = m.id;
   update public.lead_merges set unmerged_at = now(), unmerged_by = auth.uid() where id = m.id;
+  insert into public.crm_activities (lead_id, actor, kind, body) values (m.kept, auth.uid(), 'note', left('Undid the merge of ' || (select ref from public.leads where id = m.dropped) || ' into this lead.', 1000));
   insert into public.audit_log (actor, action, details) values (auth.uid(), 'leads_unmerged', jsonb_build_object('merge', m.id, 'kept', m.kept, 'dropped', m.dropped, 'rows_restored', n));
   return jsonb_build_object('merge_id', m.id, 'kept', m.kept, 'dropped', m.dropped, 'rows_restored', n);
 end $$;
