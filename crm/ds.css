@@ -73,7 +73,7 @@ img{max-width:100%}
 #view{min-width:0}#view>*,#view .card,#view .split2>*,#view .cards>*{min-width:0;max-width:100%}
 .body{max-width:var(--page-max);margin:0 auto;padding:var(--s4) var(--s4) 90px}
 @media(min-width:768px){.body{padding:var(--s5) var(--s5) 90px}}
-#view>h1,.mx-page-head h1,.view-head h1{font-size:var(--fs-5);font-weight:800;line-height:1.2;margin:0}
+#view h1,.mx-page-head h1,.view-head h1{font-size:var(--fs-5);font-weight:800;line-height:1.2;margin:0}
 #view>h1+p,.mx-page-head p,.view-head p{margin:2px 0 var(--s4);max-width:46em;font-size:var(--fs-2);color:var(--text3)}
 .view-head,.mx-page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--s2);margin:0 0 var(--s4)}
 .view-head p,.mx-page-head p{margin:2px 0 0}
@@ -124,7 +124,7 @@ img{max-width:100%}
 @media(max-width:699px){
   .top{position:static}
   /* phone: Admin sections share the row, pages of a section wrap instead of clipping; Crew tabs scroll with an edge fade */
-  .groups button{flex:1 1 0;min-width:0;justify-content:center;padding:0 var(--s1);white-space:normal;text-align:center;line-height:1.15}
+  .groups button{flex:1 1 auto;min-width:min-content;justify-content:center;padding:0 var(--s1);white-space:normal;text-align:center;line-height:1.15}
   .subtabs .sub{flex-wrap:wrap;overflow:visible;padding:0 var(--s3)}
   .subtabs button{padding:0 var(--s2)}
   .tabs{-webkit-mask-image:linear-gradient(90deg,#000 94%,transparent);mask-image:linear-gradient(90deg,#000 94%,transparent)}
@@ -234,8 +234,15 @@ tbody tr:hover td{background:var(--surface2)}
 tr.off{opacity:.55}tr.late td:first-child{box-shadow:inset 4px 0 0 var(--bad)}tr.row-open{cursor:pointer}
 .tgt{width:72px}
 th input[type=checkbox],td input[type=checkbox]{width:20px;height:20px}
-.mx-table--cards td[data-label]::before{content:attr(data-label);display:block;font-size:var(--fs-1);font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text3)}
+/* wide tables (5+ columns, marked by labelTables in ds.js) size to their content on a desk screen and scroll inside their card if still too wide; fixed layout is used for the plain tables */
+.mx-table--cards{table-layout:auto}
+.mx-table--cards td{overflow-wrap:normal}
+.mx-table--cards th{overflow-wrap:normal;white-space:nowrap}
+@media(min-width:700px){.steps.compact{min-width:390px}}
 @media(max-width:699px){
+  .mx-table--cards{table-layout:fixed}
+  .mx-table--cards td{overflow-wrap:anywhere}
+  .mx-table--cards td[data-label]::before{content:attr(data-label);display:block;font-size:var(--fs-1);font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text3)}
   .table-wrap:has(>.mx-table--cards),.card.tbl:has(>.mx-table--cards){border:0;box-shadow:none;background:none;overflow:visible;padding:0}
   .mx-table--cards thead{display:none}
   .mx-table--cards,.mx-table--cards tbody,.mx-table--cards tr,.mx-table--cards td{display:block;width:100%}
@@ -343,3 +350,5 @@ th input[type=checkbox],td input[type=checkbox]{width:20px;height:20px}
 @media(max-width:699px){.exp{display:flex;flex:1 1 100%}.exp .btn{flex:1 1 0}}
 /* phone: the six booking steps sit in two rows of three so no label is clipped */
 @media(max-width:480px){.steps:not(.compact){grid-template-columns:repeat(3,1fr)}}
+details.board .chip.pick{white-space:normal;text-align:left;border-radius:var(--radius-field);height:auto;line-height:1.3;padding:var(--s2) var(--s3)}
+details.board td:first-child{width:38%}

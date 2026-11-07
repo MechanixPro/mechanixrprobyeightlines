@@ -54,7 +54,7 @@ const nextBtn = (l) => {
 const SLOT = { morning: 'Morning 9–12', afternoon: 'Afternoon 12–4', evening: 'Evening 4–8', asap: 'ASAP (SOS)' };
 
 if (!C.supabaseUrl || !C.supabaseAnonKey) {
-  $('#login').innerHTML = '<h1 style="font-size:24px">Admin not connected yet</h1><p class="muted">Add your Supabase URL and anon key to <code>/assets/js/config.js</code>, then reload.</p>';
+  $('#login').innerHTML = '<h1>Admin not connected yet</h1><p class="muted">Add your Supabase URL and anon key to <code>/assets/js/config.js</code>, then reload.</p>';
   throw new Error('Supabase not configured');
 }
 const sb = createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -270,7 +270,7 @@ function dash() {
   const by = (k) => { const m = {}; week.forEach((l) => { const v = (k === 'utm' ? l.utm?.utm_source : l[k]) || (k === 'utm' ? 'direct' : '—'); m[v] = (m[v] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 8); };
   const bars = (rows) => { const mx = Math.max(1, ...rows.map((r) => r[1])); return '<div class="bars">' + rows.map(([k, v]) => `<div class="b"><span>${esc(LABEL[k] ?? k)}</span><span class="t"><i style="width:${Math.round((v / mx) * 100)}%"></i></span><b>${v}</b></div>`).join('') + '</div>'; };
   const funnel = STATUSES.filter((s) => s !== 'scheduled').map((s) => [s, week.filter((l) => (s === 'paid' ? ['paid', 'scheduled'].includes(l.status) : l.status === s)).length]);   // one Booked row: paid and scheduled together
-  return `<h1 style="font-size:34px">Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, ${esc(S.me.name)}</h1>
+  return `<h1>Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, ${esc(S.me.name)}</h1>
   ${filterBar}
   <div class="kpis">
     <div class="kpi"><b>${today.length}</b><span>Bookings today</span></div>
@@ -325,7 +325,7 @@ function openCustomer(id) {
   const r = customerRows(S.customers, S.bikes, S.leads).find((x) => x.id === id); if (!r) return;
   S.openCust = id; S.open = null;
   const mine = S.leads.filter((l) => l.customer_id === id).sort((a, b) => b.created_at.localeCompare(a.created_at));
-  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${esc(r.name)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="margin:0">${esc(r.name)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
   <p>${r.blocked ? '<span class="pill lost">Blocked</span>' : ''}</p>
   <div class="card"><dl class="kv"><dt>Phone</dt><dd><a href="tel:+91${esc(r.phone)}">+91 ${esc(r.phone)}</a></dd><dt>Bikes</dt><dd>${esc(r.bikes.join(', ') || 'None saved')}</dd><dt>Bookings</dt><dd>${r.bookings}</dd><dt>Total spent</dt><dd><b>${rupee(r.paidTotal)}</b></dd></dl>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><a class="btn btn-wa btn-sm" href="https://wa.me/91${esc(r.phone)}" target="_blank" rel="noopener">Open WhatsApp chat</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(r.phone)}">Call</a></div></div>
@@ -373,7 +373,7 @@ function openNewBooking(c) {
   const svcs = S.services.filter((x) => x.kind === 'service' && x.active && !/(250|500)$/.test(x.id)), adds = S.services.filter((x) => x.kind === 'addon' && x.active);
   const sel = (id, opts, d) => `<select id="${id}">${opts.map(([v, t]) => `<option value="${v}"${v === d ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
   S.open = null; S.openCust = null; S.openMech = null;
-  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">Add booking</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="margin:0">Add booking</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
   <p class="small muted" style="margin:8px 0 0">Name and mobile number are all you need. Add the rest if you have it, so the mechanic and the invoice have the details.</p>
   <div class="card" style="margin-top:12px"><h3>Customer</h3><div class="inline-form">
     <label class="label" for="nb-name">Name *</label><input id="nb-name" maxlength="60" autocomplete="off">
@@ -416,7 +416,7 @@ function openMechanic(id) {
   const st = id === 'new' ? null : mechanicStats(S.mechanics, S.leads, { basis: basis() }).find((x) => x.id === id);
   const ro = isOwner() ? '' : ' disabled';
   S.open = null; S.openCust = null; S.openMech = id;
-  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${id === 'new' ? 'New mechanic' : esc(m.name)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="margin:0">${id === 'new' ? 'New mechanic' : esc(m.name)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
   <div class="card" style="margin-top:12px"><div class="inline-form">
     <label class="label" for="mn">Name</label><input id="mn" maxlength="60" value="${esc(m.name)}"${ro}>
     <label class="label" for="mp">Mobile number</label><input id="mp" inputmode="numeric" maxlength="10" value="${esc(m.phone)}"${ro}>
@@ -466,7 +466,7 @@ function openCoupon(id) {
   const c = id === 'new' ? { id: 'new', code: '', kind: 'percent', value: 10, minAmount: 0, maxUses: null, startsOn: '', endsOn: '', active: true, note: '' } : couponRows(S.coupons, S.leads).find((x) => x.id === id); if (!c) return;
   const ro = isOwner() ? '' : ' disabled';
   S.open = null; S.openCust = null; S.openMech = null; S.openCoupon = id;
-  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${id === 'new' ? 'New coupon' : esc(c.code)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="margin:0">${id === 'new' ? 'New coupon' : esc(c.code)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
   <div class="card" style="margin-top:12px"><div class="inline-form">
     <label class="label" for="cc">Code (letters, numbers, dash)</label><input id="cc" maxlength="20" autocapitalize="characters" value="${esc(c.code)}"${id === 'new' ? ro : ' disabled'}>
     <label class="label" for="ck">Type</label><select id="ck"${ro}><option value="percent"${c.kind === 'percent' ? ' selected' : ''}>Percent off</option><option value="flat"${c.kind === 'flat' ? ' selected' : ''}>Rupees off</option></select>
@@ -725,7 +725,7 @@ async function openLeadBase(id, silent) {
   const panel = (id, inner) => `<section class="dpanel" id="dt-${id}"${S.dt === id ? '' : ' hidden'}>${inner}</section>`;
   const linkBlock = l.payment_link ? `<p class="small">Payment link: <a href="${esc(l.payment_link)}" target="_blank" rel="noopener">${esc(l.payment_link)}</a> (${rupee(l.amount_due)})</p><p><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="https://wa.me/91${esc(l.phone)}?text=${encodeURIComponent('Hi ' + String(l.name).split(' ')[0] + ', here is your secure link to pay ' + rupee(l.amount_due) + ' for ' + (l.booking_id ? 'booking ' + l.booking_id : 'your request') + ': ' + l.payment_link)}">Send link on WhatsApp</a></p>` : '';
   const customerEmail = S.customers.find((c) => c.id === l.customer_id)?.email || '';
-  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${esc(bid(l))}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="margin:0">${esc(bid(l))}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
   <p style="margin:8px 0"><span class="pill ${l.status}">${LABEL[l.status]}</span> ${l.opted_out ? '<span class="pill lost">Opted out</span>' : ''} ${l.paid_amount ? `<span class="pill paid">Paid ${rupee(l.paid_amount)}</span>` : ''}</p>
   ${stepBar(l)}${nextBtn(l)}
   <div id="flowCard"></div>
@@ -933,7 +933,7 @@ const ACT = {
     const { data, error } = await sb.from('leads').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false }).limit(200);
     if (error) return toast('Could not load: ' + error.message);
     S.open = null; S.openCust = null; S.openMech = null;
-    $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">Deleted bookings</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+    $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="margin:0">Deleted bookings</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
     <p class="small muted">These are hidden from every list and no reminders go out. They are kept because they have an invoice or payment. Restore one to bring it back.</p>
     ${(data ?? []).length ? (data ?? []).map((l) => `<div class="card" style="margin-top:10px"><b class="mono">${esc(bid(l))}</b> · ${esc(l.name)} · ${esc(svcName(l.service_id))}<br><span class="tiny muted">Deleted ${esc(when(l.deleted_at))}${l.deleted_reason ? ' · ' + esc(l.deleted_reason) : ''}</span>${isOwner() ? `<div style="margin-top:8px"><button class="btn btn-ghost btn-sm" type="button" data-act="restoreLead" data-id="${l.id}">Restore</button></div>` : ''}</div>`).join('') : '<p class="muted">No deleted bookings.</p>'}`;
     $('#sheet').hidden = false;
@@ -1552,7 +1552,7 @@ const ACT = {
 const gstOf = (price) => { const p = Number(price) || 0, g = Math.round(p * 18) / 100; return { gst: rupee2(g), total: rupee2(p + g) }; };
 function prices() { return pricesBase() + itemsCard(); }
 function pricesBase() {
-  return `<h1 style="font-size:34px">Prices</h1><p class="muted">Prices are shown <b>before GST</b>. GST at 18% is added on the final invoice. Changes go live on the website and in AI replies immediately.${isOwner() ? '' : ' Only the owner can edit.'}</p>
+  return `<h1>Prices</h1><p class="muted">Prices are shown <b>before GST</b>. GST at 18% is added on the final invoice. Changes go live on the website and in AI replies immediately.${isOwner() ? '' : ' Only the owner can edit.'}</p>
   <div class="card tbl"><table class="ptable"><thead><tr><th>Item</th><th>Type</th><th>Price ₹ (before GST)</th><th>GST 18%</th><th>With GST</th><th>Live</th><th></th></tr></thead><tbody>${S.services.map((s) => `<tr><td><input data-k="name" value="${esc(s.name)}" aria-label="Name"${isOwner() ? '' : ' disabled'}></td><td>${({ service: 'Service', addon: 'Add-on', fee: 'Fee' })[s.kind] ?? s.kind}</td><td><input data-k="price" inputmode="numeric" value="${s.price}" style="width:100px" aria-label="Price"${isOwner() ? '' : ' disabled'}></td><td class="gstc">${gstOf(s.price).gst}</td><td class="totc"><b>${gstOf(s.price).total}</b></td><td><input type="checkbox" data-k="active"${s.active ? ' checked' : ''} aria-label="Live"${isOwner() ? '' : ' disabled'}></td><td>${isOwner() ? `<button class="btn btn-ghost btn-sm" type="button" data-act="savePrice" data-id="${esc(s.id)}">Save</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
   ${isOwner() ? `<div class="card" style="margin-top:14px"><h3>Add an option</h3><p class="tiny muted" style="margin:0 0 8px">A new service or add-on. It appears in the booking choices and on the website after the next site update. The price is before GST.</p>
     <div class="inv-adjust-row"><input id="np-name" maxlength="80" placeholder="Name, for example Chain set fitted" aria-label="Name"><select id="np-kind" aria-label="Type"><option value="service">Service</option><option value="addon">Add-on</option></select><input id="np-price" inputmode="numeric" maxlength="6" placeholder="Price ₹ before GST" aria-label="Price before GST"></div>
@@ -1562,7 +1562,7 @@ function pricesBase() {
 }
 function settings() {
   const st = S.settings, bi = st.business_info || {}, q = st.quiet_hours || { start: 21, end: 9 }, dis = isOwner() ? '' : ' disabled';
-  return `<h1 style="font-size:34px">Settings</h1><div class="split2"><div class="card"><h3>WhatsApp automation</h3>
+  return `<h1>Settings</h1><div class="split2"><div class="card"><h3>WhatsApp automation</h3>
   <label class="check"><input type="checkbox" id="st-ai"${st.ai_enabled !== false ? ' checked' : ''}${dis}><span><b>AI replies and reminders on</b><br><span class="tiny muted">Turn off to answer every chat yourself.</span></span></label>
   <p class="tiny muted" style="margin:10px 0 0">The checkup and quote fee, the new customer slot fee and the above-180cc surcharge are edited in the <b>Prices</b> tab, so every page shows the same number.</p>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="label" for="st-q1">No messages after (hour)</label><input id="st-q1" type="number" min="0" max="23" value="${q.start}"${dis}></div><div><label class="label" for="st-q2">Resume at (hour)</label><input id="st-q2" type="number" min="0" max="23" value="${q.end}"${dis}></div></div></div>
@@ -1576,9 +1576,9 @@ function settings() {
 /* ---------- offers (marketing email to customers who asked for it) ---------- */
 const eligibleCustomers = () => S.customers.filter((c) => c.email && c.email_marketing_consent === true && !c.email_unsubscribed_at && !c.blocked);
 function offers() {
-  if (!isOwner()) return '<h1 style="font-size:34px">Offers</h1><p class="muted">Only the owner can send offer emails.</p>';
+  if (!isOwner()) return '<h1>Offers</h1><p class="muted">Only the owner can send offer emails.</p>';
   const n = eligibleCustomers().length, d = S.offerDraft || {};
-  return `<h1 style="font-size:34px">Offers</h1><p class="muted">Email an offer to customers who ticked "email me offers". Everyone gets their own unsubscribe link. Always send yourself a test first.</p>
+  return `<h1>Offers</h1><p class="muted">Email an offer to customers who ticked "email me offers". Everyone gets their own unsubscribe link. Always send yourself a test first.</p>
   <div class="card"><label class="label" for="ofs">Subject</label><input id="ofs" maxlength="120" value="${esc(d.subject || '')}">
   <label class="label" for="ofh">Headline inside the email</label><input id="ofh" maxlength="120" value="${esc(d.headline || '')}">
   <label class="label" for="ofb">Message (leave a blank line between paragraphs)</label><textarea id="ofb" rows="6" maxlength="2000">${esc(d.body || '')}</textarea>
@@ -1605,7 +1605,7 @@ function openIssue(id) {
   const i = id === 'new' ? { id: 'new', lead_id: S.issueLead || '', kind: 'complaint', status: 'open', amount: '', note: '', resolution: '' } : S.issues.find((x) => x.id === id); if (!i) return;
   S.open = null; S.openCust = null; S.openMech = null; S.openCoupon = null; S.openIssue = id;
   const recent = S.leads.slice(0, 200), w = warrantyInfo(S.leads.find((l) => l.id === i.lead_id), WARRANTY_DAYS);
-  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${id === 'new' ? 'Log an issue' : 'Issue'}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="margin:0">${id === 'new' ? 'Log an issue' : 'Issue'}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
   <div class="card" style="margin-top:12px"><div class="inline-form">
     <label class="label" for="il">Booking</label><select id="il"${id === 'new' ? '' : ' disabled'}><option value="">Not linked to a booking</option>${recent.map((l) => `<option value="${l.id}"${l.id === i.lead_id ? ' selected' : ''}>${esc(bid(l))} · ${esc(l.name)}</option>`).join('')}</select>
     <p class="tiny muted" id="iw">${i.lead_id ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''}</p>
@@ -1620,7 +1620,7 @@ function openIssue(id) {
 /* ---------- waitlist: who wants the coming-soon services ---------- */
 function waitlist() {
   const counts = interestCounts(S.waitlist), max = Math.max(1, ...counts.map((c) => c.count)), rows = waitlistRows(S.waitlist, { interest: S.wi, q: S.wq });
-  return `<h1 style="font-size:34px">Waitlist</h1><p class="muted">${S.waitlist.length} ${S.waitlist.length === 1 ? 'person has' : 'people have'} asked to hear about the coming-soon services. One person can pick several. Tap a bar to filter the list.</p>
+  return `<h1>Waitlist</h1><p class="muted">${S.waitlist.length} ${S.waitlist.length === 1 ? 'person has' : 'people have'} asked to hear about the coming-soon services. One person can pick several. Tap a bar to filter the list.</p>
   <div class="card"><h3>Interest by service</h3><div class="bars">${counts.map((c) => `<button type="button" class="b wl-bar${S.wi === c.id ? ' on' : ''}" data-wi="${c.id}" aria-pressed="${S.wi === c.id}"><span>${esc(c.label)}</span><span class="t"><i style="width:${Math.round((c.count / max) * 100)}%"></i></span><b>${c.count}</b></button>`).join('')}</div></div>
   <div class="toolbar" style="margin-top:14px"><input id="wq" type="search" placeholder="Search name, phone, email or city" value="${esc(S.wq)}" aria-label="Search the waitlist"><button class="btn btn-ghost btn-sm" type="button" data-act="wlCsv">Export CSV</button></div>
   <div class="list">${rows.length ? rows.map((r) => `<button class="row mrow" data-wl="${r.id}"><span><b>${esc(r.name || 'No name')}</b><br><span class="meta">${esc(r.phone || r.email || '')}${r.city ? ' · ' + esc(r.city) : ''}</span></span><span class="meta">${esc((r.interests || []).map(interestLabel).join(', '))}</span><span class="meta">${when(r.created_at)}</span></button>`).join('') : '<p class="muted" style="padding:16px">Nobody here yet.</p>'}</div>`;
@@ -1628,7 +1628,7 @@ function waitlist() {
 function openWaitlist(id) {
   const r = S.waitlist.find((x) => x.id === id); if (!r) return;
   S.open = null; S.openCust = null; S.openMech = null; S.openCoupon = null; S.openIssue = null; S.openPin = null; S.openWl = id;
-  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${esc(r.name || 'Waitlist signup')}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="margin:0">${esc(r.name || 'Waitlist signup')}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
   <div class="card" style="margin-top:12px"><dl class="kv"><dt>Mobile</dt><dd>${r.phone ? `<a href="tel:+91${esc(r.phone)}">+91 ${esc(r.phone)}</a> · <a href="https://wa.me/91${esc(r.phone)}" target="_blank" rel="noopener">WhatsApp</a>` : '—'}</dd><dt>Email</dt><dd>${esc(r.email || '—')}</dd><dt>City</dt><dd>${esc(r.city || '—')}</dd><dt>Interested in</dt><dd>${esc((r.interests || []).map(interestLabel).join(', '))}</dd><dt>Note</dt><dd>${esc(r.note || '—')}</dd><dt>Joined</dt><dd>${when(r.created_at)}</dd></dl>
   <div class="card" style="margin-top:12px"><h3>Edit details</h3>
     <label class="label" for="wl-name">Name</label><input id="wl-name" maxlength="60" value="${esc(r.name || '')}">
@@ -1651,7 +1651,7 @@ function openPin(pin) {
   const p = pin === 'new' ? { pin: '', name: '', active: true } : S.pins.find((x) => x.pin === pin); if (!p) return;
   S.open = null; S.openCust = null; S.openMech = null; S.openCoupon = null; S.openIssue = null; S.openPin = pin;
   const ro = isOwner() ? '' : ' disabled';
-  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="font-size:28px;margin:0">${pin === 'new' ? 'Add a PIN code' : esc(p.pin)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="margin:0">${pin === 'new' ? 'Add a PIN code' : esc(p.pin)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
   <div class="card" style="margin-top:12px"><div class="inline-form">
     <label class="label" for="pp">PIN code (6 digits)</label><input id="pp" inputmode="numeric" maxlength="6" value="${esc(p.pin)}"${pin === 'new' ? ro : ' disabled'}>
     <label class="label" for="pn">Area name shown to customers</label><input id="pn" maxlength="60" value="${esc(p.name)}"${ro} placeholder="For example: Anekal">
@@ -1661,7 +1661,7 @@ function openPin(pin) {
 }
 function homeimgs() {
   const rows = S.homeimgs;
-  return `<h1 style="font-size:34px">Home images</h1><p class="muted">These pictures shuffle on the home page. Add up to 12. JPG, PNG or WebP, under 2 MB, wide pictures look best. With none added, the built-in bike pictures show.</p>
+  return `<h1>Home images</h1><p class="muted">These pictures shuffle on the home page. Add up to 12. JPG, PNG or WebP, under 2 MB, wide pictures look best. With none added, the built-in bike pictures show.</p>
   <div class="card"><label class="label" for="hc">Caption (optional, shown on the picture)</label><input id="hc" maxlength="80" placeholder="For example: Doorstep service in HSR Layout">
   <label class="label" for="hf">Choose a picture to upload</label><input id="hf" type="file" accept="image/jpeg,image/png,image/webp"${rows.length >= 12 ? ' disabled' : ''}></div>
   <div class="list" style="margin-top:12px">${rows.length ? rows.map((r, i) => `<div class="row"><img src="${esc(r.url)}" alt="" width="96" height="54" style="object-fit:cover;border-radius:10px;background:#eee"><span><input data-hi-cap="${r.id}" maxlength="80" value="${esc(r.caption || '')}" placeholder="No caption" aria-label="Caption for picture ${i + 1}" style="min-width:180px"><br><span class="meta">${r.active ? 'Showing' : 'Hidden'} · position ${i + 1}</span></span><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" type="button" data-act="homeUp" data-id="${r.id}"${i === 0 ? ' disabled' : ''} aria-label="Move earlier">Up</button><button class="btn btn-ghost btn-sm" type="button" data-act="homeDown" data-id="${r.id}"${i === rows.length - 1 ? ' disabled' : ''} aria-label="Move later">Down</button><button class="btn btn-ghost btn-sm" type="button" data-act="homeToggle" data-id="${r.id}">${r.active ? 'Hide' : 'Show'}</button><button class="btn btn-ghost btn-sm" type="button" data-act="homeDelete" data-id="${r.id}">Delete</button></span></div>`).join('') : '<p class="muted" style="padding:16px">No pictures added yet. The built-in bike pictures are showing.</p>'}</div>`;
@@ -1886,7 +1886,7 @@ async function loadDispatch() {
 function board() {
   const g = boardGroups(S.leads), total = Object.values(g).reduce((t, a) => t + a.length, 0);
   const grp = (title, hint, rows) => `<section class="bgroup"><h2>${title} <span class="count">${rows.length}</span></h2><p class="tiny muted" style="margin:0 0 8px">${hint}</p>${rows.length ? rows.map(boardCard).join('') : '<p class="muted bempty">Nothing here.</p>'}</section>`;
-  return `<h1 style="font-size:34px">Today board</h1><p class="muted">${total ? 'Everything that needs you today, in the order to do it.' : 'Nothing needs you right now.'}</p>
+  return `<h1>Today board</h1><p class="muted">${total ? 'Everything that needs you today, in the order to do it.' : 'Nothing needs you right now.'}</p>
   <div class="bgrid">${grp('Needs a reply', 'New for more than 30 minutes. Reply first.', g.needsReply)}${grp('Quote and payment', 'Waiting for a quote, an answer or a payment.', g.quotePay)}${grp('Today\'s visits', 'Booked for today, in time order.', g.visits)}${grp('Done today', 'Finished jobs.', g.done)}</div>`;
 }
 
@@ -1910,7 +1910,7 @@ function invoices() {
   const mechTable = mech.length ? `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Mechanic</th><th>Invoices</th><th>With GST</th><th>Cut on GST invoices</th><th>Without GST</th><th>Cut on no-GST invoices</th><th>Total cut</th><th>Payable now</th><th>Still to pay</th></tr></thead><tbody>${mech.map((m) => `<tr><td><b>${esc(m.name)}</b></td><td>${m.count}</td><td>${m.withGst.count} · ${rupee(m.withGst.total)}</td><td>${rupee(m.withGst.cut)}</td><td>${m.withoutGst.count} · ${rupee(m.withoutGst.total)}</td><td>${rupee(m.withoutGst.cut)}</td><td><b>${rupee(m.cut)}</b></td><td>${rupee(m.payable)}</td><td>${rupee(m.owed)}</td></tr>`).join('')}</tbody></table></div>` : '';
   const gstTable = gs.length ? `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>GST rate</th><th>Invoices</th><th>Taxable value</th><th>CGST</th><th>SGST</th><th>Total GST</th><th>Invoice total</th></tr></thead><tbody>${gs.map((g) => `<tr><td>${g.rate ? g.rate + '%' : 'No GST'}</td><td>${g.count}</td><td>${rupee(g.taxable)}</td><td>${rupee(g.cgst)}</td><td>${rupee(g.sgst)}</td><td>${rupee(g.gst)}</td><td>${rupee(g.total)}</td></tr>`).join('')}</tbody></table></div>` : '';
   const basisNote = basis() === 'before_gst' ? 'The mechanic\'s cut is worked out on the amount <b>before GST</b>. On an invoice with no GST that is the whole amount, so the same percentage gives a different rupee amount.' : 'The mechanic\'s cut is worked out on the <b>whole amount including GST</b>. You can change this in Settings.';
-  return `<h1 style="font-size:34px">Invoices</h1><p class="muted">Every invoice you print or email is saved here, with its GST and the mechanic's cut as they were on that day.</p>${bannerHtml(missingList().length)}
+  return `<h1>Invoices</h1><p class="muted">Every invoice you print or email is saved here, with its GST and the mechanic's cut as they were on that day.</p>${bannerHtml(missingList().length)}
   <div class="toolbar" style="flex-wrap:wrap;gap:8px"><select id="if-period" aria-label="Period">${IPERIODS.map(([k, n]) => opt(k, f.period, n)).join('')}</select>
     <select id="if-gst" aria-label="GST">${opt('', f.gst, 'With and without GST')}${opt('with', f.gst, 'With GST only')}${opt('without', f.gst, 'No GST only')}</select>
     <select id="if-rate" aria-label="GST rate">${opt('', f.rate, 'Any rate')}${[18, 12, 5, 0].map((r) => opt(r, f.rate, r ? r + '%' : '0% (no GST)')).join('')}</select>
@@ -1986,7 +1986,7 @@ function finPanel(a) {
     ${input('fin-method', 'How (cash, UPI, bank transfer)', 'maxlength="40"')}${input('fin-ref', 'Reference or transaction ID (optional)', 'maxlength="80"')}${input('fin-on', 'Date', `type="date" max="${todayIST()}" value="${todayIST()}"`)}
     ${needsReason ? input('fin-reason', 'Reason (required)', 'maxlength="200"') : ''}${input('fin-note', 'Note (optional)', 'maxlength="300"')}
     <button class="btn btn-primary" style="margin-top:12px" type="button" data-act="finSave">Save entry</button></div>`;
-  return `<div class="card fin-panel"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2 style="font-size:24px;margin:0">${esc(a.number)} · ${esc(a.customer)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="finClose">Close</button></div>
+  return `<div class="card fin-panel"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2 style="margin:0">${esc(a.number)} · ${esc(a.customer)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="finClose">Close</button></div>
     <p style="margin:6px 0">${a.statusLabels.map(statusPill).join(' ')}</p>
     <div class="fin-grid"><dl class="kv"><dt>Service amount</dt><dd>${rupee2(a.service)}</dd><dt>GST${a.hasGst ? ' ' + a.gstRate + '%' : ''}</dt><dd>${a.hasGst ? rupee2(a.gst) : 'No GST charged'}</dd><dt>Invoice total</dt><dd><b>${rupee2(a.total)}</b></dd><dt>Collected by company</dt><dd>${rupee2(a.byChannel.company_manual)}</dd><dt>Collected online</dt><dd>${rupee2(a.byChannel.company_portal)}${a.gatewayFees ? ' <span class="tiny muted">(fee ' + rupee2(a.gatewayFees) + ')</span>' : ''}</dd><dt>Collected by mechanic</dt><dd>${rupee2(a.byChannel.mechanic)}</dd><dt>Customer balance</dt><dd><b>${rupee2(a.outstanding)}</b>${a.credit ? ' <span class="tiny muted">(customer credit ' + rupee2(a.credit) + ')</span>' : ''}${a.writtenOff ? ' <span class="tiny muted">(written off ' + rupee2(a.writtenOff) + ')</span>' : ''}</dd></dl>
     <dl class="kv">${a.mechanicId ? `<dt>Mechanic</dt><dd>${esc(a.mechanicName)} · ${a.mechanicPct}% of the service amount</dd><dt>Mechanic earnings (full job)</dt><dd>${rupee2(a.earningsTotal)}</dd><dt>Company share (full job)</dt><dd>${rupee2(a.companyShareTotal)}</dd><dt>Earnings kept in hand</dt><dd>${rupee2(a.inHand)}</dd><dt>Mechanic must pay the company</dt><dd><b>${rupee2(a.remitDue)}</b> <span class="tiny muted">of ${rupee2(a.remitObligation)}</span></dd><dt>Company must pay the mechanic</dt><dd><b>${rupee2(a.payoutDue)}</b> <span class="tiny muted">of ${rupee2(a.payoutObligation)}</span></dd>` : '<dt>Mechanic</dt><dd>None on this job</dd>'}</dl></div>
@@ -2000,7 +2000,7 @@ function sales() {
   const kpi = (v, l) => `<div class="kpi"><b>${rupee2(v)}</b><span>${l}</span></div>`;
   const STAT = ['Unpaid', 'Partially Paid', 'Fully Paid', 'Customer Due', 'Overdue', 'Mechanic Remittance Due', 'Mechanic Payout Due', 'Settled'];
   const table = rows.length ? `<div class="inv-table-wide"><table class="rtable"><thead><tr><th>Invoice</th><th>Customer</th><th>Mechanic</th><th>Share</th><th>Total</th><th>Company</th><th>Online</th><th>Mechanic</th><th>Customer owes</th><th>Mechanic owes us</th><th>We owe mechanic</th><th>Status</th></tr></thead><tbody>${rows.map((a) => `<tr class="fin-tr" data-lead="${a.lead_id}" tabindex="0"><td><b>${esc(a.number)}</b><br><span class="tiny muted">${esc(when(a.issuedAt))}</span></td><td>${esc(a.customer)}<br><span class="tiny muted">${esc(a.phone || '')}</span></td><td>${esc(a.mechanicName || '—')}</td><td class="tiny">${a.mechanicName ? 'Mechanic ' + a.mechanicPct + '%<br>Company ' + a.companyPct + '%' : '—'}</td><td><b>${rupee2(a.total)}</b></td><td>${rupee2(a.byChannel.company_manual)}</td><td>${rupee2(a.byChannel.company_portal)}</td><td>${rupee2(a.byChannel.mechanic)}</td><td>${rupee2(a.outstanding)}</td><td>${rupee2(a.remitDue)}</td><td>${rupee2(a.payoutDue)}</td><td>${a.statusLabels.map(statusPill).join(' ')}</td></tr>`).join('')}</tbody></table></div><div class="inv-cards">${rows.map((a) => `<button class="row fin-tr" data-lead="${a.lead_id}" style="border-radius:12px"><span class="ref">${esc(a.number)}</span><span>${esc(a.customer)}<br><span class="meta">${esc(a.mechanicName || 'No mechanic')} · ${a.statusLabels.join(', ')}</span></span><span><b>${rupee2(a.total)}</b><br><span class="meta">Owes ${rupee2(a.outstanding)}</span></span></button>`).join('')}</div>` : '<p class="muted">No jobs match. Jobs appear here once they are completed or have a payment.</p>';
-  return `<h1 style="font-size:34px">Sales and collections</h1><p class="muted">Every invoice, who collected the money, and what the customer, the mechanic and the company each still owe.</p>
+  return `<h1>Sales and collections</h1><p class="muted">Every invoice, who collected the money, and what the customer, the mechanic and the company each still owe.</p>
   <div class="kpis">${kpi(c.invoiceSales, 'Invoice sales')}${kpi(c.collectedManual, 'Collected by the company')}${kpi(c.collectedPortal, 'Collected online')}${kpi(c.collectedMechanic, 'Collected by mechanics')}${kpi(c.customerOutstanding, 'Customers still owe')}${kpi(c.gst, 'GST in these invoices')}${kpi(c.mechanicsOweCompany, 'Mechanics owe the company')}${kpi(c.payoutsPending, 'Company owes mechanics')}${kpi(c.payoutsPaid, 'Mechanic payouts paid')}${c.gatewayFees ? kpi(c.gatewayFees, 'Gateway fees paid') : ''}</div>
   ${fin ? finPanel(fin) : ''}
   <div class="toolbar" style="flex-wrap:wrap;gap:8px;margin-top:14px"><select id="sf-period" aria-label="Period">${IPERIODS.map(([k, n]) => opt(k, f.period, n)).join('')}</select>
@@ -2026,13 +2026,13 @@ function mechledger() {
   };
   const totOwe = list.reduce((t, a) => t + a.remitRemaining, 0), totDue = list.reduce((t, a) => t + a.payoutRemaining, 0), totNet = totDue - totOwe;
   const totals = `<div class="kpis" aria-label="Total outstanding across all mechanics"><div class="kpi"><b>${rupee2(totOwe + totDue)}</b><span>Total outstanding (both ways)</span></div><div class="kpi"><b>${rupee2(totOwe)}</b><span>Mechanics owe the company</span></div><div class="kpi"><b>${rupee2(totDue)}</b><span>Company owes mechanics</span></div><div class="kpi"><b>${rupee2(Math.abs(totNet))}</b><span>${totNet > 0 ? 'Net: the company owes' : totNet < 0 ? 'Net: mechanics owe the company' : 'Net: settled'}</span></div></div>`;
-  return `<h1 style="font-size:34px">Mechanic ledgers</h1><p class="muted">What each mechanic owes the company, what the company owes them, and the net of the two. The two balances are never mixed.</p>${totals}${list.map(card).join('') || '<p class="muted">No mechanic jobs yet.</p>'}`;
+  return `<h1>Mechanic ledgers</h1><p class="muted">What each mechanic owes the company, what the company owes them, and the net of the two. The two balances are never mixed.</p>${totals}${list.map(card).join('') || '<p class="muted">No mechanic jobs yet.</p>'}`;
 }
 /* ---------- customer bookings: everything one customer has booked, billed and paid ---------- */
 function custbook() {
   const list = customerList({ customers: S.customers, leads: S.leads, q: S.cb.q });
   const items = list.map((c) => `<button class="row crow${S.cb.id === c.id ? ' on' : ''}" type="button" data-cb="${c.id}" style="border-radius:12px"><span>${esc(c.name)}<br><span class="meta">+91 ${esc(c.phone)}</span></span><span class="meta">${c.bookings} booking${c.bookings === 1 ? '' : 's'}</span></button>`).join('') || '<p class="muted" style="padding:12px">No customers match.</p>';
-  return `<h1 style="font-size:34px">Customer bookings</h1><p class="muted">Pick a customer to see all their bookings, invoices and payments in one place.</p>
+  return `<h1>Customer bookings</h1><p class="muted">Pick a customer to see all their bookings, invoices and payments in one place.</p>
   <div class="cb-grid"><div class="cb-list"><input id="cb-q" type="search" placeholder="Search name, phone or email" value="${esc(S.cb.q)}" aria-label="Search customers" style="margin-bottom:10px"><div class="list" style="display:grid;gap:8px">${items}</div></div><div class="cb-detail">${custbookDetail()}</div></div>`;
 }
 function custbookDetail() {
@@ -2047,14 +2047,14 @@ function custbookDetail() {
   const gone = new Set(S.ledger.filter((e) => e.entry_type === 'reversal').map((e) => e.reverses_id));
   const bookingTable = rows.length ? `<div class="scroll"><table style="min-width:640px"><thead><tr><th>Booking</th><th>Service</th><th>When</th><th>Status</th><th class="num">Total</th><th class="num">Paid</th><th class="num">Due</th></tr></thead><tbody>${rows.map((r) => `<tr class="inv-tr" data-lead="${r.id}" tabindex="0"><td><b class="mono">${esc(r.ref)}</b><br><span class="tiny muted">${esc(when(r.createdAt))}</span></td><td>${esc(r.service)}</td><td>${esc(r.when || '—')}</td><td><span class="pill ${r.status}">${esc(LABEL[r.status] || r.status)}</span></td><td class="num">${rupee2(r.total)}${r.kind === 'estimate' ? '<br><span class="tiny muted">estimate</span>' : ''}</td><td class="num">${rupee2(r.paid)}</td><td class="num">${r.balance > 0.005 ? '<b>' + rupee2(r.balance) + '</b>' : '—'}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted" style="margin:0">No bookings yet.</p>';
   const invTable = invs.length ? `<div class="scroll"><table style="min-width:520px"><thead><tr><th>Invoice</th><th>Booking</th><th class="num">Total</th><th>GST</th><th>State</th></tr></thead><tbody>${invs.map((r) => `<tr class="inv-tr" data-lead="${r.lead_id}" tabindex="0"${r.voided_at ? ' style="opacity:.6"' : ''}><td><b>${esc(r.number)}</b><br><span class="tiny muted">${esc(when(r.issued_at))}</span></td><td class="mono">${esc(refOf[r.lead_id] || '')}</td><td class="num">${rupee2(r.total)}</td><td>${r.has_gst ? r.gst_rate + '%' : 'None'}</td><td>${r.voided_at ? '<span class="pill p-bad">Deleted</span>' : '<span class="pill p-ok">Active</span>'}</td></tr>`).join('')}</tbody></table></div><p class="tiny muted" style="margin:8px 0 0">Open a booking to delete or restore its invoice.</p>` : '<p class="muted" style="margin:0">No saved invoices. A copy is saved each time an invoice is printed or emailed.</p>';
-  return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:start"><div><h2 style="font-size:24px;margin:0">${esc(c.name)}</h2><p class="muted" style="margin:4px 0 0">+91 ${esc(c.phone)}${c.email ? ' · ' + esc(c.email) : ''}${c.area ? ' · ' + esc(c.area) : ''}</p>${bikes.length ? `<p class="tiny muted" style="margin:4px 0 0">${esc(bikes.join(', '))}</p>` : ''}${c.company_name ? `<p class="tiny muted" style="margin:4px 0 0">${esc(c.company_name)}${c.gstin ? ' · GSTIN ' + esc(c.gstin) : ''}</p>` : ''}</div>
+  return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:start"><div><h2 style="margin:0">${esc(c.name)}</h2><p class="muted" style="margin:4px 0 0">+91 ${esc(c.phone)}${c.email ? ' · ' + esc(c.email) : ''}${c.area ? ' · ' + esc(c.area) : ''}</p>${bikes.length ? `<p class="tiny muted" style="margin:4px 0 0">${esc(bikes.join(', '))}</p>` : ''}${c.company_name ? `<p class="tiny muted" style="margin:4px 0 0">${esc(c.company_name)}${c.gstin ? ' · GSTIN ' + esc(c.gstin) : ''}</p>` : ''}</div>
     <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" type="button" data-act="cbEdit">Edit customer</button><button class="btn btn-primary btn-sm" type="button" data-act="cbNewBooking">New booking</button></div></div>
     <div class="kpis" style="margin-top:14px">${kpi(sm.bookings, 'Bookings')}${kpi(rupee2(sm.billed), 'Invoiced')}${kpi(rupee2(sm.paid), 'Paid')}${kpi(rupee2(sm.due), 'Still due')}</div></div>
   <div class="card" style="margin-top:12px"><h3>Bookings</h3>${bookingTable}</div>
   <div class="card" style="margin-top:12px"><h3>Invoices</h3>${invTable}</div>
   <div class="card" style="margin-top:12px"><h3>Payments</h3>${ents.length ? `<div class="scroll"><table style="min-width:620px"><thead><tr><th>Date</th><th>Booking</th><th>What</th><th class="num">Amount</th><th>Recorded by</th><th></th></tr></thead><tbody>${ents.map((e) => { const del = gone.has(e.id); return `<tr${del || e.entry_type === 'reversal' ? ' style="opacity:.6"' : ''}><td>${esc(e.occurred_on)}</td><td class="mono">${esc(refOf[e.lead_id] || '')}</td><td>${esc(entryLabel(e))}${del ? ' <span class="tiny muted">(deleted)</span>' : ''}</td><td class="num"><b>${e.entry_type === 'refund' ? '−' : ''}${rupee2(e.amount)}</b></td><td class="tiny">${esc(whoRecorded(e))}</td><td>${isOwner() && !del && e.entry_type !== 'reversal' ? (e.source === 'gateway' ? '<span class="tiny muted">Refund in Razorpay</span>' : `<button class="btn btn-ghost btn-sm" type="button" data-act="finReverse" data-id="${e.id}">Delete</button>`) : ''}</td></tr>`; }).join('')}</tbody></table></div>` : '<p class="muted" style="margin:0">No payments recorded.</p>'}</div>`;
 }
-function activity() { return '<h1 style="font-size:34px">Activity</h1><p class="muted">Every admin action, newest first.</p><div class="list" id="act"><p class="muted" style="padding:16px">Loading…</p></div>'; }
+function activity() { return '<h1>Activity</h1><p class="muted">Every admin action, newest first.</p><div class="list" id="act"><p class="muted" style="padding:16px">Loading…</p></div>'; }
 async function loadActivity() {
   const { data } = await sb.from('audit_log').select('*').order('created_at', { ascending: false }).limit(100);
   const el = $('#act'); if (!el) return;
