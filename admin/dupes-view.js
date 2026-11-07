@@ -14,7 +14,7 @@ export function createDupes({ rpc, toast, isAdmin = false, desk = 'crew' }) {
   const S = { rows: [], sums: {}, keep: {}, shown: PAGE, undo: null, busy: false };
   let root = null;
 
-  const cell = (label, v) => `<div class="dp-f"><span>${esc(label)}</span><b>${v}</b></div>`;
+  const cell = (label, v, wide) => `<div class="dp-f${wide ? ' dp-f--wide' : ''}"><span>${esc(label)}</span><b>${v}</b></div>`;
   const card = (r, g) => {
     const s = S.sums[r.customer_id] || {};
     const on = S.keep[g.key] === r.customer_id;
@@ -22,7 +22,7 @@ export function createDupes({ rpc, toast, isAdmin = false, desk = 'crew' }) {
     return `<label class="dp-card${on ? ' on' : ''}"><input type="radio" class="mx-sr" name="k-${esc(g.key)}" value="${esc(r.customer_id)}" data-keep="${esc(g.key)}"${on ? ' checked' : ''}>
       <span class="dp-pick">${on ? 'Keep this one' : 'Keep this one?'}</span>
       <span class="dp-name">${esc(r.name || 'No name')}</span>
-      <div class="dp-grid">${cell('Phone', '+91 ' + esc(normPhone10(r.phone)))}${cell('Bookings', esc(bookings))}${cell('Paid bookings', esc(paidBookings({ ...r, confirmed_bookings: s.confirmed_bookings })))}${cell('Last visit', esc(dmy(s.last_booking_date)))}${cell('Added', esc(dmy(r.created_at)))}${isAdmin ? cell('Paid total', esc(rupee(r.paid_total))) : ''}</div></label>`;
+      <div class="dp-grid">${cell('Phone', '+91 ' + esc(normPhone10(r.phone)), true)}${cell('Bookings', esc(bookings))}${cell('Paid bookings', esc(paidBookings({ ...r, confirmed_bookings: s.confirmed_bookings })))}${cell('Last visit', esc(dmy(s.last_booking_date)))}${cell('Added', esc(dmy(r.created_at)))}${isAdmin ? cell('Paid total', esc(rupee(r.paid_total))) : ''}</div></label>`;
   };
   const group = (g) => {
     const keepId = S.keep[g.key];

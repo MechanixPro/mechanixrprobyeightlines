@@ -59,6 +59,13 @@ const crewHandlers = {
   crm_quote_counts: () => ({ quotes_sent: 8, approved: 5, declined: 1, work_started: 4, delivered: 3 }),
   crm_dispatch_list: () => dispatch,
   crm_tech_seen: () => ({ 'lead-6': { seen: true, age_s: 140, lat: 12.9, lng: 77.6 } }),
+  crm_duplicate_customers: () => [
+    { group_key: '9000000011', customer_id: 'cu-d1', name: '[Customer Name 1]', phone: '9000000011', email: null, bookings: 3, paid_total: 2450, created_at: '2026-01-10T05:00:00Z', has_booking_id: true },
+    { group_key: '9000000011', customer_id: 'cu-d2', name: '[Customer Name 1] (second)', phone: '+91 90000 00011', email: null, bookings: 1, paid_total: 0, created_at: '2026-03-02T05:00:00Z', has_booking_id: false },
+    { group_key: '9000000022', customer_id: 'cu-d3', name: '', phone: '9000000022', email: null, bookings: 0, paid_total: 0, created_at: '2026-02-01T05:00:00Z', has_booking_id: false },
+    { group_key: '9000000022', customer_id: 'cu-d4', name: '[Customer Name With A Very Long Name That Should Wrap Nicely]', phone: '9000000022', email: null, bookings: 2, paid_total: 98, created_at: '2026-04-01T05:00:00Z', has_booking_id: true },
+  ],
+  crm_customer_summary: (a) => [{ customer_id: a.p_customer, name: '[Customer Name]', phone: '9000000011', bookings: a.p_customer === 'cu-d1' ? 3 : 1, confirmed_bookings: a.p_customer === 'cu-d1' ? 3 : 0, paid_total: 0, last_booking_date: '2026-10-12', duplicate_customers: 1 }],
   crm_open_issues: (a) => issues.filter((i) => a.p_status === 'all' || i.status === a.p_status),
   crm_replies_waiting: () => [{ id: 'lead-2', name: '[Customer Name 2]', wrote_at: ago(8) }],
   crm_dispositions_list: () => [{ disposition: 'Interested', sub_disposition: 'Call later' }],
@@ -116,6 +123,7 @@ const adminTables = {
 };
 adminTables.dense = { leads: adminLeads.concat(bulkLeads), customers: adminTables.customers.concat(bulkCustomers), bikes: adminTables.bikes.concat(bulkBikes) };   // used by the 'dense' scenario in the stub
 const adminRpc = {
+  crm_duplicate_customers: crewHandlers.crm_duplicate_customers, crm_customer_summary: crewHandlers.crm_customer_summary,
   crm_dispatch_list: crewHandlers.crm_dispatch_list, crm_tech_seen: crewHandlers.crm_tech_seen, crm_open_issues: crewHandlers.crm_open_issues, crm_mechanic_picker: crewHandlers.crm_mechanic_picker,
   crm_targets_progress: crewHandlers.crm_targets_progress, crm_targets_set: crewHandlers.crm_targets_set, crm_paid_badges: crewHandlers.crm_paid_badges, crm_confirmation: crewHandlers.crm_confirmation, crm_notifications: crewHandlers.crm_notifications, crm_quote_get: crewHandlers.crm_quote_get, crm_booking_updates: crewHandlers.crm_booking_updates, crm_tech_location: crewHandlers.crm_tech_location,
 };
