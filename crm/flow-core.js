@@ -208,10 +208,13 @@ export function createFlow(deps) {
   function dispatchHtml(rows, seen) {
     const list = dispatchOrder(rows || []);
     if (!list.length) return emptyState({ title: 'No paid bookings waiting', text: 'New paid bookings appear here first.' });
-    return `<ul class="flow-dispatch">${list.map((r) => `<li class="flow-d ${r.mechanic_id ? '' : 'flow-d-open'}" data-id="${esc(r.id)}"><div><b>${esc(r.booking_id || 'Booking')}</b> ${chip(String(r.vehicle || 'bike').toUpperCase())} ${r.confirm_fee != null ? chip('Paid ₹' + r.confirm_fee, 'good') : ''} ${r.review ? chip('Fee needs a check', 'warn') : ''}</div>
+    const un = list.filter((r) => !r.mechanic_id), on = list.filter((r) => r.mechanic_id);
+    const li = (r) => `<li class="flow-d flow-d-paid ${r.mechanic_id ? '' : 'flow-d-open'}" data-id="${esc(r.id)}"><div><b>${esc(r.booking_id || 'Booking')}</b> ${chip(String(r.vehicle || 'bike').toUpperCase())} ${r.confirm_fee != null ? chip('PAID ₹' + r.confirm_fee, 'good', 'flow-paid') : ''} ${r.review ? chip('Fee needs a check', 'warn') : ''}</div>
       <div>${esc(r.first_name || '')} · ${esc([r.area, r.pincode].filter(Boolean).join(' ') || 'No area')}</div><div class="flow-muted">${esc(r.preferred_date || '')} · ${esc(SLOT[r.preferred_slot] || r.preferred_slot || '')}${r.bike ? ' · ' + esc(r.bike) : ''}${r.service_name ? ' · ' + esc(r.service_name) : ''}</div>
       <div>${r.mechanic_name ? `Mechanic: <b>${esc(r.mechanic_name)}</b>${r.visit_stage ? ' · ' + esc(STAGE[r.visit_stage] || r.visit_stage) : ''}` : '<b class="flow-bad">Unassigned</b>'}</div>${seenRow(seen && seen[r.id])}
-      <div class="flow-row"><button class="flow-btn ${r.mechanic_id ? '' : 'flow-primary'}" type="button" data-dispatch="assign">${r.mechanic_id ? 'Reassign' : 'Assign mechanic'}</button><button class="flow-btn flow-ghost" type="button" data-dispatch="open">Open</button></div></li>`).join('')}</ul>`;
+      <div class="flow-row"><button class="flow-btn ${r.mechanic_id ? '' : 'flow-primary'}" type="button" data-dispatch="assign">${r.mechanic_id ? 'Reassign' : 'Assign mechanic'}</button><button class="flow-btn flow-ghost" type="button" data-dispatch="open">Open</button></div></li>`;
+    const head = (t, n, cls) => `<h3 class="flow-dhead ${cls}">${t} <span class="flow-dcount">${n}</span></h3>`;
+    return `${un.length ? head('Paid, needs a mechanic', un.length, 'flow-dhead-paid') + `<ul class="flow-dispatch">${un.map(li).join('')}</ul>` : ''}${on.length ? (un.length ? head('Assigned', on.length, '') : '') + `<ul class="flow-dispatch">${on.map(li).join('')}</ul>` : ''}`;
   }
   /* ----- Issues: what customers reported, open first, with who resolved the others ----- */
   function issuesHtml(rows) {

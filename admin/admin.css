@@ -180,8 +180,7 @@ details.card[open]>summary::after{content:"  \25B4"}
 .dup{display:inline-flex;align-items:center;min-height:20px;padding:0 var(--s2);border-radius:var(--radius-pill);background:var(--accent-bg);color:var(--accent-text);font:700 var(--fs-2) var(--font);cursor:help;vertical-align:middle}
 @media(max-width:699px){
   .cu-h{display:none}
-  .cu-r{grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"name n paid" "phone bike last";gap:var(--s1) var(--s3);padding:var(--s2) var(--s3)}
-  .cu-name{grid-area:name}.cu-n{grid-area:n}.cu-paid{grid-area:paid;min-width:5ch}.cu-phone{grid-area:phone;text-align:left!important}.cu-bike{grid-area:bike;grid-column:2/3}.cu-last{grid-area:last}
-  .cu-bike{max-width:9em}
+  .cu-r{grid-template-columns:minmax(0,1fr) 3.5em 5.5em;grid-template-areas:"name n paid" "phone last last" "bike bike bike";gap:var(--s1) var(--s3);padding:var(--s2) var(--s3)}
+  .cu-name{grid-area:name}.cu-n{grid-area:n}.cu-paid{grid-area:paid}.cu-phone{grid-area:phone;text-align:left!important}.cu-last{grid-area:last}.cu-bike{grid-area:bike}.cu-bike.is-none{display:none}
 }
 tr.is-paid td:first-child{box-shadow:inset 4px 0 0 var(--good)}
