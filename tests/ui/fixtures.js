@@ -41,6 +41,11 @@ const fullLead = (l) => ({ lead: { ...l, address: null, notes: '[Internal note a
 
 const crewHandlers = {
   crm_me: () => crewMe,
+  crm_targets_progress: () => ({ now_ist: '2027-01-12T15:00:00', can_see_all: true, people: [
+    { user_id: 'me-1', name: '[Staff Name]', role: 'supervisor', day: { target: { calls: 20, quotes_sent: 5, paid_bookings: 2 }, actual: { calls: 14, quotes_sent: 1, paid_bookings: 0 } }, week: { target: { calls: 100, quotes_sent: 25, paid_bookings: 10 }, actual: { calls: 52, quotes_sent: 12, paid_bookings: 10 } } },
+    { user_id: 'u1', name: '[Care Buddy 1]', role: 'sales', day: { target: { calls: 20, quotes_sent: 5, paid_bookings: 2 }, actual: { calls: 8, quotes_sent: 4, paid_bookings: 2 } }, week: { target: { calls: 100, quotes_sent: 25, paid_bookings: 10 }, actual: { calls: 60, quotes_sent: 11, paid_bookings: 4 } } },
+    { user_id: 'u2', name: '[Care Buddy 2]', role: 'sales', day: { target: null, actual: { calls: 3, quotes_sent: 0, paid_bookings: 0 } }, week: { target: null, actual: { calls: 9, quotes_sent: 1, paid_bookings: 0 } } }] }),
+  crm_targets_set: () => null,
   crm_queue: (a, ui) => (a.p_view === 'unassigned' ? queue.slice(0, 1).map((l) => ({ ...l, crm_owner: null, owner_name: null })) : (ui && ui.extra ? queue.concat(extraLeads) : queue)),
   crm_call_queue: () => callRows,
   crm_my_leads: () => leadRows,
@@ -112,7 +117,7 @@ const adminTables = {
 adminTables.dense = { leads: adminLeads.concat(bulkLeads), customers: adminTables.customers.concat(bulkCustomers), bikes: adminTables.bikes.concat(bulkBikes) };   // used by the 'dense' scenario in the stub
 const adminRpc = {
   crm_dispatch_list: crewHandlers.crm_dispatch_list, crm_tech_seen: crewHandlers.crm_tech_seen, crm_open_issues: crewHandlers.crm_open_issues, crm_mechanic_picker: crewHandlers.crm_mechanic_picker,
-  crm_paid_badges: crewHandlers.crm_paid_badges, crm_confirmation: crewHandlers.crm_confirmation, crm_notifications: crewHandlers.crm_notifications, crm_quote_get: crewHandlers.crm_quote_get, crm_booking_updates: crewHandlers.crm_booking_updates, crm_tech_location: crewHandlers.crm_tech_location,
+  crm_targets_progress: crewHandlers.crm_targets_progress, crm_targets_set: crewHandlers.crm_targets_set, crm_paid_badges: crewHandlers.crm_paid_badges, crm_confirmation: crewHandlers.crm_confirmation, crm_notifications: crewHandlers.crm_notifications, crm_quote_get: crewHandlers.crm_quote_get, crm_booking_updates: crewHandlers.crm_booking_updates, crm_tech_location: crewHandlers.crm_tech_location,
 };
 
 

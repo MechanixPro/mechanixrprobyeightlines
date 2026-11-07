@@ -11,3 +11,4 @@ funnel.js
 quote-doc.js
 speed.js
 targets.js
+targets-view.js

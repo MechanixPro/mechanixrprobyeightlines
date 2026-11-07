@@ -20,6 +20,7 @@ function emptyCrew(name, a) {
   if (name === 'crm_leads_summary') return { all: 0, new: 0, followups: 0, converted: 0, won: 0, lost: 0, junk: 0, unassigned: 0, pct: null, by_vehicle: {} };
   if (name === 'crm_dashboard') return { range: { from: new Date().toISOString() }, leads: { total: 0, won: 0, won_pct: 0, lost: 0, lost_pct: 0 }, unassigned: 0, chats: { unreplied: 0, total: 0 }, targets: { team: { daily_done: 0, daily_target: 30, monthly_done: 0, monthly_target: 600 }, me: { daily_done: 0, daily_target: 8, monthly_done: 0, monthly_target: 160 } }, agents: [], attribution: [] };
   if (name === 'crm_tech_board') return { techs: [], unassigned: [] };
+  if (name === 'crm_targets_progress') return { now_ist: '2027-01-12T15:00:00', can_see_all: true, people: [] };
   if (name === 'crm_funnel') return { stages: [], money: false };
   return undefined;
 }

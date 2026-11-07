@@ -16,6 +16,8 @@ import * as team from './pages/team.js';
 import * as inbox from './pages/inbox.js';
 import * as callnow from './pages/callnow.js';
 import * as followups from './pages/followups.js';
+import { myRows } from './targets.js';
+import { myTargetsHtml } from './targets-view.js';
 import { newBooking, editBooking } from './pages/booking.js';
 import { sendPaymentLink } from './pages/payment.js';
 import { createFlow } from './flow-core.js';
@@ -270,6 +272,7 @@ async function loadList() {
   S.leads = await rpc('crm_queue', { p_view: view, p_search: S.q || null });
   // People who assign technicians see today's board on My day.
   S.board = null; if (view === 'mine' && canTech()) { try { S.board = await rpc('crm_tech_board', { p_date: null }); } catch (e) { S.board = null; } }
+  S.targets = null; if (view === 'mine') { try { S.targets = await rpc('crm_targets_progress'); } catch (e) { S.targets = null; } }   // targets card is optional: a failure just hides it
   if (view !== 'unassigned') { try { S.counts.unassigned = (await rpc('crm_queue', { p_view: 'unassigned', p_search: null })).length; } catch (e) { /* badge only */ } }
   else S.counts.unassigned = S.leads.length;
   renderHeader();
@@ -284,10 +287,16 @@ function renderBody() {
     ${S.unstaffed.length ? `<div class="alert" role="status"><b>${S.unstaffed.length}</b> booked ${S.unstaffed.length === 1 ? 'job has' : 'jobs have'} no technician yet: ${S.unstaffed.slice(0, 4).map((j) => `<button class="btn sm" type="button" data-act="open" data-id="${j.id}">${esc(idOr(j, 'Job'))} ${esc(j.name)}</button>`).join(' ')}</div>` : ''}
     ${late ? `<div class="alert" role="status"><b>${late}</b> ${late === 1 ? 'lead needs' : 'leads need'} you right now.</div>` : ''}
     ${S.board ? techBoard(S.board) : ''}
+    ${S.view === 'mine' ? myTargetsCard() : ''}
     <div class="cards">${S.leads.length ? S.leads.map(card).join('') : `<div class="empty">${S.view === 'mine' ? 'Nothing open. Take a lead from <b>Unassigned</b>, or add one you got by phone.' : 'No unassigned leads right now.'}</div>`}</div>`;
   const q = $('#q'); if (q) q.addEventListener('input', debounce(async () => { S.q = q.value.trim(); await loadList(); renderBody(); const n = $('#q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 350));
 }
 
+function myTargetsCard() {
+  if (!S.targets || !S.me) return '';
+  const day = myRows(S.targets, S.me.user_id, 'day'), week = myRows(S.targets, S.me.user_id, 'week');
+  return day && week ? myTargetsHtml({ day, week }) : '';
+}
 const SLOT_SHORT = { morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening', asap: 'ASAP' };
 function techBoard(b) {
   const job = (j) => `<button class="chip pick" type="button" data-act="open" data-id="${j.id}">${esc(j.booking_id || j.name)} · ${esc(SLOT_SHORT[j.slot] || 'No slot')}${j.area ? ' · ' + esc(j.area) : ''}${j.status === 'completed' ? ' · done' : ''}</button>`;
