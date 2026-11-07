@@ -10,3 +10,4 @@ mechanic-desk.js
 funnel.js
 quote-doc.js
 speed.js
+targets.js
