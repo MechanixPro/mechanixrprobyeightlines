@@ -9,7 +9,7 @@ import { spawn } from 'node:child_process';
 import { readFileSync, existsSync, mkdirSync, writeFileSync, rmSync, statSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import { homedir, tmpdir } from 'node:os';
-import { garageJobListItem, garageJobDetail, garageStatement, isOpen, cleanEstimate, signSession, verifySession } from '../supabase/functions/_shared/garage.ts';
+import { garageJobListItem, garageJobDetail, garageStatement, garageDashboard, cleanLocation, isOpen, cleanEstimate, signSession, verifySession } from '../supabase/functions/_shared/garage.ts';
 
 const ROOT = new URL('..', import.meta.url).pathname, OUT = process.argv[2] || join(homedir(), 'Projects/garage-app-preview');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -32,11 +32,12 @@ function seed() {
       { assignment: A(5, 'returned', { returned_at: '2026-11-06T12:00:00Z' }), lead: lead(5, 'Sana Khan', 'car'), service: 'Car service', vehicle: { brand: 'Maruti', model: 'Swift' }, quote: { status: 'approved' }, issue: null, pickup: null, progress: [], estimates: [] },
       { assignment: A(6, 'returned', { returned_at: '2026-11-05T12:00:00Z' }), lead: lead(6, 'Arun Pillai'), service: 'Brake pads', vehicle: { brand: 'Yamaha', model: 'FZ-S' }, quote: { status: 'approved' }, issue: null, pickup: null, progress: [], estimates: [] },
     ],
+    garage: { name: 'Test Garage Koramangala', city: 'Bengaluru', is_open: true, shop_loc_at: null },
     settlements: { '00000000-0000-0000-0000-000000000005': { amount: 1850, settled: true, settled_at: '2026-11-08T05:00:00Z', note: 'Paid by bank transfer' }, '00000000-0000-0000-0000-000000000004': { amount: 640, settled: false } },
   };
 }
-let DB = seed(), MODE = {}, wrong = 0; const LOG = [], ALL = [];
-const reset = (m = {}) => { DB = seed(); MODE = m; wrong = 0; LOG.length = 0; };
+let DB = seed(), MODE = {}, wrong = 0; const LOCS = []; const LOG = [], ALL = [];
+const reset = (m = {}) => { DB = seed(); MODE = m; wrong = 0; LOG.length = 0; LOCS.length = 0; };
 const send = (res, status, body) => { const s = JSON.stringify(body); LOG.push({ status, body: s }); ALL.push({ status, body: s }); res.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' }); res.end(s); };
 async function api(b, res) {
   const a = b.action;
@@ -51,6 +52,12 @@ async function api(b, res) {
   }
   if (!(await verifySession(SECRET, b.session)) || MODE.ended) return send(res, 401, { error: 'Your session has ended. Enter your PIN again.', code: 'session' });
   if (a === 'team_contact') return send(res, 200, { ok: true, whatsapp: null, call: null });
+  if (a === 'dashboard') {
+    if (MODE.dashFail) { MODE.dashFail--; return send(res, 500, { error: 'Could not load your dashboard. Please try again.' }); }
+    return send(res, 200, { ok: true, dashboard: garageDashboard({ today: '2026-11-07', garage: DB.garage, rows: DB.jobs.map((j) => ({ assignment: j.assignment, lead: j.lead, vehicle: j.vehicle, settlement: DB.settlements[j.assignment.id] ?? null })) }) });
+  }
+  if (a === 'location_set') { const v = cleanLocation(b); if (!v.ok) return send(res, 400, { error: 'That location does not look right.' }); DB.garage.shop_loc_at = '2026-11-07T10:00:00Z'; LOCS.push(v); return send(res, 200, { ok: true, at: DB.garage.shop_loc_at }); }
+  if (a === 'open_set') { DB.garage.is_open = b.open === true; return send(res, 200, { ok: true, open: DB.garage.is_open }); }
   if (a === 'jobs') {
     if (MODE.jobsFail) { MODE.jobsFail--; return send(res, 500, { error: 'Could not load your jobs. Please try again.' }); }
     if (MODE.empty) return send(res, 200, { ok: true, garage: { name: 'Test Garage Koramangala' }, jobs: [] });
@@ -124,7 +131,7 @@ ws.onmessage = (m) => { const d = JSON.parse(m.data); if (d.id && pending.has(d.
 const cdp = (method, params = {}) => new Promise((res, rej) => { const i = ++id; pending.set(i, { res, rej }); ws.send(JSON.stringify({ id: i, method, params })); });
 const ev = async (expr) => { const r = await cdp('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true }); if (r.exceptionDetails) throw new Error('page: ' + (r.exceptionDetails.exception?.description || r.exceptionDetails.text)); return r.result.value; };
 const until = async (expr, what, ms = 6000) => { const t = Date.now(); while (Date.now() - t < ms) { if (await ev(expr).catch(() => false)) return; await sleep(60); } throw new Error('timeout waiting for ' + what + '\n' + (await ev('document.body.innerText').catch(() => '')).slice(0, 400)); };
-await cdp('Page.enable'); await cdp('Runtime.enable'); await cdp('Log.enable');
+await cdp('Browser.grantPermissions', { permissions: ['geolocation'], origin: `http://localhost:${PORT}` }).catch(() => {}); await cdp('Emulation.setGeolocationOverride', { latitude: 12.9716, longitude: 77.5946, accuracy: 25 }); await cdp('Page.enable'); await cdp('Runtime.enable'); await cdp('Log.enable');
 const page = { cur: null };
 async function open(path, { store = true, session = false } = {}) {
   await cdp('Page.navigate', { url: `http://localhost:${PORT}/offline.html` }); await sleep(200);   // a same-origin page that is not the app: clear the phone's storage before the app can read it
@@ -133,7 +140,7 @@ async function open(path, { store = true, session = false } = {}) {
   if (session) { await login(); }
 }
 const setPin = (pin) => ev(`(() => { const i = document.getElementById('gpin'); i.value = '${pin}'; document.querySelector('form').requestSubmit(); return true })()`);
-async function login() { await setPin(PIN); await until(`!!document.querySelector('.g-seg')`, 'the jobs list'); }
+async function login() { await setPin(PIN); await until(`!!document.getElementById('dGet')`, 'the home screen'); await sleep(200); await click('#dGet'); await until(`!!document.querySelector('.g-seg')`, 'the jobs list'); }
 const click = (sel) => ev(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) throw new Error('no ${sel.replace(/'/g, '')}'); e.click(); return true })()`);
 const clickText = (sel, text) => ev(`(() => { const e = [...document.querySelectorAll(${JSON.stringify(sel)})].find((x) => x.textContent.includes(${JSON.stringify(text)})); if (!e) throw new Error('no ${text}'); e.click(); return true })()`);
 const openJobBy = async (text) => { await clickText('.g-row-job', text); await until(`!!document.querySelector('.g-jh')`, 'the job'); };
@@ -156,9 +163,9 @@ async function run() {
   await setPin('1111'); await until(`document.querySelector('.g-note-err')`, 'wrong pin message'); await snap('03-pin-wrong');
   reset({ locked: true }); await open('/garage/'); await setPin(PIN); await until(`document.querySelector('.g-note-err')`, 'locked'); await snap('04-pin-locked');
   reset({ off: true }); await open('/garage/'); await setPin(PIN); await until(`document.querySelector('.g-note-err')`, 'off'); await snap('05-pin-off');
-  reset({ delay: 900 }); await open('/garage/'); await setPin(PIN); await until(`document.querySelector('.g-loading')`, 'loading'); await snap('06-jobs-loading'); await until(`!!document.querySelector('.g-seg')`, 'list', 8000);
-  reset({ jobsFail: 1 }); await open('/garage/'); await setPin(PIN); await until(`[...document.querySelectorAll('.g-card button')].some((b) => b.textContent === 'Retry')`, 'retry card'); await snap('07-jobs-error');
-  await clickText('.g-card button', 'Retry'); await until(`!!document.querySelector('.g-seg')`, 'list after retry');
+  reset({ delay: 900 }); await open('/garage/'); await setPin(PIN); await until(`document.querySelector('.g-loading')`, 'loading'); await snap('06-home-loading'); await until(`!!document.getElementById('dGet')`, 'home', 8000);
+  reset({ dashFail: 1 }); await open('/garage/'); await setPin(PIN); await until(`[...document.querySelectorAll('.g-card button')].some((b) => b.textContent === 'Retry')`, 'retry card'); await snap('07-home-error');
+  await clickText('.g-card button', 'Retry'); await until(`!!document.getElementById('dGet')`, 'home after retry');
   reset({ empty: true }); await open('/garage/'); await login(); await snap('08-jobs-empty');
   reset(); await open('/garage/'); await login(); await snap('09-jobs-open');
   await clickText('.g-seg-b', 'Ready'); await snap('10-jobs-ready'); await clickText('.g-seg-b', 'Done'); await snap('11-jobs-done');
@@ -184,12 +191,24 @@ async function run() {
   reset({ limited: true }); await open('/garage/'); await login(); await openJobBy('Activa'); await snap('22-job-contact-limited');
   reset({ jobFail: 1 }); await open('/garage/'); await login(); await clickText('.g-row-job', 'Activa'); await until(`[...document.querySelectorAll('.g-card button')].some((b) => b.textContent === 'Retry')`, 'job retry'); await snap('23-job-error');
   // other tabs
-  reset(); await open('/garage/'); await login(); await click('.g-tab:nth-child(2)'); await until(`document.querySelector('.g-sum')`, 'statement'); await snap('24-statement');
-  reset({ stFail: true }); await open('/garage/'); await login(); await click('.g-tab:nth-child(2)'); await until(`[...document.querySelectorAll('.g-card button')].some((b) => b.textContent === 'Retry')`, 'st retry'); await snap('25-statement-error');
-  reset(); await open('/garage/'); await login(); await click('.g-tab:nth-child(3)'); await until(`document.querySelector('.g-bul')`, 'help'); await snap('26-help');
+  reset(); await open('/garage/'); await login(); await click('.g-tab:nth-child(3)'); await until(`document.querySelector('.g-sum')`, 'statement'); await snap('24-statement');
+  reset({ stFail: true }); await open('/garage/'); await login(); await click('.g-tab:nth-child(3)'); await until(`[...document.querySelectorAll('.g-card button')].some((b) => b.textContent === 'Retry')`, 'st retry'); await snap('25-statement-error');
+  reset(); await open('/garage/'); await login(); await click('.g-tab:nth-child(4)'); await until(`document.querySelector('.g-bul')`, 'help'); await snap('26-help');
   const helpLinks = await ev(`[...document.querySelectorAll('a[data-wa],a[data-call]')].map((a) => a.getAttribute('href'))`); if (!helpLinks.some((h) => h.startsWith('https://wa.me/910000000001')) || !helpLinks.some((h) => h === 'tel:+910000000002')) throw new Error('team buttons missing: ' + helpLinks);
+  // home dashboard, status, location
+  reset(); await open('/garage/', { session: false }); await setPin(PIN); await until(`!!document.getElementById('dLocText') && /Saved/.test(document.getElementById('dLocText').textContent)`, 'location saved on first login'); await snap('28-home-first-login-location');
+  if (LOCS.length !== 1 || LOCS[0].lat !== 12.9716) throw new Error('first login did not send the location: ' + JSON.stringify(LOCS));
+  const homeT = await ev(`document.body.innerText`); for (const w of ['Hello, Test Garage Koramangala', 'TODAY’S JOBS', 'QUICK ACTIONS', 'CURRENT STATUS', 'MY MONTHLY STATS', 'Previous unsettled (1)', 'Get my jobs', 'Update shop location']) if (!homeT.toUpperCase().includes(w.toUpperCase())) throw new Error('home is missing ' + w);
+  await click('#dClosed'); await until(`document.getElementById('dClosed').getAttribute('aria-pressed') === 'true'`, 'closed'); if (DB.garage.is_open !== false) throw new Error('Closed not saved'); await snap('29-home-closed');
+  await click('#dOpen'); await until(`document.getElementById('dOpen').getAttribute('aria-pressed') === 'true'`, 'open again');
+  await ev(`(() => { document.getElementById('dUnsettled').open = true; return true })()`); await snap('30-home-unsettled-open');
+  await click('#dLogout'); await until(`document.getElementById('gpin')`, 'logout to pin');
+  // permission refused: the app carries on and says so
+  reset(); await cdp('Browser.setPermission', { permission: { name: 'geolocation' }, setting: 'denied', origin: `http://localhost:${PORT}` }); await open('/garage/'); await setPin(PIN); await until(`!!document.getElementById('dGet') && document.querySelector('.g-note-info')`, 'refused note'); await snap('31-home-location-refused');
+  if (LOCS.length) throw new Error('a location was sent after refusing'); await click('#dGet'); await until(`!!document.querySelector('.g-seg')`, 'jobs still open after refusing');
+  await cdp('Browser.setPermission', { permission: { name: 'geolocation' }, setting: 'granted', origin: `http://localhost:${PORT}` });
   // session end
-  reset(); await open('/garage/'); await login(); MODE.ended = true; await click('.g-tab:nth-child(2)'); await until(`document.getElementById('gpin')`, 'pin after session end'); await snap('27-session-ended');
+  reset(); await open('/garage/'); await login(); MODE.ended = true; await click('.g-tab:nth-child(3)'); await until(`document.getElementById('gpin')`, 'pin after session end'); await snap('27-session-ended');
   // private link in the URL is saved and removed
   reset(); await cdp("Page.navigate", { url: `http://localhost:${PORT}/offline.html` }); await sleep(200); await ev(`localStorage.clear()`);
   await cdp('Page.navigate', { url: `http://localhost:${PORT}/garage/?g=${TOK}` }); await until(`!!document.getElementById('gpin')`, 'pin from link');
