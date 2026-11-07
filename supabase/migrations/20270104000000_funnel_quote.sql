@@ -1,6 +1,6 @@
 -- Funnel and proper quote document. Every statement is safe to repeat. Not applied anywhere: tested on the local Postgres harness only.
 -- Rollback (owner-run, only if needed):
---   drop function if exists public.crm_funnel(date, date, text, text, uuid, text), public.crm_funnel_options(), public.funnel_targets();
+--   drop function if exists public.crm_funnel(date, date, text, text, uuid, text), public.crm_funnel_options(), public.crm_quote_link(uuid), public.funnel_targets();
 --   alter table public.job_quotes drop column if exists quote_no, drop column if exists valid_until, drop column if exists change_request, drop column if exists changes_at, drop column if exists terms;
 --   then re-run 20261228000000_paid_confirmation.sql to restore crm_quote_send, crm_quote_get and quote_decide.
 
@@ -183,3 +183,14 @@ begin
 end; $$;
 revoke all on function public.crm_funnel_options() from public, anon;
 grant execute on function public.crm_funnel_options() to authenticated;
+
+-- 8. The customer's secret tracking link token, for the desk's "Copy link" button on a quote. Same people as may build the quote. Null when no link exists yet (it is made when the booking is paid).
+create or replace function public.crm_quote_link(p_lead uuid) returns text language plpgsql stable security definer set search_path = public as $$
+declare l public.leads; tok text;
+begin
+  l := public.quote_guard(p_lead);
+  select track_token into tok from public.booking_secrets where lead_id = p_lead;
+  return tok;
+end; $$;
+revoke all on function public.crm_quote_link(uuid) from public, anon;
+grant execute on function public.crm_quote_link(uuid) to authenticated;

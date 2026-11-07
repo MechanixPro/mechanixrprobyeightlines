@@ -3,6 +3,7 @@
 // It holds no business rules of its own. Every action calls the same database functions and Edge Functions, which check who may do what (admins pass, agents and technicians keep their limits).
 import { chip, emptyState, errorState, NOTICE_TONE, ISSUE_TONE } from './ds.js';
 import { paidBadge, visitSub, callScript, quoteTotals, quoteCheck, QUOTE_KINDS, NOTICE_LABEL, resendable, dispatchOrder, confirmPending, confirmPaid, ISSUE_TYPES, seenLine, mapsUrl, issueOrder } from './flow-rules.js';
+import { quoteStatus, validityLabel } from './quote-doc.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const inr = (n) => '₹' + (Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -111,18 +112,22 @@ export function createFlow(deps) {
     const stageOk = ['started', 'repair_doorstep', 'picked_up', 'ready'].includes(c && c.stage);
     let h = '<h4>Quote and delivery estimate</h4>';
     if (!latest) h += `<p class="flow-muted">${stageOk ? 'The mechanic has checked the vehicle. Build the itemised quote.' : 'The quote comes after the mechanic arrives and the customer’s code is verified.'}</p>`;
-    else h += `<p>Version <b>${esc(latest.version)}</b> · <b>${esc(latest.status)}</b> · total ${esc(inr(latest.total))} incl. GST · balance ${esc(inr(latest.balance))}<br><span class="flow-muted">Delivery: ${esc(latest.eta_text || 'not set')}</span></p>`;
+    else h += `<p>Version <b>${esc(latest.version)}</b> · <b>${esc(quoteStatus(latest).label)}</b>${latest.quote_no ? ' · ' + esc(latest.quote_no) : ''}${latest.valid_until ? ' · ' + esc(validityLabel(latest)) : ''} · total ${esc(inr(latest.total))} incl. GST · balance ${esc(inr(latest.balance))}<br><span class="flow-muted">Delivery: ${esc(latest.eta_text || 'not set')}</span></p>`;
     const row = [];
     if (stageOk) row.push(`<button class="flow-btn flow-primary" type="button" data-flow="quote">${latest && latest.status !== 'draft' ? 'Revise quote' : 'Build quote'}</button>`);
     if (latest && latest.status === 'sent') row.push('<button class="flow-btn" type="button" data-flow="phoneApprove">Record phone approval</button>');
     if (latest && ['sent', 'approved'].includes(latest.status)) row.push('<button class="flow-btn" type="button" data-flow="eta">Update delivery estimate</button>');
+    if (latest && latest.status !== 'draft' && deps.quoteDoc) { if (deps.quoteDoc.open) row.push('<button class="flow-btn" type="button" data-flow="quoteDoc">Quote document</button>'); row.push('<button class="flow-btn" type="button" data-flow="quoteLink">Copy customer link</button>'); }
+    if (latest && latest.status === 'changes_requested' && latest.change_request) h += `<p class="flow-muted">Customer asked for changes: ${esc(latest.change_request)}</p>`;
     if (row.length) h += `<div class="flow-row">${row.join('')}</div>`;
-    if (q && q.versions && q.versions.length > 1) h += `<ul class="flow-list">${q.versions.map((v) => `<li>v${esc(v.version)} ${esc(v.status)}${v.decided_via ? ' · by ' + esc(v.decided_via === 'phone' ? 'phone, recorded by ' + (v.decided_by || 'the team') : 'the customer') : ''}${v.decline_reason ? ' · ' + esc(v.decline_reason) : ''}</li>`).join('')}</ul>`;
+    if (q && q.versions && q.versions.length > 1) h += `<ul class="flow-list">${q.versions.map((v) => `<li>v${esc(v.version)} ${esc(quoteStatus(v).label)}${v.decided_via ? ' · by ' + esc(v.decided_via === 'phone' ? 'phone, recorded by ' + (v.decided_by || 'the team') : 'the customer') : ''}${v.decline_reason ? ' · ' + esc(v.decline_reason) : ''}</li>`).join('')}</ul>`;
     return h;
   }
 
   /* ----- actions ----- */
   const actions = {
+    quoteDoc(lead) { if (deps.quoteDoc && deps.quoteDoc.open) return deps.quoteDoc.open(lead.id); },
+    quoteLink(lead) { if (deps.quoteDoc) return deps.quoteDoc.copyLink(lead.id); },
     async payLink(lead) {
       dialog({ title: 'Send the payment link', intro: `The confirmation fee for ${esc(lead.name)} is worked out from the vehicle and engine size. You cannot type another amount here.`,
         body: `<label class="flow-label" for="fl-email">Customer email (needed for the confirmation and code)</label><input id="fl-email" name="email" type="email" inputmode="email" autocomplete="off" placeholder="name@example.com"><label class="flow-check"><input type="checkbox" name="wa" checked> Send it on WhatsApp now</label><div id="fl-res"></div>`,

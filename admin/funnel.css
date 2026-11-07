@@ -12,3 +12,4 @@
 .route-chip{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center}
 .route-next{cursor:pointer;border:0;font:inherit}
 @media (max-width:600px){.fn-table td,.fn-table th{white-space:normal}.fn-barcell{display:none}}
+.qd .inv-meta .qd-status{font-weight:700}.qd .qd-approved{color:var(--good,#1b7f3b)}.qd .qd-declined,.qd .qd-expired{color:var(--bad,#b3261e)}.qd .qd-changes_requested{color:var(--warn,#a15c00)}

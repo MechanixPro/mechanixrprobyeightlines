@@ -41,7 +41,7 @@
 /* Tracking page additions: the one-time code and the quote */
 .tcode{text-align:center}.tcode-n{font:700 44px/1 var(--font);letter-spacing:.35em;margin:8px 0 12px;padding-left:.35em;color:var(--nv)}
 .tq-t{width:100%;border-collapse:collapse;margin:8px 0 14px}.tq-t td{padding:9px 0;border-bottom:1px solid var(--hair);font-size:15px}.tq-t td.r{text-align:right;white-space:nowrap}.tq-t tr.b td{font-weight:700}.tq-t small{color:var(--tx2);font-size:12px}
-.tq-act{display:grid;gap:10px;margin-top:10px}.tq-act input{width:100%;min-height:48px;font-size:16px;padding:10px 14px;border:1px solid var(--hair);border-radius:var(--r-s)}
+.tq-act{display:grid;gap:10px;margin-top:10px}.tq-act input,.tq-act textarea{font-family:inherit;width:100%;min-height:48px;font-size:16px;padding:10px 14px;border:1px solid var(--hair);border-radius:var(--r-s)}
 .track-next{margin:8px 0}
 legend.bk-h{float:left;width:100%}legend.bk-h+*{clear:both}
 
@@ -73,3 +73,4 @@ legend.bk-h{float:left;width:100%}legend.bk-h+*{clear:both}
 .bk-built-h{margin:0 0 4px;font:700 18px/1.2 var(--font);letter-spacing:-.01em}.bk-built p{margin:0 0 6px}
 .bk-link{min-height:44px;padding:0;border:0;background:none;color:var(--nv);font:600 15px var(--font);text-decoration:underline;cursor:pointer}
 @media(prefers-reduced-motion:no-preference){.bk-built{animation:bkBuilt .4s ease-out}@keyframes bkBuilt{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}}
+.tq h3 small{font-weight:400;color:var(--muted)}.tq-no,.tq-terms{margin:0 0 8px}

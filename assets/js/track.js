@@ -125,10 +125,15 @@
       var items = z.lines.map(function (l) { return '<tr><td>' + esc(l.name) + ' <small>' + esc(KIND[l.kind] || l.kind) + '</small></td><td class="r">' + inr(l.amount) + '</td></tr>'; }).join('');
       var sum = '<tr><td>Subtotal (before GST)</td><td class="r">' + inr(z.subtotal) + '</td></tr><tr><td>GST @ 18%</td><td class="r">' + inr(z.gst) + '</td></tr><tr class="b"><td>Total</td><td class="r">' + inr(z.total) + '</td></tr>'
         + (Number(z.fee_credit) ? '<tr><td>Confirmation fee already paid</td><td class="r">− ' + inr(z.fee_credit) + '</td></tr>' : '') + '<tr class="b"><td>Balance to pay</td><td class="r">' + inr(z.balance) + '</td></tr>';
-      var act = z.status === 'sent'
-        ? '<div class="tq-act"><button class="btn btn-primary wide" type="button" data-q="approve" data-v="' + z.version + '">Approve the quote</button><label class="label" for="tq-why">If you decline, tell us why (optional)</label><input id="tq-why" maxlength="200" autocomplete="off"><button class="btn btn-ghost wide" type="button" data-q="decline" data-v="' + z.version + '">Decline</button></div>'
-        : '<p><b>' + (z.status === 'approved' ? 'You approved this quote.' : z.status === 'declined' ? 'You declined this quote.' : '') + '</b></p>';
-      return '<div class="card track-card tq"><h3>' + (z.version > 1 ? 'Revised quote' : 'Your quote') + '</h3><table class="tq-t"><tbody>' + items + sum + '</tbody></table><p><b>Estimated delivery:</b> ' + esc(z.eta_text || 'to be confirmed') + '</p>' + act + '<p class="tq-msg" id="tqMsg" role="status" aria-live="polite"></p></div>';
+      var open = z.status === 'sent' && !z.expired, asked = z.status === 'changes_requested';
+      var until = z.valid_until ? new Date(z.valid_until).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '';
+      var badge = z.expired ? 'Expired' : z.status === 'approved' ? 'Approved' : z.status === 'declined' ? 'Declined' : asked ? 'Changes requested' : 'Sent';
+      var act = open || asked
+        ? '<div class="tq-act">' + (open ? '<button class="btn btn-primary wide" type="button" data-q="approve" data-v="' + z.version + '">Approve the quote</button>' : '<p>You asked for changes' + (z.change_request ? ': “' + esc(z.change_request) + '”' : '') + '. We will send a revised quote. You can still approve this one below.</p><button class="btn btn-primary wide" type="button" data-q="approve" data-v="' + z.version + '">Approve this quote</button>')
+          + '<label class="label" for="tq-why">If you decline, tell us why (optional)</label><input id="tq-why" maxlength="200" autocomplete="off"><button class="btn btn-ghost wide" type="button" data-q="decline" data-v="' + z.version + '">Decline</button>'
+          + (open ? '<label class="label" for="tq-chg">Want something changed? Tell us what.</label><textarea id="tq-chg" maxlength="500" rows="2" autocomplete="off"></textarea><button class="btn btn-ghost wide" type="button" data-q="changes" data-v="' + z.version + '">Ask for changes</button>' : '') + '</div>'
+        : '<p><b>' + (z.expired ? 'This quote has expired. Ask us for a fresh one.' : z.status === 'approved' ? 'You approved this quote.' : z.status === 'declined' ? 'You declined this quote.' : '') + '</b></p>';
+      return '<div class="card track-card tq"><h3>' + (z.version > 1 ? 'Revised quote' : 'Your quote') + ' <small>' + esc(badge) + '</small></h3>' + (z.quote_no ? '<p class="tq-no"><small>' + esc(z.quote_no) + (until ? ' · ' + (z.expired ? 'expired on ' : 'valid until ') + esc(until) : '') + '</small></p>' : '') + '<table class="tq-t"><tbody>' + items + sum + '</tbody></table><p><b>Estimated delivery:</b> ' + esc(z.eta_text || 'to be confirmed') + '</p>' + (z.terms ? '<p class="tq-terms"><small>' + esc(z.terms) + '</small></p>' : '') + act + '<p class="tq-msg" id="tqMsg" role="status" aria-live="polite"></p></div>';
     }
     function draw(v) {
       var tl = v.visit, list = tl ? tl.steps : v.stages.map(function (s, i) { return { label: s, state: i < v.stage ? 'done' : i === v.stage ? 'current' : 'todo' }; });
@@ -222,7 +227,8 @@
     out.addEventListener('click', function (e) {
       var b = e.target.closest('[data-q]');
       if (b && tok) {
-        var m = doc.getElementById('tqMsg'), why = doc.getElementById('tq-why');
+        var m = doc.getElementById('tqMsg'), why = doc.getElementById(b.getAttribute('data-q') === 'changes' ? 'tq-chg' : 'tq-why');
+        if (b.getAttribute('data-q') === 'changes' && !(why && why.value.trim())) { m.textContent = 'Tell us what you would like changed.'; return; }
         Array.prototype.forEach.call(out.querySelectorAll('[data-q]'), function (x) { x.disabled = true; }); m.textContent = 'Saving…';
         post('quote-decision', { t: tok, version: Number(b.getAttribute('data-v')), decision: b.getAttribute('data-q'), reason: why ? why.value : '' }).then(function (x) {
           if (x.ok) load(true); else { m.textContent = (x.d && x.d.error) || 'Could not save. Please try again.'; if (x.d && x.d.superseded) load(true); Array.prototype.forEach.call(out.querySelectorAll('[data-q]'), function (y) { y.disabled = false; }); }

@@ -24,6 +24,7 @@ import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST
 import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
 import { createFunnelDesk } from "./funnel.js";   // Conversion screen
+import { createQuoteDoc } from "./quote-doc.js";   // numbered quote page
 import { createMechanicDesk } from './mechanic-desk.js';
 import { STATUS, skeleton, errorState, labelTables } from './ds.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
@@ -699,6 +700,7 @@ const funnelDesk = createFunnelDesk({ rpc: adminRpc, openLead: (id) => { S.tab =
 const conversion = () => `<div class="view-head"><h2>Conversion</h2><p class="muted">Lead to quote to booking to visit to invoice. Counts and median times, by period, source, campaign, Crew member and vehicle.</p></div><div id="fnRoot"></div>`;
 const mechanicDesk = createMechanicDesk({ rpc: adminRpc, toast, can: () => isOwner(), dialog: (o) => flow.dialog(o) });
 const flow = createFlow({
+  quoteDoc: createQuoteDoc({ rpc: adminRpc, toast, loadCompany }),
   garageDesk,
   rpc: adminRpc,
   invoke: async (fn, body) => { const { data, error } = await sb.functions.invoke(fn, { body }); if (error) { let m = null; try { m = (await error.context.json()).error; } catch (x) { /* no body */ } throw new Error(m || error.message); } return data; },

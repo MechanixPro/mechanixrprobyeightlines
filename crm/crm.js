@@ -19,6 +19,7 @@ import { newBooking, editBooking } from './pages/booking.js';
 import { sendPaymentLink } from './pages/payment.js';
 import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
+import { createQuoteDoc } from "./quote-doc.js";
 import { createMechanicDesk } from './mechanic-desk.js';
 import * as garageapp from './pages/garageapp.js';
 import { skeleton, errorState, labelTables } from './ds.js';
@@ -86,7 +87,7 @@ const garageDesk = createGarageDesk({ rpc, toast, can, canSettle: () => false, d
 // The Mechanic app card (private app access for a mechanic) is shared with the Admin: crm/mechanic-desk.js. Needs Manage technicians; the database refuses everyone else.
 const mechanicDesk = createMechanicDesk({ rpc, toast, can, dialog: (o) => flow.dialog(o) });
 const flow = createFlow({
-  rpc, toast, can, garageDesk,
+  rpc, toast, can, garageDesk, quoteDoc: { copyLink: createQuoteDoc({ rpc, toast }).copyLink },   // Crew copies the customer link; the printable page is Admin only
   invoke: async (fn, body) => { const { data, error } = await sb.functions.invoke(fn, { body }); if (error) { let m = null; try { m = (await error.context.json()).error; } catch (x) { /* no body */ } throw new Error(m || error.message); } return data; },
   reload: () => afterChange(false), openLead: (id) => openLead(id),
   photoUrl: async (path) => { const { data, error } = await sb.storage.from(PHOTO_BUCKET).createSignedUrl(path, 600); if (error) throw error; return data.signedUrl; },   // customer photos: private bucket, 10-minute links, only for the roles the database allows
