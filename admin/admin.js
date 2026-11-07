@@ -12,7 +12,8 @@ import { missingInvoiceCandidates, planCandidates, bannerHtml, reviewHtml, creat
 import { buildNewBooking } from './new-booking.js';
 import { buildServiceEdit } from './booking-edit.js';
 import { groupOf, firstTab, navBadges } from './nav.js';
-import { boardGroups, nextStep } from './board.js';
+import { boardGroups, nextStep, paidNeedsMechanic, paidInfo } from './board.js';
+import { boardHtml, paidBadge as paidChipHtml } from './board-view.js';
 import { docKey, latestDocs, nextDocKey, combineDocs, mechanicCut, snapshotRow, sameFigures, filterRegister, registerTotals, byMechanic, gstSummary, registerCsv } from './invoice-register.js';
 import { jobAccount, mechanicAccount, summaryCards } from './ledger.js';
 import { buildEntry } from './ledger-forms.js';
@@ -209,6 +210,8 @@ document.addEventListener('click', (e) => {
   const gb = e.target.closest('[data-group]'); if (gb) { const g = gb.dataset.group; S.tab = S.lastTab[g] || firstTab(g); syncNav(); render(); return; }
   const t = e.target.closest('[data-tab]'); if (t) { S.tab = t.dataset.tab; syncNav(); render(); return; }
   const r = e.target.closest('[data-lead]'); if (r && (r.classList.contains('inv-tr') || r.classList.contains('inv-row'))) return; if (r) { if (S.selMode) { const id = r.dataset.lead; if (S.sel.has(id)) S.sel.delete(id); else S.sel.add(id); render(); } else openLead(r.dataset.lead); return; }
+  const bt = e.target.closest('[data-btab]'); if (bt) { S.bt = bt.dataset.btab; render(); return; }
+  const bm = e.target.closest('[data-bmore]'); if (bm) { const k = bm.dataset.bmore; S.bshown = { ...(S.bshown || {}), [k]: ((S.bshown || {})[k] || 20) + 20 }; render(); return; }
   const cu = e.target.closest('[data-cust]'); if (cu) { openCustomer(cu.dataset.cust); return; }
   const cbr = e.target.closest('[data-cb]'); if (cbr) { S.cb.id = cbr.dataset.cb; render(); return; }
   const is = e.target.closest('[data-issue]'); if (is) { openIssue(is.dataset.issue); return; }
@@ -246,6 +249,7 @@ function syncNav() {
   document.querySelectorAll('#subtabs [data-tab]').forEach((b) => (b.dataset.tab === S.tab ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   const ga = document.querySelector('[data-tab=garageapp]'); if (ga) ga.hidden = !isOwner();   // owner only
   const bd = navBadges({ leads: S.leads, issues: S.issues });
+  bd.paidOpen = paidNeedsMechanic(S.leads).length;
   document.querySelectorAll('[data-badge]').forEach((el) => { const n = bd[el.dataset.badge] || 0; el.textContent = n > 99 ? '99+' : String(n); el.hidden = !n; });
 }
 function render() { try { renderPage(); } catch (e) { console.error('render', S.tab, e); $('#view').innerHTML = errorHtml('This page could not be shown.', e, 'render'); } }
@@ -519,7 +523,10 @@ function filtered() {
 }
 function renderList() {
   const el = $('#list'); if (!el) return; const rows = filtered();
-  el.innerHTML = rows.length ? rows.map((l) => `<button class="row${S.selMode && S.sel.has(l.id) ? ' picked' : ''}" data-lead="${l.id}"${S.selMode ? ` aria-pressed="${S.sel.has(l.id)}"` : ''}><span class="ref">${S.selMode ? `<span class="chk" aria-hidden="true">${S.sel.has(l.id) ? '\u2611' : '\u2610'}</span> ` : ''}${esc(bid(l))}<br><span class="meta">${l.source === 'whatsapp' ? 'WhatsApp' : 'Website'}</span></span><span>${esc(l.name)} <span class="pill veh-${vehicleOf(l)}">${VEHICLE_LABEL[vehicleOf(l)]}</span> · <span class="meta">${esc(l.phone)}</span><br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')} · ${l.preferred_date ? esc(l.preferred_date) + ' ' + esc(SLOT[l.preferred_slot] ?? '') : ''}</span><br>${stepBar(l, true)}</span><span style="text-align:right"><span class="pill ${l.status}">${LABEL[l.status]}</span><br><span class="meta">${l.est_total ? rupee(l.est_total) : ''} · ${when(l.created_at)}</span></span></button>`).join('') : '<p class="muted" style="padding:16px">No bookings here yet.</p>';
+  // Paid bookings stand out: bold green PAID badge, green left border, and paid-but-unassigned ones are pinned first under their own heading.
+  const pin = S.status === 'junk' ? [] : rows.filter((l) => paidInfo(l).needsMechanic), rest = pin.length ? rows.filter((l) => !paidInfo(l).needsMechanic) : rows;
+  const one = (l) => `<button class="row${paidInfo(l).paid ? ' is-paid' : ''}${S.selMode && S.sel.has(l.id) ? ' picked' : ''}" data-lead="${l.id}"${S.selMode ? ` aria-pressed="${S.sel.has(l.id)}"` : ''}><span class="ref">${S.selMode ? `<span class="chk" aria-hidden="true">${S.sel.has(l.id) ? '\u2611' : '\u2610'}</span> ` : ''}${esc(bid(l))}<br><span class="meta">${l.source === 'whatsapp' ? 'WhatsApp' : 'Website'}</span></span><span>${esc(l.name)} <span class="pill veh-${vehicleOf(l)}">${VEHICLE_LABEL[vehicleOf(l)]}</span> · <span class="meta">${esc(l.phone)}</span><br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')} · ${l.preferred_date ? esc(l.preferred_date) + ' ' + esc(SLOT[l.preferred_slot] ?? '') : ''}</span><br>${stepBar(l, true)}</span><span style="text-align:right">${paidChipHtml(l)} <span class="pill ${l.status}">${LABEL[l.status]}</span><br><span class="meta">${l.est_total ? rupee(l.est_total) : ''} · ${when(l.created_at)}</span></span></button>`;
+  el.innerHTML = rows.length ? (pin.length ? `<h3 class="pin-head">Paid, needs a mechanic <span class="count count-paid">${pin.length}</span></h3>${pin.map(one).join('')}<h3 class="pin-head pin-rest">Everything else <span class="count">${rest.length}</span></h3>` : '') + rest.map(one).join('') : '<p class="muted" style="padding:16px">No bookings here yet.</p>';
 }
 
 /* ---------- commission: one simple rule per job ---------- */
@@ -1863,16 +1870,6 @@ async function openInvoice(lead, opts = {}) {
 }
 
 /* ---------- today board ---------- */
-function boardCard(l) {
-  const m = S.mechanics.find((x) => x.id === l.mechanic_id), n = nextStep(l.status);
-  const when = [l.preferred_slot ? ({ asap: 'As soon as possible', morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening' }[l.preferred_slot] || '') : '', l.preferred_time || ''].filter(Boolean).join(' · ');
-  return `<article class="bcard"><div class="bhead"><button class="bref" type="button" data-lead="${l.id}">${esc(bid(l))}</button><span class="pill ${l.status}">${LABEL[l.status]}</span></div>
-    ${stepBar(l, true)}<p class="bname"><b>${esc(l.name)}</b> <span class="muted">${esc(svcName(l.service_id))}${l.est_total ? ' · ' + rupee(l.est_total) : ''}</span></p>
-    <p class="meta" style="margin:2px 0 8px">${esc([when, l.area, l.pincode].filter(Boolean).join(' · ') || 'No time or place yet')}</p>
-    <label class="tiny muted" for="bm-${l.id}">Mechanic</label>
-    <select id="bm-${l.id}" class="bsel" data-board-mech="${l.id}"><option value="">Not assigned</option>${S.mechanics.filter((x) => x.active || x.id === l.mechanic_id).map((x) => `<option value="${x.id}"${x.id === l.mechanic_id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
-    <div class="bbtns"><a class="btn btn-wa btn-sm" href="https://wa.me/91${esc(l.phone)}" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a>${n ? `<button class="btn btn-primary btn-sm" type="button" data-act="boardNext" data-id="${l.id}">${n.label}</button>` : ''}<button class="btn btn-ghost btn-sm" type="button" data-lead="${l.id}">Open</button></div></article>`;
-}
 function dispatch() { return '<div class="view-head"><h2>Dispatch</h2><p class="muted">Paid bookings for the next days. Unassigned first, by slot time. Assign or reassign a mechanic here.</p></div><div id="dpWrap" aria-live="polite">' + LOADING + '</div>'; }
 async function loadCustIssues() {
   const w = $('#ciList'); if (!w) return;
@@ -1884,12 +1881,11 @@ async function loadDispatch() {
   try { const { data, error } = await sb.rpc('crm_dispatch_list', { p_days: 7 }); if (error) throw error; S.dispatchRows = data || []; let seen = {}; try { const r = await sb.rpc('crm_tech_seen', { p_ids: S.dispatchRows.filter((x) => x.mechanic_id).map((x) => x.id) }); seen = r.data || {}; } catch (x) { /* older database: no last seen */ } w.innerHTML = flow.dispatchHtml(S.dispatchRows, seen); } catch (e) { w.innerHTML = errorHtml('Could not load Dispatch.', e, 'render'); }
 }
 function board() {
-  const g = boardGroups(S.leads), total = Object.values(g).reduce((t, a) => t + a.length, 0);
-  const grp = (title, hint, rows) => `<section class="bgroup"><h2>${title} <span class="count">${rows.length}</span></h2><p class="tiny muted" style="margin:0 0 8px">${hint}</p>${rows.length ? rows.map(boardCard).join('') : '<p class="muted bempty">Nothing here.</p>'}</section>`;
-  return `<h1>Today board</h1><p class="muted">${total ? 'Everything that needs you today, in the order to do it.' : 'Nothing needs you right now.'}</p>
-  <div class="bgrid">${grp('Needs a reply', 'New for more than 30 minutes. Reply first.', g.needsReply)}${grp('Quote and payment', 'Waiting for a quote, an answer or a payment.', g.quotePay)}${grp('Today\'s visits', 'Booked for today, in time order.', g.visits)}${grp('Done today', 'Finished jobs.', g.done)}</div>`;
+  const g = boardGroups(S.leads), total = Object.values(g).reduce((t, a) => t + a.length, 0), pinned = paidNeedsMechanic(S.leads);
+  const keys = ['needsReply', 'quotePay', 'visits', 'done'], first = pinned.length ? 'pin' : (keys.find((k) => g[k].length) || 'needsReply');
+  if (!S.bt || (S.bt === 'pin' && !pinned.length)) S.bt = first;
+  return `<h1>Today board</h1><p class="muted">${total || pinned.length ? 'Everything that needs you today, in the order to do it.' : 'Nothing needs you right now.'}</p>${boardHtml(g, { pinned, mechanics: S.mechanics, svcName, active: S.bt, shown: S.bshown || {} })}`;
 }
-
 /* ---------- invoice register ---------- */
 const IPERIODS = [['month', 'This month'], ['last', 'Last month'], ['all', 'All time']];
 function iPeriod(k) {

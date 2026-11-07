@@ -21,3 +21,12 @@ export function boardGroups(leads, { now = Date.now() } = {}) {
 // One tap moves a booking a single step. Steps that need a decision (confirming a quote, taking payment) open the full booking instead.
 const NEXT = { new: ['Mark contacted', 'contacted'], contacted: ['Mark quoted', 'quoted'], paid: ['Confirm visit', 'scheduled'], scheduled: ['Mark done', 'completed'] };
 export function nextStep(status) { const n = NEXT[status]; return n ? { label: n[0], to: n[1] } : null; }
+
+// Paid bookings must stand out. "Paid" = a confirmation fee or payment was received. "Needs a mechanic" = paid, still open, nobody assigned.
+export function paidInfo(l) {
+  const fee = l.confirm_paid_at && l.confirm_fee != null ? Number(l.confirm_fee) : 0, amount = fee || Number(l.paid_amount) || 0;
+  const paid = amount > 0 && !!(l.confirm_paid_at || Number(l.paid_amount) > 0);
+  const open = !['completed', 'lost', 'junk'].includes(l.status);
+  return { paid, amount, needsMechanic: paid && open && !l.mechanic_id };
+}
+export const paidNeedsMechanic = (leads) => leads.filter((l) => !l.deleted_at && paidInfo(l).needsMechanic);
