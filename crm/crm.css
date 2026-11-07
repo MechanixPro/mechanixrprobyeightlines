@@ -105,3 +105,4 @@ body:not(.admin){font-size:var(--fs-4)}
 .bulk-acts{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
 .bulk-acts .btn{min-height:44px;font-size:16px}
 .bulk-sum{font-size:16px;margin:0 0 8px}
+@media(max-width:899px){.bulk-bar{bottom:calc(var(--tab-h) + var(--sab) + 8px)}}

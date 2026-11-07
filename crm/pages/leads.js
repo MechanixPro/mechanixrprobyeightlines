@@ -39,8 +39,8 @@ export async function render(root, ctx) {
     ${chips(filters.map(([k, t]) => [k, t, ['all', 'converted', 'won', 'followups', 'lost', 'junk'].includes(k) ? count(k) : null]), st.filter)}
     ${sum.by_vehicle ? `<p class="small muted">${['bike', 'car', 'parts'].map((v) => { const x = sum.by_vehicle[v] || {}; return `${VEHICLE_LABEL[v]} ${x.leads || 0} leads, ${x.converted || 0} converted`; }).join(' · ')}</p>` : ''}
     <p class="small muted">${sum.pct ? `Converted ${sum.pct.converted}% · Done ${sum.pct.won}% · Lost ${sum.pct.lost}% · Follow-ups due ${sum.pct.followups}% of ${sum.all} leads` : ''}</p>
-    ${bulkBar(sel, ctx, users, ctx.can('delete_leads') ? '<button class="btn sm danger" type="button" id="bulkDelete">Delete</button>' : '')}
-    ${rows.length ? table(rows, ctx, all) : empty('No leads match these filters.')}`;
+    ${rows.length ? table(rows, ctx, all) : empty('No leads match these filters.')}
+    ${bulkBar(sel, ctx, users, ctx.can('delete_leads') ? '<button class="btn sm danger" type="button" id="bulkDelete">Delete</button>' : '')}`;
   bind(root, ctx, rows, users);
 }
 
