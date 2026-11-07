@@ -52,3 +52,25 @@ export function labelTables(root) {
   }
   return n;
 }
+
+/** Initials for the user chip: "Asha Rao" -> "AR", one word -> first two letters. */
+export const initials = (name) => { const p = String(name ?? '').trim().split(/\s+/).filter(Boolean); return (p.length > 1 ? p[0][0] + p[p.length - 1][0] : (p[0] || '?').slice(0, 2)).toUpperCase(); };
+
+/** Behaviour of the shared app shell (top bar, left menu, phone drawer and bottom bar). Call once after the page has the shell markup.
+ *  jumps: [[key, label, run]] = the shortcuts on the phone bottom bar (a Menu button is always added). Returns { setActive(key), close() }.
+ *  The left menu is the same element as the phone drawer: under 900px it slides over the page, opened by the Menu buttons, closed by the scrim, Esc or choosing a page. */
+export function initShell({ jumps = [], doc = globalThis.document } = {}) {
+  if (!doc) return null;
+  const $ = (s) => doc.querySelector(s), side = $('#side'), scrim = $('#scrim'), top = $('.top'), bar = $('#bottombar');
+  const menuBtns = () => [...doc.querySelectorAll('[data-menu]')];
+  const set = (open) => { if (!side) return; side.classList.toggle('open', open); if (scrim) scrim.hidden = !open; menuBtns().forEach((b) => b.setAttribute('aria-expanded', String(open))); doc.body.classList.toggle('menu-open', open); };
+  const sync = () => { if (top) doc.documentElement.style.setProperty('--top-h', top.offsetHeight + 'px'); };
+  sync(); if (top && globalThis.ResizeObserver) new ResizeObserver(sync).observe(top);
+  doc.addEventListener('click', (e) => { if (e.target.closest('[data-menu]')) set(!side.classList.contains('open')); else if (e.target === scrim) set(false); else if (side && side.classList.contains('open') && e.target.closest('#side button[data-view],#side button[data-group],#side button[data-tab]') && globalThis.matchMedia && !globalThis.matchMedia('(min-width:900px)').matches && !e.target.closest('[data-group]')) set(false); });
+  doc.addEventListener('keydown', (e) => { if (e.key === 'Escape' && side && side.classList.contains('open')) { set(false); const b = menuBtns()[0]; if (b) b.focus(); } });
+  if (bar) {
+    bar.innerHTML = jumps.map(([k, l]) => `<button type="button" data-jump="${esc(k)}" aria-current="false">${esc(l)}</button>`).join('') + '<button type="button" data-menu aria-expanded="false" aria-controls="side">Menu</button>';
+    bar.addEventListener('click', (e) => { const b = e.target.closest('[data-jump]'); if (!b) return; const j = jumps.find(([k]) => k === b.dataset.jump); set(false); if (j) j[2](); });
+  }
+  return { close: () => set(false), setActive: (key) => doc.querySelectorAll('#bottombar [data-jump]').forEach((b) => b.setAttribute('aria-current', b.dataset.jump === key ? 'page' : 'false')) };
+}

@@ -76,7 +76,7 @@ await send('Page.enable'); await send('Runtime.enable'); await send('Log.enable'
 await send('Network.enable'); await send('Network.setCacheDisabled', { cacheDisabled: true });
 
 /* ---------- the screens ---------- */
-const clickTab = (t) => `(async()=>{const b=document.querySelector('#subtabs [data-tab="${t}"]'); const g=b&&b.closest('[data-sub]'); if(g&&g.hidden){document.querySelector('[data-group="'+g.dataset.sub+'"]').click();} await new Promise(r=>setTimeout(r,60)); b.click();})()`;
+const clickTab = (t) => `(async()=>{const b=document.querySelector('#side [data-tab="${t}"]'); const g=b&&b.closest('[data-sub]'); if(g&&g.hidden){document.querySelector('[data-group="'+g.dataset.sub+'"]').click();} await new Promise(r=>setTimeout(r,60)); b.click();})()`;
 const crew = (name, hash, o = {}) => ({ name: 'crew-' + name, app: 'crm', url: '/crm/#' + hash, wait: '#view > div > *, #view .alert, #view .err', ...o });
 const adm = (name, tab, o = {}) => ({ name: 'admin-' + name, app: 'admin', url: '/admin/', wait: '#view:not([hidden]) > *, #view .err', step: tab ? clickTab(tab) : null, ...o });
 const SHOTS = [

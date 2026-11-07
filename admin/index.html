@@ -15,27 +15,24 @@
 <script type="module" src="/admin/admin.js"></script>
 </head>
 <body class="admin">
-<header class="nav"><div class="wrap" style="max-width:1280px">
-  <a class="brand" href="/admin/"><img src="/assets/img/logo.svg" alt="" width="24" height="27">Admin</a>
-  <nav class="groups" id="tabs" aria-label="Admin sections" hidden>
-    <button type="button" data-group="today" aria-current="page">Today</button>
-    <button type="button" data-group="bookings">Bookings<span class="badge" data-badge="bookings" hidden></span><span class="badge badge-paid" data-badge="paidOpen" hidden title="Paid bookings waiting for a mechanic"></span></button>
-    <button type="button" data-group="money">Money<span class="badge" data-badge="money" hidden></span></button>
-    <button type="button" data-group="team">Team and areas</button>
-    <button type="button" data-group="more">More</button>
-  </nav>
-  <button class="btn btn-ghost btn-sm" type="button" id="signOut" hidden>Sign out</button>
-</div></header>
-<nav class="subtabs" id="subtabs" aria-label="Pages in this section" hidden>
-  <div class="wrap" style="max-width:1280px">
-    <div class="sub" data-sub="today"><button type="button" data-tab="dash" aria-current="page">Dashboard</button></div>
-    <div class="sub" data-sub="bookings" hidden><button type="button" data-tab="board">Today board</button><button type="button" data-tab="dispatch">Dispatch</button><button type="button" data-tab="leads">Bookings</button><button type="button" data-tab="customers">Customers</button><button type="button" data-tab="custbook" hidden>Customer bookings</button><button type="button" data-tab="issues">Issues</button></div>
-    <div class="sub" data-sub="money" hidden><button type="button" data-tab="sales">Sales and collections</button><button type="button" data-tab="mechledger">Mechanic ledgers</button><button type="button" data-tab="invoices">Invoices</button><button type="button" data-tab="conversion">Conversion</button><button type="button" data-tab="reports">Reports</button><button type="button" data-tab="coupons">Coupons</button><button type="button" data-tab="prices">Prices</button></div>
-    <div class="sub" data-sub="team" hidden><button type="button" data-tab="mechanics">Mechanics</button><button type="button" data-tab="garageapp" hidden>Garage app</button><button type="button" data-tab="pins">PIN codes</button></div>
-    <div class="sub" data-sub="more" hidden><button type="button" data-tab="offers">Offers</button><button type="button" data-tab="waitlist">Waitlist</button><button type="button" data-tab="homeimgs">Home images</button><button type="button" data-tab="settings">Settings</button><button type="button" data-tab="activity">Activity</button></div>
-  </div>
-</nav>
-<main class="wrap" style="max-width:1280px;padding-top:24px;padding-bottom:80px" id="app">
+<header class="top">
+  <button class="menu-btn" type="button" data-menu aria-label="Open menu" aria-expanded="false" aria-controls="side"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/admin/"><img src="/assets/img/logo.svg" alt="" width="26" height="29"><span>Mechanix Admin</span></a>
+  <form class="gsearch" id="gsearch" role="search" hidden><input id="gq" type="search" placeholder="Search name, phone or booking ID" aria-label="Search bookings" autocomplete="off"></form>
+  <div class="who" id="whoBox" hidden><span class="avatar" id="avatar" aria-hidden="true"></span><span id="who"></span><button class="btn ghost sm" type="button" id="signOut">Sign out</button></div>
+</header>
+<div class="shell-body">
+  <aside class="side" id="side" aria-label="Menu">
+    <nav class="groups" id="tabs" aria-label="Admin sections" hidden>
+      <div class="grp"><button type="button" data-group="today" aria-current="page">Today</button><div class="sub" data-sub="today"><button type="button" data-tab="dash" aria-current="page">Dashboard</button></div></div>
+      <div class="grp"><button type="button" data-group="bookings">Bookings<span class="badge" data-badge="bookings" hidden></span><span class="badge badge-paid" data-badge="paidOpen" hidden title="Paid bookings waiting for a mechanic"></span></button><div class="sub" data-sub="bookings" hidden><button type="button" data-tab="board">Today board</button><button type="button" data-tab="dispatch">Dispatch</button><button type="button" data-tab="leads">Bookings</button><button type="button" data-tab="customers">Customers</button><button type="button" data-tab="custbook" hidden>Customer bookings</button><button type="button" data-tab="issues">Issues</button></div></div>
+      <div class="grp"><button type="button" data-group="money">Money<span class="badge" data-badge="money" hidden></span></button><div class="sub" data-sub="money" hidden><button type="button" data-tab="sales">Sales and collections</button><button type="button" data-tab="mechledger">Mechanic ledgers</button><button type="button" data-tab="invoices">Invoices</button><button type="button" data-tab="conversion">Conversion</button><button type="button" data-tab="reports">Reports</button><button type="button" data-tab="coupons">Coupons</button><button type="button" data-tab="prices">Prices</button></div></div>
+      <div class="grp"><button type="button" data-group="team">Team and areas</button><div class="sub" data-sub="team" hidden><button type="button" data-tab="mechanics">Mechanics</button><button type="button" data-tab="garageapp" hidden>Garage app</button><button type="button" data-tab="pins">PIN codes</button></div></div>
+      <div class="grp"><button type="button" data-group="more">More</button><div class="sub" data-sub="more" hidden><button type="button" data-tab="offers">Offers</button><button type="button" data-tab="waitlist">Waitlist</button><button type="button" data-tab="homeimgs">Home images</button><button type="button" data-tab="settings">Settings</button><button type="button" data-tab="activity">Activity</button></div></div>
+    </nav>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
+<main class="body" id="app">
   <div class="card login" id="login">
     <img src="/assets/img/logo.svg" alt="" width="48" height="53" style="margin:0 auto 12px">
     <h1 style="font-size:28px;text-align:center">Mechanix Pro Admin</h1>
@@ -59,6 +56,8 @@
   </div>
   <div id="view" hidden></div>
 </main>
+</div>
+<nav class="bottombar" id="bottombar" aria-label="Shortcuts" hidden></nav>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden><div class="sheet-panel" id="sheetPanel"></div></div>
 </body>
 </html>

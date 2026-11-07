@@ -93,41 +93,19 @@ img{max-width:100%}
 }
 
 /* ---------- 5. nav bars and underline tabs ---------- */
-/* Crew header (.top) and Admin header (.nav): solid, no blur. */
-.top{position:sticky;top:0;z-index:30;display:grid;gap:var(--s2);grid-template-columns:1fr auto;align-items:center;padding:var(--s2) var(--s4);padding-top:calc(var(--s2) + var(--sat));background:var(--navy);color:var(--on-navy)}
-.top .brand{font-size:var(--fs-4)}.goal{grid-column:1/-1;grid-row:2}.who{display:flex;gap:var(--s2);align-items:center;font-size:var(--fs-2);flex-wrap:wrap;justify-content:flex-end}
-.who span{max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.who .btn{color:var(--on-navy);background:transparent;border-color:rgba(255,255,255,.45);box-shadow:none}.who .btn:hover{background:rgba(255,255,255,.12)}
-.goal-top{font-size:var(--fs-3)}.goal-top b{font-size:var(--fs-4)}.goal-sub{font-size:var(--fs-2);color:rgba(255,255,255,.8);margin-top:3px}
+/* Top bar: see section 16 (shared by Crew and Admin). */
 .bar{height:8px;border-radius:var(--radius-pill);background:rgba(255,255,255,.2);overflow:hidden;margin-top:var(--s1)}.bar span{display:block;height:100%;background:var(--accent);border-radius:var(--radius-pill);transition:width .4s}
 .bar.dark{background:var(--surface3);margin:6px 0 2px}.bar.dark span{background:var(--accent)}
 .brand{display:inline-flex;align-items:center;gap:var(--s2);font-weight:800;text-decoration:none;font-size:var(--fs-4)}
-.nav{position:sticky;top:0;z-index:40;background:var(--surface);border-bottom:var(--bw) solid var(--border);padding-top:var(--sat)}
-.nav .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:0 var(--s3);min-height:52px}
-.nav .brand{order:1;flex:0 0 auto;color:var(--text);min-height:var(--tap)}
-#signOut{order:2;margin-left:auto;flex:0 0 auto}
-.nav .groups{order:3;flex:1 1 100%;min-width:0}
-@media(min-width:900px){.nav .groups{order:2;flex:1 1 auto;margin-left:var(--s4)}#signOut{order:3}}
 /* ONE underline tab style for Crew .tabs, Admin .groups, .subtabs and the drawer .dtabs */
 .tabs,.groups,.subtabs .sub,.dtabs,.mx-tabs{display:flex;gap:var(--s1);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:0}
 .tabs::-webkit-scrollbar,.groups::-webkit-scrollbar,.subtabs .sub::-webkit-scrollbar,.dtabs::-webkit-scrollbar,.mx-tabs::-webkit-scrollbar{display:none}
 .tabs button,.groups button,.subtabs button,.dtabs button,.mx-tabs [role=tab],.mx-tabs button{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;min-height:var(--tap);margin:0 0 -1px;padding:0 var(--s3);border:0;border-bottom:2px solid transparent;border-radius:0;background:none;box-shadow:none;color:var(--text3);font:700 var(--fs-2)/1 var(--font);white-space:nowrap;cursor:pointer}
 .tabs button:hover,.groups button:hover,.subtabs button:hover,.dtabs button:hover,.mx-tabs button:hover{color:var(--text);background:none}
 .tabs button[aria-current=page],.groups button[aria-current=page],.subtabs button[aria-current=page],.dtabs button[aria-selected=true],.mx-tabs [aria-selected=true],.mx-tabs [aria-current=page]{color:var(--accent-text);border-bottom-color:var(--accent);background:none;box-shadow:none}
-.tabs{position:sticky;top:var(--top-h,0px);z-index:20;background:var(--surface);border-bottom:var(--bw) solid var(--border);padding:0 var(--s3)}
-.subtabs{background:var(--surface);border-bottom:var(--bw) solid var(--border)}
-.subtabs .sub{padding:0}
 .dtabs,.mx-tabs{border-bottom:var(--bw) solid var(--border);margin-bottom:var(--s3)}
 .badge{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-left:var(--s1);border-radius:var(--radius-pill);background:var(--accent);color:var(--on-accent);font:700 var(--fs-2)/1 var(--font)}
 .groups .badge,.tabs .badge{margin-left:0}
-@media(max-width:699px){
-  .top{position:static}
-  /* phone: Admin sections share the row, pages of a section wrap instead of clipping; Crew tabs scroll with an edge fade */
-  .groups button{flex:1 1 auto;min-width:min-content;justify-content:center;padding:0 var(--s1);white-space:normal;text-align:center;line-height:1.15}
-  .subtabs .sub{flex-wrap:wrap;overflow:visible}
-  .subtabs button{padding:0 var(--s2)}
-  .tabs{-webkit-mask-image:linear-gradient(90deg,#000 94%,transparent);mask-image:linear-gradient(90deg,#000 94%,transparent)}
-}
 
 /* ---------- 6. buttons: pill, 44px, one shape ---------- */
 .btn,.mx-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:var(--tap);padding:0 var(--s4);border:var(--bw) solid var(--border2);border-radius:var(--radius-pill);background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm);font:700 var(--fs-3)/1.2 var(--font);white-space:nowrap;text-decoration:none;cursor:pointer;transition:background .15s,filter .15s,transform .1s}
@@ -356,3 +334,79 @@ details.board td:first-child{width:38%}
 .mx-chip.flow-paid{background:var(--good);color:#fff;font-weight:800;letter-spacing:.02em}
 .flow-dhead{display:flex;align-items:center;gap:var(--s2);margin:var(--s3) 0 var(--s2);font-size:var(--fs-4)}.flow-dhead-paid{padding:var(--s2) var(--s3);border-radius:var(--radius-field);background:var(--good-bg);color:var(--good-text)}
 .flow-dcount{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 var(--s2);border-radius:var(--radius-pill);background:var(--navy);color:var(--on-navy);font:700 var(--fs-2) var(--font)}.flow-dhead-paid .flow-dcount{background:var(--good);color:#fff}
+
+/* ---------- 16. app shell (Crew and Admin): top bar, left menu, phone drawer and bottom bar, page header ---------- */
+.top{position:sticky;top:0;z-index:50;display:grid;align-items:center;gap:var(--s2) var(--s3);grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"menu brand who" "search search search" "goal goal goal";padding:var(--s2) var(--s4);padding-top:calc(var(--s2) + var(--sat));background:var(--navy);color:var(--on-navy)}
+.top .menu-btn{grid-area:menu}.top .brand{grid-area:brand;color:var(--on-navy);min-width:0}.top .gsearch{grid-area:search}.top .goal{grid-area:goal}.top .who{grid-area:who}
+.top .gsearch[hidden],.top .who[hidden]{display:none}
+.menu-btn{display:inline-grid;place-items:center;width:var(--tap);height:var(--tap);border:var(--bw) solid rgba(255,255,255,.35);border-radius:var(--radius-pill);background:transparent;color:var(--on-navy);cursor:pointer;padding:0}
+.menu-btn:hover{background:rgba(255,255,255,.12)}
+.gsearch{margin:0}.gsearch input{width:100%;min-height:40px;padding:0 var(--s4);border-radius:var(--radius-pill);border:var(--bw) solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:var(--on-navy);font-size:var(--fs-4)}
+.gsearch input::placeholder{color:rgba(255,255,255,.75)}.gsearch input:focus{background:var(--surface);color:var(--text);outline:2px solid var(--accent);outline-offset:1px}.gsearch input:focus::placeholder{color:var(--text3)}
+.who{display:flex;gap:var(--s2);align-items:center;font-size:var(--fs-2);justify-content:flex-end;min-width:0}
+.who #who{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:none}
+.who .btn{color:var(--on-navy);background:transparent;border-color:rgba(255,255,255,.45);box-shadow:none}.who .btn:hover{background:rgba(255,255,255,.12)}
+.avatar{display:inline-grid;place-items:center;flex:0 0 auto;width:32px;height:32px;border-radius:var(--radius-pill);background:var(--accent);color:var(--on-accent);font:800 var(--fs-2)/1 var(--font)}
+.goal-top{font-size:var(--fs-3)}.goal-top b{font-size:var(--fs-4)}.goal-sub{font-size:var(--fs-2);color:rgba(255,255,255,.8);margin-top:3px}
+.goal:empty{display:none}
+#signOut{margin-left:0}
+@media(min-width:900px){
+  .top{grid-template-columns:auto minmax(0,440px) minmax(0,1fr) auto;grid-template-areas:"brand search goal who";padding:var(--s2) var(--s5);padding-top:calc(var(--s2) + var(--sat))}
+  .top .menu-btn{display:none}.top .goal{justify-self:end;width:100%;max-width:300px}.top .gsearch input{font-size:var(--fs-3)}
+  .who #who{display:block}
+}
+@media(max-width:560px){.top .brand span{display:none}}
+@media(max-width:899px){.top{position:static}.who .btn{padding:0 var(--s3)}.admin .top{position:sticky}}
+/* left menu: a rail beside the page on desktop, a drawer on phone */
+.shell-body{display:block}
+.side{background:var(--surface);border-right:var(--bw) solid var(--border)}
+.side nav{display:flex;flex-direction:column;gap:2px;padding:var(--s3);margin:0;overflow:visible;border:0;background:none;position:static;-webkit-mask-image:none;mask-image:none}
+.side nav button{width:100%;justify-content:flex-start;min-height:var(--tap);margin:0;padding:0 var(--s3);border:0;border-radius:var(--radius-field);border-left:3px solid transparent;background:none;box-shadow:none;color:var(--text2);font:600 var(--fs-3)/1.2 var(--font);text-align:left;cursor:pointer;white-space:normal}
+.side nav button:hover{background:var(--surface2);color:var(--text)}
+.side nav button[aria-current=page]{background:var(--accent-bg);color:var(--accent-text);border-left-color:var(--accent);border-bottom-color:transparent}
+.side nav button .badge{margin-left:auto}
+.side .grp>button[data-group]{font-weight:800;color:var(--text)}
+.side .grp>button[data-group]::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid var(--text3);border-bottom:2px solid var(--text3);transform:rotate(-45deg);transition:transform .15s}
+.side .grp>button[data-group][aria-current=page]::after{transform:rotate(45deg)}
+.side .grp>button .badge+.badge{margin-left:var(--s1)}.side .grp>button[data-group] .badge:first-of-type{margin-left:auto}
+.side .grp .sub{display:flex;flex-direction:column;gap:2px;padding:2px 0 var(--s2) var(--s4);border:0;overflow:visible}
+.side .grp .sub[hidden]{display:none}
+.side .grp .sub button{min-height:40px;font-weight:600;font-size:var(--fs-3)}
+.side nav[hidden]{display:none}
+.scrim{position:fixed;inset:0;z-index:55;background:rgba(11,18,32,.5)}.scrim[hidden]{display:none}
+@media(min-width:900px){
+  .shell-body{display:grid;grid-template-columns:232px minmax(0,1fr);align-items:start}
+  .side{position:sticky;top:var(--top-h,56px);height:calc(100vh - var(--top-h,56px));overflow-y:auto}
+  .bottombar{display:none!important}
+  body.admin:not(.authed) .shell-body{grid-template-columns:minmax(0,1fr)}body.admin:not(.authed) .side{display:none}
+}
+@media(max-width:899px){
+  .side{position:fixed;z-index:60;top:0;bottom:0;left:0;width:min(86vw,300px);padding-top:var(--sat);overflow-y:auto;transform:translateX(-100%);visibility:hidden;transition:transform .2s,visibility .2s}
+  .side.open{transform:none;visibility:visible;box-shadow:var(--shadow-lg)}
+  body.admin:not(.authed) .side{display:none}
+  .body{padding-bottom:calc(var(--tab-h) + var(--s5) + var(--sab))}
+  .toast,.mx-toast{bottom:calc(var(--tab-h) + var(--s3) + var(--sab))}
+  body.menu-open{overflow:hidden}
+}
+@media(prefers-reduced-motion:reduce){.side{transition:none}}
+.bottombar{position:fixed;left:0;right:0;bottom:0;z-index:45;display:flex;height:calc(var(--tab-h) + var(--sab));padding-bottom:var(--sab);background:var(--surface);border-top:var(--bw) solid var(--border)}
+.bottombar[hidden]{display:none}
+.bottombar button{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;border:0;border-top:3px solid transparent;background:none;color:var(--text2);font:700 var(--fs-2)/1.15 var(--font);padding:0 var(--s1);cursor:pointer;text-align:center}
+.bottombar button[aria-current=page]{color:var(--accent-text);border-top-color:var(--accent)}
+.bottombar button:last-child{border-left:var(--bw) solid var(--border)}
+body.menu-open .bottombar{z-index:40}
+
+/* ---------- 17. Today board cards (Admin): one card per booking, five stage columns ---------- */
+.stage-board .blist{display:flex;flex-direction:column;gap:var(--s2);padding:var(--s2) 0}
+.stage-board .brow{border:var(--bw) solid var(--border);border-left:4px solid var(--border2);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:var(--s3)}
+.stage-board .brow.is-paid{border-left-color:var(--good);background:var(--good-bg)}
+.stage-board .brow.needs-mech{border-color:var(--good);border-left-color:var(--good);box-shadow:0 0 0 1px var(--good)}
+.stage-board .bgroup>h2{font-size:var(--fs-3);text-transform:uppercase;letter-spacing:.05em;font-weight:800}
+.stage-paid>h2{color:var(--good-text);border-bottom:2px solid var(--good)!important}
+.stage-board .bempty{padding:0}.stage-board .bempty .mx-empty{padding:var(--s4)}
+h1 .count{vertical-align:middle;margin-left:var(--s2)}
+@media(min-width:900px){.stage-board{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))!important}}
+@media(max-width:899px){.btabs{top:var(--top-h,0)!important}}
+.shell-body>.body{width:100%;min-width:0}
+.count{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 var(--s2);border-radius:var(--radius-pill);background:var(--navy);color:var(--on-navy);font:700 var(--fs-2) var(--font);font-variant-numeric:tabular-nums}
+.count-paid{background:var(--good);color:#fff}

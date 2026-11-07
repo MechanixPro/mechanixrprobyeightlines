@@ -30,3 +30,26 @@ export function paidInfo(l) {
   return { paid, amount, open, needsMechanic: paid && open && !l.mechanic_id };
 }
 export const paidNeedsMechanic = (leads) => leads.filter((l) => !l.deleted_at && paidInfo(l).needsMechanic);
+
+// The five stage cards of the Today board: New, Quoted, Paid, On the way, Done. Same bookings and rules as boardGroups; only the grouping is by stage.
+// onWay = the ids of bookings whose mechanic is on the way, arrived or working at the door (from the Dispatch list). A booking shows in ONE column.
+export const WAY_STAGES = ['on_the_way', 'arrived', 'started', 'repair_doorstep', 'picked_up'];
+export function stageGroups(leads, { now = Date.now(), onWay = new Set() } = {}) {
+  const today = istDay(now), week = now - 7 * 864e5;
+  const g = { new: [], quoted: [], paid: [], onway: [], done: [] };
+  for (const l of leads) {
+    if (l.deleted_at) continue;
+    const t = new Date(l.created_at).getTime();
+    if (l.status === 'new' && t > week) g.new.push(l);
+    else if (['contacted', 'quoted', 'payment_sent'].includes(l.status)) g.quoted.push(l);
+    else if (['paid', 'scheduled'].includes(l.status) && onWay.has(l.id)) g.onway.push(l);
+    else if (['paid', 'scheduled'].includes(l.status) && (paidInfo(l).paid || l.preferred_date === today)) g.paid.push(l);
+    else if (l.status === 'completed' && l.completed_at && istDay(l.completed_at) === today) g.done.push(l);
+  }
+  const bySlot = (a, b) => (SLOT_ORDER[a.preferred_slot] ?? 9) - (SLOT_ORDER[b.preferred_slot] ?? 9) || String(a.preferred_time || '').localeCompare(String(b.preferred_time || ''));
+  g.paid.sort((a, b) => Number(paidInfo(b).needsMechanic) - Number(paidInfo(a).needsMechanic) || bySlot(a, b));   // paid with no mechanic first
+  g.new.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  g.quoted.sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
+  g.onway.sort(bySlot);
+  return g;
+}

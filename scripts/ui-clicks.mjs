@@ -249,10 +249,10 @@ async function sheetForms(lid, what, reset) {
 
 /* ---------- Admin ---------- */
 const ADMIN_TABS = ['dash', 'board', 'dispatch', 'leads', 'customers', 'custbook', 'issues', 'sales', 'mechledger', 'invoices', 'reports', 'coupons', 'prices', 'mechanics', 'pins', 'offers', 'waitlist', 'homeimgs', 'settings', 'activity'];
-const clickTab = (t) => `(async()=>{const b=document.querySelector('#subtabs [data-tab="${t}"]'); if(!b) return; const g=b.closest('[data-sub]'); if(g&&g.hidden){const gb=document.querySelector('[data-group="'+g.dataset.sub+'"]'); if(gb) gb.click();} await new Promise(r=>setTimeout(r,60)); b.click();})()`;
+const clickTab = (t) => `(async()=>{const b=document.querySelector('#side [data-tab="${t}"]'); if(!b) return; const g=b.closest('[data-sub]'); if(g&&g.hidden){const gb=document.querySelector('[data-group="'+g.dataset.sub+'"]'); if(gb) gb.click();} await new Promise(r=>setTimeout(r,60)); b.click();})()`;
 const adminLoad = (tab) => async () => { const ok = await load(ADMIN, { wait: '#view:not([hidden]) > *', extra: true }); if (tab && tab !== 'dash') { await ev(clickTab(tab)); await idle(); await sleep(250); await idle(); } return ok; };
 async function admin() {
-  await sweep('admin shell', adminLoad(null), '#groups, #subtabs, .topbar, header', { skip: (d) => /signOut|forgot/.test(d.attrs.id || '') });
+  await sweep('admin shell', adminLoad(null), '#side, .top', { skip: (d) => /signOut|forgot/.test(d.attrs.id || '') });
   for (const t of ADMIN_TABS) await sweep('admin ' + t, adminLoad(t), '#view');
   for (const [lid, what] of LEADS.slice(0, 5)) {
     const reset = async () => { const ok = await adminLoad('leads')(); if (!ok) return false; await ev(`(()=>{const s=document.querySelector('#fs'); if(s){s.value='all'; s.dispatchEvent(new Event('change',{bubbles:true}));}})()`); await idle(); await sleep(200); if (!(await ev(`!!document.querySelector('[data-lead="${lid}"]')`))) return false; await ev(`document.querySelector('[data-lead="${lid}"]').click()`); for (let i = 0; i < 30; i++) { await sleep(120); if (await ev('!!document.querySelector("#sheetPanel .card")')) break; } await idle(); await sleep(250); await idle(); return true; };

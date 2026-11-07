@@ -12,8 +12,8 @@ import { missingInvoiceCandidates, planCandidates, bannerHtml, reviewHtml, creat
 import { buildNewBooking } from './new-booking.js';
 import { buildServiceEdit } from './booking-edit.js';
 import { groupOf, firstTab, navBadges } from './nav.js';
-import { boardGroups, nextStep, paidNeedsMechanic, paidInfo } from './board.js';
-import { boardHtml, paidBadge as paidChipHtml } from './board-view.js';
+import { boardGroups, stageGroups, WAY_STAGES, nextStep, paidNeedsMechanic, paidInfo } from './board.js';
+import { boardHtml, stageBoardHtml, paidBadge as paidChipHtml } from './board-view.js';
 import { docKey, latestDocs, nextDocKey, combineDocs, mechanicCut, snapshotRow, sameFigures, filterRegister, registerTotals, byMechanic, gstSummary, registerCsv } from './invoice-register.js';
 import { jobAccount, mechanicAccount, summaryCards } from './ledger.js';
 import { buildEntry } from './ledger-forms.js';
@@ -27,7 +27,7 @@ import { createGarageDesk } from './garage-desk.js';
 import { createFunnelDesk, createRouting } from "./funnel.js";   // Conversion screen
 import { createQuoteDoc } from "./quote-doc.js";   // numbered quote page
 import { createMechanicDesk } from './mechanic-desk.js';
-import { STATUS, skeleton, errorState, labelTables } from './ds.js';
+import { STATUS, skeleton, errorState, labelTables, initShell, initials } from './ds.js';
 import { moneyCell, shareCompact, chipsHtml, totalsRow, tableHtml, rupeeText, clip, dateText, moneyWhole } from './money-table.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
@@ -128,7 +128,9 @@ async function boot() {
   const { data: me } = await sb.from('admins').select('user_id,name,role').eq('user_id', user.id).maybeSingle();
   if (!me) { $('#loginErr').textContent = 'This account is not an admin. Ask the owner to add you.'; await sb.auth.signOut(); return; }
   S.me = me;
-  $('#login').hidden = true; $('#view').hidden = false; $('#tabs').hidden = false; $('#subtabs').hidden = false; $('#signOut').hidden = false;
+  $('#login').hidden = true; $('#view').hidden = false; $('#tabs').hidden = false; $('#whoBox').hidden = false; $('#gsearch').hidden = false; $('#bottombar').hidden = false; document.body.classList.add('authed');
+  $('#who').textContent = (me.name || 'Admin') + ' · ' + (me.role === 'owner' ? 'Owner' : 'Admin'); $('#avatar').textContent = initials(me.name || 'Admin');
+  shell ||= initShell({ jumps: [['today', 'Today', () => goGroup('today')], ['bookings', 'Bookings', () => goGroup('bookings')], ['money', 'Money', () => goGroup('money')], ['team', 'Team', () => goGroup('team')]] });
   await bootData();
   if (!S.channel) S.channel = sb.channel('mxp-admin')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async (p) => { if (p.eventType === 'INSERT') toast('New lead'); await loadLeads(); if (!['prices', 'settings', 'offers', 'homeimgs'].includes(S.tab)) render(); if (S.open) openLead(S.open, true); })
@@ -247,11 +249,16 @@ document.addEventListener('click', (e) => { const b = e.target.closest('[data-ci
 
 
 // The top bar shows five sections; the row under it shows the pages of the section you are in. The last page used in each section is remembered.
+let shell = null;
+const goGroup = (g) => { S.tab = S.lastTab[g] || firstTab(g); syncNav(); render(); };
+// Global search in the top bar: opens Bookings filtered by what was typed.
+$('#gsearch').addEventListener('submit', (e) => { e.preventDefault(); const q = $('#gq').value.trim(); if (!q) return; S.q = q; S.tab = 'leads'; syncNav(); render(); });
 function syncNav() {
   const g = groupOf(S.tab); S.lastTab[g] = S.tab;
+  if (shell) shell.setActive(g);
   document.querySelectorAll('[data-group]').forEach((b) => (b.dataset.group === g ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   document.querySelectorAll('[data-sub]').forEach((d) => { d.hidden = d.dataset.sub !== g; });
-  document.querySelectorAll('#subtabs [data-tab]').forEach((b) => (b.dataset.tab === (S.tab === 'custbook' ? 'customers' : S.tab) ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
+  document.querySelectorAll('#side [data-tab]').forEach((b) => (b.dataset.tab === (S.tab === 'custbook' ? 'customers' : S.tab) ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   const ga = document.querySelector('[data-tab=garageapp]'); if (ga) ga.hidden = !isOwner();   // owner only
   const bd = navBadges({ leads: S.leads, issues: S.issues });
   bd.paidOpen = paidNeedsMechanic(S.leads).length;
@@ -1898,7 +1905,7 @@ async function openInvoice(lead, opts = {}) {
 }
 
 /* ---------- today board ---------- */
-function dispatch() { return '<div class="view-head"><h2>Dispatch</h2><p class="muted">Paid bookings for the next days. Unassigned first, by slot time. Assign or reassign a mechanic here.</p></div><div id="dpWrap" aria-live="polite">' + LOADING + '</div>'; }
+function dispatch() { return '<div class="view-head"><div><h1>Dispatch</h1><p>Paid bookings for the next days. Unassigned first, by slot time. Assign or reassign a mechanic here.</p></div></div><div id="dpWrap" aria-live="polite">' + LOADING + '</div>'; }
 async function loadCustIssues() {
   const w = $('#ciList'); if (!w) return;
   try { const { data, error } = await sb.rpc('crm_open_issues', { p_status: S.ciFilter || 'open', p_limit: 100 }); if (error) throw error; w.innerHTML = flow.issuesHtml(data || []); document.querySelectorAll('[data-ci]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ci === (S.ciFilter || 'open')))); }
@@ -1909,10 +1916,13 @@ async function loadDispatch() {
   try { const { data, error } = await sb.rpc('crm_dispatch_list', { p_days: 7 }); if (error) throw error; S.dispatchRows = data || []; let seen = {}; try { const r = await sb.rpc('crm_tech_seen', { p_ids: S.dispatchRows.filter((x) => x.mechanic_id).map((x) => x.id) }); seen = r.data || {}; } catch (x) { /* older database: no last seen */ } w.innerHTML = flow.dispatchHtml(S.dispatchRows, seen); } catch (e) { w.innerHTML = errorHtml('Could not load Dispatch.', e, 'render'); }
 }
 function board() {
-  const g = boardGroups(S.leads), total = Object.values(g).reduce((t, a) => t + a.length, 0), pinned = paidNeedsMechanic(S.leads);
-  const keys = ['needsReply', 'quotePay', 'visits', 'done'], first = pinned.length ? 'pin' : (keys.find((k) => g[k].length) || 'needsReply');
-  if (!S.bt || (S.bt === 'pin' && !pinned.length)) S.bt = first;
-  return `<h1>Today board</h1><p class="muted">${total || pinned.length ? 'Everything that needs you today, in the order to do it.' : 'Nothing needs you right now.'}</p>${boardHtml(g, { pinned, mechanics: S.mechanics, svcName, active: S.bt, shown: S.bshown || {}, routeChip: (l) => routing.chip(l) })}`;
+  const onWay = new Set((S.dispatchRows || []).filter((r) => WAY_STAGES.includes(r.visit_stage)).map((r) => r.id));
+  const g = stageGroups(S.leads, { onWay }), total = Object.values(g).reduce((t, a) => t + a.length, 0);
+  const keys = ['new', 'quoted', 'paid', 'onway', 'done'], pinned = g.paid.filter((l) => paidInfo(l).needsMechanic).length;
+  if (!keys.includes(S.bt)) S.bt = pinned ? 'paid' : (keys.find((k) => g[k].length) || 'new');
+  if (!S.dispatchRows && !S.boardWay) { S.boardWay = true; sb.rpc('crm_dispatch_list', { p_days: 7 }).then(({ data, error }) => { S.dispatchRows = error ? [] : (data || []); S.boardWayFail = !!error; if (S.tab === 'board') render(); }).catch(() => { S.dispatchRows = []; S.boardWayFail = true; if (S.tab === 'board') render(); }); }
+  const sub = total ? (pinned ? pinned + ' paid ' + (pinned === 1 ? 'booking needs' : 'bookings need') + ' a mechanic. ' : '') + 'Everything that needs you today, by stage.' : 'Nothing needs you right now.';
+  return `<div class="view-head"><div><h1>Today board <span class="count">${total}</span></h1><p>${esc(sub)}</p></div></div>${stageBoardHtml(g, { mechanics: S.mechanics, svcName, active: S.bt, shown: S.bshown || {}, routeChip: (l) => routing.chip(l), onWayKnown: !S.boardWayFail })}`;
 }
 /* ---------- invoice register ---------- */
 const IPERIODS = [['month', 'This month'], ['last', 'Last month'], ['all', 'All time']];

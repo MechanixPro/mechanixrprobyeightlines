@@ -85,8 +85,8 @@ export function confirmBox(message, label = 'Yes', danger = false) {
   });
 }
 
-/** Page heading with optional tools (HTML) on the right. */
-export const head = (title, hint, tools = '') => `<div class="view-head"><div><h1>${esc(title)}</h1>${hint ? `<p class="muted">${hint}</p>` : ''}</div><div class="view-tools">${tools}</div></div>`;
+/** Page heading: title, optional count badge, hint, and the tools (HTML, the primary action last) on the right. */
+export const head = (title, hint, tools = '', count = null) => `<div class="view-head"><div><h1>${esc(title)}${count != null ? ` <span class="count" aria-label="${esc(count)} items">${esc(count)}</span>` : ''}</h1>${hint ? `<p class="muted">${hint}</p>` : ''}</div><div class="view-tools">${tools}</div></div>`;
 export const chips = (items, current, attr = 'data-f') => `<div class="filters" role="group">${items.map(([v, t, n]) => `<button type="button" class="chip pick${v === current ? ' on' : ''}" ${attr}="${esc(v)}" aria-pressed="${v === current}">${esc(t)}${n != null ? ` <b>${n}</b>` : ''}</button>`).join('')}</div>`;
 export const empty = (t) => `<div class="empty">${t}</div>`;
 /** BIKE / CAR / PARTS badge for a lead row or sheet. */

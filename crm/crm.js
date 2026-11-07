@@ -23,7 +23,7 @@ import { createQuoteDoc } from "./quote-doc.js";
 import { createRouting } from "./funnel.js";
 import { createMechanicDesk } from './mechanic-desk.js';
 import * as garageapp from './pages/garageapp.js';
-import { skeleton, errorState, labelTables } from './ds.js';
+import { skeleton, errorState, labelTables, initShell, initials } from './ds.js';
 import * as dispatch from './pages/dispatch.js';
 import * as issues from './pages/issues.js';
 import { findByPin } from './pages/pinsearch.js';
@@ -62,6 +62,7 @@ const SCREENS = [
   { id: 'team', title: 'Team', page: 'team', mod: team },
 ];
 
+let shell = null;
 const S = { waiting: [], me: null, view: null, leads: [], q: '', open: null, detail: null, users: null, dispositions: [], counts: { unassigned: 0, call: 0 }, unstaffed: [], board: null, busy: false, kind: 'note' };
 const can = (a) => !!S.me?.permissions?.actions?.[a];
 const pageOk = (p) => !!S.me?.permissions?.pages?.[p];
@@ -135,9 +136,15 @@ async function boot() {
     $('#loginErr').textContent = 'This account is not on the team. Ask your supervisor to add you.'; await sb.auth.signOut(); return;
   }
   $('#login').hidden = true; $('#app').hidden = false;
-  { const top = $('.top'), sync = () => document.documentElement.style.setProperty('--top-h', top.offsetHeight + 'px'); sync(); if (window.ResizeObserver) new ResizeObserver(sync).observe(top); }   // the tab bar sticks just under the header
-  $('#who').textContent = S.me.name + ' · Care Buddy' + (S.me.role === 'supervisor' ? ' (supervisor)' : '');
+  $('#who').textContent = S.me.name + ' · Care Buddy' + (S.me.role === 'supervisor' ? ' (supervisor)' : ''); $('#avatar').textContent = initials(S.me.name);
   renderTabs(); loadWaiting();
+  // Left menu, phone drawer and bottom bar (shared with Admin, ds.js). The bottom bar shows the four screens used most, then Menu.
+  const list0 = screens(), ids = ['mine', 'callnow', 'inbox', 'dispatch', 'dashboard', 'leads'].filter((id) => list0.some((x) => x.id === id)).slice(0, 4);
+  shell = initShell({ jumps: ids.map((id) => [id, list0.find((x) => x.id === id).title, () => go(id)]) });
+  $('#gsearch').addEventListener('submit', (e) => {   // global search: open Leads filtered by what was typed
+    e.preventDefault(); const q = $('#gq').value.trim(); if (!q || !pageOk('leads')) return;
+    leads.showLeads({ filter: can('view_all_leads') ? 'all' : 'mine', q }); go('leads');
+  });
   rpc('crm_dispositions_list').then((d) => { S.dispositions = d; }).catch(() => {});
   const list = screens();
   if (!list.length) { $('#view').innerHTML = '<p class="alert pad">Your login has no pages yet. Ask your supervisor to turn some on.</p>'; return; }
@@ -231,6 +238,7 @@ async function go(view, keepScroll) {
   const y = keepScroll ? window.scrollY : 0;
   S.view = view; S.open = null; S.busy = true; location.hash = view;
   $$('#tabs [data-view]').forEach((b) => b.setAttribute('aria-current', b.dataset.view === view ? 'page' : 'false'));
+  if (shell) { shell.setActive(view); shell.close(); }
   if (!keepScroll) $('#view').innerHTML = LOADING;
   try {
     S.me = await rpc('crm_me'); renderHeader(); loadWaiting();

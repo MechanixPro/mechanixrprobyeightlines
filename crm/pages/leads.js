@@ -33,7 +33,7 @@ export async function render(root, ctx) {
     ${all ? `<select id="tech" aria-label="Technician"><option value="">Any technician</option><option value="none"${st.tech === 'none' ? ' selected' : ''}>Booked, no technician</option>${techs.map(([id, n]) => `<option value="${id}"${id === st.tech ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>` : ''}
     ${ctx.can('create_bookings') ? '<button class="btn primary" type="button" id="newBooking">+ Booking</button>' : ''}${ctx.can('add_leads') ? '<button class="btn" type="button" id="newLead">+ Lead</button>' : ''}${ctx.can('export') ? exportButtons('leads') : ''}${ctx.can('assign_leads') ? '<button class="btn ghost" type="button" id="importLeads">Import leads</button>' : ''}`;
   const sel = st.picked.size;
-  root.innerHTML = `${head('Leads', 'Every lead from every source. Open a row to call, message, log what happened or edit the booking.', tools)}
+  root.innerHTML = `${head('Leads', 'Every lead from every source. Open a row to call, message, log what happened or edit the booking.', tools, rows.length)}
     ${chips(filters.map(([k, t]) => [k, t, ['all', 'converted', 'won', 'followups', 'lost', 'junk'].includes(k) ? count(k) : null]), st.filter)}
     ${sum.by_vehicle ? `<p class="small muted">${['bike', 'car', 'parts'].map((v) => { const x = sum.by_vehicle[v] || {}; return `${VEHICLE_LABEL[v]} ${x.leads || 0} leads, ${x.converted || 0} converted`; }).join(' · ')}</p>` : ''}
     <p class="small muted">${sum.pct ? `Converted ${sum.pct.converted}% · Done ${sum.pct.won}% · Lost ${sum.pct.lost}% · Follow-ups due ${sum.pct.followups}% of ${sum.all} leads` : ''}</p>
