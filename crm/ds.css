@@ -410,3 +410,7 @@ h1 .count{vertical-align:middle;margin-left:var(--s2)}
 .shell-body>.body{width:100%;min-width:0}
 .count{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 var(--s2);border-radius:var(--radius-pill);background:var(--navy);color:var(--on-navy);font:700 var(--fs-2) var(--font);font-variant-numeric:tabular-nums}
 .count-paid{background:var(--good);color:#fff}
+/* KPI tiles never push the page sideways: they may shrink, and the value drops to 20px on a phone */
+.kpis>*,.stat-row>*{min-width:0}
+@media(max-width:480px){.kpi b,.stat b,.mx-kpi b{font-size:var(--fs-5)}}
+@media(max-width:640px){button.row[data-act=mlOpen]{grid-template-columns:minmax(0,1fr) auto}button.row[data-act=mlOpen]>:first-child{grid-column:1/-1}}
