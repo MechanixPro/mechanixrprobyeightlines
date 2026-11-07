@@ -96,3 +96,12 @@ body:not(.admin){font-size:var(--fs-4)}
 @media(max-width:640px){.tg-cols{grid-template-columns:1fr}}
 .tg-table .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .tg-who{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}.tg-table td.num{font-size:16px;vertical-align:top;min-width:64px}.tg-table th[scope=row]{font-size:16px!important}.tg-who .btn{min-height:40px}
+/* Leads bulk selection: 44px touch target and sticky action bar */
+.pick-col{width:52px;min-width:52px;padding:0!important;text-align:center}
+.pick-hit{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:0;cursor:pointer}
+.pick-hit input{width:22px;height:22px;margin:0}
+.bulk-bar{position:sticky;bottom:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 12px;margin:8px 0 0;background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius);box-shadow:0 -4px 16px rgba(0,0,0,.12);font-size:16px;max-width:100%;box-sizing:border-box}
+.bulk-bar .bulk-count{font-size:16px}
+.bulk-acts{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.bulk-acts .btn{min-height:44px;font-size:16px}
+.bulk-sum{font-size:16px;margin:0 0 8px}

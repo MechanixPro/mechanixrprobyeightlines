@@ -164,7 +164,7 @@ const writeResults = {
   crm_garage_access_create: ok({ access_id: 'acc-2', garage: '[Garage Name]', link: 'https://example.invalid/garage/?g=PLACEHOLDER' }), crm_garage_link_new: ok({ link: 'https://example.invalid/garage/?g=PLACEHOLDER' }), crm_garage_pin_reset: ok({ ok: true }), crm_garage_revoke: ok({ ok: true, active: false }), crm_garage_enable: ok({ ok: true, active: true }),
   crm_garage_assign: ok({ assignment_id: 'as-2', status: 'sent', garage: '[Garage Name]' }), crm_garage_estimate_review: ok({ ok: true, status: 'converted', quote: { version: 1 } }), crm_garage_settlement_set: ok({ ok: true }),
   crm_rsa_create: ok({ id: 'rsa-1' }), crm_rsa_update: ok(null), crm_ticket_create: ok({ id: 't-1', code: 'T-0001', legal: false }), crm_ticket_set: ok(null), crm_ticket_note: ok(null), crm_visit_schedule: ok(null), crm_visit_update: ok(null), crm_visit_complete: ok(null),
-  crm_playbook_save: ok({ id: 'p-1' }), crm_playbook_publish: ok(null), crm_playbook_flag: ok(null), crm_fitment_save: ok(null), crm_sop_save: ok(null), crm_delete_leads: ok(null), crm_assign_many: ok(null), crm_roster_set: ok(null), crm_automation_set: ok(null),
+  crm_playbook_save: ok({ id: 'p-1' }), crm_playbook_publish: ok(null), crm_playbook_flag: ok(null), crm_fitment_save: ok(null), crm_sop_save: ok(null), crm_delete_leads: ok(null), crm_assign_many: ok(null), crm_bulk_assign: ok({ done: 3, skipped: 0 }), crm_bulk_status: ok({ done: 3, skipped: 0 }), crm_bulk_snooze: ok({ done: 3, skipped: 0 }), crm_roster_set: ok(null), crm_automation_set: ok(null),
 };
 const functionReply = (fn, body) => {
   if (fn === 'desk-chat-sync') return { ok: false };
