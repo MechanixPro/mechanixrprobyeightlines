@@ -74,3 +74,6 @@ td .steps.compact .step{overflow:visible}
   .toolbar>input[type=search],.view-tools>input[type=search],.toolbar>label,.view-tools>label{flex-basis:100%}
   .view-tools{width:100%}.view-tools select{flex:1 1 140px}
 }
+
+/* Crew only: 16px body text for the call team (owner decision 2026-11-08). Admin keeps 14px. */
+body:not(.admin){font-size:var(--fs-4)}
