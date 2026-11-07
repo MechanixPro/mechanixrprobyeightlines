@@ -24,7 +24,7 @@ export function cleanLookup(b: Record<string, unknown>): { ok: true; ref: string
   return { ok: true, ref, phone };
 }
 
-type QuoteView = { status: string; version: number; eta_text?: string | null; lines?: { kind: string; name: string; amount: number }[]; subtotal?: number; gst?: number; total?: number; fee_credit?: number; balance?: number };
+type QuoteView = { status: string; version: number; eta_text?: string | null; lines?: { kind: string; name: string; amount: number }[]; subtotal?: number; gst?: number; total?: number; fee_credit?: number; balance?: number; quote_no?: string | null; valid_until?: string | null; terms?: string | null; change_request?: string | null; expired?: boolean };
 type Extra = { quote?: QuoteView | null; service?: string | null; bike?: string | null; nick?: string | null; mechanic?: string | null; certified?: boolean; doorVerified?: boolean; secret?: { code?: string | null; address?: string | null } | null; vehicle?: string | null; garage?: string | null };
 
 export const DOOR_LINE = 'Give this code to the mechanic when they arrive. Do not share it before.';
@@ -41,7 +41,7 @@ export function visitView(l: Record<string, any>, x: { mechanic?: string | null;
   const picked = ['picked_up', 'ready', 'returned'].includes(stage) && l.job_place === 'garage';
   const label: Record<string, string> = {
     confirmed: 'Confirmed and paid', assigned: 'Mechanic assigned', on_the_way: 'On the way', verified: 'Arrived and verified',
-    quote_sent: qs === 'declined' ? 'Quote declined' : (q?.version ?? 1) > 1 ? 'Revised quote sent' : 'Quote sent', approved: 'Approved',
+    quote_sent: qs === 'declined' ? 'Quote declined' : qs === 'changes_requested' ? 'Changes requested' : (q?.version ?? 1) > 1 ? 'Revised quote sent' : 'Quote sent', approved: 'Approved',
     work: picked ? 'Picked up' : 'Work started', ready: 'Ready', delivered: 'Delivered', completed: 'Completed',
   };
   const steps0 = () => VISIT_KEYS.map((key) => ({ key, label: label[key], state: 'todo' as string }));
@@ -54,7 +54,8 @@ export function visitView(l: Record<string, any>, x: { mechanic?: string | null;
     if (stage === 'on_the_way') { index = 2; note = `${first ?? 'Your mechanic'} is on the way.`; next = 'On arrival the mechanic asks for your code. Have it ready.'; }
     if (stage === 'arrived') { index = 2; note = `${first ?? 'Your mechanic'} has arrived.`; next = 'Give your code to the mechanic so the job can start.'; }
     if (x.doorVerified || ['started', 'repair_doorstep', 'picked_up', 'ready', 'returned'].includes(stage)) { index = 3; note = 'Code verified. The mechanic is checking your vehicle.'; next = 'You get an itemised quote here. Nothing starts without your OK.'; }
-    if (qs === 'sent') { index = 4; note = 'Your quote is ready. Review it and approve or decline.'; next = 'The work starts after you approve.'; }
+    if (qs === 'sent') { index = 4; note = q?.expired ? 'This quote has expired. Ask us for a fresh one.' : 'Your quote is ready. Review it and approve, decline or ask for changes.'; next = 'The work starts after you approve.'; }
+    if (qs === 'changes_requested') { index = 4; note = 'You asked for changes. We will call you with a revised quote.'; next = 'No work starts unless you approve a quote.'; }
     if (qs === 'declined') { index = 4; note = 'You declined the quote. We will call you to talk about it.'; next = 'No work starts unless you approve a quote.'; }
     if (qs === 'approved') { index = 5; note = 'Quote approved. The work can start.'; next = `The mechanic repairs your ${what} here or takes it to the workshop.`; }
     if (stage === 'repair_doorstep') { index = 6; note = 'Work started at your place.'; next = 'We tell you when it is ready.'; }

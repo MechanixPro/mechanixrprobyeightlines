@@ -18,7 +18,7 @@ const rupee = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 // The bold green PAID badge. Used on the board, Bookings list, Dispatch and the customer detail.
 export const paidBadge = (l) => { const p = paidInfo(l); return p.paid ? `<span class="paid-badge" title="Payment received">PAID ${rupee(p.amount)}</span>` : ''; };
 
-export function boardRow(l, { mechanics = [], svcName = (x) => x } = {}) {
+export function boardRow(l, { mechanics = [], svcName = (x) => x, routeChip = null } = {}) {
   const p = paidInfo(l), n = nextStep(l.status), st = bookingStep(l);
   const slot = [SLOTS[l.preferred_slot] || '', l.preferred_time || ''].filter(Boolean).join(' ');
   const where = [l.area, slot].filter(Boolean).join(' · ') || 'No place or time yet';
@@ -26,13 +26,13 @@ export function boardRow(l, { mechanics = [], svcName = (x) => x } = {}) {
   const opts = mechanics.filter((m) => m.active || m.id === l.mechanic_id).map((m) => `<option value="${esc(m.id)}"${m.id === l.mechanic_id ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
   return `<li class="brow${p.paid && p.open ? ' is-paid' : ''}${p.needsMechanic ? ' needs-mech' : ''}" data-row="${esc(l.id)}">
     <div class="b1"><button class="bname" type="button" data-lead="${esc(l.id)}">${esc(String(l.name || '').trim() || '(no name)')}</button>${paidBadge(l)}<span class="bprice num">${l.est_total ? rupee(l.est_total) : ''}</span></div>
-    <div class="b2"><span class="bwhere">${esc([where, svc].filter(Boolean).join(' · '))}</span><span class="mx-chip bstage">${esc(st.label)}</span></div>
+    <div class="b2"><span class="bwhere">${esc([where, svc].filter(Boolean).join(' · '))}</span><span class="mx-chip bstage">${esc(st.label)}</span>${routeChip ? routeChip(l) : ''}</div>
     <div class="b3"><select class="bsel" data-board-mech="${esc(l.id)}" aria-label="Mechanic"><option value="">No mechanic</option>${opts}</select><span class="bbtns"><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a><a class="btn btn-wa btn-sm" href="https://wa.me/91${esc(l.phone)}" target="_blank" rel="noopener">WhatsApp</a><button class="btn btn-ghost btn-sm" type="button" data-lead="${esc(l.id)}">Open</button>${n ? `<button class="btn btn-primary btn-sm" type="button" data-act="boardNext" data-id="${esc(l.id)}">${esc(n.label)}</button>` : ''}</span></div></li>`;
 }
 
 // groups = boardGroups(); pinned = paid bookings with no mechanic (shown first, and left out of the columns so nothing appears twice).
-export function boardHtml(groups, { pinned = [], mechanics = [], svcName, active = 'needsReply', shown = {} } = {}) {
-  const pin = new Set(pinned.map((l) => l.id)), ctx = { mechanics, svcName };
+export function boardHtml(groups, { pinned = [], mechanics = [], svcName, active = 'needsReply', shown = {}, routeChip = null } = {}) {
+  const pin = new Set(pinned.map((l) => l.id)), ctx = { mechanics, svcName, routeChip };
   const cols = BOARD_COLS.map(([k, title, hint]) => {
     const rows = (groups[k] || []).filter((l) => !pin.has(l.id)), cap = shown[k] || BOARD_CAP, more = rows.length - cap;
     return { k, title, hint, count: rows.length, html: rows.slice(0, cap).map((l) => boardRow(l, ctx)).join('') + (more > 0 ? `<li class="bmore"><button class="btn btn-ghost btn-sm" type="button" data-bmore="${k}">Show more (${more})</button></li>` : '') };

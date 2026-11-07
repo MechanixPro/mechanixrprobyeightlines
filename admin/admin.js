@@ -24,6 +24,8 @@ import { adsConversions } from './ads-export.js';
 import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge } from './booking-steps.js';
 import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
+import { createFunnelDesk, createRouting } from "./funnel.js";   // Conversion screen
+import { createQuoteDoc } from "./quote-doc.js";   // numbered quote page
 import { createMechanicDesk } from './mechanic-desk.js';
 import { STATUS, skeleton, errorState, labelTables } from './ds.js';
 import { moneyCell, shareCompact, chipsHtml, totalsRow, tableHtml, rupeeText, clip, dateText, moneyWhole } from './money-table.js';
@@ -257,7 +259,7 @@ function syncNav() {
 }
 function render() { try { renderPage(); } catch (e) { console.error('render', S.tab, e); $('#view').innerHTML = errorHtml('This page could not be shown.', e, 'render'); } }
 const failBanner = () => ((S.failed || []).length ? `<div class="alert" role="alert"><b>Some data could not be loaded:</b> ${esc(S.failed.join(', '))}. What you see may be incomplete. <button class="btn btn-ghost btn-sm" type="button" data-retry="boot">Retry</button></div>` : '');
-function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, dispatch, board, leads, customers, mechanics, garageapp, coupons, issues, pins, waitlist, offers, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, dispatch, board, leads, customers, mechanics, garageapp, coupons, issues, pins, waitlist, offers, conversion, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'conversion') funnelDesk.mount($('#fnRoot')); if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -720,8 +722,13 @@ const adminRpc = async (n, a) => { const { data, error } = await sb.rpc(n, a); i
 const garageDesk = createGarageDesk({ rpc: adminRpc, toast, can: () => isOwner(), canSettle: () => isOwner(), dialog: (o) => flow.dialog(o), openLead: (id) => { S.tab = 'leads'; render(); openLead(id); },
   reload: async () => { await loadLeads(); render(); if (S.open) openLead(S.open, true); } });
 // The Mechanic app card (on a mechanic's sheet) is the same code as in Crew: admin/mechanic-desk.js. Owner only here.
+// Conversion screen (funnel): admin/funnel.js, counts come from the crm_funnel database function.
+const funnelDesk = createFunnelDesk({ rpc: adminRpc, openLead: (id) => { S.tab = "leads"; render(); openLead(id); }, download: (name, text) => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); } });
+const routing = createRouting({ rpc: adminRpc, onReady: () => { if (S.tab === "board") render(); } });   // owner, Next step and late chip on the Today board
+const conversion = () => `<div class="view-head"><h2>Conversion</h2><p class="muted">Lead to quote to booking to visit to invoice. Counts and median times, by period, source, campaign, Crew member and vehicle.</p></div><div id="fnRoot"></div>`;
 const mechanicDesk = createMechanicDesk({ rpc: adminRpc, toast, can: () => isOwner(), dialog: (o) => flow.dialog(o) });
 const flow = createFlow({
+  quoteDoc: createQuoteDoc({ rpc: adminRpc, toast, loadCompany }),
   garageDesk,
   rpc: adminRpc,
   invoke: async (fn, body) => { const { data, error } = await sb.functions.invoke(fn, { body }); if (error) { let m = null; try { m = (await error.context.json()).error; } catch (x) { /* no body */ } throw new Error(m || error.message); } return data; },
@@ -1002,6 +1009,7 @@ const ACT = {
     await audit('lead_updated', { ref: l.ref, status: upd.status, lost_reason: toLost ? upd.crm_lost_reason : undefined, lost_note: toLost && lostNote ? lostNote : undefined, mechanic_id: upd.mechanic_id, service_changed: !!svc, amount_due: upd.amount_due });
     toast(svc && svc.lead.est_total != null ? 'Saved. New estimate ' + rupee(svc.lead.est_total) : 'Saved'); await Promise.all([loadLeads(), loadPeople()]); if (upd.status === 'completed' && l.status !== 'completed') await autoInvoiceFor(l.id); renderList(); openLead(l.id, true);
   },
+  async routeNext(btn) { const id = btn.getAttribute('data-id'), key = btn.getAttribute('data-step'); await openLead(id); if (key && key !== 'call') await ACT.stepNext({ getAttribute: (k) => (k === 'data-key' ? key : null) }); },   // the chip's Next step runs the lead sheet's own step
   async boardNext(btn) {
     const l = S.leads.find((x) => x.id === btn.getAttribute('data-id')), n = l && nextStep(l.status); if (!n) return;
     const upd = { status: n.to }; if (n.to === 'completed') upd.completed_at = new Date().toISOString();
@@ -1904,7 +1912,7 @@ function board() {
   const g = boardGroups(S.leads), total = Object.values(g).reduce((t, a) => t + a.length, 0), pinned = paidNeedsMechanic(S.leads);
   const keys = ['needsReply', 'quotePay', 'visits', 'done'], first = pinned.length ? 'pin' : (keys.find((k) => g[k].length) || 'needsReply');
   if (!S.bt || (S.bt === 'pin' && !pinned.length)) S.bt = first;
-  return `<h1>Today board</h1><p class="muted">${total || pinned.length ? 'Everything that needs you today, in the order to do it.' : 'Nothing needs you right now.'}</p>${boardHtml(g, { pinned, mechanics: S.mechanics, svcName, active: S.bt, shown: S.bshown || {} })}`;
+  return `<h1>Today board</h1><p class="muted">${total || pinned.length ? 'Everything that needs you today, in the order to do it.' : 'Nothing needs you right now.'}</p>${boardHtml(g, { pinned, mechanics: S.mechanics, svcName, active: S.bt, shown: S.bshown || {}, routeChip: (l) => routing.chip(l) })}`;
 }
 /* ---------- invoice register ---------- */
 const IPERIODS = [['month', 'This month'], ['last', 'Last month'], ['all', 'All time']];

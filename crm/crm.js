@@ -19,6 +19,8 @@ import { newBooking, editBooking } from './pages/booking.js';
 import { sendPaymentLink } from './pages/payment.js';
 import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
+import { createQuoteDoc } from "./quote-doc.js";
+import { createRouting } from "./funnel.js";
 import { createMechanicDesk } from './mechanic-desk.js';
 import * as garageapp from './pages/garageapp.js';
 import { skeleton, errorState, labelTables } from './ds.js';
@@ -85,8 +87,9 @@ const PHOTO_BUCKET = 'booking-updates';   // private storage bucket (not a table
 const garageDesk = createGarageDesk({ rpc, toast, can, canSettle: () => false, dialog: (o) => flow.dialog(o), openLead: (id) => openLead(id), reload: () => afterChange(false) });
 // The Mechanic app card (private app access for a mechanic) is shared with the Admin: crm/mechanic-desk.js. Needs Manage technicians; the database refuses everyone else.
 const mechanicDesk = createMechanicDesk({ rpc, toast, can, dialog: (o) => flow.dialog(o) });
+const routing = createRouting({ rpc });   // owner and late chip against the targets (funnel_targets), on the lead sheet
 const flow = createFlow({
-  rpc, toast, can, garageDesk,
+  rpc, toast, can, garageDesk, quoteDoc: { copyLink: createQuoteDoc({ rpc, toast }).copyLink },   // Crew copies the customer link; the printable page is Admin only
   invoke: async (fn, body) => { const { data, error } = await sb.functions.invoke(fn, { body }); if (error) { let m = null; try { m = (await error.context.json()).error; } catch (x) { /* no body */ } throw new Error(m || error.message); } return data; },
   reload: () => afterChange(false), openLead: (id) => openLead(id),
   photoUrl: async (path) => { const { data, error } = await sb.storage.from(PHOTO_BUCKET).createSignedUrl(path, 600); if (error) throw error; return data.signedUrl; },   // customer photos: private bucket, 10-minute links, only for the roles the database allows
@@ -342,7 +345,7 @@ function renderSheet() {
   const t = timerInfo(l, new Date(), S.me.sla_minutes);
   sheet.hidden = false; document.body.classList.add('noscroll');
   $('#sheetPanel').innerHTML = `<div class="sheet-head"><div><h2 id="sheetTitle">${esc(l.name)}${vehicleTag(vehicleOf(l))}</h2><p class="muted small">${esc(idOr(l))} · ${esc(SOURCE_LABEL[l.source] || l.source)}${l.campaign ? ' · ' + esc(l.campaign) : ''}</p></div><button class="btn ghost" type="button" data-act="close" aria-label="Close">Close</button></div>
-    ${stepper(l)}${nextBtn(l)}
+    ${stepper(l)}${nextBtn(l)}<p class="bchip">${routing.chip(l)}</p>
     <div class="timer t-${t.tone}">${esc(t.label)}</div>
     <div class="facts">
       <div><span>Phone</span><b>${esc(l.phone)}</b></div><div><span>Area</span><b>${esc([l.area, l.pincode].filter(Boolean).join(' · ') || '—')}</b></div>

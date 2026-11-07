@@ -141,8 +141,8 @@ export async function sendEtaMessages(db: Db, leadId: string, rev: number, force
 export async function notifyTeamDecision(db: Db, leadId: string, version: number, decision: string): Promise<string> {
   const { data: lead } = await db.from('leads').select('booking_id,vehicle,area').eq('id', leadId).maybeSingle();
   if (!lead) return 'not found';
-  const line = `${lead.booking_id ?? 'Booking'} (${String(lead.vehicle ?? 'bike').toUpperCase()}${lead.area ? ', ' + lead.area : ''}): customer ${decision} quote v${version}.`;
-  return await deliver(dbStore(db), leadId, `team_quote_decision:${version}` as Kind, () => mailTeam(db, { subject: `Quote ${decision}: ${lead.booking_id ?? ''}`.trim(), text: `${line}\nOpen: ${deskUrl()}`, html: `<p>${line.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</p><p><a href="${deskUrl()}">Open the desk</a></p>` }, 'team_quote'));
+  const line = `${lead.booking_id ?? 'Booking'} (${String(lead.vehicle ?? 'bike').toUpperCase()}${lead.area ? ', ' + lead.area : ''}): customer ${decision === 'changes requested on' ? 'asked for changes to' : decision} quote v${version}.`;
+  return await deliver(dbStore(db), leadId, `team_quote_decision:${version}` as Kind, () => mailTeam(db, { subject: `Quote ${decision === 'changes requested on' ? 'changes requested' : decision}: ${lead.booking_id ?? ''}`.trim(), text: `${line}\nOpen: ${deskUrl()}`, html: `<p>${line.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</p><p><a href="${deskUrl()}">Open the desk</a></p>` }, 'team_quote'));
 }
 
 /** Run by desk-automation every few minutes: retries failed customer messages, tells the team about unpaid links and unassigned paid bookings. Each item once. */

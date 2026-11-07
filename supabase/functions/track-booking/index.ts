@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     lead.bike_id ? db.from('bikes').select('brand,model,nickname').eq('id', lead.bike_id).maybeSingle() : Promise.resolve({ data: null }),
     lead.mechanic_id ? db.from('mechanics').select('name,certified').eq('id', lead.mechanic_id).maybeSingle() : Promise.resolve({ data: null }),
     lead.confirm_fee != null ? db.from('handovers').select('kind,verified_at,locked_at,attempts,code_expires_at').eq('lead_id', lead.id).order('created_at', { ascending: false }) : Promise.resolve({ data: [] }),
-    lead.confirm_fee != null ? db.from('job_quotes').select('status,version,eta_text,lines,subtotal,gst,total,fee_credit,balance').eq('lead_id', lead.id).in('status', ['sent', 'approved', 'declined']).order('version', { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null }),
+    lead.confirm_fee != null ? db.from('job_quotes').select('status,version,eta_text,lines,subtotal,gst,total,fee_credit,balance,quote_no,valid_until,terms,change_request').eq('lead_id', lead.id).in('status', ['sent', 'approved', 'declined', 'changes_requested']).order('version', { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null }),
     db.from('garage_assignments').select('status').eq('lead_id', lead.id).in('status', ['sent', 'received', 'in_work', 'ready']).maybeSingle(),   // status only: never the garage's name
   ]);
   const b = bike.data as { brand?: string; model?: string; nickname?: string } | null;
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     service: (svc.data as { name?: string } | null)?.name ?? null,
     bike: b ? [b.brand && b.brand !== 'Other' ? b.brand : '', b.model].filter(Boolean).join(' ') : null, nick: b?.nickname ?? null,
     mechanic: (mech.data as { name?: string } | null)?.name ?? null, certified: (mech.data as { certified?: boolean } | null)?.certified,
-    doorVerified, secret, vehicle: lead.vehicle, quote: quote.data as any, garage: (garage.data as { status?: string } | null)?.status ?? null,
+    doorVerified, secret, vehicle: lead.vehicle, quote: quote.data ? { ...(quote.data as any), expired: (quote.data as any).status === 'sent' && !!(quote.data as any).valid_until && Date.parse((quote.data as any).valid_until) < Date.now() } as any : null, garage: (garage.data as { status?: string } | null)?.status ?? null,
   });
   if (!token) return json(req, out);
   // After payment: the pieces only the holder of the private link gets (see journeyView).

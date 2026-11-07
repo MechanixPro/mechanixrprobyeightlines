@@ -1,0 +1,15 @@
+/* Conversion screen and the routing chip. Uses the design-system tokens; nothing here restyles another screen. */
+.fn-tools{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin:8px 0 14px}
+.fn-tools select{min-height:36px}
+.fn-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:8px 0}
+.fn-table td,.fn-table th{white-space:nowrap}
+.fn-barcell{width:28%;min-width:80px}
+.fn-bar{display:block;height:10px;border-radius:5px;background:var(--mx-info,#2f6fed);min-width:2px}
+.fn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:12px 0}
+.fn-card{border:1px solid var(--line,#dde1e6);border-radius:10px;padding:10px 14px}
+.fn-late{list-style:none;margin:0;padding:0}.fn-late li{padding:4px 0;border-top:1px solid var(--line,#eceff2)}
+.fn-red,.route-late{color:var(--bad,#b3261e)}
+.route-chip{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center}
+.route-next{cursor:pointer;border:0;font:inherit}
+@media (max-width:600px){.fn-table td,.fn-table th{white-space:normal}.fn-barcell{display:none}}
+.qd .inv-meta .qd-status{font-weight:700}.qd .qd-approved{color:var(--good,#1b7f3b)}.qd .qd-declined,.qd .qd-expired{color:var(--bad,#b3261e)}.qd .qd-changes_requested{color:var(--warn,#a15c00)}

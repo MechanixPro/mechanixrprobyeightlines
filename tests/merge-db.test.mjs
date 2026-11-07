@@ -10,8 +10,8 @@ const body = (fn) => { const i = M.indexOf('create or replace function public.' 
 
 test('the migration is the newest one and in order', () => {
   const files = readdirSync(new URL('../supabase/migrations', import.meta.url)).filter((f) => f.endsWith('.sql')).sort();
-  assert.equal(files[files.length - 1], NAME);
-  assert.ok(files.length > 1 && files[files.length - 2] < NAME);
+  assert.ok(files.includes(NAME));   // changed on purpose: the funnel migration (20270105) now follows this one
+  assert.ok(files.indexOf(NAME) > 0 && files[files.indexOf(NAME) - 1] < NAME);
 });
 test('rollback notes and a design header come first', () => {
   const head = M.slice(0, M.indexOf('create or replace function'));
