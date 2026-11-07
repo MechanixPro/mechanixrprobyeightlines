@@ -186,3 +186,6 @@ details.card[open]>summary::after{content:"  \25B4"}
 }
 tr.is-paid td:first-child{box-shadow:inset 4px 0 0 var(--good)}
 .groups .badge.badge-paid,.badge.badge-paid{background:var(--good);color:#fff}
+.cu-r>.cu-name{display:flex;align-items:center;gap:var(--s2);overflow:hidden}.cu-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cu-name .dup,.cu-name .pill{flex:0 0 auto}
+@media(min-width:700px){.cu-h,.cu-r{grid-template-columns:minmax(0,1.9fr) 8.5em minmax(0,1fr) 4.5em 5.5em 6em}}
+@media(min-width:1100px){.cu-table{max-height:calc(100vh - 230px);overflow:auto}}
