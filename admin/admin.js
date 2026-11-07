@@ -19,7 +19,7 @@ import { jobAccount, mechanicAccount, summaryCards } from './ledger.js';
 import { buildEntry } from './ledger-forms.js';
 import { filterAccounts, salesCsv, ledgerCsv, entryLabel } from './sales-view.js';
 import { effectiveRate, jobSplit, cleanCommission, payoutShareText, statementShareText, PLACES } from './commission.js';
-import { customerList, bookingRows, summarize } from './customer-bookings.js';
+import { customerSummaries, customerLeads, normPhone, bookingRows, summarize } from './customer-bookings.js';
 import { adsConversions } from './ads-export.js';
 import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge } from './booking-steps.js';
 import { createFlow } from './flow-core.js';
@@ -213,7 +213,9 @@ document.addEventListener('click', (e) => {
   const bt = e.target.closest('[data-btab]'); if (bt) { S.bt = bt.dataset.btab; render(); return; }
   const bm = e.target.closest('[data-bmore]'); if (bm) { const k = bm.dataset.bmore; S.bshown = { ...(S.bshown || {}), [k]: ((S.bshown || {})[k] || 20) + 20 }; render(); return; }
   const cu = e.target.closest('[data-cust]'); if (cu) { openCustomer(cu.dataset.cust); return; }
-  const cbr = e.target.closest('[data-cb]'); if (cbr) { S.cb.id = cbr.dataset.cb; render(); return; }
+  const cbr = e.target.closest('[data-cb]'); if (cbr) { S.cb.id = cbr.dataset.cb; if (matchMedia('(min-width:1100px)').matches) renderCustomers(); else { document.querySelectorAll('.cu-r.on').forEach((x) => x.classList.remove('on')); cbr.classList.add('on'); openCustSheet(); } return; }
+  const cuf = e.target.closest('[data-cuf]'); if (cuf) { S.cb.f = cuf.dataset.cuf; S.cb.cap = 0; renderCustomers(); return; }
+  if (e.target.closest('[data-cumore]')) { S.cb.cap = (S.cb.cap || CU_CAP) + CU_CAP; renderCustomers(); return; }
   const is = e.target.closest('[data-issue]'); if (is) { openIssue(is.dataset.issue); return; }
   const wb = e.target.closest('[data-wi]'); if (wb) { S.wi = S.wi === wb.dataset.wi ? '' : wb.dataset.wi; render(); return; }
   const wl = e.target.closest('[data-wl]'); if (wl) { openWaitlist(wl.dataset.wl); return; }
@@ -223,7 +225,7 @@ document.addEventListener('click', (e) => {
   const a = e.target.closest('[data-act]'); if (a && ACT[a.dataset.act]) { try { const p = ACT[a.dataset.act](a); if (p && p.catch) p.catch((x) => { console.error('act', a.dataset.act, x); toast('That did not work: ' + String((x && x.message) || x || 'something went wrong').replace(/^Error:\s*/, '').slice(0, 140)); }); } catch (x) { console.error('act', a.dataset.act, x); toast('That did not work: ' + String((x && x.message) || x).slice(0, 140)); } }
 });
 document.addEventListener('input', (e) => {
-  if (e.target.id === 'cb-q') { S.cb.q = e.target.value; clearTimeout(S.cbT); S.cbT = setTimeout(() => { render(); const q = $('#cb-q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250); return; }
+  if (e.target.id === 'cu-q') { S.cb.q = e.target.value; S.cb.cap = 0; clearTimeout(S.cbT); S.cbT = setTimeout(() => { renderCustomers(); const q = $('#cu-q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 200); return; }
   if (e.target.id === 'cc-q') { const n = e.target.value.trim().toLowerCase(), res = $('#cc-res'); if (!res) return; const lead = S.leads.find((x) => x.id === S.open); res.innerHTML = n.length < 2 ? '' : S.customers.filter((c) => (!lead || c.id !== lead.customer_id) && (String(c.name).toLowerCase().includes(n) || String(c.phone).includes(n))).slice(0, 6).map((c) => `<button class="row" type="button" data-act="moveBooking" data-id="${c.id}" style="border-radius:10px;width:100%;margin-bottom:6px"><span>${esc(c.name)}</span><span class="meta">+91 ${esc(c.phone)}</span></button>`).join('') || '<p class="tiny muted">No customer found. Add them under Customers first.</p>'; return; } if (e.target.id === 'mr-range' || e.target.id === 'mr') { const v = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)); if (e.target.id === 'mr-range') $('#mr').value = v; else $('#mr-range').value = v; updateSplitPreview(); }  if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'wq') { S.wq = e.target.value; render(); const again = $('#wq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } if (e.target.id === 'pq') { S.pq = e.target.value; const l = $('#pinlist'); if (l) { const keep = e.target; render(); const again = $('#pq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
 document.addEventListener('change', (e) => { if (e.target.id === 'ls') { const lb = $('#lostBox'); if (lb) lb.hidden = e.target.value !== 'lost'; } });
 document.addEventListener('change', (e) => { const m = { 'df-range': 'range', 'df-from': 'from', 'df-to': 'to', 'df-src': 'src', 'df-area': 'area', 'df-svc': 'svc' }[e.target.id]; if (m) { S.df[m] = e.target.value; render(); } });
@@ -246,7 +248,7 @@ function syncNav() {
   const g = groupOf(S.tab); S.lastTab[g] = S.tab;
   document.querySelectorAll('[data-group]').forEach((b) => (b.dataset.group === g ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   document.querySelectorAll('[data-sub]').forEach((d) => { d.hidden = d.dataset.sub !== g; });
-  document.querySelectorAll('#subtabs [data-tab]').forEach((b) => (b.dataset.tab === S.tab ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
+  document.querySelectorAll('#subtabs [data-tab]').forEach((b) => (b.dataset.tab === (S.tab === 'custbook' ? 'customers' : S.tab) ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   const ga = document.querySelector('[data-tab=garageapp]'); if (ga) ga.hidden = !isOwner();   // owner only
   const bd = navBadges({ leads: S.leads, issues: S.issues });
   bd.paidOpen = paidNeedsMechanic(S.leads).length;
@@ -254,7 +256,7 @@ function syncNav() {
 }
 function render() { try { renderPage(); } catch (e) { console.error('render', S.tab, e); $('#view').innerHTML = errorHtml('This page could not be shown.', e, 'render'); } }
 const failBanner = () => ((S.failed || []).length ? `<div class="alert" role="alert"><b>Some data could not be loaded:</b> ${esc(S.failed.join(', '))}. What you see may be incomplete. <button class="btn btn-ghost btn-sm" type="button" data-retry="boot">Retry</button></div>` : '');
-function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, dispatch, board, leads, customers, mechanics, garageapp, coupons, issues, pins, waitlist, offers, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, dispatch, board, leads, customers, mechanics, garageapp, coupons, issues, pins, waitlist, offers, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -318,17 +320,30 @@ function leads() {
 
 /* ---------- customers ---------- */
 function customers() {
-  return `<div class="toolbar"><input id="cq" type="search" placeholder="Search name, phone or bike" value="${esc(S.cq)}" aria-label="Search customers"></div><div class="list" id="clist"></div>`;
+  return `<h1>Customers</h1><div id="cuTop"></div><div class="cu-grid"><div class="cu-main"><div id="cuList"></div></div><aside class="cu-detail" id="cuDetail" aria-live="polite"></aside></div>`;
 }
+const CU_FILTERS = [['', 'All'], ['open', 'Has open booking'], ['paid', 'Paid'], ['noname', 'No name'], ['dup', 'Duplicate?']];
+const CU_CAP = 100;
+// ONE screen for customers: a compact table on the left and the selected customer's bookings, invoices and payments on the right (a sheet on a phone).
+// The old "Customer bookings" tab opens this same screen. Counts and totals come from customerSummaries(), the same rule the detail uses.
 function renderCustomers() {
-  const el = $('#clist'); if (!el) return;
-  const rows = searchCustomers(customerRows(S.customers, S.bikes, S.leads), S.cq);
-  el.innerHTML = rows.length ? rows.map((r) => `<button class="row crow" data-cust="${r.id}"><span>${esc(r.name)} ${r.blocked ? '<span class="pill lost">Blocked</span>' : ''}<br><span class="meta">+91 ${esc(r.phone)}</span></span><span class="meta">${esc(r.bikes.join(', ') || 'No bike saved')}</span><span class="meta">${r.bookings} booking${r.bookings === 1 ? '' : 's'}${r.paidTotal ? ' · ' + rupee(r.paidTotal) : ''}</span></button>`).join('') : '<p class="muted" style="padding:16px">No customers yet. They appear when someone books on the website.</p>';
+  const top = $('#cuTop'), el = $('#cuList'); if (!el || !top) return;
+  const all = customerSummaries({ customers: S.customers, leads: S.leads, bikes: S.bikes }), rows = customerSummaries({ customers: S.customers, leads: S.leads, bikes: S.bikes, q: S.cb.q, filter: S.cb.f || '' });
+  const cap = S.cb.cap || CU_CAP, shown = rows.slice(0, cap), fmt = (t) => (t ? new Date(t).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit', timeZone: 'Asia/Kolkata' }) : '—');
+  top.innerHTML = `<div class="cu-tools"><input id="cu-q" type="search" placeholder="Search name, phone or bike" value="${esc(S.cb.q)}" aria-label="Search customers"><div class="cu-chips" role="group" aria-label="Filter customers">${CU_FILTERS.map(([k, t]) => `<button type="button" class="cu-chip" data-cuf="${k}" aria-pressed="${(S.cb.f || '') === k}">${t}</button>`).join('')}</div></div>
+    <p class="tiny muted cu-sum"><span class="num">${rows.length}</span> of <span class="num">${all.length}</span> customers · <span class="num">${rupee(rows.reduce((t, r) => t + r.paid, 0))}</span> paid</p>`;
+  const line = (r) => `<button class="cu-r${S.cb.id === r.id ? ' on' : ''}" type="button" data-cb="${esc(r.id)}"><span class="cu-name">${r.name ? esc(r.name) : `<span class="muted">${esc(r.phone10 ? '+91 ' + r.phone10 : '(no phone)')}</span>`}${r.duplicate ? ' <span class="dup" title="Another customer has the same phone number (last 10 digits)">Duplicate?</span>' : ''}${r.blocked ? ' <span class="pill lost">Blocked</span>' : ''}</span><span class="cu-phone num">${r.phone10 ? '+91 ' + esc(r.phone10) : '—'}</span><span class="cu-bike">${esc(r.bikes.join(', ') || '—')}</span><span class="cu-n num">${r.bookings}</span><span class="cu-paid num">${r.paid ? rupee(r.paid) : '—'}</span><span class="cu-last num">${fmt(r.lastAt)}</span></button>`;
+  el.innerHTML = rows.length ? `<div class="cu-table" role="list"><div class="cu-h" aria-hidden="true"><span>Customer</span><span>Phone</span><span>Bike</span><span class="num">Bookings</span><span class="num">Paid</span><span class="num">Last booking</span></div>${shown.map(line).join('')}${rows.length > cap ? `<div class="bmore"><button class="btn btn-ghost btn-sm" type="button" data-cumore="1">Show more (${rows.length - cap})</button></div>` : ''}</div>` : '<p class="muted" style="padding:16px">No customers match. They appear when someone books on the website.</p>';
+  const d = $('#cuDetail'); if (d) d.innerHTML = custbookDetail();
+}
+function openCustSheet() {
+  $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:var(--s3)"><h2 id="sheetTitle" style="margin:0">Customer</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>${custbookDetail()}`;
+  $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
 }
 function openCustomer(id) {
   const r = customerRows(S.customers, S.bikes, S.leads).find((x) => x.id === id); if (!r) return;
   S.openCust = id; S.open = null;
-  const mine = S.leads.filter((l) => l.customer_id === id).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const mine = customerLeads(S.customers.find((x) => x.id === id) || { id }, S.leads); r.bookings = mine.length; r.paidTotal = mine.reduce((t, l) => t + (Number(l.paid_amount) || 0), 0);   // same rule as the Customers list
   $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="margin:0">${esc(r.name)}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
   <p>${r.blocked ? '<span class="pill lost">Blocked</span>' : ''}</p>
   <div class="card"><dl class="kv"><dt>Phone</dt><dd><a href="tel:+91${esc(r.phone)}">+91 ${esc(r.phone)}</a></dd><dt>Bikes</dt><dd>${esc(r.bikes.join(', ') || 'None saved')}</dd><dt>Bookings</dt><dd>${r.bookings}</dd><dt>Total spent</dt><dd><b>${rupee(r.paidTotal)}</b></dd></dl>
@@ -1051,7 +1066,7 @@ const ACT = {
     // The customer's bookings keep their own copy of the name and number, so keep them in step.
     await sb.from('leads').update({ name: c.value.name, phone: c.value.phone }).eq('customer_id', r.id);
     await audit('customer_details_edited', { phone_last4: c.value.phone.slice(-4), fields: Object.keys(c.value).length });
-    toast('Customer details saved'); await Promise.all([loadPeople(), loadLeads()]); if (S.tab === 'customers') renderCustomers(); openCustomer(r.id);
+    toast('Customer details saved'); await Promise.all([loadPeople(), loadLeads()]); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); openCustomer(r.id);
   },
   async saveBike(btn) {
     const id = btn.getAttribute('data-id'), row = btn.closest('[data-bike-row]'); if (!row) return;
@@ -1059,7 +1074,7 @@ const ACT = {
     if (!b.ok) return toast(b.error);
     const { error } = await sb.from('bikes').update(b.value).eq('id', id);
     if (error) return toast('Could not save the bike: ' + error.message);
-    await audit('bike_edited', { bike: id.slice(0, 8) }); toast('Bike saved'); await loadPeople(); const cid = S.openCust; if (S.tab === 'customers') renderCustomers(); openCustomer(cid);
+    await audit('bike_edited', { bike: id.slice(0, 8) }); toast('Bike saved'); await loadPeople(); const cid = S.openCust; if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); openCustomer(cid);
   },
   async saveCustomer() {
     const r = S.customers.find((x) => x.id === S.openCust); if (!r) return;
@@ -1067,7 +1082,7 @@ const ACT = {
     const { error } = await sb.from('customers').update(upd).eq('id', r.id);
     if (error) return toast('Could not save: ' + error.message);
     await audit(upd.blocked && !r.blocked ? 'customer_blocked' : !upd.blocked && r.blocked ? 'customer_unblocked' : 'customer_updated', { phone_last4: r.phone.slice(-4) });
-    toast('Saved'); await loadPeople(); if (S.tab === 'customers') renderCustomers(); openCustomer(r.id);
+    toast('Saved'); await loadPeople(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); openCustomer(r.id);
   },
 
   reportCsv() {
@@ -2025,25 +2040,21 @@ function mechledger() {
   return `<h1>Mechanic ledgers</h1><p class="muted">What each mechanic owes the company, what the company owes them, and the net of the two. The two balances are never mixed.</p>${totals}${list.map(card).join('') || '<p class="muted">No mechanic jobs yet.</p>'}`;
 }
 /* ---------- customer bookings: everything one customer has booked, billed and paid ---------- */
-function custbook() {
-  const list = customerList({ customers: S.customers, leads: S.leads, q: S.cb.q });
-  const items = list.map((c) => `<button class="row crow${S.cb.id === c.id ? ' on' : ''}" type="button" data-cb="${c.id}" style="border-radius:12px"><span>${esc(c.name)}<br><span class="meta">+91 ${esc(c.phone)}</span></span><span class="meta">${c.bookings} booking${c.bookings === 1 ? '' : 's'}</span></button>`).join('') || '<p class="muted" style="padding:12px">No customers match.</p>';
-  return `<h1>Customer bookings</h1><p class="muted">Pick a customer to see all their bookings, invoices and payments in one place.</p>
-  <div class="cb-grid"><div class="cb-list"><input id="cb-q" type="search" placeholder="Search name, phone or email" value="${esc(S.cb.q)}" aria-label="Search customers" style="margin-bottom:10px"><div class="list" style="display:grid;gap:8px">${items}</div></div><div class="cb-detail">${custbookDetail()}</div></div>`;
-}
+/* "Customer bookings" is now the same screen as Customers (kept as a tab id so bookmarks and links still work). */
+const custbook = () => customers();
 function custbookDetail() {
   const c = S.customers.find((x) => x.id === S.cb.id);
-  if (!c) return '<div class="card"><p class="muted" style="margin:0">Choose a customer on the left.</p></div>';
+  if (!c) return '<div class="card cu-empty"><p class="muted" style="margin:0">Select a customer to see their bookings, invoices and payments.</p></div>';
   const accounts = salesModel().accounts, rows = bookingRows({ customer: c, leads: S.leads, accounts, svcName }), sm = summarize(rows), ids = new Set(rows.map((r) => r.id));
   const bikes = S.bikes.filter((b) => b.customer_id === c.id).map((b) => [b.brand, b.model].filter(Boolean).join(' ')).filter(Boolean);
-  const kpi = (v, l) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`;
+  const kpi = (v, l) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`, leadById = Object.fromEntries(S.leads.map((x) => [x.id, x]));
   const invs = S.invoicesAll.filter((r) => ids.has(r.lead_id)).sort((a, b) => new Date(b.issued_at) - new Date(a.issued_at));
   const ents = S.ledger.filter((e) => ids.has(e.lead_id)).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   const refOf = Object.fromEntries(rows.map((r) => [r.id, r.ref]));
   const gone = new Set(S.ledger.filter((e) => e.entry_type === 'reversal').map((e) => e.reverses_id));
-  const bookingTable = rows.length ? `<div class="scroll"><table style="min-width:640px"><thead><tr><th>Booking</th><th>Service</th><th>When</th><th>Status</th><th class="num">Total</th><th class="num">Paid</th><th class="num">Due</th></tr></thead><tbody>${rows.map((r) => `<tr class="inv-tr" data-lead="${r.id}" tabindex="0"><td><b class="mono">${esc(r.ref)}</b><br><span class="tiny muted">${esc(when(r.createdAt))}</span></td><td>${esc(r.service)}</td><td>${esc(r.when || '—')}</td><td><span class="pill ${r.status}">${esc(LABEL[r.status] || r.status)}</span></td><td class="num">${rupee2(r.total)}${r.kind === 'estimate' ? '<br><span class="tiny muted">estimate</span>' : ''}</td><td class="num">${rupee2(r.paid)}</td><td class="num">${r.balance > 0.005 ? '<b>' + rupee2(r.balance) + '</b>' : '—'}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted" style="margin:0">No bookings yet.</p>';
+  const bookingTable = rows.length ? `<div class="scroll"><table style="min-width:640px"><thead><tr><th>Booking</th><th>Service</th><th>When</th><th>Status</th><th class="num">Total</th><th class="num">Paid</th><th class="num">Due</th></tr></thead><tbody>${rows.map((r) => `<tr class="inv-tr${paidInfo(leadById[r.id] || {}).paid ? ' is-paid' : ''}" data-lead="${r.id}" tabindex="0"><td><b class="mono">${esc(r.ref)}</b><br><span class="tiny muted">${esc(when(r.createdAt))}</span></td><td>${esc(r.service)}</td><td>${esc(r.when || '—')}</td><td><span class="pill ${r.status}">${esc(LABEL[r.status] || r.status)}</span> ${paidChipHtml(leadById[r.id] || {})}</td><td class="num">${rupee2(r.total)}${r.kind === 'estimate' ? '<br><span class="tiny muted">estimate</span>' : ''}</td><td class="num">${rupee2(r.paid)}</td><td class="num">${r.balance > 0.005 ? '<b>' + rupee2(r.balance) + '</b>' : '—'}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted" style="margin:0">No bookings yet.</p>';
   const invTable = invs.length ? `<div class="scroll"><table style="min-width:520px"><thead><tr><th>Invoice</th><th>Booking</th><th class="num">Total</th><th>GST</th><th>State</th></tr></thead><tbody>${invs.map((r) => `<tr class="inv-tr" data-lead="${r.lead_id}" tabindex="0"${r.voided_at ? ' style="opacity:.6"' : ''}><td><b>${esc(r.number)}</b><br><span class="tiny muted">${esc(when(r.issued_at))}</span></td><td class="mono">${esc(refOf[r.lead_id] || '')}</td><td class="num">${rupee2(r.total)}</td><td>${r.has_gst ? r.gst_rate + '%' : 'None'}</td><td>${r.voided_at ? '<span class="pill p-bad">Deleted</span>' : '<span class="pill p-ok">Active</span>'}</td></tr>`).join('')}</tbody></table></div><p class="tiny muted" style="margin:8px 0 0">Open a booking to delete or restore its invoice.</p>` : '<p class="muted" style="margin:0">No saved invoices. A copy is saved each time an invoice is printed or emailed.</p>';
-  return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:start"><div><h2 style="margin:0">${esc(c.name)}</h2><p class="muted" style="margin:4px 0 0">+91 ${esc(c.phone)}${c.email ? ' · ' + esc(c.email) : ''}${c.area ? ' · ' + esc(c.area) : ''}</p>${bikes.length ? `<p class="tiny muted" style="margin:4px 0 0">${esc(bikes.join(', '))}</p>` : ''}${c.company_name ? `<p class="tiny muted" style="margin:4px 0 0">${esc(c.company_name)}${c.gstin ? ' · GSTIN ' + esc(c.gstin) : ''}</p>` : ''}</div>
+  return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:start"><div><h2 style="margin:0">${esc(String(c.name || '').trim() || '(no name)')}</h2><p class="muted" style="margin:4px 0 0">+91 ${esc(normPhone(c.phone) || c.phone)}${c.email ? ' · ' + esc(c.email) : ''}${c.area ? ' · ' + esc(c.area) : ''}</p>${bikes.length ? `<p class="tiny muted" style="margin:4px 0 0">${esc(bikes.join(', '))}</p>` : ''}${c.company_name ? `<p class="tiny muted" style="margin:4px 0 0">${esc(c.company_name)}${c.gstin ? ' · GSTIN ' + esc(c.gstin) : ''}</p>` : ''}</div>
     <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" type="button" data-act="cbEdit">Edit customer</button><button class="btn btn-primary btn-sm" type="button" data-act="cbNewBooking">New booking</button></div></div>
     <div class="kpis" style="margin-top:14px">${kpi(sm.bookings, 'Bookings')}${kpi(rupee2(sm.billed), 'Invoiced')}${kpi(rupee2(sm.paid), 'Paid')}${kpi(rupee2(sm.due), 'Still due')}</div></div>
   <div class="card" style="margin-top:12px"><h3>Bookings</h3>${bookingTable}</div>

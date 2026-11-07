@@ -159,3 +159,29 @@ details.card[open]>summary::after{content:"  \25B4"}
 .pin-head{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-4);margin:var(--s3) 0 var(--s2);padding:var(--s2) var(--s3);border-radius:var(--radius-field);background:var(--good-bg);color:var(--good-text)}
 .pin-head.pin-rest{background:none;color:var(--text2);padding-left:0}
 .badge-paid{background:var(--good);color:#fff;margin-left:var(--s1)}
+/* Customers: one master-detail screen. Compact table, aligned columns, numbers right-aligned with tabular figures. */
+.cu-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s4);align-items:start}
+@media(min-width:1100px){.cu-grid{grid-template-columns:minmax(0,1.35fr) minmax(360px,1fr)}.cu-detail{position:sticky;top:var(--s3);max-height:calc(100vh - 140px);overflow:auto}}
+@media(max-width:1099px){.cu-detail{display:none}}
+.cu-tools{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;margin:0 0 var(--s2)}
+.cu-tools input{flex:1 1 14em;min-width:0;margin:0}
+.cu-chips{display:flex;gap:var(--s1);flex-wrap:wrap}
+.cu-chip{min-height:var(--tap);padding:0 var(--s3);border:var(--bw) solid var(--border);border-radius:var(--radius-pill);background:var(--surface);font:700 var(--fs-2) var(--font);color:var(--text);cursor:pointer}
+.cu-chip[aria-pressed=true]{background:var(--navy);color:var(--on-navy);border-color:var(--navy)}
+.cu-sum{margin:0 0 var(--s2)}
+.cu-table{background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius);overflow:hidden}
+.cu-h,.cu-r{display:grid;grid-template-columns:minmax(0,1.6fr) 8.5em minmax(0,1.2fr) 4.5em 5.5em 6em;gap:0 var(--s3);align-items:center;padding:var(--s2) var(--s3);text-align:left}
+.cu-h{position:sticky;top:0;background:var(--surface2);font:700 var(--fs-2) var(--font);color:var(--text3);text-transform:none}
+.cu-r{width:100%;border:0;border-top:var(--bw) solid var(--border);background:none;font:400 var(--fs-3) var(--font);color:var(--text);cursor:pointer;min-height:var(--tap)}
+.cu-r:hover{background:var(--surface2)}.cu-r.on{background:var(--info-bg);box-shadow:inset 3px 0 0 var(--navy)}
+.cu-r>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cu-name{font-weight:700}.cu-bike,.cu-phone,.cu-last{font-size:var(--fs-2);color:var(--text2)}
+.cu-h .num,.cu-r .num{text-align:right;font-family:var(--font);font-variant-numeric:tabular-nums}
+.dup{display:inline-flex;align-items:center;min-height:20px;padding:0 var(--s2);border-radius:var(--radius-pill);background:var(--accent-bg);color:var(--accent-text);font:700 var(--fs-2) var(--font);cursor:help;vertical-align:middle}
+@media(max-width:699px){
+  .cu-h{display:none}
+  .cu-r{grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"name n paid" "phone bike last";gap:var(--s1) var(--s3);padding:var(--s2) var(--s3)}
+  .cu-name{grid-area:name}.cu-n{grid-area:n}.cu-paid{grid-area:paid;min-width:5ch}.cu-phone{grid-area:phone;text-align:left!important}.cu-bike{grid-area:bike;grid-column:2/3}.cu-last{grid-area:last}
+  .cu-bike{max-width:9em}
+}
+tr.is-paid td:first-child{box-shadow:inset 4px 0 0 var(--good)}
