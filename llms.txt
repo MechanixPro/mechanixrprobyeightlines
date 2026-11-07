@@ -60,7 +60,6 @@ Cancellation: cancel more than 2 hours before your slot and the confirmation fee
 - [Book a service](https://mechanixpro.in/book/)
 - [Track a booking](https://mechanixpro.in/track/)
 - [Roadside help](https://mechanixpro.in/roadside/)
-- [Our workshop](https://mechanixpro.in/workshop/)
 - [Car service](https://mechanixpro.in/car-service-bangalore/)
 - [Major repairs with pickup and drop](https://mechanixpro.in/major-bike-repair-pickup-and-drop-bangalore/)
 - [Verified garages](https://mechanixpro.in/verified-bike-garages-bangalore/)

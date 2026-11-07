@@ -32,7 +32,7 @@ test('manifest: own scope and start URL, existing icons, site colours', () => {
   for (const i of m.icons) assert.ok(existsSync(new URL('..' + i.src, import.meta.url)));
 });
 test('built into the site; no service worker caches or registers for the app', () => {
-  const b = read('scripts/build_site.sh'); assert.match(b, /mechanic\.webmanifest/); assert.match(b, /for d in workshop job garage mechanic /);
+  const b = read('scripts/build_site.sh'); assert.match(b, /mechanic\.webmanifest/); assert.match(b, /for d in job garage mechanic /);
   assert.match(read('sw.js'), /startsWith\('\/mechanic\/'\)\) return/);
   assert.ok(!/serviceWorker\.register/.test(read('assets/js/mechanic.js')));
   const pk = read('package.json'); assert.match(pk, /node --check assets\/js\/mechanic\.js/); assert.match(pk, /node --check assets\/js\/qr\.js/);

@@ -22,7 +22,7 @@ NAV = (DIWALI_BAR if TODAY <= DIWALI_LAST_DAY else '') + '''<a class="skip" href
   <a class="call-top" href="#" data-call>Call us</a>
   <a class="pill bike-only" href="/book/">Book online</a><a class="pill car-only" href="/car-service-bangalore/">Book online</a>
   <details class="menu"><summary aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
-    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/workshop/">Our workshop</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/major-bike-repair-pickup-and-drop-bangalore/">Major repairs with pickup and drop</a><a href="/join/">Join as a garage or mechanic</a><a href="/garage-partners/">Partner your garage</a><a href="/two-wheeler-service-at-home-bangalore/">Two wheeler service at home</a><a href="/scooty-repair-at-home-bangalore/">Scooty repair at home</a><a href="/ev-and-petrol-bike-care-bangalore/">EV and petrol bike care</a><a href="/verified-bike-garages-bangalore/">Verified garages</a><a href="/digital-service-records/">Digital service records</a><a href="/doorstep-bike-and-car-repair-near-me/">Doorstep bike and car repair</a><a href="/car-service-bangalore/">Car service</a><a href="/blog/">Blog</a><a href="/partners/axlio/">Car parts and service: Axlio</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
+    <div class="menu-panel"><a href="/services/">Services and prices</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/coming-soon/">Coming soon</a><a href="/fleet/">Fleets and delivery riders</a><a href="/major-bike-repair-pickup-and-drop-bangalore/">Major repairs with pickup and drop</a><a href="/join/">Join as a garage or mechanic</a><a href="/garage-partners/">Partner your garage</a><a href="/two-wheeler-service-at-home-bangalore/">Two wheeler service at home</a><a href="/scooty-repair-at-home-bangalore/">Scooty repair at home</a><a href="/ev-and-petrol-bike-care-bangalore/">EV and petrol bike care</a><a href="/verified-bike-garages-bangalore/">Verified garages</a><a href="/digital-service-records/">Digital service records</a><a href="/doorstep-bike-and-car-repair-near-me/">Doorstep bike and car repair</a><a href="/car-service-bangalore/">Car service</a><a href="/blog/">Blog</a><a href="/partners/axlio/">Car parts and service: Axlio</a><a href="/societies/">Apartments and offices</a><a href="/help/#areas">Areas</a><a href="/help/#faq">FAQ</a><a href="/track/">Track your booking</a><a href="/contact/">Contact</a><a href="#" data-call>Call us</a></div></details>
 </div></header>
 '''
 FOOTER = '''<footer class="foot">
@@ -34,7 +34,7 @@ FOOTER = '''<footer class="foot">
     </div>
     <div class="foot-cols">
       <div><b>Areas</b>{area_links}<a href="/areas/">All Bengaluru PIN codes</a></div>
-      <div><b>Company</b><a href="/services/">Services and prices</a><a href="/rate-card/">Rate card</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/workshop/">Our workshop</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
+      <div><b>Company</b><a href="/services/">Services and prices</a><a href="/rate-card/">Rate card</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
     </div>
     <p class="tiny">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Mechanix Pro is a brand of {company_name}, {company_addr}. GSTIN {company_gstin}</p><p class="tiny">Website developed by <a href="https://ziyam.me" target="_blank" rel="noopener" class="inl">ziyam.me</a></p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p>
   </div>
@@ -1058,7 +1058,7 @@ write('roadside/index.html', _road + f'''<section class="hero"><div class="wrap"
 urls.append(('/roadside/', '0.8'))
 
 # ---- Workshop showcase: src/workshop.json drives the /workshop/ gallery and the home teaser. Add media there (see docs/ADD-WORKSHOP-MEDIA.md). ----
-WORKSHOP = json.load(open(os.path.join(ROOT, 'src', 'workshop.json'), encoding='utf-8'))
+WORKSHOP = {'items': []}   # src/workshop.json removed 2026-11-07 (real workshop media no longer shown)
 WS_IMG = '/assets/img/workshop/'
 WS_VID = '/assets/video/workshop/'
 WS_DISCLOSE = 'Photos are edited for privacy: faces are blurred and number plates are covered with our label. Signboard artwork shows our branding.'
@@ -1080,6 +1080,7 @@ def ws_item_html(it, first=False):
                  f'<img src="{WS_IMG}{f}-600.webp" srcset="{WS_IMG}{f}-600.webp 600w, {WS_IMG}{f}-1200.webp 1200w" sizes="{sizes}" width="{w}" height="{h}" {load} decoding="async" alt="{html.escape(it["alt"], quote=True)}"></a>')
     return f'<figure class="ws-fig{" ws-vid" if it["kind"] == "video" else ""}{" ws-first" if first and it["kind"] == "photo" else ""}" id="ws-{html.escape(it["id"])}">{media}<figcaption>{cap}</figcaption></figure>'
 def workshop_teaser_html():
+    return ''   # removed 2026-11-07 (owner): real workshop photos are no longer shown on the site
     its = [x for x in WORKSHOP['items'] if x.get('teaser') and x['kind'] == 'photo'][:3]
     if not its: return ''
     imgs = ''.join(f'<img src="{WS_IMG}{x["file"]}-600.webp" width="600" height="338" loading="lazy" alt="{html.escape(x["caption"], quote=True)}">' for x in its)
@@ -1337,7 +1338,7 @@ def workshop_page():
 """
     write('workshop/index.html', HEAD.format(title=html.escape(WORKSHOP['title']), desc=html.escape(WORKSHOP['description']), url=url, site=SITE, schema=ld, scripts='<link rel="stylesheet" href="/assets/css/workshop.css">\n<script src="/assets/js/workshop.js" defer></script>', body='', nav=NAV, main='') + body + foot())
     urls.append(('/workshop/', '0.7'))
-workshop_page()
+# workshop_page()   # removed 2026-11-07 (owner): real workshop photos and videos are no longer shown; /workshop/ redirects to the home page
 
 # ---- Blog: src/blog/posts.json. A post goes live on its date (India time) when the site is built; the daily deploy publishes the next one. ----
 def blog_pages():
@@ -1443,7 +1444,7 @@ def llms_txt():
       f"- {COMPANY['legalName']}, operating as Mechanix Pro. {_ADDR}. GSTIN {COMPANY['gstin']}.",
       '- Phone: +91 79652 95649. Email: hello@mechanixpro.in. WhatsApp from the website. Instagram: https://www.instagram.com/themechanixpro/', '',
       '## Pages']
-    for t, u in (('Services and prices', '/services/'), ('Rate card', '/rate-card/'), ('How it works', '/help/'), ('Book a service', '/book/'), ('Track a booking', '/track/'), ('Roadside help', '/roadside/'), ('Our workshop', '/workshop/'), ('Car service', '/car-service-bangalore/'), ('Major repairs with pickup and drop', '/major-bike-repair-pickup-and-drop-bangalore/'), ('Verified garages', '/verified-bike-garages-bangalore/'), ('Partner your garage', '/garage-partners/'), ('Join as a garage or mechanic', '/join/'), ('Areas we serve', '/areas/'), ('Guides', '/guides/how-often-to-service-your-bike/'), ('Blog', '/blog/'), ('Refund policy', '/refund-policy/'), ('Terms', '/terms/'), ('Contact', '/contact/')):
+    for t, u in (('Services and prices', '/services/'), ('Rate card', '/rate-card/'), ('How it works', '/help/'), ('Book a service', '/book/'), ('Track a booking', '/track/'), ('Roadside help', '/roadside/'), ('Car service', '/car-service-bangalore/'), ('Major repairs with pickup and drop', '/major-bike-repair-pickup-and-drop-bangalore/'), ('Verified garages', '/verified-bike-garages-bangalore/'), ('Partner your garage', '/garage-partners/'), ('Join as a garage or mechanic', '/join/'), ('Areas we serve', '/areas/'), ('Guides', '/guides/how-often-to-service-your-bike/'), ('Blog', '/blog/'), ('Refund policy', '/refund-policy/'), ('Terms', '/terms/'), ('Contact', '/contact/')):
         lines.append(f"- [{t}]({SITE}{u})")
     lines.append('')
     open(os.path.join(ROOT, 'llms.txt'), 'w', encoding='utf-8').write('\n'.join(lines))

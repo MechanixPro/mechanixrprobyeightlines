@@ -276,7 +276,9 @@
           rzp.on('payment.failed', function (r) { free(); msg.textContent = 'Payment failed' + (r && r.error && r.error.description ? ': ' + r.error.description : '') + '. You can try again.'; });
           msg.textContent = ''; rzp.open();
         }).catch(function () { free(); msg.textContent = 'Could not load the payment window. Check your connection and try again.'; });
-      }).catch(function () { free(); msg.textContent = 'No connection. Your details are saved on this phone. Please try again.'; });
+      }).catch(function (err) { free(); try { win.console.error('book-start', err); if (win.mxpTrack) win.mxpTrack('book_error', { kind: String((err && err.name) || 'error').slice(0, 40) }); } catch (e2) {}   // no personal details are sent
+        var net = err && err.name === 'TypeError' && /fetch|network|load failed/i.test(String(err.message || ''));
+        msg.textContent = net ? 'No connection. Please check your internet and tap pay again.' : 'Something went wrong while starting your payment. Please tap pay again, or message us on WhatsApp.'; });
     });
   }
   return { summary: summary, priceFor: priceFor, choicesForStorage: choicesForStorage, CHOICE_KEYS: CHOICE_KEYS, GST_NOTE: GST_NOTE, init: init, pinFromQuery: pinFromQuery, feeFor: feeFor, feeLine: feeLine, engineFromModel: engineFromModel, problems: problems, payload: payload, clamp: clamp, FEE_MIN: FEE_MIN, FEE_MAX: FEE_MAX };
