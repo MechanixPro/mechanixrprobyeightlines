@@ -54,6 +54,7 @@ class Query {
     let rows = fixtures.adminTables[this.t];
     if (this.t === 'admins' && u.persona === 'staff') rows = [{ user_id: 'me-1', name: '[Staff Admin]', role: 'staff' }];
     if (rows === undefined) { if (!unknown.has('t:' + this.t)) { unknown.add('t:' + this.t); console.warn('[harness] no fixture for table ' + this.t); } rows = []; }
+    if (u.scenario === 'dense' && fixtures.adminTables.dense[this.t]) rows = fixtures.adminTables.dense[this.t];   // 60+ bookings and 80+ customers, for density shots
     if (u.scenario === 'empty' && this.t !== 'admins') rows = [];
     return { data: this.single ? (rows[0] || null) : rows, error: null };
   }

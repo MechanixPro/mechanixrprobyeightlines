@@ -93,6 +93,7 @@ const SHOTS = [
   adm('bookings-empty', 'leads', { scenario: 'empty' }), adm('dispatch-empty', 'dispatch', { scenario: 'empty' }), adm('issues-empty', 'issues', { scenario: 'empty' }),
   adm('boot-error', null, { fail: ['leads'], wait: '#view .load-err, #view .mx-error', hold: 500 }), adm('boot-partial', null, { fail: ['ledger_entries'], hold: 300 }), adm('boot-loading', null, { hang: ['leads'], wait: '#view .skel, #view .mx-skeleton', hold: 400 }),
   adm('dispatch-error', 'dispatch', { fail: ['crm_dispatch_list'] }),
+  adm('board-dense', 'board', { scenario: 'dense' }), adm('customers-dense', 'customers', { scenario: 'dense' }), adm('custbook-dense', 'custbook', { scenario: 'dense' }), adm('bookings-dense', 'leads', { scenario: 'dense' }),
   adm('invoices-missing', 'invoices'), adm('invoices-missing-dialog', 'invoices', { step: clickTab('invoices') + `;(async()=>{for(let i=0;i<60&&!document.querySelector('[data-act="invMissingOpen"]');i++)await new Promise(r=>setTimeout(r,100));document.querySelector('[data-act="invMissingOpen"]').click()})()`, after: '#imiss .imiss-row', noFull: true }),
   ...['inbox', 'unassigned', 'web', 'rsa', 'tickets', 'visits', 'garages', 'garageapp', 'mechanics', 'knowledge', 'team'].map((v) => crew('tab-' + v, v, { wait: '#view > *' })),
   ...['dash', 'board', 'dispatch', 'leads', 'customers', 'custbook', 'issues', 'sales', 'mechledger', 'invoices', 'reports', 'coupons', 'prices', 'mechanics', 'garageapp', 'pins', 'offers', 'waitlist', 'homeimgs', 'settings', 'activity'].map((t) => adm('tab-' + t, t)),

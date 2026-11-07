@@ -77,6 +77,19 @@ const adminLeadsBase = queue.concat(callRows.slice(0, 2)).map((l, i) => ({ ...l,
 // Completed bookings for the Invoices page: 21 and 22 are ready to invoice (22 has only a voided invoice), 23 already has one, 24 has an unpaid confirmation fee, 25 has no priced item.
 const doneLead = (i, o = {}) => ({ ...lead(i, { status: 'completed', booking_id: 'MP-2611-00' + i, name: 'Demo Customer ' + i }), id: 'lead-' + i, ref: 'L-DONE' + i, bike_id: 'bike-' + i, customer_id: 'cust-' + i, est_total: 899, paid_amount: 899, paid_at: ago(300), completed_at: ago(200 + i), deleted_at: null, preferred_date: '2026-11-04', preferred_slot: 'morning', service_id: 'svc-1', mechanic_id: null, vehicle: 'bike', addons: [], ...o });
 const adminLeads = adminLeadsBase.concat([doneLead(21), doneLead(22, { service_id: 'svc-2' }), doneLead(23), doneLead(24, { confirm_fee: 49, confirm_paid_at: null, booking_id: null }), doneLead(25, { service_id: null })]);
+// Dense data for the Admin density shots (placeholders only): 70 more bookings across every Today-board column, paid and unpaid, assigned and not; 90 more customers with
+// blank names and duplicate phones (one shared number written as +91 with spaces, one with a leading 0).
+const istToday = new Date(NOW + 330 * 60e3).toISOString().slice(0, 10);
+const BULK_KINDS = ['new', 'contacted', 'quoted', 'payment_sent', 'paid', 'scheduled', 'completed'];
+const bulkLeads = Array.from({ length: 70 }, (_, k) => {
+  const i = 100 + k, st = BULK_KINDS[k % BULK_KINDS.length], paid = st === 'paid' || st === 'scheduled' || st === 'completed';
+  return { ...lead(i, { status: st }), id: 'lead-' + i, ref: 'L-BULK' + i, booking_id: 'MP-2611-0' + i, bike_id: null, customer_id: k % 9 === 8 ? null : 'cust-' + i, phone: k % 9 === 8 ? '+91 ' + ph(i).slice(0, 5) + ' ' + ph(i).slice(5) : ph(i),
+    name: k % 13 === 12 ? '' : '[Customer Name ' + i + ']', created_at: ago(st === 'new' ? 90 + k : 600 + k * 20), updated_at: ago(300 + k), completed_at: st === 'completed' ? ago(120 + k) : null, est_total: 599 + (k % 5) * 150,
+    paid_amount: paid ? (st === 'completed' ? 599 + (k % 5) * 150 : 49) : null, paid_at: paid ? ago(200) : null, confirm_fee: paid ? 49 : null, confirm_paid_at: paid ? ago(200) : null, deleted_at: null, utm: { utm_source: 'google' },
+    preferred_date: st === 'paid' || st === 'scheduled' ? (k % 2 ? istToday : '2026-11-09') : istToday, preferred_slot: ['morning', 'afternoon', 'evening', 'asap'][k % 4], service_id: k % 2 ? 'svc-2' : 'svc-1', mechanic_id: st === 'scheduled' || (st === 'paid' && k % 3 === 0) ? 'mech-1' : null, vehicle: 'bike' };
+});
+const bulkCustomers = Array.from({ length: 90 }, (_, k) => { const i = 100 + k; return { id: 'cust-' + i, name: k % 7 === 6 ? '' : '[Customer Name ' + i + ']', phone: k % 11 === 10 ? (k % 22 === 10 ? ph(i - 1) : '0' + ph(i - 1)) : ph(i), email: null, created_at: ago(900 + k * 30) }; });
+const bulkBikes = bulkCustomers.filter((_, k) => k % 3 !== 2).map((c, k) => ({ id: 'bike-' + c.id, customer_id: c.id, brand: ['Honda', 'TVS', 'Royal Enfield'][k % 3], model: ['Activa', 'Jupiter', 'Classic 350'][k % 3], reg_no: 'KA01AB' + (1000 + k), engine_class: null, big_bike: false }));
 const doneInvoice = (leadId, no, o = {}) => ({ id: 'inv-' + leadId, lead_id: leadId, ref: 'L-' + leadId, number: no, revision: 1, doc_key: 'A', issued_at: ago(150), via: 'print', customer_name: 'Demo Customer', customer_phone: '9000000023', vehicle_reg: 'KA01AB0023', has_gst: true, gst_rate: 18, basis: 'excl', taxable: 499, cgst: 44.91, sgst: 44.91, discount: 0, total: 588.82, paid: 588.82, balance: 0, mechanic_id: null, mechanic_name: null, mechanic_rate: 0, mechanic_cut: 0, company_share: 588.82, payable_now: 0, voided_at: null, lines: [{ name: 'Basic service', amount: 499 }], ...o });
 const adminTables = {
   admins: [{ user_id: 'me-1', name: '[Staff Name]', role: 'owner' }],
@@ -88,6 +101,7 @@ const adminTables = {
   ledger_entries: [{ id: 'le-1', lead_id: 'lead-5', kind: 'payment', amount: 49, created_at: ago(100), by: 'customer', note: null }, { id: 'le-2', lead_id: 'lead-5', kind: 'payment', amount: 800, created_at: ago(50), by: 'mechanic', note: null }],
   messages: [], audit_log: [], email_log: [],
 };
+adminTables.dense = { leads: adminLeads.concat(bulkLeads), customers: adminTables.customers.concat(bulkCustomers), bikes: adminTables.bikes.concat(bulkBikes) };   // used by the 'dense' scenario in the stub
 const adminRpc = {
   crm_dispatch_list: crewHandlers.crm_dispatch_list, crm_tech_seen: crewHandlers.crm_tech_seen, crm_open_issues: crewHandlers.crm_open_issues, crm_mechanic_picker: crewHandlers.crm_mechanic_picker,
   crm_paid_badges: crewHandlers.crm_paid_badges, crm_confirmation: crewHandlers.crm_confirmation, crm_notifications: crewHandlers.crm_notifications, crm_quote_get: crewHandlers.crm_quote_get, crm_booking_updates: crewHandlers.crm_booking_updates, crm_tech_location: crewHandlers.crm_tech_location,

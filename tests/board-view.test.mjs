@@ -10,8 +10,8 @@ const many = (n, o) => Array.from({ length: n }, (_, i) => L(i + 1, o));
 
 test('a row is two lines plus one row of actions: name, service, price, area and slot, ONE stage chip, mechanic select, Call, WhatsApp, Open and the next step', () => {
   const h = boardRow(L(1), { mechanics, svcName });
-  assert.match(h, /class="b1"/); assert.match(h, /class="b2"/); assert.match(h, /class="bbtns"/);
-  assert.match(h, /Customer 1/); assert.match(h, /Basic service/); assert.match(h, /₹599/); assert.match(h, /HSR Layout · Morning/);
+  assert.match(h, /class="b1"/); assert.match(h, /class="b2"/); assert.match(h, /class="bbtns"/);   // line 1, line 2, then select and one row of buttons
+  assert.match(h, /Customer 1/); assert.match(h, /Basic service/); assert.match(h, /₹599/); assert.match(h, /HSR Layout · Morning · Basic service/);
   assert.equal((h.match(/bstage/g) || []).length, 1, 'one stage chip, not a stepper');
   assert.doesNotMatch(h, /class="step|stepper/);
   assert.match(h, /<select class="bsel" data-board-mech="l1"/); assert.match(h, /\[Mechanic Name\]/);
@@ -46,7 +46,7 @@ test('paid and unassigned bookings are pinned under their own heading, left out 
 });
 test('paidInfo: paid needs a received amount; completed, lost and assigned bookings never "need a mechanic"', () => {
   assert.equal(paidInfo(L(1)).paid, false);
-  assert.deepEqual(paidInfo(L(1, { paid_amount: 49, status: 'paid' })), { paid: true, amount: 49, needsMechanic: true });
+  assert.deepEqual(paidInfo(L(1, { paid_amount: 49, status: 'paid' })), { paid: true, amount: 49, open: true, needsMechanic: true });
   assert.equal(paidInfo(L(1, { paid_amount: 899, status: 'completed' })).needsMechanic, false);
   assert.equal(paidInfo(L(1, { confirm_fee: 49 })).paid, false, 'a fee that was not paid is not paid');
 });

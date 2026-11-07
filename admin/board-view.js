@@ -1,5 +1,5 @@
 // admin/board-view.js — the Today board as compact two-line rows (markup only: no DOM, no Supabase), so it can be tested in Node.
-// One booking = one <li class="brow">. Line 1: name, service, price. Line 2: area and slot, ONE stage chip, the paid chip, the mechanic select. Then one row of actions.
+// One booking = one <li class="brow">. Line 1: name, PAID badge, price. Line 2: area, slot and service, ONE stage chip. Then the mechanic select and one row of compact actions.
 // The full 6-step stepper lives only in the booking sheet.
 import { esc } from './ds.js';
 import { nextStep, paidInfo } from './board.js';
@@ -24,10 +24,10 @@ export function boardRow(l, { mechanics = [], svcName = (x) => x } = {}) {
   const where = [l.area, slot].filter(Boolean).join(' · ') || 'No place or time yet';
   const svc = svcName(l.service_id);
   const opts = mechanics.filter((m) => m.active || m.id === l.mechanic_id).map((m) => `<option value="${esc(m.id)}"${m.id === l.mechanic_id ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
-  return `<li class="brow${p.paid ? ' is-paid' : ''}${p.needsMechanic ? ' needs-mech' : ''}" data-row="${esc(l.id)}">
-    <div class="b1"><button class="bname" type="button" data-lead="${esc(l.id)}">${esc(String(l.name || '').trim() || '(no name)')}</button><span class="bsvc">${esc(svc || '')}</span><span class="bprice num">${l.est_total ? rupee(l.est_total) : ''}</span></div>
-    <div class="b2"><span class="bwhere">${esc(where)}</span><span class="mx-chip bstage">${esc(st.label)}</span>${paidBadge(l)}<select class="bsel" data-board-mech="${esc(l.id)}" aria-label="Mechanic"><option value="">No mechanic</option>${opts}</select></div>
-    <div class="bbtns"><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a><a class="btn btn-wa btn-sm" href="https://wa.me/91${esc(l.phone)}" target="_blank" rel="noopener">WhatsApp</a><button class="btn btn-ghost btn-sm" type="button" data-lead="${esc(l.id)}">Open</button>${n ? `<button class="btn btn-primary btn-sm" type="button" data-act="boardNext" data-id="${esc(l.id)}">${esc(n.label)}</button>` : ''}</div></li>`;
+  return `<li class="brow${p.paid && p.open ? ' is-paid' : ''}${p.needsMechanic ? ' needs-mech' : ''}" data-row="${esc(l.id)}">
+    <div class="b1"><button class="bname" type="button" data-lead="${esc(l.id)}">${esc(String(l.name || '').trim() || '(no name)')}</button>${paidBadge(l)}<span class="bprice num">${l.est_total ? rupee(l.est_total) : ''}</span></div>
+    <div class="b2"><span class="bwhere">${esc([where, svc].filter(Boolean).join(' · '))}</span><span class="mx-chip bstage">${esc(st.label)}</span></div>
+    <div class="b3"><select class="bsel" data-board-mech="${esc(l.id)}" aria-label="Mechanic"><option value="">No mechanic</option>${opts}</select><span class="bbtns"><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a><a class="btn btn-wa btn-sm" href="https://wa.me/91${esc(l.phone)}" target="_blank" rel="noopener">WhatsApp</a><button class="btn btn-ghost btn-sm" type="button" data-lead="${esc(l.id)}">Open</button>${n ? `<button class="btn btn-primary btn-sm" type="button" data-act="boardNext" data-id="${esc(l.id)}">${esc(n.label)}</button>` : ''}</span></div></li>`;
 }
 
 // groups = boardGroups(); pinned = paid bookings with no mechanic (shown first, and left out of the columns so nothing appears twice).

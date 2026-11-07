@@ -27,6 +27,6 @@ export function paidInfo(l) {
   const fee = l.confirm_paid_at && l.confirm_fee != null ? Number(l.confirm_fee) : 0, amount = fee || Number(l.paid_amount) || 0;
   const paid = amount > 0 && !!(l.confirm_paid_at || Number(l.paid_amount) > 0);
   const open = !['completed', 'lost', 'junk'].includes(l.status);
-  return { paid, amount, needsMechanic: paid && open && !l.mechanic_id };
+  return { paid, amount, open, needsMechanic: paid && open && !l.mechanic_id };
 }
 export const paidNeedsMechanic = (leads) => leads.filter((l) => !l.deleted_at && paidInfo(l).needsMechanic);
