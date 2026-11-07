@@ -17,7 +17,7 @@ export function rangeFor(key, now = new Date()) {
 const group = (leads, nameOf) => {
   const m = new Map();
   for (const l of leads) { const n = nameOf(l); const g = m.get(n) || { name: n, count: 0, collected: 0 }; g.count += 1; g.collected += l.paid_amount || 0; m.set(n, g); }
-  return [...m.values()].sort((a, b) => b.collected - a.collected || b.count - a.count || a.name.localeCompare(b.name));
+  return [...m.values()].sort((a, b) => b.collected - a.collected || b.count - a.count || String(a.name || '').localeCompare(String(b.name || '')));
 };
 
 export function buildReport(allLeads, { services = [], mechanics = [] } = {}, range) {
@@ -71,7 +71,7 @@ export function payoutReport(leads, mechanics, basis = 'collected') {
   const list = [...acc.values()].map(({ m, jobs, collected, base }) => {
     const sp = splitJob(base, m.payout_rate || 0, 'collected');
     return { id: m.id, name: m.name, rate: sp.mechanicRate, jobs, collected, gst: collected - base, mechanic: sp.mechanic, company: sp.company };
-  }).sort((a, b) => b.collected - a.collected || a.name.localeCompare(b.name));
+  }).sort((a, b) => b.collected - a.collected || String(a.name || '').localeCompare(String(b.name || '')));
   const totals = list.reduce((t, r) => ({ jobs: t.jobs + r.jobs, collected: t.collected + r.collected, gst: t.gst + r.gst, mechanic: t.mechanic + r.mechanic, company: t.company + r.company }), { jobs: 0, collected: 0, gst: 0, mechanic: 0, company: 0 });
   return { rows: list, totals };
 }

@@ -8,6 +8,7 @@ import { splitJob } from './split.js';
 import { pinRows, validPin, cleanPin, cleanPinName } from './pins-view.js';
 import { interestCounts, waitlistRows, interestLabel } from './waitlist-view.js';
 import { buildInvoice as buildInvoiceRaw, missingDetails } from './invoice.js';
+import { missingInvoiceCandidates, planCandidates, bannerHtml, reviewHtml, createMissing, summaryText, autoInvoice, invoiceProblem, feeUnpaid } from './invoice-auto.js';
 import { buildNewBooking } from './new-booking.js';
 import { buildServiceEdit } from './booking-edit.js';
 import { groupOf, firstTab, navBadges } from './nav.js';
@@ -22,6 +23,7 @@ import { adsConversions } from './ads-export.js';
 import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge } from './booking-steps.js';
 import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
+import { createMechanicDesk } from './mechanic-desk.js';
 import { STATUS, skeleton, errorState } from './ds.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
@@ -60,7 +62,7 @@ const S = { catalog: [], invNo: {}, icsel: new Set(), imode: false, isel: new Se
 
 // A failed action that nobody caught must still tell the person, never fail silently.
 window.addEventListener('unhandledrejection', (e) => { const r = e.reason; console.error('unhandled', r); toast('That did not work: ' + String((r && r.message) || r || 'something went wrong').replace(/^Error:\s*/, '').slice(0, 140)); });
-function toast(m) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
+function toast(m, ms = 2600) { const t = document.createElement('div'); t.className = 'toast fade'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), ms); }
 async function audit(action, details) { try { await sb.from('audit_log').insert({ action, details, actor: S.me.user_id }); } catch (e) {} }
 const basis = () => 'before_gst'; // payouts are always worked out on the amount before GST
 const fee = (id, d) => S.services.find((x) => x.id === id)?.price ?? d;
@@ -145,11 +147,11 @@ async function attachQuote(lead) {
   }
   applyQuote(lead);
 }
-async function ensureInvNo(lead) {
+async function ensureInvNo(lead, o = {}) {
   await attachQuote(lead);
   if (S.invNo[lead.id]) return S.invNo[lead.id];
   const { data, error } = await sb.rpc('invoice_no_for', { p_lead: lead.id });
-  if (error || !data) { toast('Could not get the invoice number: ' + ((error && error.message) || 'try again')); return null; }
+  if (error || !data) { const why = (error && error.message) || 'try again'; if (o.quiet) { S.invNoErr = why; return null; } toast('Could not get the invoice number: ' + why); return null; }
   if (!lead.booking_id) lead.booking_id = data;   // the number is the booking ID, given now if it had none
   return (S.invNo[lead.id] = data);
 }
@@ -431,8 +433,9 @@ function openMechanic(id) {
     <label class="check"><input type="checkbox" id="mcert"${m.certified !== false ? ' checked' : ''}${ro}><span>Mechanix Pro certified (shown to the customer in the confirmation)</span></label>
     <label class="check"><input type="checkbox" id="mc"${m.active ? ' checked' : ''}${ro}><span>Active (can be assigned new jobs)</span></label>
     ${isOwner() ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-primary" type="button" data-act="saveMechanic">Save</button>' + (id !== 'new' ? '<button class="btn btn-ghost" type="button" data-act="deleteMechanic">Delete mechanic</button>' : '') + '</div>' : '<p class="tiny muted">Only the owner can change mechanics.</p>'}</div></div>
-  ${id === 'new' ? '' : mechDetail(id, st)}`;
+  ${id === 'new' ? '' : '<div class="card" style="margin-top:12px" id="mxRoot"></div>' + mechDetail(id, st)}`;
   updateSplitPreview();
+  if (id !== 'new' && isOwner()) { const mr = $('#mxRoot'); if (mr) mechanicDesk.mountCard(mr, { id: m.id, name: m.name, phone: m.phone }); } else { const mr = $('#mxRoot'); if (mr) mr.remove(); }
   $('#sheet').hidden = false; $('#sheetPanel').scrollTop = 0;
 }
 
@@ -689,6 +692,8 @@ function moneyCardBody(l) {
 const adminRpc = async (n, a) => { const { data, error } = await sb.rpc(n, a); if (error) throw error; return data; };
 const garageDesk = createGarageDesk({ rpc: adminRpc, toast, can: () => isOwner(), canSettle: () => isOwner(), dialog: (o) => flow.dialog(o), openLead: (id) => { S.tab = 'leads'; render(); openLead(id); },
   reload: async () => { await loadLeads(); render(); if (S.open) openLead(S.open, true); } });
+// The Mechanic app card (on a mechanic's sheet) is the same code as in Crew: admin/mechanic-desk.js. Owner only here.
+const mechanicDesk = createMechanicDesk({ rpc: adminRpc, toast, can: () => isOwner(), dialog: (o) => flow.dialog(o) });
 const flow = createFlow({
   garageDesk,
   rpc: adminRpc,
@@ -968,7 +973,7 @@ const ACT = {
     }
     if (svc && svc.bike && l.bike_id) await sb.from('bikes').update(svc.bike).eq('id', l.bike_id);
     await audit('lead_updated', { ref: l.ref, status: upd.status, lost_reason: toLost ? upd.crm_lost_reason : undefined, lost_note: toLost && lostNote ? lostNote : undefined, mechanic_id: upd.mechanic_id, service_changed: !!svc, amount_due: upd.amount_due });
-    toast(svc && svc.lead.est_total != null ? 'Saved. New estimate ' + rupee(svc.lead.est_total) : 'Saved'); await Promise.all([loadLeads(), loadPeople()]); renderList(); openLead(l.id, true);
+    toast(svc && svc.lead.est_total != null ? 'Saved. New estimate ' + rupee(svc.lead.est_total) : 'Saved'); await Promise.all([loadLeads(), loadPeople()]); if (upd.status === 'completed' && l.status !== 'completed') await autoInvoiceFor(l.id); renderList(); openLead(l.id, true);
   },
   async boardNext(btn) {
     const l = S.leads.find((x) => x.id === btn.getAttribute('data-id')), n = l && nextStep(l.status); if (!n) return;
@@ -976,12 +981,36 @@ const ACT = {
     const { error } = await sb.from('leads').update(upd).eq('id', l.id);
     if (error) return toast('Could not update: ' + error.message);
     await audit('board_step', { ref: l.ref, from: l.status, to: n.to }); toast(bid(l) + ': ' + n.label.toLowerCase()); await loadLeads(); render();
+    if (n.to === 'completed') { await autoInvoiceFor(l.id); render(); }
   },
   async boardMech(sel) {
     const l = S.leads.find((x) => x.id === sel.getAttribute('data-board-mech')); if (!l) return;
     const { error } = await sb.from('leads').update({ mechanic_id: sel.value || null }).eq('id', l.id);
     if (error) return toast('Could not assign: ' + error.message);
     await audit('board_mechanic', { ref: l.ref, mechanic: sel.value || null }); toast(sel.value ? 'Mechanic assigned' : 'Mechanic removed'); await loadLeads(); render();
+  },
+  async invMissingOpen() {
+    if (!isOwner() && !(S.me && S.me.role === 'admin')) return toast('Only an admin can create invoices.');
+    if (!missingList().length) return toast('Every completed booking already has an invoice');
+    const plans = await planMissing(); S.imiss = plans;
+    $('#imiss')?.remove(); const m = document.createElement('div'); m.id = 'imiss'; m.className = 'modal'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', 'Create missing invoices');
+    m.innerHTML = reviewHtml(plans, { esc, inr }); document.body.appendChild(m); m.querySelector('[data-act="invMissingGo"]')?.focus();
+  },
+  invMissingClose() { $('#imiss')?.remove(); S.imiss = null; },
+  async invMissingGo(btn) {
+    const plans = S.imiss || []; if (!plans.length || S.imissBusy) return;
+    S.imissBusy = true; btn.disabled = true; const prog = $('#imiss-progress');
+    try {
+      const res = await createMissing(plans, { hasLive: hasLiveInvoice, save: (l) => saveInvoiceCopyEx(l, 'rebuilt', { quiet: true }), progress: (t) => { if (prog) prog.textContent = t; } });
+      await audit('invoices_created_missing', { created: res.created.length, skipped: res.skipped.length, failed: res.failed.length });
+      await loadInvoices();
+      if (prog) prog.textContent = summaryText(res);
+      toast(summaryText(res), res.failed.length ? 8000 : 4000);
+      const done = $('#imiss [data-act="invMissingClose"]'); if (done) { done.textContent = 'Done'; done.focus(); }
+      const go = $('#imiss [data-act="invMissingGo"]'); if (go) go.remove();
+      if (S.tab === 'invoices') render();
+    } catch (e) { if (prog) prog.textContent = 'That did not work: ' + ((e && e.message) || 'try again'); toast('That did not work: ' + ((e && e.message) || 'try again')); btn.disabled = false; }
+    finally { S.imissBusy = false; }
   },
   invRegisterCsv() {
     const rows = registerRows(); if (!rows.length) return toast('Nothing to download');
@@ -1394,7 +1423,7 @@ const ACT = {
     if (error) return toast('Could not update: ' + error.message);
     await audit('lead_step', { ref: l.ref, step: key });
     if (key === 'quote') { S.dt = 'money'; toast('Marked quote sent. Send the payment link or WhatsApp the quote.'); } else toast(bid(l) + ': done');
-    await loadLeads(); render(); openLead(l.id, true);
+    await loadLeads(); if (upd.status === 'completed') await autoInvoiceFor(l.id); render(); openLead(l.id, true);
   },
   // Give the booking ID without emailing anyone. The database gives the same ID again if it already has one, and writes who did it to the history.
   async giveId() {
@@ -1718,21 +1747,37 @@ function detailsOk(lead) {
   toast('Add the ' + miss.join(', ') + ' first'); const f = document.querySelector('.inv-need'); if (f) { f.classList.add('warn'); f.scrollIntoView({ block: 'center' }); const i = f.querySelector('input:not([value])') || f.querySelector('input'); if (i) i.focus(); }
   return false;
 }
-async function saveInvoiceCopy(lead, via) {
+// The one save path. `quiet` is for the automatic and bulk callers: they get the reason back instead of a toast. Returns { row, reason }.
+async function saveInvoiceCopyEx(lead, via, o = {}) {
+  const say = (m) => { if (!o.quiet) toast(m); };
   try {
-    if (!(await ensureInvNo(lead))) return null;
-    const customer = S.customers.find((c) => c.id === lead.customer_id) || null, mech = S.mechanics.find((m) => m.id === lead.mechanic_id) || null;
+    S.invNoErr = '';
+    if (o.quiet && !S.invNo[lead.id] && feeUnpaid(lead)) return { row: null, reason: 'No invoice number yet: the confirmation fee is unpaid' };
+    if (!(await ensureInvNo(lead, { quiet: o.quiet }))) return { row: null, reason: 'No invoice number: ' + (S.invNoErr || 'try again') };
+    const customer = S.customers.find((c) => c.id === lead.customer_id) || null;
     const inv = buildInvoice(lead, S.services, { customer, bike: bikeOf(lead) });
-    if (!inv.lines.length) return null;
-    if (missingDetails(inv).length) return null;
+    const bad = invoiceProblem({ ...lead, confirm_fee: null }, inv); if (bad) return { row: null, reason: bad };
     const mine = S.invoicesAll.filter((r) => r.lead_id === lead.id && docKey(r) === 'A').sort((a, b) => b.revision - a.revision), live = S.invoices.filter((r) => r.lead_id === lead.id && docKey(r) === 'A').sort((a, b) => b.revision - a.revision);
     const row = snapshotRow({ invoice: inv, lead, customer, mechanic: mechFor(lead), via, basis: basis(), revision: (mine[0]?.revision || 0) + 1, now: new Date().toISOString() });
-    if (live[0] && sameFigures(live[0], row)) return live[0];
+    if (live[0] && sameFigures(live[0], row)) return { row: live[0], reason: '' };
     const { error } = await sb.from('invoices').insert(row);
-    if (error) { toast('Could not save the invoice copy: ' + error.message); return null; }
-    await loadInvoices(); if (S.tab === 'invoices') render();
-    return row;
-  } catch (e) { toast('Could not save the invoice copy'); return null; }
+    if (error) { say('Could not save the invoice copy: ' + error.message); return { row: null, reason: error.message }; }
+    if (o.quiet) { S.invoicesAll.push(row); S.invoices.push(row); } else { await loadInvoices(); if (S.tab === 'invoices') render(); }
+    return { row, reason: '' };
+  } catch (e) { say('Could not save the invoice copy'); return { row: null, reason: (e && e.message) || 'error' }; }
+}
+async function saveInvoiceCopy(lead, via) { return (await saveInvoiceCopyEx(lead, via)).row; }
+// Completed bookings with no live invoice, the review dialog, and the bulk create. Admin only: the invoices table is admin only.
+const missingList = () => ((S.failed || []).includes('invoices') ? [] : missingInvoiceCandidates(S.leads, S.invoicesAll)); // an unreadable invoice table must not make every booking look uninvoiced
+const hasLiveInvoice = (id) => S.invoices.some((r) => r.lead_id === id);
+async function planMissing() { const c = missingList(); await Promise.all(c.map((l) => attachQuote(l))); return planCandidates(c, (l) => buildInvoice(l, S.services, { customer: S.customers.find((x) => x.id === l.customer_id) || null, bike: bikeOf(l) })); }
+// Automatic invoice after Admin completes a booking. Best effort: the completion is already saved and is never undone.
+// Crew cannot write invoices (the table is admin only), so Crew does nothing automatic; the Admin banner "Create missing invoices" picks those bookings up.
+async function autoInvoiceFor(id) {
+  const lead = S.leads.find((x) => x.id === id); if (!lead || lead.status !== 'completed') return null;
+  const r = await autoInvoice(lead, { hasLive: hasLiveInvoice, save: (l) => saveInvoiceCopyEx(l, 'rebuilt', { quiet: true }), toast: (m) => toast(m, m.startsWith('Booking completed') ? 8000 : undefined) });
+  if (r.status === 'created') { await loadInvoices(); if (S.tab === 'invoices') render(); }
+  return r;
 }
 // An extra-work invoice, shown from its saved copy. It can be printed or saved as a PDF; payments are tracked on the booking.
 async function openExtraInvoice(r) {
@@ -1865,7 +1910,7 @@ function invoices() {
   const mechTable = mech.length ? `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Mechanic</th><th>Invoices</th><th>With GST</th><th>Cut on GST invoices</th><th>Without GST</th><th>Cut on no-GST invoices</th><th>Total cut</th><th>Payable now</th><th>Still to pay</th></tr></thead><tbody>${mech.map((m) => `<tr><td><b>${esc(m.name)}</b></td><td>${m.count}</td><td>${m.withGst.count} · ${rupee(m.withGst.total)}</td><td>${rupee(m.withGst.cut)}</td><td>${m.withoutGst.count} · ${rupee(m.withoutGst.total)}</td><td>${rupee(m.withoutGst.cut)}</td><td><b>${rupee(m.cut)}</b></td><td>${rupee(m.payable)}</td><td>${rupee(m.owed)}</td></tr>`).join('')}</tbody></table></div>` : '';
   const gstTable = gs.length ? `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>GST rate</th><th>Invoices</th><th>Taxable value</th><th>CGST</th><th>SGST</th><th>Total GST</th><th>Invoice total</th></tr></thead><tbody>${gs.map((g) => `<tr><td>${g.rate ? g.rate + '%' : 'No GST'}</td><td>${g.count}</td><td>${rupee(g.taxable)}</td><td>${rupee(g.cgst)}</td><td>${rupee(g.sgst)}</td><td>${rupee(g.gst)}</td><td>${rupee(g.total)}</td></tr>`).join('')}</tbody></table></div>` : '';
   const basisNote = basis() === 'before_gst' ? 'The mechanic\'s cut is worked out on the amount <b>before GST</b>. On an invoice with no GST that is the whole amount, so the same percentage gives a different rupee amount.' : 'The mechanic\'s cut is worked out on the <b>whole amount including GST</b>. You can change this in Settings.';
-  return `<h1 style="font-size:34px">Invoices</h1><p class="muted">Every invoice you print or email is saved here, with its GST and the mechanic's cut as they were on that day.</p>
+  return `<h1 style="font-size:34px">Invoices</h1><p class="muted">Every invoice you print or email is saved here, with its GST and the mechanic's cut as they were on that day.</p>${bannerHtml(missingList().length)}
   <div class="toolbar" style="flex-wrap:wrap;gap:8px"><select id="if-period" aria-label="Period">${IPERIODS.map(([k, n]) => opt(k, f.period, n)).join('')}</select>
     <select id="if-gst" aria-label="GST">${opt('', f.gst, 'With and without GST')}${opt('with', f.gst, 'With GST only')}${opt('without', f.gst, 'No GST only')}</select>
     <select id="if-rate" aria-label="GST rate">${opt('', f.rate, 'Any rate')}${[18, 12, 5, 0].map((r) => opt(r, f.rate, r ? r + '%' : '0% (no GST)')).join('')}</select>

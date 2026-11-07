@@ -69,7 +69,7 @@ test('invoice: an invoice the admin corrected wins over the quote; no quote leav
 });
 test('Admin: the quote is attached before the invoice opens, and an empty invoice opens the edit box with a plain message', () => {
   const a = read('admin/admin.js');
-  assert.match(a, /async function ensureInvNo\(lead\) \{\s*await attachQuote\(lead\);/);
+  assert.match(a, /async function ensureInvNo\(lead(?:, o = \{\})?\) \{\s*await attachQuote\(lead\);/);
   assert.match(a, /crm_quote_get', \{ p_lead: lead\.id \}[\s\S]{0,200}q\.status === 'approved'/);
   assert.match(a, /id="invEditBox"\$\{v\.lines\.length \? ' hidden' : ''\}/);
   assert.match(a, /Add the items first: this booking has no priced item/);

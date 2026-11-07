@@ -19,6 +19,7 @@ import { newBooking, editBooking } from './pages/booking.js';
 import { sendPaymentLink } from './pages/payment.js';
 import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
+import { createMechanicDesk } from './mechanic-desk.js';
 import * as garageapp from './pages/garageapp.js';
 import { skeleton, errorState } from './ds.js';
 import * as dispatch from './pages/dispatch.js';
@@ -76,11 +77,14 @@ const ctx = {
   showPlaybook: (id) => knowledge.showPlaybook(id),
   get flow() { return flow; },
   get garageDesk() { return garageDesk; },
+  get mechanicDesk() { return mechanicDesk; },
 };
 // The paid-confirmation screens (payment link, call script, door code, quote, Resend, Dispatch) are shared with the Admin: crm/flow-core.js. Same database functions, same checks.
 const PHOTO_BUCKET = 'booking-updates';   // private storage bucket (not a table); the database decides who may read it
 // The partner-garage desk (Garage app tab and the Send to a partner garage button on a booking) is shared with the Admin: crm/garage-desk.js. Settlement amounts are Admin-only, so Crew shows them read only.
 const garageDesk = createGarageDesk({ rpc, toast, can, canSettle: () => false, dialog: (o) => flow.dialog(o), openLead: (id) => openLead(id), reload: () => afterChange(false) });
+// The Mechanic app card (private app access for a mechanic) is shared with the Admin: crm/mechanic-desk.js. Needs Manage technicians; the database refuses everyone else.
+const mechanicDesk = createMechanicDesk({ rpc, toast, can, dialog: (o) => flow.dialog(o) });
 const flow = createFlow({
   rpc, toast, can, garageDesk,
   invoke: async (fn, body) => { const { data, error } = await sb.functions.invoke(fn, { body }); if (error) { let m = null; try { m = (await error.context.json()).error; } catch (x) { /* no body */ } throw new Error(m || error.message); } return data; },
@@ -299,6 +303,7 @@ async function runStep(key, id) {
   if (key === 'take') { await rpc('crm_claim', { p_id: id }); toast('It is yours. Call the customer now.'); await go(S.view, true); return await openLead(id, 'call'); }
   if (key === 'resend_link' || key === 'assign') { await openLead(id, 'note'); return await flow.actions[key === 'assign' ? 'assign' : 'payLink'](S.detail.lead); }   // the paid-confirmation steps
   if (key === 'confirm') { S.open = id; return await confirmBooking(); }
+  // No automatic invoice here: Crew cannot write invoices (admin-only table). Admin's "Create missing invoices" banner covers bookings completed from Crew.
   if (key === 'done') { await rpc('crm_mark_done', { p_id: id }); toast('Marked done.'); S.open = id; return await afterChange(false); }
   // Send quote and Schedule need details (a follow-up, a technician and a slot), so they open the lead with the form already set.
   await openLead(id, 'note');

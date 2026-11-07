@@ -33,6 +33,13 @@ export function accessState(rows, now = Date.now()) {
   if (a.locked_until && new Date(a.locked_until).getTime() > now) return { key: 'locked', label: 'Locked until ' + when(a.locked_until), tone: 'warn', access: a, last };
   return { key: 'on', label: 'Access on', tone: 'good', access: a, last };
 }
+/** Shop location and Open/Closed from the garage's access rows (crm_garage_access_list). Old rows without the new fields give no chip and no link. */
+export function shopInfo(rows) {
+  const list = [...(rows || [])].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))), a = list.find((x) => x.is_open != null || x.map_url) || list[0] || null;
+  if (!a) return { open: null, openAt: null, map: null, locAt: null };
+  const map = typeof a.map_url === 'string' && /^https:\/\/www\.google\.com\/maps\?q=-?[0-9.]+,-?[0-9.]+$/.test(a.map_url) ? a.map_url : null;
+  return { open: a.is_open == null ? null : !!a.is_open, openAt: a.is_open_at || null, map, locAt: a.shop_loc_at || null };
+}
 export const openJobs = (assignments, garageId) => (assignments || []).filter((a) => a.garage_id === garageId && OPEN.includes(a.status)).length;
 /** The same PIN rules as the database (4 to 6 digits, not all the same digit). Returns an error sentence, or null when fine. */
 export function pinError(pin) {
@@ -192,11 +199,12 @@ export function createGarageDesk(deps) {
     const rows = d.garages.filter((g) => !q || String(g.name).toLowerCase().includes(q) || String(g.code || '').toLowerCase().includes(q));
     if (!rows.length) return emptyState({ title: d.garages.length ? 'No garage matches' : 'No garages yet', text: d.garages.length ? 'Try another name or code.' : 'Add the garage on the Garages page first, then create its app access here.' });
     return `<ul class="flow-dispatch">${rows.map((g) => {
-      const st = garageStatus(g.status), ac = accessState(d.access.filter((x) => x.garage_id === g.id), now()), n = openJobs(d.assignments, g.id), a = ac.access;
+      const st = garageStatus(g.status), mine = d.access.filter((x) => x.garage_id === g.id), ac = accessState(mine, now()), n = openJobs(d.assignments, g.id), a = ac.access, shop = shopInfo(mine);
       const btn = (act, label, cls = '') => `<button class="flow-btn ${cls}" type="button" data-gd="${act}" data-id="${esc(g.id)}">${label}</button>`;
       const row = ac.key === 'none' ? [btn('onboard', 'Create access', 'flow-primary')] : ac.key === 'off' ? [btn('enable', 'Switch access on', 'flow-primary')] : [btn('assignTo', 'Send a booking'), btn('pinReset', 'Reset PIN'), btn('newLink', 'New link'), btn('revoke', 'Revoke', 'flow-ghost')];
       return `<li class="flow-d" data-id="${esc(g.id)}"><div><b>${esc(g.name)}</b> <span class="flow-muted">${esc(g.code || '')}${g.pincode ? ' · ' + esc(g.pincode) : ''}</span></div>
-        <div>${chip(st.label, st.tone)} ${chip(ac.label, ac.tone)} ${n ? chip(`${n} open ${n === 1 ? 'job' : 'jobs'}`, 'info') : chip('No open jobs')}</div>
+        <div>${chip(st.label, st.tone)} ${chip(ac.label, ac.tone)} ${n ? chip(`${n} open ${n === 1 ? 'job' : 'jobs'}`, 'info') : chip('No open jobs')} ${shop.open === null ? '' : chip(shop.open ? 'Open' : 'Closed', shop.open ? 'good' : '')}</div>
+        ${shop.open !== null && shop.openAt ? `<div class="flow-muted">${shop.open ? 'Open' : 'Closed'} since ${esc(when(shop.openAt))}</div>` : ''}${shop.map ? `<div><a href="${esc(shop.map)}" target="_blank" rel="noopener">Shop location</a>${shop.locAt ? ` <span class="flow-muted">(${esc(when(shop.locAt))})</span>` : ''}</div>` : a ? '<div class="flow-muted">Shop location not shared yet.</div>' : ''}
         <div class="flow-muted">${ac.last ? 'Last opened the app ' + esc(when(ac.last)) : a ? 'Has not opened the app yet' : ''}${a && a.label ? ' · ' + esc(a.label) : ''}</div><div class="flow-row">${row.join('')}</div></li>`;
     }).join('')}</ul>`;
   };
