@@ -341,3 +341,5 @@ th input[type=checkbox],td input[type=checkbox]{width:20px;height:20px}
 .gd-q,.gd-lines td{border-color:var(--border)}
 .gd-q{border:var(--bw) solid var(--border2);border-radius:var(--radius-field);background:var(--surface)}
 @media(max-width:699px){.exp{display:flex;flex:1 1 100%}.exp .btn{flex:1 1 0}}
+/* phone: the six booking steps sit in two rows of three so no label is clipped */
+@media(max-width:480px){.steps:not(.compact){grid-template-columns:repeat(3,1fr)}}

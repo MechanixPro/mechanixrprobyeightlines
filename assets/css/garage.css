@@ -148,6 +148,7 @@ textarea.g-input{min-height:84px;resize:vertical}
 .d-opt.on-ok{border-color:var(--good);background:var(--good-bg);color:var(--good-text)}
 .d-opt.on-off{border-color:var(--warn);background:var(--accent-bg);color:var(--accent-text)}
 .d-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.d-stats>:last-child:nth-child(odd){grid-column:1/-1}
 .d-stats div{background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-s);padding:10px 8px;text-align:center;display:flex;flex-direction:column;gap:2px}
 .d-stats b{font-size:20px;line-height:1.1}
 .d-stats span{font-size:12px;color:var(--tx2)}
