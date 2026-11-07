@@ -47,9 +47,9 @@
 @media(max-width:760px){.inv-table-wide{display:none}.inv-cards{display:grid;gap:8px}.inv-row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;text-align:left;min-height:56px}}
 .inv-cut{margin-top:16px;border:1.5px dashed var(--accent)}
 /* Today board */
-.bgrid{display:grid;gap:16px;grid-template-columns:1fr}
-@media(min-width:900px){.bgrid{grid-template-columns:repeat(2,1fr)}}
-@media(min-width:1280px){.bgrid{grid-template-columns:repeat(4,1fr)}}
+.bgrid{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:900px){.bgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1280px){.bgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .bgroup h2{font-size:var(--fs-4);margin:0 0 4px;display:flex;align-items:center;gap:8px}.bgroup .count{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 8px;border-radius:var(--radius-pill);background:var(--navy);color:var(--on-navy);font:700 12px var(--font)}
 .bcard{padding:12px;margin:0 0 8px}
 .bhead{display:flex;justify-content:space-between;align-items:center;gap:8px}.bref{border:0;background:none;font:700 14px var(--font);color:var(--text);cursor:pointer;min-height:44px;padding:0;text-decoration:underline}

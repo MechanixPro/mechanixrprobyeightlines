@@ -116,16 +116,15 @@ img{max-width:100%}
 .tabs button[aria-current=page],.groups button[aria-current=page],.subtabs button[aria-current=page],.dtabs button[aria-selected=true],.mx-tabs [aria-selected=true],.mx-tabs [aria-current=page]{color:var(--accent-text);border-bottom-color:var(--accent);background:none;box-shadow:none}
 .tabs{position:sticky;top:var(--top-h,0px);z-index:20;background:var(--surface);border-bottom:var(--bw) solid var(--border);padding:0 var(--s3)}
 .subtabs{background:var(--surface);border-bottom:var(--bw) solid var(--border)}
-.subtabs .sub{max-width:var(--page-max);margin:0 auto;padding:0 var(--s4)}
+.subtabs .sub{padding:0}
 .dtabs,.mx-tabs{border-bottom:var(--bw) solid var(--border);margin-bottom:var(--s3)}
 .badge{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-left:var(--s1);border-radius:var(--radius-pill);background:var(--accent);color:var(--on-accent);font:700 var(--fs-2)/1 var(--font)}
 .groups .badge,.tabs .badge{margin-left:0}
-@media(min-width:768px){.subtabs .sub{padding:0 var(--s5)}}
 @media(max-width:699px){
   .top{position:static}
   /* phone: Admin sections share the row, pages of a section wrap instead of clipping; Crew tabs scroll with an edge fade */
   .groups button{flex:1 1 auto;min-width:min-content;justify-content:center;padding:0 var(--s1);white-space:normal;text-align:center;line-height:1.15}
-  .subtabs .sub{flex-wrap:wrap;overflow:visible;padding:0 var(--s3)}
+  .subtabs .sub{flex-wrap:wrap;overflow:visible}
   .subtabs button{padding:0 var(--s2)}
   .tabs{-webkit-mask-image:linear-gradient(90deg,#000 94%,transparent);mask-image:linear-gradient(90deg,#000 94%,transparent)}
 }
@@ -238,7 +237,7 @@ th input[type=checkbox],td input[type=checkbox]{width:20px;height:20px}
 .mx-table--cards{table-layout:auto}
 .mx-table--cards td{overflow-wrap:normal}
 .mx-table--cards th{overflow-wrap:normal;white-space:nowrap}
-@media(min-width:700px){.steps.compact{min-width:390px}}
+@media(min-width:700px){td .steps.compact{min-width:390px}.steps.compact:not(td .steps.compact){min-width:0;grid-template-columns:repeat(3,1fr)}}
 @media(max-width:699px){
   .mx-table--cards{table-layout:fixed}
   .mx-table--cards td{overflow-wrap:anywhere}
