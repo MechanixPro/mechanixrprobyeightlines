@@ -173,7 +173,7 @@ export function createFunnelDesk(deps = {}) {
   }
   function draw() {
     const r = S.root; if (!r || r.isConnected === false) return;
-    r.innerHTML = `<section class="fn"><h3>Conversion <span class="small muted">${esc(label())}</span></h3>${filters()}<div id="fnBody" aria-live="polite" aria-busy="${S.loading ? 'true' : 'false'}">${body()}</div></section>`;
+    r.innerHTML = `<section class="fn"><p class="small muted">${esc(label())}</p>${filters()}<div id="fnBody" aria-live="polite" aria-busy="${S.loading ? 'true' : 'false'}">${body()}</div></section>`;
   }
   async function load() {
     const my = ++S.seq; S.loading = true; S.error = null; draw();

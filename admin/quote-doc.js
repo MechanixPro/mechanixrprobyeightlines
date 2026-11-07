@@ -41,12 +41,12 @@ export function quoteDocHtml(q, { co = {}, ref = '', bookingId = '', now = Date.
   const date = z.sent_at ? new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date(z.sent_at)) : 'Draft';
   const rows = m.lines.length ? m.lines.map((l) => `<tr class="inv-line"><td>${esc(l.name)} <small class="muted">${esc(KIND[l.kind])}</small></td><td class="num">${inr(l.amount)}</td></tr>`).join('') : '<tr><td colspan="2" class="muted">No items yet.</td></tr>';
   return `<div class="inv-paper in qd">
-    <div class="inv-head"><div><b class="inv-co">${esc(co.brand || 'Mechanix Pro')}</b>${co.legalName ? `<span class="inv-sub">${esc(co.legalName)}</span>` : ''}${addr ? `<span class="inv-addr tiny">${addr}</span>` : ''}${co.gstin ? `<span class="tiny">GSTIN ${esc(co.gstin)}</span>` : ''}</div>
+    <div class="inv-head"><div><b class="inv-co">${esc(co.brand || 'Mechanix Pro')}</b>${co.legalName ? `<span class="inv-sub">${esc(co.legalName)}</span>` : ''}${addr ? `<span class="inv-addr tiny">${addr}</span>` : ''}${co.gstin ? `<span class="tiny" style="display:block">GSTIN ${esc(co.gstin)}</span>` : ''}</div>
       <div class="inv-meta"><h2>QUOTE</h2><span>${esc(num)}</span><span>${esc(date)}</span><span class="tiny"><b class="qd-status qd-${esc(st.key)}">${esc(st.label)}</b>${validityLabel(z, now) ? ' · ' + esc(validityLabel(z, now)) : ''}</span></div></div>
     <p class="inv-to"><span>For booking</span><b>${esc(bookingId || ref || 'Not confirmed yet')}</b></p>
     <table class="inv-table"><thead><tr><th>Item</th><th class="num">Amount (before GST)</th></tr></thead><tbody>${rows}</tbody></table>
     <dl class="inv-tot"><dt>Subtotal</dt><dd>${inr(m.subtotal)}</dd><dt>CGST @ ${m.rate / 2}%</dt><dd>${inr(m.cgst)}</dd><dt>SGST @ ${m.rate / 2}%</dt><dd>${inr(m.sgst)}</dd><dt class="grand">Total</dt><dd class="grand">${inr(m.total)}</dd>${m.feeCredit ? `<dt>Confirmation fee already paid</dt><dd>− ${inr(m.feeCredit)}</dd>` : ''}<dt class="grand">Balance to pay</dt><dd class="grand">${inr(m.balance)}</dd></dl>
-    ${z.eta_text ? `<p class="small"><b>Estimated delivery:</b> ${esc(z.eta_text)}</p>` : ''}${z.status === 'changes_requested' && z.change_request ? `<p class="small"><b>Customer asked for changes:</b> ${esc(z.change_request)}</p>` : ''}
+    ${z.eta_text ? `<p class="small" style="margin-top:14px"><b>Estimated delivery:</b> ${esc(z.eta_text)}</p>` : ''}${z.status === 'changes_requested' && z.change_request ? `<p class="small"><b>Customer asked for changes:</b> ${esc(z.change_request)}</p>` : ''}
     <p class="inv-foot">${esc(z.terms || DEFAULT_TERMS)}</p></div>`;
 }
 
