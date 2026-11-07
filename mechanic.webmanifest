@@ -1,0 +1,18 @@
+{
+  "id": "/mechanic/",
+  "name": "Mechanix Pro Mechanic",
+  "short_name": "MX Mechanic",
+  "description": "Private bookings and cash dues screen for Mechanix Pro mechanics.",
+  "start_url": "/mechanic/",
+  "scope": "/mechanic/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAFAF8",
+  "theme_color": "#0B1220",
+  "lang": "en-IN",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/assets/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/assets/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

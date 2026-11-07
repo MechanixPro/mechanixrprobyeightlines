@@ -8,7 +8,7 @@
   if (typeof module === 'object' && module.exports) module.exports = api; else { root.MXP_GARAGE = api; if (root.document) api.start(root); }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
-  var LINK_KEY = 'mxp_garage_link', SESSION_KEY = 'mxp_garage_session', LINK_RE = /^[0-9a-f]{48}$/, MAX_PHOTOS = 4;
+  var LINK_KEY = 'mxp_garage_link', SESSION_KEY = 'mxp_garage_session', LOC_KEY = 'mxp_garage_loc_asked', LINK_RE = /^[0-9a-f]{48}$/, MAX_PHOTOS = 4;
 
   /* ---------- pure helpers ---------- */
   function money(n) { n = Number(n) || 0; return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
@@ -39,13 +39,17 @@
   function saveSession(win, s) { try { win.localStorage.setItem(SESSION_KEY, JSON.stringify({ t: s.session, exp: Date.parse(s.expires_at), name: s.garage && s.garage.name || '' })); } catch (e) {} }
   function savedSession(win, now) { try { var r = JSON.parse(win.localStorage.getItem(SESSION_KEY) || 'null'); if (!r || !r.t || !(r.exp > (now || Date.now()))) { win.localStorage.removeItem(SESSION_KEY); return null; } return r; } catch (e) { return null; } }
   function clearSession(win) { try { win.localStorage.removeItem(SESSION_KEY); } catch (e) {} }
+  function locAsked(win) { try { return !!win.localStorage.getItem(LOC_KEY); } catch (e) { return true; } }
+  function markLocAsked(win) { try { win.localStorage.setItem(LOC_KEY, String(Date.now())); } catch (e) {} }
+  /* "Saved 7 Nov, 3:30 pm" or "Not saved yet". */
+  function locText(loc) { if (!loc || !loc.set) return 'Not saved yet'; var w = whenText(loc.at); return w ? 'Saved ' + w.split(', ').slice(1).join(', ') : 'Saved'; }
   var CHIP = { sent: 'new', received: 'received', in_work: 'work', ready: 'ready', returned: 'done', cancelled: 'done' };
   var ERR = { net: 'We could not reach the server. Check your internet and try again.', gen: 'Something went wrong. Please try again.' };
 
   /* ---------- the app ---------- */
   function start(win) {
     var d = win.document, C = win.MXP || {}, app = d.getElementById('app'); if (!app) return;
-    var S = { session: null, name: '', screen: 'boot', tab: 'open', jobs: null, job: null, jobId: null, statement: null, team: null, msg: null, busy: false, draft: null, photos: [], confirm: null, jobsAt: 0 };
+    var S = { session: null, name: '', screen: 'boot', dash: null, locMsg: null, locBusy: false, openBusy: false, tab: 'open', jobs: null, job: null, jobId: null, statement: null, team: null, msg: null, busy: false, draft: null, photos: [], confirm: null, jobsAt: 0 };
     var el = function (tag, attrs, kids) {
       var n = d.createElement(tag); attrs = attrs || {};
       Object.keys(attrs).forEach(function (k) { var v = attrs[k]; if (v == null || v === false) return; if (k === 'class') n.className = v; else if (k === 'text') n.textContent = v; else if (k.slice(0, 2) === 'on') n.addEventListener(k.slice(2), v); else n.setAttribute(k, v === true ? '' : v); });
@@ -61,7 +65,7 @@
         .catch(function () { return { ok: false, status: 0, data: { error: ERR.net }, network: true }; });
     }
     function ended(r) { if (r.status === 401 && r.data && r.data.code === 'session') { lock('Your session has ended. Enter your PIN again.'); return true; } return false; }
-    function lock(msg) { clearSession(win); S.session = null; S.jobs = null; S.job = null; S.statement = null; S.msg = msg || null; go('pin'); }
+    function lock(msg) { clearSession(win); S.session = null; S.dash = null; S.jobs = null; S.job = null; S.statement = null; S.msg = msg || null; go('pin'); }
     function go(screen, opts) { S.screen = screen; if (opts) Object.keys(opts).forEach(function (k) { S[k] = opts[k]; }); render(); try { win.scrollTo(0, 0); } catch (e) {} }
 
     /* small pieces */
@@ -78,12 +82,12 @@
     }
 
     /* ---------- shell ---------- */
-    function shell(body, active) {
+    function shell(body, active, noLock) {
       clear(app);
       var head = el('header', { class: 'g-top' }, [el('div', { class: 'g-brand' }, [el('img', { src: '/assets/img/logo-mark.webp', alt: '', width: 28, height: 28 }), el('div', {}, [el('b', { text: 'Mechanix Pro Garage' }), el('span', { text: S.name || '' })])]),
-        S.session ? el('button', { class: 'g-lock', type: 'button', onclick: function () { lock('You are signed out.'); }, text: 'Lock' }) : null]);
-      var tabs = S.session ? el('nav', { class: 'g-tabs', 'aria-label': 'Garage app' }, [['jobs', 'Jobs'], ['statement', 'Statement'], ['help', 'Help']].map(function (t) {
-        return el('button', { class: 'g-tab' + (active === t[0] ? ' on' : ''), type: 'button', 'aria-current': active === t[0] ? 'page' : null, onclick: function () { if (t[0] === 'jobs') openJobs(); else if (t[0] === 'statement') openStatement(); else go('help'); }, text: t[1] });
+        S.session && !noLock ? el('button', { class: 'g-lock', type: 'button', onclick: function () { lock('You are signed out.'); }, text: 'Lock' }) : null]);
+      var tabs = S.session ? el('nav', { class: 'g-tabs g-tabs-4', 'aria-label': 'Garage app' }, [['home', 'Home'], ['jobs', 'Jobs'], ['statement', 'Statement'], ['help', 'Help']].map(function (t) {
+        return el('button', { class: 'g-tab' + (active === t[0] ? ' on' : ''), type: 'button', 'aria-current': active === t[0] ? 'page' : null, onclick: function () { if (t[0] === 'home') openHome(); else if (t[0] === 'jobs') openJobs(); else if (t[0] === 'statement') openStatement(); else go('help'); }, text: t[1] });
       })) : null;
       app.appendChild(head); app.appendChild(el('main', { class: 'g-main', id: 'gmain', tabindex: '-1' }, body)); if (tabs) app.appendChild(tabs);
     }
@@ -108,7 +112,7 @@
               if (code === 'link') { try { win.localStorage.removeItem(LINK_KEY); } catch (e2) {} }
               S.msg = null; msg.appendChild(notice('err', text)); if (code === 'link') setTimeout(renderPin, 1200); return;
             }
-            S.session = r.data.session; S.name = r.data.garage && r.data.garage.name || ''; saveSession(win, r.data); S.msg = null; loadTeam(); openJobs();
+            S.session = r.data.session; S.name = r.data.garage && r.data.garage.name || ''; saveSession(win, r.data); S.msg = null; loadTeam(); openHome(true);
           });
         } }, [el('label', { class: 'g-label', for: 'gpin', text: 'PIN' }), input, el('p', { class: 'g-hint', text: 'The PIN is for your garage only. Do not share it.' }), msg, btn]);
         kids.push(form);
@@ -116,6 +120,62 @@
       var inst = el('div', { class: 'g-install', id: 'gInstall' }); kids.push(inst);
       shell(kids, null); if (win.MXP_INSTALL) win.MXP_INSTALL.mount(d.getElementById('gInstall'), win);
       var i = d.getElementById('gpin'); if (i) try { i.focus(); } catch (e) {}
+    }
+
+    /* ---------- home (dashboard): greeting, today, status, quick action, month figures, what we owe you, shop location ---------- */
+    function openHome(first) { S.screen = 'home'; S.dash = null; render(); return fetchHome(first); }
+    function fetchHome(first) {
+      return api('dashboard').then(function (r) {
+        if (ended(r)) return;
+        S.dash = r.ok ? r.data.dashboard : 'error'; S.dashErr = !r.ok && r.data && r.data.error || ERR.gen;
+        if (r.ok && r.data.dashboard.name) S.name = r.data.dashboard.name;
+        S.jobsAt = Date.now(); if (S.screen === 'home') render();
+        // The first time on this phone, ask where the shop is. A "no" is remembered and never blocks anything; the Update shop location button stays.
+        if (r.ok && first && !r.data.dashboard.location.set && !locAsked(win)) { markLocAsked(win); saveLocation(); }
+      });
+    }
+    function saveLocation() {
+      var g = win.navigator && win.navigator.geolocation;
+      if (!g) { S.locMsg = { kind: 'info', text: 'This phone cannot share its location. You can carry on without it.' }; if (S.screen === 'home') render(); return; }
+      S.locBusy = true; S.locMsg = null; if (S.screen === 'home') render();
+      var fail = function (text) { S.locBusy = false; S.locMsg = { kind: 'info', text: text || 'Location was not shared. You can still use the app, and tap Update shop location any time.' }; if (S.screen === 'home') render(); };
+      try {
+        g.getCurrentPosition(function (p) {
+          api('location_set', { lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }).then(function (r) {
+            if (ended(r)) return; S.locBusy = false;
+            if (r.ok) { S.locMsg = { kind: 'ok', text: 'Shop location saved.' }; if (S.dash && S.dash !== 'error') S.dash.location = { set: true, at: r.data.at || new Date().toISOString() }; if (S.screen === 'home') render(); }
+            else fail(r.data && r.data.error);
+          });
+        }, function () { fail(); }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
+      } catch (e) { fail(); }
+    }
+    function setOpen(open) {
+      if (S.openBusy || !S.dash || S.dash === 'error') return; S.openBusy = true; render();
+      api('open_set', { open: open }).then(function (r) { S.openBusy = false; if (ended(r)) return; if (r.ok) S.dash.is_open = r.data.open; render(); });
+    }
+    function renderHome() {
+      var dsh = S.dash, body = [];
+      body.push(el('div', { class: 'd-banner' }, [el('div', {}, [el('h1', { text: 'Hello, ' + (S.name || 'garage') }), dsh && dsh !== 'error' && dsh.city ? el('p', { text: dsh.city }) : null]), el('button', { class: 'd-out', type: 'button', id: 'dLogout', onclick: function () { lock('You are signed out.'); }, text: 'Logout' })]));
+      if (dsh === null) { body.push(loading('Loading your day')); shell(body, 'home', true); return; }
+      if (dsh === 'error') { body.push(retryCard(S.dashErr || ERR.gen, function () { S.dash = null; render(); fetchHome(); })); shell(body, 'home', true); return; }
+      body.push(el('div', { class: 'd-two' }, [el('section', { class: 'd-card', 'aria-label': 'Today’s jobs' }, [el('p', { class: 'd-label', text: 'Today’s jobs' }), el('p', { class: 'd-big', id: 'dToday', text: String(dsh.today_jobs) })]), el('section', { class: 'd-card', 'aria-label': 'Open now' }, [el('p', { class: 'd-label', text: 'Open now' }), el('p', { class: 'd-big', id: 'dOpenJobs', text: String(dsh.open_jobs) })])]));
+      body.push(el('section', { class: 'd-card', 'aria-label': 'Quick actions' }, [el('p', { class: 'd-label', text: 'Quick actions' }), el('button', { class: 'g-btn g-btn-primary d-xl', type: 'button', id: 'dGet', onclick: function () { S.tab = 'open'; openJobs(); }, text: 'Get my jobs' })]));
+      body.push(el('section', { class: 'd-card', 'aria-label': 'Current status' }, [el('p', { class: 'd-label', text: 'Current status' }), el('div', { class: 'd-toggle' }, [
+        el('button', { class: 'd-opt' + (dsh.is_open ? ' on-ok' : ''), type: 'button', id: 'dOpen', 'aria-pressed': dsh.is_open ? 'true' : 'false', disabled: S.openBusy || null, onclick: function () { setOpen(true); }, text: 'Open' }),
+        el('button', { class: 'd-opt' + (!dsh.is_open ? ' on-off' : ''), type: 'button', id: 'dClosed', 'aria-pressed': !dsh.is_open ? 'true' : 'false', disabled: S.openBusy || null, onclick: function () { setOpen(false); }, text: 'Closed' })]),
+        el('p', { class: 'g-hint', text: dsh.is_open ? 'Mechanix Pro can send you jobs.' : 'You are shown as closed to the team. Tap Open when you can take vehicles.' })]));
+      body.push(el('section', { class: 'd-card', 'aria-label': 'My monthly stats' }, [el('p', { class: 'd-label', text: 'My monthly stats' }), el('div', { class: 'd-stats' }, [
+        el('div', {}, [el('b', { text: String(dsh.month.jobs) }), el('span', { text: 'Total jobs' })]), el('div', {}, [el('b', { text: String(dsh.month.completed) }), el('span', { text: 'Completed' })]), el('div', {}, [el('b', { text: dsh.month.avg_ticket == null ? '—' : money(dsh.month.avg_ticket) }), el('span', { text: 'Average ticket' })])])]));
+      var lines = dsh.unsettled.map(function (u) {
+        return el('article', { class: 'd-job' }, [el('div', { class: 'd-job-top' }, [el('b', { text: (u.booking_id || 'Job') + ' · ' + u.vehicle }), el('span', { class: 'g-muted', text: u.completed_at ? whenText(u.completed_at).split(', ').slice(0, 2).join(', ') : '' })]),
+          el('dl', { class: 'd-fig' }, [el('dt', { text: u.label }), el('dd', { class: 'd-ok', text: money(u.amount) })])]);
+      });
+      body.push(el('details', { class: 'd-fold', id: 'dUnsettled' }, [el('summary', { text: 'Previous unsettled (' + dsh.unsettled.length + ')' }), el('div', { class: 'd-fold-body' }, lines.length ? lines.concat([el('p', { class: 'g-hint', text: 'Total ' + money(dsh.unsettled_total) + '. Amounts are entered by Mechanix Pro for each finished job.' })]) : [el('p', { class: 'g-muted', text: 'Nothing is waiting. Settled jobs are on the Statement tab.' })])]));
+      body.push(el('section', { class: 'd-card', 'aria-label': 'Shop location' }, [el('p', { class: 'd-label', text: 'Shop location' }), el('p', { id: 'dLocText', text: locText(dsh.location) }),
+        el('p', { class: 'g-hint', text: 'Helps Mechanix Pro send you jobs nearby. Your phone asks first, and the app works the same if you say no.' }),
+        S.locMsg ? notice('info', S.locMsg.text) : null,
+        el('button', { class: 'g-btn g-btn-ghost g-wide', type: 'button', id: 'dLoc', disabled: S.locBusy || null, onclick: function () { saveLocation(); }, text: S.locBusy ? 'Finding your location' : 'Update shop location' })]));
+      shell(body, 'home', true);
     }
 
     /* ---------- jobs list ---------- */
@@ -325,7 +385,7 @@
     }
 
     function render() {
-      if (S.screen === 'pin') return renderPin(); if (S.screen === 'jobs') return renderJobs(); if (S.screen === 'job') return renderJob();
+      if (S.screen === 'pin') return renderPin(); if (S.screen === 'home') return renderHome(); if (S.screen === 'jobs') return renderJobs(); if (S.screen === 'job') return renderJob();
       if (S.screen === 'statement') return renderStatement(); if (S.screen === 'help') return renderHelp();
       shell([loading('Opening')], null);
     }
@@ -334,8 +394,8 @@
     var fromUrl = linkFromUrl(win.location.search);
     if (fromUrl) { saveLink(win, fromUrl); try { win.history.replaceState(null, '', '/garage/'); } catch (e) {} }
     var ses = savedSession(win);
-    if (ses && savedLink(win)) { S.session = ses.t; S.name = ses.name || ''; loadTeam(); openJobs(); } else { go('pin'); }
-    d.addEventListener('visibilitychange', function () { if (!d.hidden && S.session && S.screen === 'jobs' && Date.now() - S.jobsAt > 60000) fetchJobs(); });
+    if (ses && savedLink(win)) { S.session = ses.t; S.name = ses.name || ''; loadTeam(); openHome(true); } else { go('pin'); }
+    d.addEventListener('visibilitychange', function () { if (!d.hidden && S.session && Date.now() - S.jobsAt > 60000) { if (S.screen === 'jobs') fetchJobs(); else if (S.screen === 'home') fetchHome(); } });
   }
-  return { start: start, money: money, totals: totals, whenText: whenText, telHref: telHref, phoneShow: phoneShow, teamLinks: teamLinks, saveLink: saveLink, savedLink: savedLink, linkFromUrl: linkFromUrl, saveSession: saveSession, savedSession: savedSession, clearSession: clearSession, LINK_KEY: LINK_KEY, SESSION_KEY: SESSION_KEY };
+  return { start: start, locText: locText, locAsked: locAsked, markLocAsked: markLocAsked, LOC_KEY: LOC_KEY, money: money, totals: totals, whenText: whenText, telHref: telHref, phoneShow: phoneShow, teamLinks: teamLinks, saveLink: saveLink, savedLink: savedLink, linkFromUrl: linkFromUrl, saveSession: saveSession, savedSession: savedSession, clearSession: clearSession, LINK_KEY: LINK_KEY, SESSION_KEY: SESSION_KEY };
 });

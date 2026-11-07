@@ -20,6 +20,19 @@
 /garage.webmanifest
   Cache-Control: public, max-age=0, must-revalidate
 
+/mechanic/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://mejdxsbpyscujpvbwvmg.supabase.co; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+
+/mechanic
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store
+
+/mechanic.webmanifest
+  Cache-Control: public, max-age=0, must-revalidate
+
 /admin/*
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-store
