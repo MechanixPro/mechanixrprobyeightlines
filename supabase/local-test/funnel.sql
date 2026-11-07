@@ -79,4 +79,7 @@ select pg_temp.ok((public.crm_quote_get('33333333-3333-3333-3333-333333333301') 
 select pg_temp.ok((public.crm_quote_get('33333333-3333-3333-3333-333333333301') -> 'latest' ->> 'quote_no') = 'Q-MP-26-27-0099-1', 'crm_quote_get carries the quote number');
 select pg_temp.ok((public.crm_funnel() -> 'quote_outcomes' ->> 'expired')::int >= 1, 'the funnel counts expired quotes');
 reset role;
+set role authenticated; select pg_temp.as_user('00000000-0000-0000-0000-0000000000c3');
+select pg_temp.ok(jsonb_typeof(public.crm_funnel_options() -> 'sources') = 'array' and jsonb_typeof(public.crm_funnel_options() -> 'owners') = 'array', 'filter options are readable by the desk');
+reset role;
 select 'ALL FUNNEL SQL CHECKS PASSED' as result;

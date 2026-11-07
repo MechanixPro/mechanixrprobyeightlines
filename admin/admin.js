@@ -23,6 +23,7 @@ import { adsConversions } from './ads-export.js';
 import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge } from './booking-steps.js';
 import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
+import { createFunnelDesk } from "./funnel.js";   // Conversion screen
 import { createMechanicDesk } from './mechanic-desk.js';
 import { STATUS, skeleton, errorState, labelTables } from './ds.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
@@ -250,7 +251,7 @@ function syncNav() {
 }
 function render() { try { renderPage(); } catch (e) { console.error('render', S.tab, e); $('#view').innerHTML = errorHtml('This page could not be shown.', e, 'render'); } }
 const failBanner = () => ((S.failed || []).length ? `<div class="alert" role="alert"><b>Some data could not be loaded:</b> ${esc(S.failed.join(', '))}. What you see may be incomplete. <button class="btn btn-ghost btn-sm" type="button" data-retry="boot">Retry</button></div>` : '');
-function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, dispatch, board, leads, customers, mechanics, garageapp, coupons, issues, pins, waitlist, offers, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
+function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, dispatch, board, leads, customers, mechanics, garageapp, coupons, issues, pins, waitlist, offers, conversion, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === "conversion") funnelDesk.mount($("#fnRoot"));  if (S.tab === "dispatch") loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers') renderCustomers(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -693,6 +694,9 @@ const adminRpc = async (n, a) => { const { data, error } = await sb.rpc(n, a); i
 const garageDesk = createGarageDesk({ rpc: adminRpc, toast, can: () => isOwner(), canSettle: () => isOwner(), dialog: (o) => flow.dialog(o), openLead: (id) => { S.tab = 'leads'; render(); openLead(id); },
   reload: async () => { await loadLeads(); render(); if (S.open) openLead(S.open, true); } });
 // The Mechanic app card (on a mechanic's sheet) is the same code as in Crew: admin/mechanic-desk.js. Owner only here.
+// Conversion screen (funnel): admin/funnel.js, counts come from the crm_funnel database function.
+const funnelDesk = createFunnelDesk({ rpc: adminRpc, openLead: (id) => { S.tab = "leads"; render(); openLead(id); }, download: (name, text) => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); } });
+const conversion = () => `<div class="view-head"><h2>Conversion</h2><p class="muted">Lead to quote to booking to visit to invoice. Counts and median times, by period, source, campaign, Crew member and vehicle.</p></div><div id="fnRoot"></div>`;
 const mechanicDesk = createMechanicDesk({ rpc: adminRpc, toast, can: () => isOwner(), dialog: (o) => flow.dialog(o) });
 const flow = createFlow({
   garageDesk,

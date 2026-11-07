@@ -1,6 +1,6 @@
 -- Funnel and proper quote document. Every statement is safe to repeat. Not applied anywhere: tested on the local Postgres harness only.
 -- Rollback (owner-run, only if needed):
---   drop function if exists public.crm_funnel(date, date, text, text, uuid, text), public.funnel_targets();
+--   drop function if exists public.crm_funnel(date, date, text, text, uuid, text), public.crm_funnel_options(), public.funnel_targets();
 --   alter table public.job_quotes drop column if exists quote_no, drop column if exists valid_until, drop column if exists change_request, drop column if exists changes_at, drop column if exists terms;
 --   then re-run 20261228000000_paid_confirmation.sql to restore crm_quote_send, crm_quote_get and quote_decide.
 
@@ -171,3 +171,15 @@ begin
 end; $$;
 revoke all on function public.crm_funnel(date, date, text, text, uuid, text) from public, anon;
 grant execute on function public.crm_funnel(date, date, text, text, uuid, text) to authenticated;
+
+-- 7. Values for the funnel's filter menus (last 180 days): sources, campaigns and Crew owners. Names of Crew members only, no customer data.
+create or replace function public.crm_funnel_options() returns jsonb language plpgsql stable security definer set search_path = public as $$
+begin
+  perform public.flow_need();
+  return jsonb_build_object(
+    'sources', coalesce((select jsonb_agg(s order by s) from (select distinct lower(coalesce(nullif(utm ->> 'utm_source', ''), source, 'unknown')) as s from public.leads where deleted_at is null and created_at > now() - interval '180 days') x), '[]'::jsonb),
+    'campaigns', coalesce((select jsonb_agg(c order by c) from (select distinct campaign as c from public.leads where deleted_at is null and campaign is not null and created_at > now() - interval '180 days') x), '[]'::jsonb),
+    'owners', coalesce((select jsonb_agg(jsonb_build_object('id', o, 'name', coalesce(public.crm_name(o), 'Unknown')) order by public.crm_name(o)) from (select distinct crm_owner as o from public.leads where deleted_at is null and crm_owner is not null and created_at > now() - interval '180 days') x), '[]'::jsonb));
+end; $$;
+revoke all on function public.crm_funnel_options() from public, anon;
+grant execute on function public.crm_funnel_options() to authenticated;
