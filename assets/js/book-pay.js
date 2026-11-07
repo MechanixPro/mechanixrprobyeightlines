@@ -234,12 +234,15 @@
     }
 
     /* pay */
-    var call = function (fn, body) {
+    var call = function (fn, body, tries) {
+      // One quiet retry when the network drops (common on phones): the server finds the same form again, so a retry never makes a second booking or order.
       return win.fetch(C.supabaseUrl + '/functions/v1/' + fn, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey }, body: JSON.stringify(body) })
-        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, ok: r.ok, d: d }; }); });
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, ok: r.ok, d: d }; }); })
+        .catch(function (err) { if ((tries || 0) >= 1) throw err; return new Promise(function (res) { win.setTimeout(res, 1500); }).then(function () { return call(fn, body, (tries || 0) + 1); }); });
     };
     var loadCheckout = function () { return new Promise(function (resolve, reject) { if (win.Razorpay) return resolve(); var s = doc.createElement('script'); s.src = 'https://checkout.razorpay.com/v1/checkout.js'; s.onload = resolve; s.onerror = function () { reject(new Error('load')); }; doc.head.appendChild(s); }); };
     var msg = $('#bk-msg'), payBtn = $('#bk-pay');
+    try { if (/Instagram|FBAN|FBAV|FB_IAB|MicroMessenger|Line\//i.test(win.navigator.userAgent || '')) { var hint = doc.createElement('p'); hint.className = 'tiny muted'; hint.id = 'bk-inapp'; hint.textContent = 'Payment not opening? Tap the three dots and choose "Open in browser", or message us on WhatsApp and we will send you a payment link.'; payBtn.parentNode.insertBefore(hint, payBtn); } } catch (e3) {}
     var free = function () { busy = false; payBtn.disabled = false; showFee(); };
     var done = function (d, email) {
       store.clear(); sess.clear(); form.hidden = true; var sm = doc.getElementById('bk-sum'); if (sm) sm.hidden = true; var pr = doc.getElementById('bk-prog'); if (pr) pr.hidden = true; var steps = doc.querySelector('.bk-steps'); if (steps) { steps.hidden = true; steps.style.display = 'none'; }   // the step list sits outside the form: the old $() lookup returned null and threw after a successful payment

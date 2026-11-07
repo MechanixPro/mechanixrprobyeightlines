@@ -64,3 +64,9 @@ test('no personal details are kept in the browser draft, and step and checkout e
   assert.match(js, /mxpTrack\('book_step', \{ step: n \}\)/); assert.match(js, /mxpTrack\('begin_checkout', \{ currency: 'INR'/);
   assert.match(read('_headers'), /https:\/\/analytics\.google\.com/);
 });
+
+test('book-start retries once on a network drop, and an in-app browser gets a pay hint', () => {
+  const js = read('assets/js/book-pay.js');
+  assert.match(js, /var call = function \(fn, body, tries\)/); assert.match(js, /\(tries \|\| 0\) >= 1\) throw err/);
+  assert.match(js, /Instagram\|FBAN\|FBAV/); assert.match(js, /Open in browser/);
+});
