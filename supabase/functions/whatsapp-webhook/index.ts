@@ -1,6 +1,8 @@
-// WhatsApp Cloud API webhook: verifies Meta's signature, logs messages, and lets the AI assistant
-// reply and push the customer to pay the booking advance. Deploy with --no-verify-jwt.
-import { adminDb, env, hmacSha256Hex, safeEqual, last10, getSetting, priceBooking, rupee } from '../_shared/util.ts';
+// WhatsApp Cloud API webhook (number +91 83106 21498): verifies Meta's signature on the raw body, stores every inbound message type (text, photo, voice note,
+// document, location, button and list replies; media id and mime only, never bytes) and every delivery status, feeds the Crew inbox, and lets the AI assistant
+// reply and push the customer to pay the booking advance unless a person claimed the conversation or the AI switch is off. Deploy with --no-verify-jwt.
+import { adminDb, env, getSetting, priceBooking, rupee } from '../_shared/util.ts';
+import { parseWebhook, verifyMetaSignature, type ParsedMessage } from '../_shared/wa-cloud.ts';
 import { sendText, whatsappReady } from '../_shared/whatsapp.ts';
 import { aiReady, aiReply, systemPrompt } from '../_shared/ai.ts';
 import { slotFee } from '../_shared/checkout.ts';
@@ -16,35 +18,30 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   // Meta verification handshake
   if (req.method === 'GET') {
-    if (url.searchParams.get('hub.mode') === 'subscribe' && url.searchParams.get('hub.verify_token') === env('WA_VERIFY_TOKEN'))
+    const token = env('WA_VERIFY_TOKEN');
+    if (token && url.searchParams.get('hub.mode') === 'subscribe' && url.searchParams.get('hub.verify_token') === token)
       return new Response(url.searchParams.get('hub.challenge') ?? '', { status: 200 });
     return new Response('Forbidden', { status: 403 });
   }
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
   const raw = await req.text();
-  const sig = (req.headers.get('x-hub-signature-256') ?? '').replace('sha256=', '');
-  const expected = await hmacSha256Hex(env('WA_APP_SECRET'), raw);
-  if (!env('WA_APP_SECRET') || !safeEqual(sig, expected)) return new Response('Bad signature', { status: 401 });
+  if (!(await verifyMetaSignature(env('WA_APP_SECRET'), raw, req.headers.get('x-hub-signature-256')))) return new Response('Bad signature', { status: 401 });
 
   let body: any; try { body = JSON.parse(raw); } catch { return new Response('ok'); }
   const db = adminDb();
-  for (const entry of body.entry ?? []) for (const change of entry.changes ?? []) {
-    const value = change.value ?? {};
-    for (const msg of value.messages ?? []) {
-      try { await handleMessage(db, msg, value.contacts?.[0]?.profile?.name ?? ''); } catch (e) { console.error('handle error', e); }
-    }
-  }
+  const { messages, statuses } = parseWebhook(body);
+  for (const m of messages) { try { await handleMessage(db, m); } catch (e) { console.error('handle error', e); } }
+  // Delivery receipts: the database only moves a status forward (sent, delivered, read; failed only before delivery).
+  for (const s of statuses) { try { await db.rpc('wa_apply_status', { p_wa_id: s.id, p_status: s.status, p_error: s.error }); } catch (e) { console.error('status error', e); } }
   return new Response('ok');
 });
 
-async function handleMessage(db: ReturnType<typeof adminDb>, msg: any, profileName: string) {
-  const phone = last10(msg.from);
-  if (!/^[6-9]\d{9}$/.test(phone)) return;
-  const text: string = msg.type === 'text' ? String(msg.text?.body ?? '')
-    : msg.type === 'location' ? `My location: https://maps.google.com/?q=${msg.location?.latitude},${msg.location?.longitude}`
-    : msg.type === 'button' ? String(msg.button?.text ?? '') : msg.type === 'interactive' ? String(msg.interactive?.button_reply?.title ?? msg.interactive?.list_reply?.title ?? '')
-    : `[${msg.type}]`;
+async function handleMessage(db: ReturnType<typeof adminDb>, m: ParsedMessage) {
+  const phone = m.phone;
+  if (!phone) return;
+  const text = m.body, profileName = m.profileName;
+  const typed = m.type === 'text' || m.type === 'button' || m.type === 'interactive';   // AI and opt-out read only what the customer typed or tapped
 
   // Find the lead: by booking ref in the text, else latest open lead for this phone, else create one.
   const ref = text.toUpperCase().match(REF_IN_TEXT)?.[0];
@@ -57,23 +54,29 @@ async function handleMessage(db: ReturnType<typeof adminDb>, msg: any, profileNa
   }
   if (!lead) return;
 
-  // Log inbound (dedupe on Meta message id)
-  const { error: dup } = await db.from('messages').insert({ lead_id: lead.id, phone, direction: 'in', sender: 'customer', body: text.slice(0, 4000), wa_message_id: msg.id });
-  if (dup?.code === '23505') return; // already processed
+  // Log inbound and update the conversation in one database call (de-dupes on Meta's message id).
+  const { data: rec, error: recErr } = await db.rpc('wa_record_inbound', { p_phone: phone, p_lead: lead.id, p_wa_id: m.id, p_body: text, p_media: m.media, p_wa_number: m.waNumber || null, p_profile: profileName, p_at: m.at });
+  if (recErr) { console.error('record inbound', recErr.message); return; }   // Meta retries a non-200, but we always answer 200: the error is in the logs
+  if (rec?.duplicate) return; // already processed
 
   const patch: Record<string, unknown> = { last_customer_msg_at: new Date().toISOString(), consent_whatsapp: true };
   if (lead.status === 'new') patch.status = 'contacted';
   // Customer is engaged: reset the nudge timer (next nudge in 3 hours if they go quiet).
   if (OPEN.includes(lead.status)) { patch.followup_step = 1; patch.next_followup_at = new Date(Date.now() + 3 * 3600_000).toISOString(); }
 
-  if (STOP_WORDS.test(text)) {
+  if (typed && STOP_WORDS.test(text)) {
     await db.from('leads').update({ ...patch, opted_out: true, ai_enabled: false, next_followup_at: null }).eq('id', lead.id);
     const id = await sendText(phone, 'You will not get any more automated messages from Mechanix Pro. Reply anytime if you need us.');
-    await db.from('messages').insert({ lead_id: lead.id, phone, direction: 'out', sender: 'system', body: 'Opt-out confirmed', wa_message_id: id });
+    if (id) await db.rpc('wa_record_outbound', { p_phone: phone, p_lead: lead.id, p_wa_id: id, p_body: 'Opt-out confirmed', p_sender: 'system', p_media: null, p_status: 'sent', p_user: null, p_wa_number: m.waNumber || null });
     return;
   }
   await db.from('leads').update(patch).eq('id', lead.id);
   await upgradeVehicle(db, lead.id, detectVehicle(text));   // bike to car/parts once; never over a desk-set tag
+
+  // Who may auto-reply: never after a person claimed the conversation; the conversation switch wins over the global one (wa_ai_auto, default on).
+  if (rec?.assigned_to) return;
+  if (rec?.ai_auto === false || (rec?.ai_auto == null && rec?.global_ai === false)) return;
+  if (!typed && m.type !== 'location') return;   // a photo or voice note is for the team, not the AI
 
   const aiOn = await getSetting(db, 'ai_enabled', true);
   if (!aiOn || !lead.ai_enabled || !aiReady() || !whatsappReady() || ['paid', 'scheduled'].includes(lead.status) && !/\?/.test(text)) return;
@@ -124,5 +127,5 @@ async function handleMessage(db: ReturnType<typeof adminDb>, msg: any, profileNa
   }
   if (Object.keys(upd).length) await db.from('leads').update(upd).eq('id', lead.id);
   const id = await sendText(phone, reply);
-  await db.from('messages').insert({ lead_id: lead.id, phone, direction: 'out', sender: 'ai', body: reply, wa_message_id: id });
+  if (id) await db.rpc('wa_record_outbound', { p_phone: phone, p_lead: lead.id, p_wa_id: id, p_body: reply, p_sender: 'ai', p_media: null, p_status: 'sent', p_user: null, p_wa_number: m.waNumber || null });
 }
