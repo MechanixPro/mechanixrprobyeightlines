@@ -60,9 +60,9 @@ export function tableHtml({ cols, rows, cls = '', rowAttrs = () => '', rowCls = 
   const total = cols.reduce((t, c) => t + (c.w || 100), 0);
   const stick = (c, i) => (c.sticky ? ` mt-s${i + 1}` : '');
   const colgroup = `<colgroup>${cols.map((c) => `<col style="width:${c.w || 100}px">`).join('')}</colgroup>`;
-  const head = `<thead><tr>${cols.map((c, i) => `<th class="mt-${c.kind || 'text'}${stick(c, i)}" scope="col">${esc(c.label)}</th>`).join('')}</tr></thead>`;
-  const body = list.map((r) => `<tr class="${rowCls}" ${rowAttrs(r)} tabindex="0">${cols.map((c, i) => `<td class="mt-${c.kind || 'text'}${stick(c, i)}" data-label="${esc(c.label)}">${c.cell(r)}</td>`).join('')}</tr>`).join('');
-  const tfoot = foot ? `<tfoot><tr class="mt-foot">${cols.map((c, i) => `<td class="mt-${c.kind || 'text'}${stick(c, i)}">${foot[c.k] ?? ''}</td>`).join('')}</tr></tfoot>` : '';
-  const cards = cardHead ? `<div class="mt-cards" aria-label="${esc(label)}">${list.map((r) => `<div class="mt-card ${rowCls}" ${rowAttrs(r)}>${cardHead(r)}<details><summary>Details</summary><dl class="mt-dl">${cols.filter((c) => c.card === 'detail').map((c) => `<dt>${esc(c.label)}</dt><dd>${c.cell(r)}</dd>`).join('')}</dl></details></div>`).join('')}</div>` : '';
-  return `<div class="mt-wrap ${cls}"><div class="mt-scroll"><table class="mt-table" style="--tw:${total}px">${colgroup}${head}<tbody>${body}</tbody>${tfoot}</table></div>${cards}</div>`;
+  const head = `<thead><tr>${cols.map((c, i) => `<th class="mc-${c.kind || 'text'}${stick(c, i)}" scope="col">${esc(c.label)}</th>`).join('')}</tr></thead>`;
+  const body = list.map((r) => `<tr class="${rowCls}" ${rowAttrs(r)} tabindex="0">${cols.map((c, i) => `<td class="mc-${c.kind || 'text'}${stick(c, i)}" data-label="${esc(c.label)}">${c.cell(r)}</td>`).join('')}</tr>`).join('');
+  const tfoot = foot ? `<tfoot><tr class="mt-foot">${cols.map((c, i) => `<td class="mc-${c.kind || 'text'}${stick(c, i)}">${foot[c.k] ?? ''}</td>`).join('')}</tr></tfoot>` : '';
+  const cards = cardHead ? `<div class="mt-cards" aria-label="${esc(label)}">${list.map((r) => `<div class="mt-card"><div class="mt-tap ${rowCls}" ${rowAttrs(r)} tabindex="0">${cardHead(r)}</div><details><summary>Details</summary><dl class="mt-dl">${cols.filter((c) => c.card === 'detail').map((c) => `<dt>${esc(c.label)}</dt><dd>${c.cell(r)}</dd>`).join('')}</dl></details></div>`).join('')}</div>` : '';
+  return `<div class="mt-wrap ${cls}"><div class="mt-scroll"><table class="mt-table" style="--tw:${total}px;--mt-s1:${cols[0].w || 100}px">${colgroup}${head}<tbody>${body}</tbody>${tfoot}</table></div>${cards}</div>`;
 }

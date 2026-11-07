@@ -1,6 +1,7 @@
 // Stands in for @supabase/supabase-js in the screenshot harness. The harness page sets window.__UI = { scenario, fail: [names], hang: [names] } before the app loads.
 // scenario: ok | empty | error (every read fails except the sign-in checks) | loading (reads never finish).
 import { fixtures } from '/tests/ui/fixtures.js';
+import { moneyTables } from '/tests/ui/money-fixtures.js';
 
 const ui = () => window.__UI || { scenario: 'ok' };
 const never = () => new Promise(() => {});
@@ -51,7 +52,7 @@ class Query {
     if ((u.fail && u.fail.includes(this.t)) || (gate && u.scenario === 'error')) return { data: null, error: { message: 'Could not load ' + this.t } };
     await wait(5);
     if (this.op === 'write') return { data: null, error: null };
-    let rows = fixtures.adminTables[this.t];
+    let rows = u.money && moneyTables[this.t] ? moneyTables[this.t] : fixtures.adminTables[this.t];
     if (this.t === 'admins' && u.persona === 'staff') rows = [{ user_id: 'me-1', name: '[Staff Admin]', role: 'staff' }];
     if (rows === undefined) { if (!unknown.has('t:' + this.t)) { unknown.add('t:' + this.t); console.warn('[harness] no fixture for table ' + this.t); } rows = []; }
     if (u.scenario === 'empty' && this.t !== 'admins') rows = [];

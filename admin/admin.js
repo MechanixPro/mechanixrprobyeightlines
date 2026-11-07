@@ -25,6 +25,7 @@ import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
 import { createMechanicDesk } from './mechanic-desk.js';
 import { STATUS, skeleton, errorState, labelTables } from './ds.js';
+import { moneyCell, shareCompact, chipsHtml, totalsRow, tableHtml, rupeeText, clip, dateText } from './money-table.js';
 import { issueRows, openIssueCount, warrantyInfo, KIND_LABEL, STATUS_LABEL } from './issue-view.js';
 
 const C = window.MXP || {};
@@ -1993,13 +1994,35 @@ function finPanel(a) {
     <h3 style="margin:14px 0 6px">Money history</h3>${entryRows(S.ledger.filter((e) => e.lead_id === a.lead_id).sort((x, y) => new Date(y.created_at) - new Date(x.created_at)))}
     <div class="row-btns" style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button" data-act="openBooking" data-id="${a.lead_id}">Open booking</button></div></div>${forms}`;
 }
+/* Money tables: one component (admin/money-table.js) for Sales, Mechanic ledgers, Invoices and Reports. Formatting only; every figure still comes from the same model fields. */
+function salesTable(rows) {
+  const t = totalsRow(rows), sh = (a) => shareCompact(a), mc = moneyCell;
+  const cust = (a) => `<span class="mt-name" title="${esc(a.customer || '')}">${esc(a.customer || '–')}</span>${a.phone ? `<span class="mt-sub">${esc(a.phone)}</span>` : ''}`;
+  const cols = [
+    { k: 'inv', label: 'Invoice', w: 132, kind: 'inv', sticky: 1, card: 'head', cell: (a) => `<b class="mt-inv">${esc(a.number)}</b><span class="mt-sub">${esc(dateText(a.issuedAt))}</span>` },
+    { k: 'cust', label: 'Customer', w: 168, kind: 'text', sticky: 1, card: 'head', cell: cust },
+    { k: 'mech', label: 'Mechanic', w: 120, kind: 'text', card: 'detail', cell: (a) => `<span class="mt-name" title="${esc(a.mechanicName || '')}">${esc(a.mechanicName || '–')}</span>` },
+    { k: 'share', label: 'Share', w: 84, kind: 'text', card: 'detail', cell: (a) => { const s = sh(a); return `<span class="mt-share" title="${esc(s.title)}">${esc(s.text)}${s.pct == null ? '' : `<i class="mt-bar" style="--p:${s.pct}%"></i>`}</span>`; } },
+    { k: 'total', label: 'Total', w: 116, kind: 'num', card: 'head', cell: (a) => `<b>${mc(a.total)}</b>` },
+    { k: 'company', label: 'Company', w: 112, kind: 'num', card: 'detail', cell: (a) => mc(a.byChannel.company_manual) },
+    { k: 'online', label: 'Online', w: 112, kind: 'num', card: 'detail', cell: (a) => mc(a.byChannel.company_portal) },
+    { k: 'mechanic', label: 'Mechanic', w: 112, kind: 'num', card: 'detail', cell: (a) => mc(a.byChannel.mechanic) },
+    { k: 'outstanding', label: 'Customer owes', w: 116, kind: 'num', card: 'head', cell: (a) => mc(a.outstanding) },
+    { k: 'remitDue', label: 'Mechanic owes us', w: 116, kind: 'num', card: 'detail', cell: (a) => mc(a.remitDue) },
+    { k: 'payoutDue', label: 'We owe mechanic', w: 116, kind: 'num', card: 'detail', cell: (a) => mc(a.payoutDue) },
+    { k: 'status', label: 'Status', w: 296, kind: 'chips', card: 'head', cell: (a) => chipsHtml(a.statusLabels) },
+  ];
+  const foot = { inv: `Total (${t.count})`, total: `<b>${mc(t.total)}</b>`, company: mc(t.company), online: mc(t.online), mechanic: mc(t.mechanic), outstanding: mc(t.outstanding), remitDue: mc(t.remitDue), payoutDue: mc(t.payoutDue) };
+  const cardHead = (a) => `<div class="mt-ch"><span><b class="mt-inv">${esc(a.number)}</b><span class="mt-sub">${esc(dateText(a.issuedAt))}</span></span><span class="mt-ct"><b>${mc(a.total)}</b><span class="mt-sub">Owes ${mc(a.outstanding)}</span></span></div><div class="mt-cn">${cust(a)}</div><div class="mt-cs">${chipsHtml(a.statusLabels)}</div>`;
+  return tableHtml({ cols, rows, foot, cardHead, cls: 'mt-sales', label: 'All jobs', rowAttrs: (a) => `data-lead="${a.lead_id}"` });
+}
 function sales() {
   const f = S.sf, m = salesModel(), rows = filterAccounts(m.accounts, { mechanic: f.mechanic, status: f.status, q: f.q, channel: f.channel, gst: f.gst, ...sfRange() }).sort((a, b) => new Date(b.issuedAt) - new Date(a.issuedAt));
   const c = summaryCards(rows, S.ledger), opt = (v, cur, label) => `<option value="${v}"${String(cur) === String(v) ? ' selected' : ''}>${label}</option>`;
   const fin = S.finJob && m.accounts.find((a) => a.lead_id === S.finJob);
   const kpi = (v, l) => `<div class="kpi"><b>${rupee2(v)}</b><span>${l}</span></div>`;
   const STAT = ['Unpaid', 'Partially Paid', 'Fully Paid', 'Customer Due', 'Overdue', 'Mechanic Remittance Due', 'Mechanic Payout Due', 'Settled'];
-  const table = rows.length ? `<div class="inv-table-wide"><table class="rtable"><thead><tr><th>Invoice</th><th>Customer</th><th>Mechanic</th><th>Share</th><th>Total</th><th>Company</th><th>Online</th><th>Mechanic</th><th>Customer owes</th><th>Mechanic owes us</th><th>We owe mechanic</th><th>Status</th></tr></thead><tbody>${rows.map((a) => `<tr class="fin-tr" data-lead="${a.lead_id}" tabindex="0"><td><b>${esc(a.number)}</b><br><span class="tiny muted">${esc(when(a.issuedAt))}</span></td><td>${esc(a.customer)}<br><span class="tiny muted">${esc(a.phone || '')}</span></td><td>${esc(a.mechanicName || '—')}</td><td class="tiny">${a.mechanicName ? 'Mechanic ' + a.mechanicPct + '%<br>Company ' + a.companyPct + '%' : '—'}</td><td><b>${rupee2(a.total)}</b></td><td>${rupee2(a.byChannel.company_manual)}</td><td>${rupee2(a.byChannel.company_portal)}</td><td>${rupee2(a.byChannel.mechanic)}</td><td>${rupee2(a.outstanding)}</td><td>${rupee2(a.remitDue)}</td><td>${rupee2(a.payoutDue)}</td><td>${a.statusLabels.map(statusPill).join(' ')}</td></tr>`).join('')}</tbody></table></div><div class="inv-cards">${rows.map((a) => `<button class="row fin-tr" data-lead="${a.lead_id}" style="border-radius:12px"><span class="ref">${esc(a.number)}</span><span>${esc(a.customer)}<br><span class="meta">${esc(a.mechanicName || 'No mechanic')} · ${a.statusLabels.join(', ')}</span></span><span><b>${rupee2(a.total)}</b><br><span class="meta">Owes ${rupee2(a.outstanding)}</span></span></button>`).join('')}</div>` : '<p class="muted">No jobs match. Jobs appear here once they are completed or have a payment.</p>';
+  const table = rows.length ? salesTable(rows) : '<p class="muted">No jobs match. Jobs appear here once they are completed or have a payment.</p>';
   return `<h1>Sales and collections</h1><p class="muted">Every invoice, who collected the money, and what the customer, the mechanic and the company each still owe.</p>
   <div class="kpis">${kpi(c.invoiceSales, 'Invoice sales')}${kpi(c.collectedManual, 'Collected by the company')}${kpi(c.collectedPortal, 'Collected online')}${kpi(c.collectedMechanic, 'Collected by mechanics')}${kpi(c.customerOutstanding, 'Customers still owe')}${kpi(c.gst, 'GST in these invoices')}${kpi(c.mechanicsOweCompany, 'Mechanics owe the company')}${kpi(c.payoutsPending, 'Company owes mechanics')}${kpi(c.payoutsPaid, 'Mechanic payouts paid')}${c.gatewayFees ? kpi(c.gatewayFees, 'Gateway fees paid') : ''}</div>
   ${fin ? finPanel(fin) : ''}
