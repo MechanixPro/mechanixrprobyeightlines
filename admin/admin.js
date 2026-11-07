@@ -1913,7 +1913,7 @@ function invoices() {
   const basisNote = basis() === 'before_gst' ? 'The mechanic\'s cut is worked out on the amount <b>before GST</b>. On an invoice with no GST that is the whole amount, so the same percentage gives a different rupee amount.' : 'The mechanic\'s cut is worked out on the <b>whole amount including GST</b>. You can change this in Settings.';
   return `<h1>Invoices</h1><p class="muted">Every invoice you print or email is saved here, with its GST and the mechanic's cut as they were on that day.</p>${bannerHtml(missingList().length)}
   <div class="toolbar" style="flex-wrap:wrap;gap:8px"><select id="if-period" aria-label="Period">${IPERIODS.map(([k, n]) => opt(k, f.period, n)).join('')}</select>
-    <select id="if-gst" aria-label="GST">${opt('', f.gst, 'With and without GST')}${opt('with', f.gst, 'With GST only')}${opt('without', f.gst, 'No GST only')}</select>
+    <select id="if-gst" aria-label="GST">${opt('', f.gst, 'Any invoice')}${opt('with', f.gst, 'With GST only')}${opt('without', f.gst, 'No GST only')}</select>
     <select id="if-rate" aria-label="GST rate">${opt('', f.rate, 'Any rate')}${[18, 12, 5, 0].map((r) => opt(r, f.rate, r ? r + '%' : '0% (no GST)')).join('')}</select>
     <select id="if-mech" aria-label="Mechanic">${opt('', f.mechanic, 'All mechanics')}${S.mechanics.map((m) => opt(m.id, f.mechanic, esc(m.name))).join('')}${opt('none', f.mechanic, 'No mechanic')}</select>
     <input id="if-q" type="search" placeholder="Search number, name, GSTIN" value="${esc(f.q)}" aria-label="Search invoices" style="min-width:200px">
@@ -2013,7 +2013,7 @@ function salesTable(rows) {
     { k: 'status', label: 'Status', w: 296, kind: 'chips', card: 'head', cell: (a) => chipsHtml(a.statusLabels) },
   ];
   const foot = { inv: `Total (${t.count})`, total: `<b>${mc(t.total)}</b>`, company: mc(t.company), online: mc(t.online), mechanic: mc(t.mechanic), outstanding: mc(t.outstanding), remitDue: mc(t.remitDue), payoutDue: mc(t.payoutDue) };
-  const cardHead = (a) => `<div class="mt-ch"><span><b class="mt-inv">${esc(a.number)}</b><span class="mt-sub">${esc(dateText(a.issuedAt))}</span></span><span class="mt-ct"><b>${mc(a.total)}</b><span class="mt-sub">Owes ${mc(a.outstanding)}</span></span></div><div class="mt-cn">${cust(a)}</div><div class="mt-cs">${chipsHtml(a.statusLabels)}</div>`;
+  const cardHead = (a) => `<div class="mt-ch"><span><b class="mt-inv">${esc(a.number)}</b><span class="mt-sub">${esc(dateText(a.issuedAt))}</span></span><span class="mt-ct"><b>${mc(a.total)}</b><span class="mt-sub">${Number(a.outstanding) ? "Owes " + mc(a.outstanding) : "Nothing owed"}</span></span></div><div class="mt-cn">${cust(a)}</div><div class="mt-cs">${chipsHtml(a.statusLabels)}</div>`;
   return tableHtml({ cols, rows, foot, cardHead, cls: 'mt-sales', label: 'All jobs', rowAttrs: (a) => `data-lead="${a.lead_id}"` });
 }
 function sales() {
@@ -2026,13 +2026,15 @@ function sales() {
   return `<h1>Sales and collections</h1><p class="muted">Every invoice, who collected the money, and what the customer, the mechanic and the company each still owe.</p>
   <div class="kpis">${kpi(c.invoiceSales, 'Invoice sales')}${kpi(c.collectedManual, 'Collected by the company')}${kpi(c.collectedPortal, 'Collected online')}${kpi(c.collectedMechanic, 'Collected by mechanics')}${kpi(c.customerOutstanding, 'Customers still owe')}${kpi(c.gst, 'GST in these invoices')}${kpi(c.mechanicsOweCompany, 'Mechanics owe the company')}${kpi(c.payoutsPending, 'Company owes mechanics')}${kpi(c.payoutsPaid, 'Mechanic payouts paid')}${c.gatewayFees ? kpi(c.gatewayFees, 'Gateway fees paid') : ''}</div>
   ${fin ? finPanel(fin) : ''}
-  <div class="toolbar" style="flex-wrap:wrap;gap:8px;margin-top:14px"><select id="sf-period" aria-label="Period">${IPERIODS.map(([k, n]) => opt(k, f.period, n)).join('')}</select>
-    <select id="sf-mech" aria-label="Mechanic">${opt('', f.mechanic, 'All mechanics')}${S.mechanics.map((x) => opt(x.id, f.mechanic, esc(x.name))).join('')}${opt('none', f.mechanic, 'No mechanic')}</select>
-    <select id="sf-status" aria-label="Status">${opt('', f.status, 'Any status')}${STAT.map((x) => opt(x, f.status, x)).join('')}</select>
-    <select id="sf-channel" aria-label="Collected by">${opt('', f.channel, 'Collected by anyone')}${opt('company_manual', f.channel, 'Company, manual')}${opt('company_portal', f.channel, 'Company, online')}${opt('mechanic', f.channel, 'Mechanic')}</select>
-    <select id="sf-gst" aria-label="Invoice type">${opt('', f.gst, 'With and without GST')}${opt('with', f.gst, 'With GST')}${opt('without', f.gst, 'No GST')}</select>
-    <label class="tiny muted">From <input id="sf-from" type="date" value="${esc(f.from)}" aria-label="From date"></label><label class="tiny muted">To <input id="sf-to" type="date" value="${esc(f.to)}" aria-label="To date"></label>
-    <input id="sf-q" type="search" placeholder="Search invoice, name, booking" value="${esc(f.q)}" aria-label="Search" style="min-width:200px"><button class="btn btn-ghost btn-sm" type="button" data-act="salesCsv">Download jobs CSV</button><button class="btn btn-ghost btn-sm" type="button" data-act="ledgerCsv">Download all transactions CSV</button></div>
+  <div class="mt-filters" role="search"><label class="mt-f"><span>Period</span><select id="sf-period" aria-label="Period">${IPERIODS.map(([k, n]) => opt(k, f.period, n)).join('')}</select></label>
+    <label class="mt-f"><span>Mechanic</span><select id="sf-mech" aria-label="Mechanic">${opt('', f.mechanic, 'All mechanics')}${S.mechanics.map((x) => opt(x.id, f.mechanic, esc(x.name))).join('')}${opt('none', f.mechanic, 'No mechanic')}</select></label>
+    <label class="mt-f"><span>Status</span><select id="sf-status" aria-label="Status">${opt('', f.status, 'Any status')}${STAT.map((x) => opt(x, f.status, x)).join('')}</select></label>
+    <label class="mt-f"><span>Collected by</span><select id="sf-channel" aria-label="Collected by">${opt('', f.channel, 'Anyone')}${opt('company_manual', f.channel, 'Company, manual')}${opt('company_portal', f.channel, 'Company, online')}${opt('mechanic', f.channel, 'Mechanic')}</select></label>
+    <label class="mt-f"><span>Invoice type</span><select id="sf-gst" aria-label="Invoice type">${opt('', f.gst, 'Any invoice')}${opt('with', f.gst, 'With GST')}${opt('without', f.gst, 'No GST')}</select></label>
+    <label class="mt-f mt-f-date"><span>From</span><input id="sf-from" type="date" value="${esc(f.from)}" aria-label="From date"></label>
+    <label class="mt-f mt-f-date"><span>To</span><input id="sf-to" type="date" value="${esc(f.to)}" aria-label="To date"></label>
+    <label class="mt-f mt-f-q"><span>Search</span><input id="sf-q" type="search" placeholder="Invoice, name, booking" value="${esc(f.q)}" aria-label="Search"></label>
+    <div class="mt-f-btns"><button class="btn btn-ghost btn-sm" type="button" data-act="salesCsv">Jobs CSV</button><button class="btn btn-ghost btn-sm" type="button" data-act="ledgerCsv">All transactions CSV</button></div></div>
   <div class="card" style="margin-top:14px"><h3>All jobs (${rows.length})</h3>${table}</div>`;
 }
 function mechledger() {

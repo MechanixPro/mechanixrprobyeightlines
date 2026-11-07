@@ -166,3 +166,11 @@ details.card[open]>summary::after{content:"  \25B4"}
   .mt-card details{margin-top:var(--s2)}.mt-card summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--accent);font-weight:600;font-size:var(--fs-3)}
   .mt-card .mt-chips{display:flex;gap:var(--s1);flex-wrap:wrap}
 }
+/* Money filters: one wrapping toolbar, labels above, equal 44px controls, CSV buttons grouped at the right */
+.mt-filters{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:flex-end;margin-top:var(--s4)}
+.mt-f{display:flex !important;flex-direction:column;gap:var(--s1);flex:1 1 150px;min-width:0;max-width:240px;font-size:var(--fs-2);color:var(--text3);font-weight:600}
+.mt-f select,.mt-f input{width:100%;height:44px;min-height:44px;flex:none;margin:0}.mt-f{text-align:left;align-items:stretch;justify-content:flex-end}.mt-f span{text-align:left;line-height:1.2}
+.mt-f-date{flex:0 1 150px}.mt-f-q{flex:2 1 220px;max-width:340px}
+.mt-f-btns{display:flex;gap:var(--s2);margin-left:auto;flex-wrap:wrap}
+.mt-f-btns .btn{min-height:44px}
+@media(max-width:760px){.mt-f,.mt-f-date,.mt-f-q{flex:1 1 calc(50% - var(--s3));max-width:none}.mt-f-q{flex-basis:100%}.mt-f-btns{margin-left:0;width:100%}.mt-f-btns .btn{flex:1}}
