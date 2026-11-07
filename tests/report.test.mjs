@@ -62,3 +62,9 @@ test('payoutReport renders when invoice_override is null, missing or has no rate
   assert.deepEqual(payoutReport(null, null).rows, []);
   assert.deepEqual(payoutReport([null, { status: 'completed', mechanic_id: 'm1', paid_amount: 100 }], [null, ...mechs]).rows.length, 1);
 });
+test('payoutReport sorts when a mechanic has no name', async () => {
+  const { payoutReport } = await import('../admin/report.js');
+  const mechs = [{ id: 'm1', name: null }, { id: 'm2', name: '' }, { id: 'm3', name: 'Asha' }];
+  const leads = ['m1', 'm2', 'm3'].map((m) => ({ status: 'completed', mechanic_id: m, paid_amount: 118, invoice_override: null }));
+  assert.doesNotThrow(() => payoutReport(leads, mechs, 'collected'));
+});
