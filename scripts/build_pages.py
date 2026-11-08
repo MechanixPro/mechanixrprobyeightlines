@@ -1314,7 +1314,7 @@ HUB_CARDS = [
 ]
 HUB_STEPS = [
     ('at-your-door', 'A Mechanix Pro mechanic servicing a motorcycle in an apartment car park', 'Tell us your bike and book', 'Pay the small confirmation fee, {{confirmrange}} by engine size. It is adjusted in your final bill.'),
-    ('bike-closeup', 'A close view of a motorcycle being checked by a mechanic', 'The mechanic inspects and quotes', 'You give the one-time code at the door. The mechanic inspects and sends an itemised quote. Work starts only after you say yes.'),
+    ('booking-chat', 'A customer holding her phone talks with a Mechanix Pro mechanic holding a clipboard in an apartment parking area', 'The mechanic inspects and quotes', 'You give the one-time code at the door. The mechanic inspects and sends an itemised quote. Work starts only after you say yes.'),
     ('garage-handshake', 'A customer and a Mechanix Pro mechanic shaking hands after a job', 'Pay after the work', 'Pay online by QR or link, then get your photos and your bill.'),
 ]
 HUB_ROWS = [
