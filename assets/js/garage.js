@@ -309,7 +309,7 @@
           return win.fetch(u.url, { method: 'PUT', headers: { 'x-upsert': 'false' }, body: fd }).then(function (x) { if (!x.ok) throw new Error('A photo did not upload. Check your internet and try again.'); return u.path; }); }));
       });
     }
-    function photoPicker(paint) {
+    function photoPicker(paint, required) {
       var wrap = el('div', { class: 'g-pick' }), prev = el('div', { class: 'g-photos' }), msg = el('div', { 'aria-live': 'polite' });
       var onPick = function (input) { return function () {
         var files = [].slice.call(input.files || []); input.value = ''; clear(msg);
@@ -320,10 +320,10 @@
       var camIn = el('input', { type: 'file', accept: 'image/*', capture: 'environment', id: 'gphotoCam', class: 'g-file' });
       var galIn = el('input', { type: 'file', accept: 'image/*', multiple: true, id: 'gphotos', class: 'g-file' });
       camIn.onchange = onPick(camIn); galIn.onchange = onPick(galIn);
-      function drawPrev() { clear(prev); S.photos.forEach(function (p, i) { prev.appendChild(el('span', { class: 'g-ph' }, [el('img', { src: p.preview, alt: 'Photo ' + (i + 1) }), el('button', { type: 'button', class: 'g-x', 'aria-label': 'Remove photo ' + (i + 1), onclick: function () { S.photos.splice(i, 1); drawPrev(); }, text: '×' })])); }); }
+      function drawPrev() { if (paint) paint(); clear(prev); S.photos.forEach(function (p, i) { prev.appendChild(el('span', { class: 'g-ph' }, [el('img', { src: p.preview, alt: 'Photo ' + (i + 1) }), el('button', { type: 'button', class: 'g-x', 'aria-label': 'Remove photo ' + (i + 1), onclick: function () { S.photos.splice(i, 1); drawPrev(); }, text: '×' })])); }); }
       drawPrev();
       wrap.appendChild(el('div', { class: 'g-row g-photobtns' }, [el('label', { class: 'g-btn g-btn-primary', for: 'gphotoCam', id: 'gTakePhoto', text: 'Take photo' }), el('label', { class: 'g-btn g-btn-ghost', for: 'gphotos', id: 'gGallery', text: 'Choose from gallery' })]));
-      wrap.appendChild(camIn); wrap.appendChild(galIn); wrap.appendChild(el('p', { class: 'g-hint', text: 'Photos are optional. Up to ' + MAX_PHOTOS + '.' })); wrap.appendChild(prev); wrap.appendChild(msg); return wrap;
+      wrap.appendChild(camIn); wrap.appendChild(galIn); wrap.appendChild(el('p', { class: 'g-hint', text: required ? 'Take at least one photo. Up to ' + MAX_PHOTOS + '.' : 'Photos are optional. Up to ' + MAX_PHOTOS + '.' })); wrap.appendChild(prev); wrap.appendChild(msg); return wrap;
     }
     /* J3: one big button per step. Each button maps to an event the database already accepts (docs/j3-notes.md). */
     function stepCard(j, step) {
@@ -344,8 +344,9 @@
         kids.push(el('button', { class: 'g-btn g-btn-ghost g-wide', type: 'button', id: 'gCantTake', text: 'Can’t take it', onclick: function () { clear(msg); msg.appendChild(notice('info', 'Tell the team now so they can send this job to another garage.')); msg.appendChild(teamButtons()); } }));
       } else if (step === 'here') {
         hint = 'Customer is here. Take a photo of the vehicle.';
-        kids.push(photoPicker());
-        var btn = big('gStepHere', 'Customer is here', function (b) {
+        var btn;
+        kids.push(photoPicker(function () { if (btn) btn.disabled = !S.photos.length; }, true));
+        btn = big('gStepHere', 'Customer is here', function (b) {
           b.disabled = true; var old = b.textContent; b.textContent = 'Saving'; clear(msg);
           uploadPhotos(j.id, S.photos.slice()).then(function (paths) { S.herePaths = S.herePaths || {}; S.herePaths[j.id] = paths; S.photos = []; render(); }).catch(function (e) { b.disabled = false; b.textContent = old; msg.appendChild(notice('err', e && e.message || ERR.gen)); });
         }, !S.photos.length);
@@ -371,8 +372,9 @@
         kids.push(big('gStepStart', 'Start work', function (b) { send(b, 'work_started', [], photoDone()); }));
       } else if (step === 'ready') {
         hint = 'Work done. Take a photo, then mark ready.';
-        kids.push(photoPicker());
-        kids.push(big('gStepReady', 'Ready for return', function (b) { send(b, 'ready', S.photos.slice()); }, !S.photos.length));
+        var rb;
+        kids.push(photoPicker(function () { if (rb) rb.disabled = !S.photos.length; }, true));
+        rb = big('gStepReady', 'Ready for return', function (b) { send(b, 'ready', S.photos.slice()); }, !S.photos.length); kids.push(rb);
       } else if (step === 'handed') {
         hint = 'Marked ready. The Mechanix Pro team hands the vehicle back and closes the job.';
         kids.push(big('gStepHanded', 'Waiting for handover', function () {}, true));
