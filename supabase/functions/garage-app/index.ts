@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
   if (['payment_request', 'payment_cash', 'inspect_first_set'].includes(action)) {
     const { data: a } = await mine(jobId).maybeSingle();
     if (!a || !['received', 'in_work', 'ready', 'returned'].includes(a.status)) return json(req, { error: 'Payment opens once the vehicle is with you.' }, 409);
-    const { data: lead } = await db.from('leads').select('id,ref,booking_id,name,phone,bike_id,service_id,addons,coupon_discount,extra_discount,extra_discount_note,paid_amount,confirm_fee,confirm_paid_at,inspect_first,final_link_id,final_link_url,final_link_amount,final_paid_at,final_paid_method,final_paid_amount,deleted_at').eq('id', a.lead_id).maybeSingle();
+    const { data: lead } = await db.from('leads').select('id,ref,booking_id,name,bike_id,service_id,addons,coupon_discount,extra_discount,extra_discount_note,paid_amount,confirm_fee,confirm_paid_at,inspect_first,final_link_id,final_link_url,final_link_amount,final_paid_at,final_paid_method,final_paid_amount,deleted_at').eq('id', a.lead_id).maybeSingle();
     if (!lead || lead.deleted_at) return json(req, { error: 'This job is not available.' }, 404);
     const { data: m } = await db.from('mechanics').select('id').eq('garage_id', garageId).limit(1).maybeSingle();
     const build = async () => {

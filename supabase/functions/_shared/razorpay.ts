@@ -13,7 +13,7 @@ export async function createPaymentLink(opts: { amount: number; ref: string; lea
       amount: Math.round(opts.amount * 100), currency: 'INR', accept_partial: false,
       description: opts.description.slice(0, 2048),
       reference_id: `${opts.ref}-${Date.now().toString(36)}`,
-      customer: { name: opts.name, contact: '+91' + opts.phone },
+      customer: /^[6-9]\d{9}$/.test(opts.phone) ? { name: opts.name, contact: '+91' + opts.phone } : { name: opts.name },
       notify: { sms: false, email: false }, reminder_enable: false,
       notes: { lead_id: opts.leadId, ref: opts.ref, ...(opts.notes ?? {}) },
       expire_by: Math.floor(Date.now() / 1000) + 3 * 24 * 3600,
