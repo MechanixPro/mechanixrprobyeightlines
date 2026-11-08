@@ -273,7 +273,7 @@ BIKE_ART_PAGES = ('two-wheeler-service-at-home-bangalore', 'scooty-repair-at-hom
 STAGE_PICS = {
     'bike': ('hero-bike', 'A Mechanix Pro garage with the sign on the wall, a motorcycle on a stand and a smiling mechanic holding a spanner'),
     'car': ('hero-car', 'A Mechanix Pro garage with a car on the lift, its bonnet open, and a mechanic checking it on a tablet'),
-    'ev': ('ev-care', 'A mechanic plugging a diagnostic cable into an electric scooter on a workshop lift'),
+    'ev': ('ev-care', 'A Mechanix Pro mechanic checks an electric scooter with a diagnostic device while its rider watches'),
     'monsoon': ('monsoon-check', 'A mechanic in a rain jacket kneeling beside a motorcycle on a rainy Bengaluru street at night'),
     'parts': ('parts-counter', 'A parts counter with shelves of oil and filters, where a staff member in a navy uniform hands over a part'),
     'garage': ('garage-front', 'A Mechanix Pro garage front with the signboard, parked bikes and scooters, and a mechanic at the entrance'),
@@ -1286,7 +1286,7 @@ def car_page():
   <div class="row" style="margin-top:22px"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a car service in Bangalore.&#10;Car make and model: &#10;Fuel (petrol, diesel, EV): &#10;What it needs: &#10;Area: ">Get a car quote on WhatsApp</a><a class="btn btn-ghost-light" href="/partners/axlio/">About our partner Axlio</a></div></div></section>
 <section class="band"><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>How car pricing works.</h2></div><p>Car prices depend on your car and what it needs, so we do not print one number that could be wrong for you. Here is exactly what happens:</p><ol class="soon-steps steps-2"><li class="soon-step"><span class="soon-n">1</span><span>Message us your car make, model, fuel type and area.</span></li><li class="soon-step"><span class="soon-n">2</span><span>You pay a confirmation fee of &#8377;{CONFIRM_TIERS['car']} to hold your slot. It is adjusted in your final bill.</span></li><li class="soon-step"><span class="soon-n">3</span><span>We check the car and send a written, itemised quote before any work.</span></li><li class="soon-step"><span class="soon-n">4</span><span>Work starts only after you say yes. You pay online and get a bill.</span></li></ol></div></section>
 <section><div class="wrap"><div class="sec-head"><h2>What we can help with.</h2></div><ul class="job-grid">{ti}</ul></div></section>
-<section><div class="wrap">{body_pic('car-closeup', 'A mechanic wearing gloves checks a car on a tablet with the bonnet open')}</div></section>
+<section><div class="wrap">{body_pic('car-closeup', 'A Mechanix Pro mechanic checks a car with the bonnet open on a tablet while the owner watches')}</div></section>
 <section class="band"><div class="wrap"><div class="sec-head"><h2>How it works.</h2></div><ol class="soon-steps steps-2">{st}</ol></div></section>
 <section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Questions we get asked.</h2></div>{fq}</div></section>
 <section><div class="wrap"><div class="final"><h2>Car or bike, we start with a quote.</h2><p>Nothing starts until you say yes.</p><div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need a car service in Bangalore.&#10;Car make and model: &#10;Area: ">Get a car quote</a><a class="btn btn-ghost" href="/book/">Book a bike service</a></div></div></div></section>'''
@@ -1314,8 +1314,8 @@ HUB_CARDS = [
 ]
 HUB_STEPS = [
     ('at-your-door', 'A Mechanix Pro mechanic servicing a motorcycle in an apartment car park', 'Tell us your bike and book', 'Pay the small confirmation fee, {{confirmrange}} by engine size. It is adjusted in your final bill.'),
-    ('booking-chat', 'A customer holding her phone talks with a Mechanix Pro mechanic holding a clipboard in an apartment parking area', 'The mechanic inspects and quotes', 'You give the one-time code at the door. The mechanic inspects and sends an itemised quote. Work starts only after you say yes.'),
-    ('garage-handshake', 'A customer and a Mechanix Pro mechanic shaking hands after a job', 'Pay after the work', 'Pay online by QR or link, then get your photos and your bill.'),
+    ('quote-approval', 'A customer points at an itemised quote on the mechanic\'s tablet and smiles', 'The mechanic inspects and quotes', 'You give the one-time code at the door. The mechanic inspects and sends an itemised quote. Work starts only after you say yes.'),
+    ('delivery-photo', 'A mechanic takes a photo of the finished motorcycle with the customer giving a thumbs up', 'Pay after the work', 'Pay online by QR or link, then get your photos and your bill.'),
 ]
 HUB_ROWS = [
     ('Partners checked', 'Documents checked and garage visited before going live', 'Usually not checked'),
