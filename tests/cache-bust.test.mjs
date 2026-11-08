@@ -30,3 +30,20 @@ test('pages in sub folders and files that are missing are handled, and running t
 test('the site build runs it on the finished site folder', () => {
   assert.match(read('scripts/build_site.sh'), /cachebust\.py "\$out"/);
 });
+
+test('pictures and videos get a version too, absolute URLs do not', async () => {
+  const { mkdtempSync, mkdirSync, writeFileSync, readFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { execFileSync } = await import('node:child_process');
+  const d = mkdtempSync(join(tmpdir(), 'cb-'));
+  mkdirSync(join(d, 'assets/img/hero'), { recursive: true }); mkdirSync(join(d, 'assets/video'), { recursive: true });
+  writeFileSync(join(d, 'assets/img/hero/a-700.webp'), 'x'); writeFileSync(join(d, 'assets/img/hero/a-1200.webp'), 'yy'); writeFileSync(join(d, 'assets/video/v.mp4'), 'zzz');
+  writeFileSync(join(d, 'index.html'), '<img src="/assets/img/hero/a-700.webp" srcset="/assets/img/hero/a-700.webp 700w, /assets/img/hero/a-1200.webp 1200w"><video poster="/assets/img/hero/a-700.webp"><source src="/assets/video/v.mp4"></video><meta property="og:image" content="https://example.com/assets/img/hero/a-700.webp">');
+  execFileSync('python3', ['scripts/cachebust.py', d]);
+  const h = readFileSync(join(d, 'index.html'), 'utf8');
+  assert.match(h, /src="\/assets\/img\/hero\/a-700\.webp\?v=[0-9a-f]{8}"/);
+  assert.match(h, /a-1200\.webp\?v=[0-9a-f]{8} 1200w/);
+  assert.match(h, /src="\/assets\/video\/v\.mp4\?v=[0-9a-f]{8}"/);
+  assert.match(h, /content="https:\/\/example\.com\/assets\/img\/hero\/a-700\.webp"/);
+});
