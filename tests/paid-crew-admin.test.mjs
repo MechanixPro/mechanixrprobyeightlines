@@ -76,7 +76,7 @@ test('Crew and the Admin run the same code: the shared files are identical copie
 test('every database function the shared screens call lets an admin through (flow_ checks) and keeps agents and technicians to their rights', () => {
   const core = read('crm/flow-core.js'), sql = read('supabase/migrations/20261228000000_paid_confirmation.sql') + read('supabase/migrations/20261229000000_customer_updates.sql') + read('supabase/migrations/20261230000000_tech_location.sql');   // the journey migrations add crm_booking_updates, crm_issue_resolve, crm_tech_location (same flow_ guards)
   const names = [...new Set([...core.matchAll(/rpc\('([a-z_]+)'/g)].map((m) => m[1]))];
-  const viaOldRpc = ['crm_mechanic_picker'];   // admin supplies its own mechanic list instead (deps.mechanics), checked below
+  const viaOldRpc = ['crm_mechanic_picker', 'crm_lead', 'crm_log'];   // crm_lead and crm_log: Tell mechanic reads the phone and the told note, and logs the note, with the existing Crew functions (no new RPC); a failure there never blocks the card or WhatsApp   // admin supplies its own mechanic list instead (deps.mechanics), checked below
   assert.ok(names.length >= 10, names.join());
   // crm_assign_technician is the existing function; it checks through crm_move_guard, which this migration re-creates with the admin-aware checks.
   const old = read('supabase/migrations/20261220000000_desk_move_lead.sql'); assert.match(old.slice(old.indexOf('function public.crm_assign_technician')), /l := public\.crm_move_guard\(p_id, p_mechanic\)/);

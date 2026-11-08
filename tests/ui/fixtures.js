@@ -22,10 +22,11 @@ const queue = [
 const callRows = [lead(11, { crm_owner: null, owner_name: null, created_at: ago(5) }), lead(12, { created_at: ago(70) }), lead(13, { crm_owner: null, owner_name: null, created_at: ago(300) }), lead(14, { created_at: ago(2000) })];
 const missedCalls = [lead(21, { name: '[Caller 21]', source: 'phone', page: 'ivr', notes: 'Missed call to the IVR number.', service_name: null, bike: null, area: null, created_at: ago(8) }), lead(22, { name: '[Caller 22]', source: 'phone', page: 'ivr', notes: 'Missed call to the IVR number.', service_name: null, bike: null, area: null, created_at: ago(75) }), lead(23, { name: '[Caller 23]', source: 'phone', page: 'ivr', notes: 'Missed call to the IVR number.', service_name: null, bike: null, area: null, created_at: ago(190) })];
 const leadRows = queue.map((l, i) => ({ id: l.id, lead: l.name, mobile: l.phone, platform: l.utm_source, source: l.source, stage: l.status, owner_name: l.owner_name, mechanic_id: l.mechanic_id || null, mechanic_name: l.mechanic_name || null, disposition: i % 2 ? 'Interested' : null, sub_disposition: null, follow_up: l.crm_next_action_at, created_at: l.created_at, last_activity: ago(10 + i), booking_id: l.booking_id, bike: l.bike, area: l.area, is_late: l.is_late, overdue: l.overdue, crm_first_contact_at: l.crm_first_contact_at, confirm_fee: l.confirm_fee, confirm_paid_at: l.confirm_paid_at }));
+const ist = (plus) => new Date(Date.now() + plus * 86400000).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });   // today and tomorrow, so the Tell mechanic chip shows whatever day the shots run
 const dispatch = [
   { id: 'lead-5', booking_id: 'MP-2611-0005', vehicle: 'bike', confirm_fee: 49, review: false, first_name: '[Customer Name 5]', area: 'Indiranagar', pincode: '560038', preferred_date: '2026-11-06', preferred_slot: 'morning', bike: '[Vehicle 5]', service_name: 'Basic service', mechanic_id: null, mechanic_name: null, visit_stage: null },
-  { id: 'lead-6', booking_id: 'MP-2611-0006', vehicle: 'car', confirm_fee: 99, review: true, first_name: '[Customer Name 6]', area: 'HSR Layout', pincode: '560102', preferred_date: '2026-11-06', preferred_slot: 'afternoon', bike: '[Vehicle 6]', service_name: 'Brake pads', mechanic_id: 'mech-1', mechanic_name: '[Mechanic Name]', visit_stage: 'on_the_way' },
-  { id: 'lead-7', booking_id: 'MP-2611-0007', vehicle: 'bike', confirm_fee: 49, review: false, first_name: '[Customer Name 7]', area: 'Whitefield', pincode: '560066', preferred_date: '2026-11-07', preferred_slot: 'asap', bike: '[Vehicle 7]', service_name: 'Chain set', mechanic_id: 'mech-2', mechanic_name: '[Mechanic Name 2]', visit_stage: 'ready' },
+  { id: 'lead-6', booking_id: 'MP-2611-0006', vehicle: 'car', confirm_fee: 99, review: true, first_name: '[Customer Name 6]', area: 'HSR Layout', pincode: '560102', preferred_date: ist(0), preferred_slot: 'afternoon', bike: '[Vehicle 6]', service_name: 'Brake pads', mechanic_id: 'mech-1', mechanic_name: '[Mechanic Name]', visit_stage: 'on_the_way' },
+  { id: 'lead-7', booking_id: 'MP-2611-0007', vehicle: 'bike', confirm_fee: 49, review: false, first_name: '[Customer Name 7]', area: 'Whitefield', pincode: '560066', preferred_date: ist(1), preferred_slot: 'asap', bike: '[Vehicle 7]', service_name: 'Chain set', mechanic_id: 'mech-2', mechanic_name: '[Mechanic Name 2]', visit_stage: 'ready' },
 ];
 const issues = [
   { id: 'iss-1', lead_id: 'lead-6', booking_id: 'MP-2611-0006', status: 'open', category: 'late', first_name: '[Customer Name 6]', area: 'HSR Layout', body: '[Customer message about the delay]', created_at: ago(45) },
@@ -40,6 +41,12 @@ const convRows = queue.concat(callRows).map((l) => ({ ...l, platform: l.utm_sour
 
 const fullLead = (l) => ({ lead: { ...l, address: null, notes: '[Internal note about the customer]', est_total: 1499, mechanic_phone: null, coupon_code: null, vehicle_source: null, crm_won_at: null }, activities: [{ kind: 'call', actor: '[Staff Name]', created_at: ago(30), body: '[Call note]' }, { kind: 'note', actor: '[Staff Name]', created_at: ago(300), body: '[Earlier note]' }] });
 
+// Dispatch shots: lead-6 has a mechanic with a phone and no Mechanic told note (red chip); lead-7 was told at 14:05 IST (green chip).
+const tellLead = (id) => {
+  if (id !== 'lead-6' && id !== 'lead-7') return null;
+  const d = dispatch.find((x) => x.id === id), told = id === 'lead-7';
+  return { lead: { id, mechanic_id: d.mechanic_id, mechanic_name: d.mechanic_name, mechanic_phone: '9845012345' }, activities: told ? [{ kind: 'note', actor: '[Staff Name]', created_at: ist(0) + 'T14:05:00+05:30', body: 'Mechanic told on WhatsApp · [Mechanic' }] : [] };
+};
 const crewHandlers = {
   crm_me: () => crewMe,
   crm_targets_progress: () => ({ now_ist: '2027-01-12T15:00:00', can_see_all: true, people: [
@@ -77,7 +84,7 @@ const crewHandlers = {
   crm_tech_board: () => ({ techs: [{ name: '[Mechanic Name]', area: 'HSR Layout', jobs: [{ id: 'lead-6', booking_id: 'MP-2611-0006', slot: 'afternoon', area: 'HSR Layout', status: 'paid' }] }, { name: '[Mechanic Name 2]', area: 'Whitefield', jobs: [] }], unassigned: [{ id: 'lead-5', booking_id: 'MP-2611-0005', slot: 'morning', area: 'Indiranagar', status: 'paid' }] }),
   crm_mechanic_picker: () => [{ id: 'mech-1', name: '[Mechanic Name]', area: 'HSR Layout' }, { id: 'mech-2', name: '[Mechanic Name 2]', area: 'Whitefield' }],
   crm_paid_badges: (a) => Object.fromEntries((a.p_ids || []).filter((id) => id === 'lead-5').map((id) => [id, { fee: 49, paid: true, stage: null, quote: null, review: false }])),
-  crm_lead: (a) => fullLead(queue.concat(extraLeads).find((l) => l.id === a.p_id) || queue[4]),
+  crm_lead: (a) => tellLead(a.p_id) || fullLead(queue.concat(extraLeads).find((l) => l.id === a.p_id) || queue[4]),
   crm_lead_rating: () => null, crm_lead_money: () => null, crm_handovers: () => null, crm_wa_links: () => null,
   crm_chat: () => ({ messages: [{ direction: 'in', sender: 'customer', body: '[Customer message]', created_at: ago(20) }, { direction: 'out', sender: 'agent', body: '[Reply from the desk]', created_at: ago(10) }], last_customer_msg_at: ago(20), window_open: true, opted_out: false }),
   crm_confirmation: (a) => (a.p_lead === 'lead-5' || a.p_lead === 'lead-4' ? { fee: a.p_lead === 'lead-5' ? 49 : 99, paid: a.p_lead === 'lead-5', paid_at: ago(100), stage: a.p_lead === 'lead-5' ? 'started' : null, door: a.p_lead === 'lead-5' ? 'open' : 'none', review: false, link_sent_at: ago(50), nudge_minutes: 15, quote: null } : null),
@@ -128,7 +135,7 @@ adminTables.dense = { leads: adminLeads.concat(bulkLeads), customers: adminTable
 const adminRpc = {
   crm_import_leads_csv: (a) => ({ added: ((a && a.p_rows) || []).length, skipped: 0 }),
   crm_duplicate_customers: crewHandlers.crm_duplicate_customers, crm_customer_summary: crewHandlers.crm_customer_summary,
-  crm_dispatch_list: crewHandlers.crm_dispatch_list, crm_tech_seen: crewHandlers.crm_tech_seen, crm_open_issues: crewHandlers.crm_open_issues, crm_mechanic_picker: crewHandlers.crm_mechanic_picker,
+  crm_lead: crewHandlers.crm_lead, crm_dispatch_list: crewHandlers.crm_dispatch_list, crm_tech_seen: crewHandlers.crm_tech_seen, crm_open_issues: crewHandlers.crm_open_issues, crm_mechanic_picker: crewHandlers.crm_mechanic_picker,
   crm_targets_progress: crewHandlers.crm_targets_progress, crm_targets_set: crewHandlers.crm_targets_set, crm_paid_badges: crewHandlers.crm_paid_badges, crm_confirmation: crewHandlers.crm_confirmation, crm_notifications: crewHandlers.crm_notifications, crm_quote_get: crewHandlers.crm_quote_get, crm_booking_updates: crewHandlers.crm_booking_updates, crm_tech_location: crewHandlers.crm_tech_location,
 };
 
