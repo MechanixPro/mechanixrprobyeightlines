@@ -1,7 +1,7 @@
 // admin/nav.js — how the admin pages are grouped (no DOM, no Supabase), so it can be tested in Node.
 // Five sections instead of fifteen tabs: the daily work comes first and the rarely used pages sit under More.
 export const GROUPS = [
-  { id: 'today', label: 'Today', tabs: [['dash', 'Dashboard']] },
+  { id: 'today', label: 'Today', tabs: [['dash', 'Dashboard'], ['watch', 'Service Watch']] },
   { id: 'bookings', label: 'Bookings', tabs: [['board', 'Today board'], ['dispatch', 'Dispatch'], ['leads', 'Bookings'], ['customers', 'Customers'], ['custbook', 'Customer bookings'], ['issues', 'Issues']] },
   { id: 'money', label: 'Money', tabs: [['sales', 'Sales and collections'], ['mechledger', 'Mechanic ledgers'], ['invoices', 'Invoices'], ['conversion', 'Conversion'], ['reports', 'Reports'], ['coupons', 'Coupons'], ['prices', 'Prices']] },
   { id: 'team', label: 'Team and areas', tabs: [['mechanics', 'Mechanics'], ['garageapp', 'Garage app'], ['kyc', 'Partner KYC'], ['pins', 'PIN codes']] },

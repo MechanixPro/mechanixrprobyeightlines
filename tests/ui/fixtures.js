@@ -67,6 +67,13 @@ const crewHandlers = {
   crm_conversion_rows: () => convRows,
   crm_quote_counts: () => ({ quotes_sent: 8, approved: 5, declined: 1, work_started: 4, delivered: 3 }),
   crm_dispatch_list: () => dispatch,
+  crm_service_watch: () => [
+    { rule: 'not_accepted', severity: 'red', lead_id: 'lead-6', ref: 'L-A1B2C3', name: '[Customer Name 1]', phone: '9000000011', area: 'HSR Layout', vehicle_service: 'bike Basic service', slot: '2027-01-12 morning', minutes: 42, detail: 'Sent to the garage, not opened yet', mechanic_name: null, garage_name: '[Garage Name 1]', garage_id: 'g1', technician_phone: null, garage_phone: '9000000021', amount: 1180, paid: false, payment_requested: false },
+    { rule: 'no_eta', severity: 'red', lead_id: 'lead-5', ref: 'L-D4E5F6', name: '[Customer Name 2]', phone: '9000000012', area: 'Indiranagar', vehicle_service: 'car Brake repair', slot: '2027-01-11 asap', minutes: 300, detail: 'Vehicle at the garage, no estimated completion date', mechanic_name: '[Mechanic 1]', garage_name: '[Garage Name 2]', technician_phone: '9000000031', garage_phone: '9000000022', amount: 4200, paid: false, payment_requested: false },
+    { rule: 'late_for_slot', severity: 'amber', lead_id: 'lead-4', ref: 'L-G7H8I9', name: '[Customer Name 3]', phone: '9000000013', area: 'Koramangala', vehicle_service: 'bike General check', slot: '2027-01-12 morning', minutes: 35, detail: 'Slot started', mechanic_name: '[Mechanic 2]', garage_name: null, technician_phone: '9000000032', garage_phone: null, amount: null, paid: false, payment_requested: false },
+    { rule: 'quote_waiting', severity: 'amber', lead_id: 'lead-3', ref: 'L-J1K2L3', name: '[Customer Name 4]', phone: '9000000014', area: 'Whitefield', vehicle_service: 'car AC service', slot: '2027-01-12 afternoon', minutes: 190, detail: 'Quote sent', mechanic_name: '[Mechanic 1]', garage_name: null, technician_phone: '9000000031', garage_phone: null, amount: 2750, paid: false, payment_requested: false },
+    { rule: 'ready_not_requested', severity: 'amber', lead_id: 'lead-2', ref: 'L-M4N5O6', name: '[Customer Name 5]', phone: '9000000015', area: 'Jayanagar', vehicle_service: 'bike Chain set', slot: '2027-01-11 evening', minutes: 75, detail: 'Ready', mechanic_name: null, garage_name: '[Garage Name 1]', technician_phone: null, garage_phone: '9000000021', amount: 1900, paid: false, payment_requested: false },
+  ],
   crm_tech_seen: () => ({ 'lead-6': { seen: true, age_s: 140, lat: 12.9, lng: 77.6 } }),
   crm_duplicate_customers: () => [
     { group_key: '9000000011', customer_id: 'cu-d1', name: '[Customer Name 1]', phone: '9000000011', email: null, bookings: 3, paid_total: 2450, created_at: '2026-01-10T05:00:00Z', has_booking_id: true },
@@ -136,7 +143,7 @@ adminTables.dense = { leads: adminLeads.concat(bulkLeads), customers: adminTable
 const adminRpc = {
   crm_import_leads_csv: (a) => ({ added: ((a && a.p_rows) || []).length, skipped: 0 }),
   crm_duplicate_customers: crewHandlers.crm_duplicate_customers, crm_customer_summary: crewHandlers.crm_customer_summary,
-  crm_lead: crewHandlers.crm_lead, crm_dispatch_list: crewHandlers.crm_dispatch_list, crm_tech_seen: crewHandlers.crm_tech_seen, crm_open_issues: crewHandlers.crm_open_issues, crm_mechanic_picker: crewHandlers.crm_mechanic_picker,
+  crm_lead: crewHandlers.crm_lead, crm_dispatch_list: crewHandlers.crm_dispatch_list, crm_service_watch: crewHandlers.crm_service_watch, crm_tech_seen: crewHandlers.crm_tech_seen, crm_open_issues: crewHandlers.crm_open_issues, crm_mechanic_picker: crewHandlers.crm_mechanic_picker,
   crm_targets_progress: crewHandlers.crm_targets_progress, crm_targets_set: crewHandlers.crm_targets_set, crm_paid_badges: crewHandlers.crm_paid_badges, crm_confirmation: crewHandlers.crm_confirmation, crm_notifications: crewHandlers.crm_notifications, crm_quote_get: crewHandlers.crm_quote_get, crm_booking_updates: crewHandlers.crm_booking_updates, crm_tech_location: crewHandlers.crm_tech_location,
 };
 

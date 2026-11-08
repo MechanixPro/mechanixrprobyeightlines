@@ -18,3 +18,4 @@ import-leads.js
 tell-mechanic.js
 garage-assign.js
 kyc-rules.js
+watch.js
