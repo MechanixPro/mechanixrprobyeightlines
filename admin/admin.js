@@ -1593,6 +1593,16 @@ const ACT = {
     if (error) return toast(isOwner() ? error.message : 'Only the owner can change prices');
     await audit('price_updated', { id, ...upd }); toast('Price live on the website'); loadServices();
   },
+  async saveAutoAssign() {
+    const on = $('#aa-on').checked, mx = parseInt($('#aa-max').value, 10), km = parseFloat($('#aa-km').value);
+    if (!(mx >= 1 && mx <= 50)) return toast('Open jobs per garage must be 1 to 50');
+    if (!(km >= 1 && km <= 200)) return toast('Radius must be 1 to 200 km');
+    const { data, error } = await sb.from('settings').update({ value: { enabled: on, max_open_jobs: mx, radius_km: km } }).eq('key', 'auto_assign_garage').select('key');
+    if (error) return toast(isOwner() ? error.message : 'Only the owner can change settings');
+    if (!data || !data.length) return toast(isOwner() ? 'Setting not found. Apply the latest database update first.' : 'Only the owner can change settings');
+    await audit('settings_updated', { keys: ['auto_assign_garage'], enabled: on }); await loadSettings(); toast(on ? 'Automatic assignment is on' : 'Automatic assignment is off');
+    if (typeof render === 'function') render();
+  },
   async saveSettings() {
     const pairs = { doorstep_pct: Math.min(100, Math.max(0, parseInt($('#st-door').value, 10) || 30)), garage_pct: Math.min(100, Math.max(0, parseInt($('#st-garage').value, 10) || 30)), ai_enabled: $('#st-ai').checked, quiet_hours: { start: parseInt($('#st-q1').value, 10), end: parseInt($('#st-q2').value, 10) }, business_info: { ...(S.settings.business_info || {}), hours: $('#st-hours').value.trim(), areas: $('#st-areas').value.trim(), warranty: $('#st-war').value.trim() } };
         for (const [key, value] of Object.entries(pairs)) { const { error } = await sb.from('settings').update({ value }).eq('key', key); if (error) return toast(isOwner() ? error.message : 'Only the owner can change settings'); }
@@ -1612,11 +1622,17 @@ function pricesBase() {
   ${S.services.filter((x) => x.kind === 'service').map((x) => `<details class="card" style="margin-bottom:10px"><summary style="font-weight:600">${esc(x.name)} <span class="muted" style="font-weight:400">· ${(x.includes || []).length} items</span></summary><label class="label" for="inc-${esc(x.id)}">One item per line</label><textarea id="inc-${esc(x.id)}" rows="6"${isOwner() ? '' : ' disabled'}>${esc((x.includes || []).join('\n'))}</textarea>${isOwner() ? `<button class="btn btn-ghost btn-sm" style="margin-top:10px" type="button" data-act="saveIncludes" data-id="${esc(x.id)}">Save</button>` : ''}</details>`).join('')}`;
 }
 function settings() {
-  const st = S.settings, bi = st.business_info || {}, q = st.quiet_hours || { start: 21, end: 9 }, dis = isOwner() ? '' : ' disabled';
+  const st = S.settings, aa = st.auto_assign_garage || {}, bi = st.business_info || {}, q = st.quiet_hours || { start: 21, end: 9 }, dis = isOwner() ? '' : ' disabled';
   return `<h1>Settings</h1><div class="split2"><div class="card"><h3>WhatsApp automation</h3>
   <label class="check"><input type="checkbox" id="st-ai"${st.ai_enabled !== false ? ' checked' : ''}${dis}><span><b>AI replies and reminders on</b><br><span class="tiny muted">Turn off to answer every chat yourself.</span></span></label>
   <p class="tiny muted" style="margin:10px 0 0">The checkup and quote fee, the new customer slot fee and the above-180cc surcharge are edited in the <b>Prices</b> tab, so every page shows the same number.</p>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="label" for="st-q1">No messages after (hour)</label><input id="st-q1" type="number" min="0" max="23" value="${q.start}"${dis}></div><div><label class="label" for="st-q2">Resume at (hour)</label><input id="st-q2" type="number" min="0" max="23" value="${q.end}"${dis}></div></div></div>
+  <div class="card" id="auto-assign"><h3>Automatic assignment</h3>
+  <label class="check"><input type="checkbox" id="aa-on"${aa.enabled === true ? ' checked' : ''}${dis}><span><b>Auto-assign paid bookings to a garage</b><br><span class="tiny muted">Crew can still assign by hand to a garage or a mechanic at any time.</span></span></label>
+  <label class="label" for="aa-max">Most open jobs per garage</label><input id="aa-max" type="number" inputmode="numeric" min="1" max="50" value="${esc(aa.max_open_jobs ?? 3)}"${dis}>
+  <label class="label" for="aa-km">Radius from the garage (km)</label><input id="aa-km" type="number" inputmode="decimal" min="1" max="200" value="${esc(aa.radius_km ?? 15)}"${dis}>
+  <p class="small" id="aa-state" role="status" style="margin:10px 0 0">Now: <b>${aa.enabled === true ? 'On' : 'Off'}</b>, up to ${esc(aa.max_open_jobs ?? 3)} open jobs per garage, within ${esc(aa.radius_km ?? 15)} km.</p>
+  ${isOwner() ? '<button class="btn btn-primary" style="margin-top:10px" type="button" data-act="saveAutoAssign">Save automatic assignment</button>' : '<p class="tiny muted">Only the owner can change this.</p>'}</div>
   <div class="card"><h3>Mechanic payouts</h3><p class="small muted" style="margin:0 0 8px">Each mechanic's usual percentage is set on their own page. These are the standard rates.</p>
   <label class="label" for="st-door">Mechanic's share on doorstep jobs, when a mechanic has no rate of their own (%)</label><input id="st-door" inputmode="numeric" maxlength="3" value="${esc(st.doorstep_pct ?? 30)}"${dis}>
   <label class="label" for="st-garage">Share on in-garage jobs (%)</label><input id="st-garage" inputmode="numeric" maxlength="3" value="${esc(st.garage_pct ?? 30)}"${dis}>

@@ -19,6 +19,7 @@ import { issueCard, cardUrl } from '../_shared/warranty.ts';
 import { idParam, leadLabel } from '../_shared/booking-id.ts';
 import { JOB_ALERT_TEMPLATE, alertKind, alreadyAlerted, mayAlertNow, mechanicPhone, alertParams, mintTechLink } from '../_shared/job-alert.ts';
 import { sweepConfirmations } from '../_shared/after-payment.ts';
+import { autoAssignGarages } from '../_shared/auto-garage-run.ts';
 
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
 const MIN = 60_000;
@@ -223,6 +224,10 @@ Deno.serve(async (req) => {
       result.warranty = { made, sent: sentN }; if (made || sentN) await log('warranty', true, { made, sent: sentN });
     }
   } catch (e) { result.warranty = { error: String((e as Error).message) }; await log('warranty', false, { error: String((e as Error).message) }); }
+
+  /* 6b. auto garage: only when Admin switched it on; paid bookings nobody has picked up go to the best partner garage (Crew can still assign by hand) */
+  try { const r = await autoAssignGarages(db); result.auto_garage = r; if (r.assigned) await log('auto_garage', true, r); }
+  catch (e) { result.auto_garage = { error: String((e as Error).message) }; await log('auto_garage', false, { error: String((e as Error).message) }); }
 
   /* 7. paid confirmation: retry failed customer messages, tell the team about unpaid links and paid bookings with no mechanic. Each item once (booking_notifications). */
   try { const r = await sweepConfirmations(db); result.confirmations = r; if (r.retried || r.link_nudges || r.unassigned) await log('confirmations', true, r); }

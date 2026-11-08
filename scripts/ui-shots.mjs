@@ -104,6 +104,7 @@ const SHOTS = [
   ...['inbox', 'unassigned', 'web', 'rsa', 'tickets', 'visits', 'garages', 'garageapp', 'mechanics', 'knowledge', 'team'].map((v) => crew('tab-' + v, v, { wait: '#view > *' })),
   ...['dash', 'board', 'dispatch', 'leads', 'customers', 'custbook', 'issues', 'sales', 'mechledger', 'invoices', 'conversion', 'reports', 'coupons', 'prices', 'mechanics', 'garageapp', 'pins', 'offers', 'waitlist', 'homeimgs', 'settings', 'activity'].map((t) => adm('tab-' + t, t)),
 ];
+SHOTS.push(adm('settings-auto-assign', 'settings', { wait: '#auto-assign' }));
 SHOTS.push(...['sales', 'mechledger', 'invoices', 'reports'].map((t) => adm('mt-' + t, t, { money: true })));
 SHOTS.push(adm('mt-sales-right', 'sales', { money: true, step: `(async()=>{await ${clickTab('sales')};await new Promise(r=>setTimeout(r,600));const s=document.querySelector('.mt-scroll');if(s)s.scrollLeft=99999})()` }));
 SHOTS.push(adm('mt-mlopen', 'mechledger', { money: true, step: `(async()=>{await ${clickTab('mechledger')};await new Promise(r=>setTimeout(r,500));const b=document.querySelector('[data-act="mlOpen"]');if(b)b.click()})()` }));
