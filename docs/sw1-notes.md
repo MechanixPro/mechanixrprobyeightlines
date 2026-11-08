@@ -1,0 +1,11 @@
+# SW1 Service Watch (notes)
+- Migration 20270118000000_service_watch.sql: read-only crm_service_watch(), dry-run OK (begin..rollback). Not applied.
+- Scope: supervisors, admins, Technician lead see all; agents own leads; phones for those roles; amount admin only.
+- Rules built: not_accepted (garage only), late_for_slot, code_pending, quote_not_sent, quote_waiting, no_eta, ready_not_requested, payment_pending, delivered_no_proof.
+- Gap: mechanic acceptance is not stored, so mechanic not_accepted is skipped (garage_assignments 'sent' is used).
+- Gap: time the final payment link was made is not stored; payment_pending counts from the ready time.
+- Pure ordering and labels: crm/watch.js (synced to admin), tests/watch.test.mjs.
+- UI: crm/pages/watch.js (Crew nav item with red badge), admin page on the Today group.
+- Dispatch card payment state: skipped (keys paid / payment_requested are in the RPC only).
+- Rollback: drop function public.crm_service_watch();
+- Nothing pushed or deployed.
