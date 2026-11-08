@@ -178,7 +178,20 @@ const writeResults = {
   crm_rsa_create: ok({ id: 'rsa-1' }), crm_rsa_update: ok(null), crm_ticket_create: ok({ id: 't-1', code: 'T-0001', legal: false }), crm_ticket_set: ok(null), crm_ticket_note: ok(null), crm_visit_schedule: ok(null), crm_visit_update: ok(null), crm_visit_complete: ok(null),
   crm_playbook_save: ok({ id: 'p-1' }), crm_playbook_publish: ok(null), crm_playbook_flag: ok(null), crm_fitment_save: ok(null), crm_sop_save: ok(null), crm_delete_leads: ok(null), crm_assign_many: ok(null), crm_bulk_assign: ok({ done: 3, skipped: 0 }), crm_bulk_status: ok({ done: 3, skipped: 0 }), crm_bulk_snooze: ok({ done: 3, skipped: 0 }), crm_roster_set: ok(null), crm_automation_set: ok(null),
 };
+const KYC_LIST = [
+  { kind: 'garage', id: '11111111-1111-4111-8111-111111111111', name: '[Garage Name]', phone: '[Phone]', status: 'applied', decision: 'pending', submitted: true, submitted_at: '2027-01-12T09:00:00Z', docs: 11 },
+  { kind: 'mechanic', id: '22222222-2222-4222-8222-222222222222', name: '[Mechanic Name]', phone: '[Phone]', status: 'visited', decision: 'pending', submitted: false, submitted_at: null, docs: 2 },
+  { kind: 'mechanic', id: '33333333-3333-4333-8333-333333333333', name: '[Mechanic Name 2]', phone: '[Phone]', status: 'kyc_done', decision: 'approved', submitted: true, submitted_at: '2027-01-10T09:00:00Z', docs: 5 },
+  { kind: 'garage', id: '44444444-4444-4444-8444-444444444444', name: '[Garage Name 2]', phone: '[Phone]', status: 'applied', decision: 'rejected', submitted: true, submitted_at: '2027-01-09T09:00:00Z', docs: 4 },
+];
+const kycDoc = (n, t, status, why) => ({ id: 'd-' + n, doc_type: t, status, uploaded_at: '2027-01-12T09:00:00Z', reject_reason: why || null });
+const KYC_DETAIL = { kind: 'garage', id: KYC_LIST[0].id, name: '[Garage Name]', owner_name: '[Host Name]', phone: '[Phone]', status: 'applied', decision: 'pending', decision_reason: null, submitted_at: '2027-01-12T09:00:00Z',
+  docs: [kycDoc(1, 'aadhaar_front', 'accepted'), kycDoc(2, 'aadhaar_back', 'accepted'), kycDoc(3, 'pan', 'rejected', 'The photo is blurred. Upload it again.'), kycDoc(4, 'garage_photo', 'pending'), kycDoc(5, 'garage_photo', 'accepted'), kycDoc(6, 'garage_photo', 'accepted'), kycDoc(7, 'mechanic_photo', 'pending'), kycDoc(8, 'signed_agreement', 'pending')] };
+adminRpc.kyc_review_list = () => KYC_LIST;
+adminRpc.kyc_review_detail = (a) => ({ ...KYC_DETAIL, kind: a.p_kind || 'garage', id: a.p_id || KYC_DETAIL.id });
 const functionReply = (fn, body) => {
+  if (fn === 'kyc-admin' && body && body.action === 'link') return { ok: true, url: 'https://example.invalid/onboard/?t=PLACEHOLDER', message: 'Hi', wa: 'https://wa.me/910000000000?text=Hi' };
+  if (fn === 'kyc-admin' && body && body.action === 'view') return { ok: true, url: 'https://example.invalid/doc', expires_in: 60 };
   if (fn === 'desk-chat-sync') return { ok: false };
   if (fn === 'desk-payment-link' || fn === 'payment-link') return { ok: true, url: 'https://example.invalid/pay/abc', amount: 49, suggested: 49, whatsapp_sent: false, whatsapp_note: 'not_connected', whatsapp_text: 'Hi, pay here https://example.invalid/pay/abc', has_email: true, review: false, nudge_minutes: 15 };
   if (fn === 'booking-notify') return { ok: true, result: 'sent', version: 2, changed: true };

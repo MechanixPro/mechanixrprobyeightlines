@@ -17,3 +17,4 @@ dupes-view.js
 import-leads.js
 tell-mechanic.js
 garage-assign.js
+kyc-rules.js
