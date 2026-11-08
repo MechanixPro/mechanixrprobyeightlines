@@ -69,7 +69,7 @@ export const resendable = (rows) => (rows || []).filter((r) => ['failed', 'skipp
 /** Dispatch order: unassigned first, then day, then slot (as soon as possible first), then oldest. Mirrors crm_dispatch_list. */
 export const SLOT_RANK = { asap: 0, morning: 1, afternoon: 2, evening: 3 };
 export function dispatchOrder(rows) {
-  return [...(rows || [])].sort((a, b) => (Number(!!a.mechanic_id) - Number(!!b.mechanic_id)) || String(a.preferred_date).localeCompare(String(b.preferred_date)) || ((SLOT_RANK[a.preferred_slot] ?? 4) - (SLOT_RANK[b.preferred_slot] ?? 4)) || String(a.created_at).localeCompare(String(b.created_at)));
+  return [...(rows || [])].sort((a, b) => (Number(!!(a.mechanic_id || a.garage_id)) - Number(!!(b.mechanic_id || b.garage_id))) || String(a.preferred_date).localeCompare(String(b.preferred_date)) || ((SLOT_RANK[a.preferred_slot] ?? 4) - (SLOT_RANK[b.preferred_slot] ?? 4)) || String(a.created_at).localeCompare(String(b.created_at)));
 }
 
 /* ----- Customer journey (added details, issues, mechanic last seen) ----- */
