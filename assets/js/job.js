@@ -197,8 +197,23 @@
     else if (st === 'picked_up') h += '<p class="job-ok">Picked up for the workshop.</p>' + quotePanel(d.quote_view) + vbtn('visit_ready', 'Mark ready for return');
     else if (st === 'ready') h += d.place === 'garage' ? '<p class="job-ok">Ready. Use Return below with a new code and photos when you bring it back.</p>' : '<p class="job-ok">Ready.</p>' + vbtn('visit_deliver', 'Handed back to the customer');
     else if (st === 'returned') h += '<p class="job-ok">Delivered.</p>';
+    payState = d.pay ? { pay: d.pay, first: d.first_name } : null;
+    if (d.paid && d.pay && !/^(on_the_way|arrived|started)$/.test(st || '') && st) h += d.pay.paid ? '<p class="job-ok" id="jv-paid">Paid: ' + esc(d.pay.method === 'online' ? 'online' : d.pay.method) + '.</p>' : vbtn('pay_open', 'Collect payment', ' id="jv-pay"');
     vis.innerHTML = h + '<p class="err" id="jv-err" role="alert"></p></div>'; vis.hidden = false;
   };
+  /* Collect payment: a full-screen page over the job, opened from the Visit card once the work is going or done. */
+  var payUI = null, payOverlay = null;
+  var closePay = function () { if (payUI) payUI.stop(); payUI = null; if (payOverlay) payOverlay.remove(); payOverlay = null; loadVisit(); };
+  var openPay = function (pay, first) {
+    if (!window.MXP_PAY || payOverlay) return;
+    payOverlay = document.createElement('div'); payOverlay.className = 'cp-overlay'; payOverlay.id = 'jbPayPage';
+    var top = document.createElement('div'); top.className = 'cp-top'; var back = document.createElement('button'); back.type = 'button'; back.className = 'cp-linkbtn'; back.id = 'cpClose'; back.textContent = '\u2190 Back to the job'; back.onclick = closePay; top.appendChild(back); payOverlay.appendChild(top);
+    payUI = window.MXP_PAY.create({ doc: document, win: window, state: pay, phone: pay.phone, first: first,
+      call: function (a, b) { return call(Object.assign({ action: a, t: t }, b || {})).then(function (x) { return { ok: x.ok && x.d.ok !== false, data: x.d }; }); },
+      poll: function () { return call({ action: 'visit_state', t: t }).then(function (x) { return x.ok && x.d.pay ? Object.assign({}, x.d.pay) : null; }); } });
+    payOverlay.appendChild(payUI.el); document.body.appendChild(payOverlay);
+  };
+  var payState = null;
   var pollTimer = null;
   var loadVisit = function () {
     call({ action: 'visit_state', t: t }).then(function (x) {
@@ -210,6 +225,7 @@
   vis.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b || vbusy) return; var act = b.dataset.v, msgEl = document.getElementById('jv-msg') || document.getElementById('jv-err'), body = { action: act, t: t };
     if (act === 'refresh') { loadVisit(); return; }
+    if (act === 'pay_open') { if (payState) openPay(Object.assign({}, payState.pay), payState.first); return; }
     if (act === 'share') { if (!sharer) return; if (sharer.active()) sharer.stop('stopped'); else sharer.start(); paintShare(); return; }
     if (act === 'visit_status') body.stage = b.dataset.stage;
     if (act === 'visit_outcome') body.outcome = b.dataset.outcome;

@@ -4,12 +4,13 @@
 // Journey actions on the same link: my_jobs (this mechanic's other open jobs), my_job_open (a link for one of them), location_update (live location, only while On the way or Arrived).
 // Pickup jobs also take handover_state (which steps are open: no prices, no customer details), handover_upload_url (signed upload URLs for the photos) and handover_verify (photos + the code the customer gave).
 import { adminDb, env, json, corsHeaders, sha256Hex as ipHashOf, getSetting } from '../_shared/util.ts';
-import { createPaymentLink } from '../_shared/razorpay.ts';
+import { createPaymentLink, razorpayReady } from '../_shared/razorpay.ts';
 import { sha256Hex, techPct, companyShare, cleanReport } from '../_shared/tech-job.ts';
 import { formatWhen } from '../_shared/when.ts';
 import { navigateUrl } from '../_shared/eta.ts';
 import { sendOnTheWay } from '../_shared/after-payment.ts';
 import { buildInvoice } from '../_shared/invoice.ts';
+import { collectAction, cashAllowed, isArrived } from '../_shared/collect-payment.ts';
 import { isKind, isCode, isPickupJob, handoverHash, sameHash, stepState, afterWrongTry, cleanPhotos, cleanUploadRequest, HANDOVER_KINDS, MAX_ATTEMPTS, DOOR_KIND, photoPolicy, allowedStages, doorState, canChooseOutcome } from '../_shared/handover.ts';
 
 const NOT_VALID = 'This link is not valid.', EXPIRED = 'This link has expired. Ask the desk for a new one.', DONE = 'This job is already reported.';
@@ -17,6 +18,8 @@ const HANDOVER_ACTIONS = ['handover_state', 'handover_upload_url', 'handover_ver
 // The visit: on the way, arrived, the customer's door code, then repair at the door or pick-up, ready, delivered. No prices here.
 const VISIT_ACTIONS = ['visit_state', 'visit_status', 'visit_start', 'visit_outcome', 'visit_ready', 'visit_deliver'];
 const JOURNEY_ACTIONS = ['my_jobs', 'my_job_open', 'location_update'];
+// Collect payment (online first; cash/UPI only for a customer who inspects first): same rules as the garage app, in _shared/collect-payment.ts.
+const PAY_ACTIONS = ['payment_request', 'payment_cash', 'inspect_first_set'];
 const hidesIds = (t: string) => !(/[A-Z]{5}[0-9]{4}[A-Z]/i.test(t) || /[0-9]{12,}/.test(t.replace(/[ -]/g, '')));
 
 Deno.serve(async (req) => {
@@ -30,7 +33,7 @@ Deno.serve(async (req) => {
   if ((count ?? 0) >= 20) return json(req, { error: 'Too many tries. Wait a few minutes.' }, 429);
 
   const body = await req.json().catch(() => ({}));
-  const action = body?.action === 'report' ? 'report' : HANDOVER_ACTIONS.includes(body?.action) || VISIT_ACTIONS.includes(body?.action) || JOURNEY_ACTIONS.includes(body?.action) ? String(body.action) : 'get';
+  const action = body?.action === 'report' ? 'report' : HANDOVER_ACTIONS.includes(body?.action) || VISIT_ACTIONS.includes(body?.action) || JOURNEY_ACTIONS.includes(body?.action) || PAY_ACTIONS.includes(body?.action) ? String(body.action) : 'get';
   const t = String(body?.t ?? '');
   if (!/^[0-9a-f]{64}$/.test(t)) { await db.from('audit_log').insert({ action: 'tech_job_hit', details: { ip: ipHash, action } }); return json(req, { error: NOT_VALID }, 404); }
   const tokHash = await sha256Hex(t), tok16 = tokHash.slice(0, 16);
@@ -48,9 +51,10 @@ Deno.serve(async (req) => {
   const { data: lead } = await db.from('leads').select('*').eq('id', link.lead_id).maybeSingle();
   if (!lead || lead.deleted_at || lead.status === 'lost' || lead.mechanic_id !== link.mechanic_id) return json(req, { error: EXPIRED }, 410);
   // The handover steps work on the same link, and the return step comes after the job is reported, so they look at the link's own life (7 days, or 30 after the report) instead of the report.
-  if (HANDOVER_ACTIONS.includes(action) || VISIT_ACTIONS.includes(action) || JOURNEY_ACTIONS.includes(action)) {
+  if (HANDOVER_ACTIONS.includes(action) || VISIT_ACTIONS.includes(action) || JOURNEY_ACTIONS.includes(action) || PAY_ACTIONS.includes(action)) {
     if (Date.parse(link.reported_at ?? link.expires_at) + (link.reported_at ? 30 * 864e5 : 0) <= Date.now()) return json(req, { error: EXPIRED }, 410);
     if (JOURNEY_ACTIONS.includes(action)) return await journey(req, db, link, tokHash, action, body);
+    if (PAY_ACTIONS.includes(action)) return await collect(req, db, link, lead, action, body);
     return VISIT_ACTIONS.includes(action) ? await visit(req, db, link, lead, action, body) : await handover(req, db, link, lead, action, body);
   }
   // Once reported, the link shows only the payment (for 30 more days), never the customer's details.
@@ -222,6 +226,18 @@ async function handover(req: Request, db: ReturnType<typeof adminDb>, link: any,
   return json(req, { ok: true, kind, verified_at: now, photos: photos.value.length });
 }
 
+// ---------- Collect payment ----------
+const payView = (lead: any, stage: string | null) => ({ inspect_first: lead.inspect_first === true, paid: !!lead.final_paid_at, method: lead.final_paid_method ?? null, amount: lead.final_paid_amount ?? null, arrived: isArrived(stage), cash_available: cashAllowed({ arrived: isArrived(stage), inspectFirst: lead.inspect_first === true }), phone: lead.phone ?? null });
+async function collect(req: Request, db: ReturnType<typeof adminDb>, link: any, lead: any, action: string, body: any): Promise<Response> {
+  const { data: mech } = await db.from('mechanics').select('name').eq('id', link.mechanic_id).maybeSingle();
+  const build = async () => {
+    const [{ data: services }, { data: bike }] = await Promise.all([db.from('services').select('id,kind,name,price'), lead.bike_id ? db.from('bikes').select('big_bike,engine_class').eq('id', lead.bike_id).maybeSingle() : Promise.resolve({ data: null })]);
+    return buildInvoice({ ...lead, big_bike: (bike as any)?.big_bike ?? false, engine_class: (bike as any)?.engine_class ?? null }, (services ?? []) as any).total;
+  };
+  const r = await collectAction(db, { createLink: createPaymentLink, razorpayReady }, action, lead, { kind: 'mechanic', name: (mech as any)?.name ?? 'the technician', mechanicId: link.mechanic_id }, isArrived(lead.visit_stage), body, build);
+  return json(req, r.body, r.status);
+}
+
 // ---------- The visit (every job, bike and car) ----------
 async function visit(req: Request, db: ReturnType<typeof adminDb>, link: any, lead: any, action: string, body: any): Promise<Response> {
   const [{ data: rows }, { data: q }, { data: mech }] = await Promise.all([
@@ -244,7 +260,7 @@ async function visit(req: Request, db: ReturnType<typeof adminDb>, link: any, le
   if (action === 'visit_state') {
     return json(req, { vehicle: lead.vehicle === 'car' ? 'car' : 'bike', paid, stage, door, next: allowedStages(stage).filter((x) => x !== 'repair_doorstep' && x !== 'picked_up'),
       quote: q ? { status: q.status, version: q.version, eta_text: q.eta_text } : null, can_start_work: stage === 'started' && approved, place: lead.job_place === 'garage' ? 'garage' : 'doorstep',
-      photos: { min: pol.min, labels: pol.labels, hint: pol.hint }, first_name: String(lead.name ?? '').split(' ')[0], address: lead.address ?? null, area: lead.area ?? null, pincode: lead.pincode ?? null,
+      photos: { min: pol.min, labels: pol.labels, hint: pol.hint }, pay: payView(lead, stage), first_name: String(lead.name ?? '').split(' ')[0], address: lead.address ?? null, area: lead.area ?? null, pincode: lead.pincode ?? null,
       // Journey: the Navigate link, the quote read-only (from quoteView below), what the customer added (not their complaints about the mechanic), and whether live location may be shared now.
       navigate_url: navigateUrl({ lat: lead.lat, lng: lead.lng, address: [lead.address, lead.area, lead.pincode].filter(Boolean).join(', '), vehicle: lead.vehicle }),
       share_ok: stage === 'on_the_way' || stage === 'arrived', quote_view: await quoteView(db, lead.id), customer_note: await customerNote(db, lead.id) });

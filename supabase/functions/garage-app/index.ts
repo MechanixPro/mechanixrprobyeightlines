@@ -14,10 +14,13 @@
 // Every response is built in _shared/garage.ts from a whitelist. Customer address and email are never selected from the database at all.
 import { adminDb, env, json, corsHeaders, sha256Hex } from '../_shared/util.ts';
 import { notifyTeamGarage } from '../_shared/after-payment.ts';
+import { createPaymentLink, razorpayReady } from '../_shared/razorpay.ts';
+import { collectAction, cashAllowed, isArrived } from '../_shared/collect-payment.ts';
+import { buildInvoice } from '../_shared/invoice.ts';
 import { isCode, handoverHash, sameHash, afterWrongTry, doorState, MAX_ATTEMPTS, DOOR_KIND } from '../_shared/handover.ts';
 import { signSession, verifySession, garageJobListItem, garageJobDetail, garageStatement, garageDashboard, cleanLocation, cleanUpload, cleanEstimate, photoPath, photoPathOk, LINK_RE, PIN_RE, UUID_RE, EVENTS, LOGIN_MESSAGE, isOpen, type RawJob } from '../_shared/garage.ts';
 
-const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'verify_code'];
+const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set'];
 const BAD = 'Could not save. Please try again.', SESSION_OVER = 'Your session has ended. Enter your PIN again.';
 const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
 
@@ -152,7 +155,7 @@ Deno.serve(async (req) => {
     raw.estimates = es.data ?? [];
     // The customer's one-time code: only its state is sent (never the code or the hash). Needed when the booking was paid-confirmed or a code was made.
     const { data: dr } = await db.from('handovers').select('kind,verified_at,locked_at,code_expires_at,attempts').eq('lead_id', a.lead_id).eq('kind', DOOR_KIND).order('created_at', { ascending: false });
-    const { data: cf } = await db.from('leads').select('confirm_fee').eq('id', a.lead_id).maybeSingle();
+    const { data: cf } = await db.from('leads').select('confirm_fee,inspect_first,final_paid_at,final_paid_method,final_paid_amount').eq('id', a.lead_id).maybeSingle();
     const code = doorState(dr ?? []), codeNeeded = code !== 'none' || (cf as any)?.confirm_fee != null;
     // The number: only for an open assignment, and only after the view is logged (the database also refuses a closed lead, a switched-off access and more than 40 views in 10 minutes).
     let contact = false, limited = false;
@@ -164,7 +167,8 @@ Deno.serve(async (req) => {
       raw.place = (pl as any) ?? null;
       if (contact) { const { data: ph } = await db.from('leads').select('phone').eq('id', a.lead_id).maybeSingle(); (raw.lead as any).phone = (ph as any)?.phone ?? null; }
     }
-    return json(req, { ok: true, job: { ...garageJobDetail(raw, contact), contact_limited: limited, code, code_needed: codeNeeded } });
+    return json(req, { ok: true, job: { ...garageJobDetail(raw, contact), contact_limited: limited, code, code_needed: codeNeeded,
+      pay: { inspect_first: (cf as any)?.inspect_first === true, paid: !!(cf as any)?.final_paid_at, method: (cf as any)?.final_paid_method ?? null, amount: (cf as any)?.final_paid_amount ?? null, arrived: isArrived(null, a.status), cash_available: cashAllowed({ arrived: isArrived(null, a.status), inspectFirst: (cf as any)?.inspect_first === true }) } } });
   }
 
   if (action === 'photo_upload_url') {
@@ -218,6 +222,21 @@ Deno.serve(async (req) => {
     await db.from('crm_activities').insert({ lead_id: lead.id, actor: null, kind: 'note', body: `Customer code confirmed by garage ${garageName}.` }).then(() => {}, () => {});
     await db.from('audit_log').insert({ action: 'door_code_verified', details: { lead: (lead as any).ref, garage: garageId, access: accessId, via: 'garage' } });
     return json(req, { ok: true });
+  }
+
+  // Collect payment: online first; cash/UPI only after arrival for a customer who inspects first. The rules live in _shared/collect-payment.ts and run here, not in the screen.
+  if (['payment_request', 'payment_cash', 'inspect_first_set'].includes(action)) {
+    const { data: a } = await mine(jobId).maybeSingle();
+    if (!a || !['received', 'in_work', 'ready', 'returned'].includes(a.status)) return json(req, { error: 'Payment opens once the vehicle is with you.' }, 409);
+    const { data: lead } = await db.from('leads').select('id,ref,booking_id,name,phone,bike_id,service_id,addons,coupon_discount,extra_discount,extra_discount_note,paid_amount,confirm_fee,confirm_paid_at,inspect_first,final_link_id,final_link_url,final_link_amount,final_paid_at,final_paid_method,final_paid_amount,deleted_at').eq('id', a.lead_id).maybeSingle();
+    if (!lead || lead.deleted_at) return json(req, { error: 'This job is not available.' }, 404);
+    const { data: m } = await db.from('mechanics').select('id').eq('garage_id', garageId).limit(1).maybeSingle();
+    const build = async () => {
+      const [{ data: services }, { data: bike }] = await Promise.all([db.from('services').select('id,kind,name,price'), lead.bike_id ? db.from('bikes').select('big_bike,engine_class').eq('id', lead.bike_id).maybeSingle() : Promise.resolve({ data: null })]);
+      return buildInvoice({ ...lead, big_bike: (bike as any)?.big_bike ?? false, engine_class: (bike as any)?.engine_class ?? null }, (services ?? []) as any).total;
+    };
+    const r = await collectAction(db, { createLink: createPaymentLink, razorpayReady }, action, lead, { kind: 'garage', name: garageName, mechanicId: (m as any)?.id ?? null }, isArrived(null, a.status), b, build);
+    return json(req, r.body, r.status);
   }
 
   if (action === 'progress') {

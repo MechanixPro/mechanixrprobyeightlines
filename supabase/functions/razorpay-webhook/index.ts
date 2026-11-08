@@ -27,6 +27,18 @@ Deno.serve(async (req) => {
     await db.from('audit_log').insert({ actor: null, action: 'mechanic_remitted', details: { lead: leadId, amount: amt, payment_id: pay?.id } });
     return new Response('ok');
   }
+  // The final bill paid online from the technician or garage screen: record it, mark the job paid, and do NOT send the slot-confirmed message again.
+  if (pl?.notes?.purpose === 'final') {
+    const amt = (pay?.amount ?? pl?.amount_paid ?? 0) / 100;
+    const { data: fl } = await db.from('leads').select('id,ref,final_paid_at').eq('id', leadId).maybeSingle();
+    if (!fl || fl.final_paid_at) return new Response('ok');
+    const { error } = await db.from('ledger_entries').insert({ lead_id: fl.id, entry_type: 'customer_payment', amount: amt, collected_by: 'company_portal', method: 'Razorpay payment link', reference: pay?.id ?? null, gateway_txn_id: pay?.id ?? null, gateway_fee: Math.round(Number(pay?.fee ?? 0)) / 100, source: 'gateway', settlement_status: 'pending' });
+    if (error && error.code !== '23505') { console.error('final insert failed', error); return new Response('retry', { status: 500 }); }
+    await db.from('leads').update({ final_paid_at: new Date().toISOString(), final_paid_method: 'online', final_paid_amount: amt }).eq('id', fl.id).is('final_paid_at', null);
+    await db.from('crm_activities').insert({ lead_id: fl.id, actor: null, kind: 'note', body: `Paid online: Rs ${amt} (final bill).` }).then(() => {}, () => {});
+    await db.from('audit_log').insert({ actor: null, action: 'final_paid_online', details: { lead: fl.ref, amount: amt, payment_id: pay?.id } });
+    return new Response('ok');
+  }
   const { data: lead } = await db.from('leads').select('*').eq('id', leadId).maybeSingle();
   if (!lead || lead.status === 'paid') { if (lead) await afterConfirmationPaid(db, lead.id); return new Response('ok'); }
 

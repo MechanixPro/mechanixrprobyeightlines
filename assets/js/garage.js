@@ -8,7 +8,7 @@
   if (typeof module === 'object' && module.exports) module.exports = api; else { root.MXP_GARAGE = api; if (root.document) api.start(root); }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
-  var PAGES = ['offer', 'navigate', 'phone', 'code', 'inspect', 'ready', 'done'];
+  var PAGES = ['offer', 'navigate', 'phone', 'code', 'inspect', 'ready', 'pay', 'done'];
   /** 75 seconds becomes 01:15. */
   function waitText(sec) { sec = Math.max(0, Math.floor(Number(sec) || 0)); var m = Math.floor(sec / 60), r = sec % 60; return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r; }
   /** The 4-digit code: digits only, at most four. */
@@ -22,13 +22,14 @@
     else if (j.status === 'sent') nat = 'offer';
     else if (j.status === 'received') nat = j.code_needed && j.code !== 'verified' ? (flow.found ? 'code' : flow.arrived ? 'phone' : 'navigate') : 'inspect';
     else if (j.status === 'in_work') nat = 'ready';
+    else if (j.status === 'ready' && j.pay && j.pay.paid === false && !flow.skipPay) nat = 'pay';
     else nat = 'done';
     if (flow.view === 'estimate' && nat === 'inspect') return 'estimate';
     if (flow.view && PAGES.indexOf(flow.view) >= 0 && PAGES.indexOf(flow.view) < PAGES.indexOf(nat)) return flow.view;
     return nat;
   }
   /** Event each page sends (null: no event; the page moves on locally or calls verify_code / the estimate). */
-  var STEP_EVENT = { offer: 'received', navigate: null, phone: null, code: null, inspect: 'work_started', ready: 'ready', done: null };
+  var STEP_EVENT = { offer: 'received', navigate: null, phone: null, code: null, inspect: 'work_started', ready: 'ready', pay: null, done: null };
   var LINK_KEY = 'mxp_garage_link', SESSION_KEY = 'mxp_garage_session', LOC_KEY = 'mxp_garage_loc_asked', LINK_RE = /^[0-9a-f]{48}$/, MAX_PHOTOS = 4;
 
   /* ---------- pure helpers ---------- */
@@ -272,8 +273,22 @@
       if (j === 'error') { body.push(S.jobGone ? el('div', { class: 'g-card g-center' }, [el('p', { text: 'This job is not available any more.' })]) : retryCard(S.jobErr || ERR.gen, function () { S.job = null; render(); fetchJob(); })); shell(body, 'jobs'); return; }
       var page = jobPage(j, flowOf(j.id));
       if (page === 'estimate') { body.push(wizTop(j, page), el('h1', { text: 'Send estimate' }), estimateCard(j)); shell(body, 'jobs'); app.classList.remove('g-wiz'); return; }
+      if (page === 'pay') { body.push(payPage(j)); shell(body, 'jobs'); app.classList.add('g-wiz'); return; }
       body.push(wizPage(j, page));
       shell(body, 'jobs'); app.classList.add('g-wiz');
+    }
+    /* Collect payment page: online first (amount, QR, WhatsApp link); cash/UPI behind 'Customer wants to inspect first'. Rules are enforced by the server. */
+    var payUI = null;
+    function payPage(j) {
+      if (payUI) payUI.stop();
+      var holder = el('div', { class: 'g-wiz-page g-pay' });
+      var skip = el('button', { class: 'cp-linkbtn', type: 'button', id: 'gPaySkip', text: 'Not now: the team will follow up', onclick: function () { if (payUI) payUI.stop(); flowOf(j.id).skipPay = true; render(); } });
+      if (!win.MXP_PAY) { holder.appendChild(el('p', { class: 'g-wiz-l', text: 'The payment page could not load. Tell the team.' })); holder.appendChild(skip); return holder; }
+      payUI = win.MXP_PAY.create({ doc: d, win: win, state: Object.assign({}, j.pay), phone: j.customer_phone || '', first: '',
+        call: function (a, b) { return api(a, Object.assign({ id: j.id }, b || {})).then(function (r) { return { ok: r.ok, data: r.data }; }); },
+        poll: function () { return api('job', { id: j.id }).then(function (r) { return r.ok && r.data.job && r.data.job.pay ? Object.assign({}, r.data.job.pay) : null; }); },
+        onChange: function (st) { j.pay = Object.assign({}, j.pay, st); } });
+      holder.appendChild(payUI.el); holder.appendChild(skip); return holder;
     }
     function photoGrid(urls) { urls = urls || []; if (!urls.length) return null; return el('div', { class: 'g-photos' }, urls.map(function (u, i) { return el('a', { href: u, target: '_blank', rel: 'noopener', 'aria-label': 'Open photo ' + (i + 1) }, [el('img', { src: u, alt: 'Photo ' + (i + 1), loading: 'lazy' })]); })); }
     function timelineCard(j) {
