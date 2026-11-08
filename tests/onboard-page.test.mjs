@@ -33,3 +33,8 @@ test('agreement PDF exists and is linked', () => {
   assert.ok(existsSync(p) && statSync(p).size > 1000);
   assert.match(js, /\/assets\/legal\/Mechanix-Pro-Garage-Partner-Agreement\.pdf/);
 });
+
+test('mechanics also get their agreement PDF to download', () => {
+  assert.ok(statSync(new URL('../assets/legal/Mechanix-Pro-Mechanic-Engagement-Terms.pdf', import.meta.url)).size > 10000);
+  assert.match(readFileSync(new URL('../assets/js/onboard.js', import.meta.url), 'utf8'), /Mechanix-Pro-Mechanic-Engagement-Terms\.pdf/);
+});
