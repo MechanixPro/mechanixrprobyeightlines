@@ -534,7 +534,7 @@ async function loadTechs(f) {
   if (f.lfTech.dataset.for === String(date) && f.lfTech.options.length > 1) return;
   f.lfTech.dataset.for = String(date);
   let list; try { list = rankTechs((await rpc('crm_tech_board', { p_date: date })).techs, { ...l, preferred_date: date, preferred_slot: (f.lfSlot && f.lfSlot.value) || l.preferred_slot }); }
-  catch (e) { try { list = (await rpc('crm_mechanic_picker')).map((t) => ({ id: t.id, label: t.name + (t.area ? ' · ' + t.area : '') })); } catch (e2) { list = []; } }
+  catch (e) { try { list = (await rpc('crm_mechanic_picker')).map((t) => ({ id: t.id, label: t.name + (t.area ? ' · ' + t.area : '') + (t.available === false ? ' (Not available)' : '') })); } catch (e2) { list = []; } }
   f.lfTech.innerHTML = '<option value="">Choose the technician</option>' + list.map((t) => `<option value="${t.id}"${t.id === sel ? ' selected' : ''}>${esc(t.label)}</option>`).join('');
 }
 async function saveLog() {

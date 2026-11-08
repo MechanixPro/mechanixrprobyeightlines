@@ -1,7 +1,7 @@
 /* Mechanix Pro Garage: the partner garage app at /garage/. No inline script (CSP). Design: docs/superpowers/specs/2026-11-06-partner-garage-app-design.md
    - The private link /garage/?g=<token> is saved on this phone, then removed from the address bar; the home-screen icon opens the PIN screen.
    - The PIN creates a 12-hour session (kept on this phone until it ends or you tap Lock). Nothing private is cached by a service worker.
-   - The customer's address and email never reach this app. The phone number appears only in an open job's detail, and is not stored by the app.
+   - The customer's email never reaches this app. The phone number and (2026-11-09 owner decision: the garage must know where to go) the job address, area, pincode and map pin appear only in an OPEN job's detail, never in lists, and are not stored by the app.
    Pure helpers are exported for tests; the screens start only in a browser. */
 (function (root, factory) {
   var api = factory();
@@ -23,6 +23,15 @@
     return day + ', ' + hm.toLowerCase();
   }
   function digits(s) { return String(s || '').replace(/\D/g, ''); }
+  /* Google Maps directions link: the shared pin if there is one, else the written address. Pure. */
+  function navigateUrl(place) {
+    if (!place) return null;
+    var lat = Number(place.lat), lng = Number(place.lng), has = place.lat !== null && place.lat !== undefined && place.lng !== null && place.lng !== undefined && isFinite(lat) && isFinite(lng);
+    var dest = has ? lat + ',' + lng : [place.address, place.area, place.pincode].filter(Boolean).join(', ');
+    return dest ? 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(dest) : null;
+  }
+  /* One shared wording for the Available switch (garage and mechanic apps). Pure. */
+  function availabilityText(on) { return { title: on ? 'Available for jobs' : 'Not available', help: 'Crew will not send you new jobs while you are not available.', state: on ? 'On' : 'Off' }; }
   function telHref(phone10) { var p = digits(phone10).slice(-10); return /^[6-9]\d{9}$/.test(p) ? 'tel:+91' + p : null; }
   function phoneShow(phone10) { var p = digits(phone10).slice(-10); return /^[6-9]\d{9}$/.test(p) ? '+91 ' + p.slice(0, 5) + ' ' + p.slice(5) : ''; }
   /* Team contact from the site config (window.MXP): never a number typed into this file. */
@@ -158,12 +167,12 @@
       body.push(el('div', { class: 'd-banner' }, [el('div', {}, [el('h1', { text: 'Hello, ' + (S.name || 'garage') }), dsh && dsh !== 'error' && dsh.city ? el('p', { text: dsh.city }) : null]), el('button', { class: 'd-out', type: 'button', id: 'dLogout', onclick: function () { lock('You are signed out.'); }, text: 'Logout' })]));
       if (dsh === null) { body.push(loading('Loading your day')); shell(body, 'home', true); return; }
       if (dsh === 'error') { body.push(retryCard(S.dashErr || ERR.gen, function () { S.dash = null; render(); fetchHome(); })); shell(body, 'home', true); return; }
+      var av = availabilityText(!!dsh.is_open);
+      body.push(el('section', { class: 'd-avail' + (dsh.is_open ? ' on' : ' off'), 'aria-label': 'Availability' }, [
+        el('div', { class: 'd-avail-txt' }, [el('p', { class: 'd-avail-title', id: 'dAvailTitle', text: av.title }), el('p', { class: 'g-hint', text: av.help })]),
+        el('button', { class: 'd-sw', type: 'button', role: 'switch', id: 'dAvailSwitch', 'aria-checked': dsh.is_open ? 'true' : 'false', 'aria-label': 'Available for jobs', disabled: S.openBusy || null, onclick: function () { setOpen(!dsh.is_open); } }, [el('span', { class: 'd-knob' })])]));
       body.push(el('div', { class: 'd-two' }, [el('section', { class: 'd-card', 'aria-label': 'Today’s jobs' }, [el('p', { class: 'd-label', text: 'Today’s jobs' }), el('p', { class: 'd-big', id: 'dToday', text: String(dsh.today_jobs) })]), el('section', { class: 'd-card', 'aria-label': 'Open now' }, [el('p', { class: 'd-label', text: 'Open now' }), el('p', { class: 'd-big', id: 'dOpenJobs', text: String(dsh.open_jobs) })])]));
       body.push(el('section', { class: 'd-card', 'aria-label': 'Quick actions' }, [el('p', { class: 'd-label', text: 'Quick actions' }), el('button', { class: 'g-btn g-btn-primary d-xl', type: 'button', id: 'dGet', onclick: function () { S.tab = 'open'; openJobs(); }, text: 'Get my jobs' })]));
-      body.push(el('section', { class: 'd-card', 'aria-label': 'Current status' }, [el('p', { class: 'd-label', text: 'Current status' }), el('div', { class: 'd-toggle' }, [
-        el('button', { class: 'd-opt' + (dsh.is_open ? ' on-ok' : ''), type: 'button', id: 'dOpen', 'aria-pressed': dsh.is_open ? 'true' : 'false', disabled: S.openBusy || null, onclick: function () { setOpen(true); }, text: 'Open' }),
-        el('button', { class: 'd-opt' + (!dsh.is_open ? ' on-off' : ''), type: 'button', id: 'dClosed', 'aria-pressed': !dsh.is_open ? 'true' : 'false', disabled: S.openBusy || null, onclick: function () { setOpen(false); }, text: 'Closed' })]),
-        el('p', { class: 'g-hint', text: dsh.is_open ? 'Mechanix Pro can send you jobs.' : 'You are shown as closed to the team. Tap Open when you can take vehicles.' })]));
       body.push(el('section', { class: 'd-card', 'aria-label': 'My monthly stats' }, [el('p', { class: 'd-label', text: 'My monthly stats' }), el('div', { class: 'd-stats' }, [
         el('div', {}, [el('b', { text: String(dsh.month.jobs) }), el('span', { text: 'Total jobs' })]), el('div', {}, [el('b', { text: String(dsh.month.completed) }), el('span', { text: 'Completed' })]), el('div', {}, [el('b', { text: dsh.month.avg_ticket == null ? '—' : money(dsh.month.avg_ticket) }), el('span', { text: 'Average ticket' })])])]));
       var lines = dsh.unsettled.map(function (u) {
@@ -235,6 +244,14 @@
       else if (j.contact_limited) cust.push(notice('info', 'Too many opens just now. Wait a few minutes to see the number again.'));
       else if (!j.open) cust.push(el('p', { class: 'g-muted', text: 'This job is closed, so the customer’s number is no longer shown.' }));
       body.push(section('Customer', cust));
+      if (j.place) {
+        var pl = j.place, nav = navigateUrl(pl), addr = [];
+        if (pl.address) addr.push(el('p', { class: 'g-addr', id: 'gAddress', text: pl.address }));
+        var ap = [pl.area, pl.pincode].filter(Boolean).join(' · '); if (ap) addr.push(el('p', { class: 'g-muted', id: 'gArea', text: ap }));
+        if (nav) addr.push(el('a', { class: 'g-btn g-btn-primary g-wide g-xl', id: 'gNavigate', href: nav, target: '_blank', rel: 'noopener noreferrer', text: 'Navigate' }));
+        if (j.customer_phone) addr.push(el('a', { class: 'g-btn g-btn-ghost g-wide', href: telHref(j.customer_phone), id: 'gCallCustomer2', text: 'Call customer' }));
+        body.push(section('Address', addr));
+      }
       body.push(section('Work needed', [el('p', { text: j.work }), j.work_needed ? el('p', { class: 'g-quote', text: j.work_needed }) : null]));
       if (j.found) body.push(section('What was found', [el('p', { text: j.found })]));
       if (j.pickup && (j.pickup.note || (j.pickup.photos || []).length)) body.push(section('Pickup notes and photos', [j.pickup.note ? el('p', { text: j.pickup.note }) : null, photoGrid(j.pickup.photos)]));
@@ -274,14 +291,19 @@
     }
     function photoPicker(paint) {
       var wrap = el('div', { class: 'g-pick' }), prev = el('div', { class: 'g-photos' }), msg = el('div', { 'aria-live': 'polite' });
-      var input = el('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', multiple: true, id: 'gphotos', class: 'g-file', onchange: function () {
+      var onPick = function (input) { return function () {
         var files = [].slice.call(input.files || []); input.value = ''; clear(msg);
         var room = MAX_PHOTOS - S.photos.length; if (files.length > room) { msg.appendChild(notice('err', 'You can add ' + MAX_PHOTOS + ' photos at most.')); files = files.slice(0, Math.max(0, room)); }
         files.reduce(function (p, f) { return p.then(function () { return compress(f).then(function (x) { S.photos.push(x); drawPrev(); }); }); }, Promise.resolve()).catch(function () { msg.appendChild(notice('err', 'That photo could not be read. Try another.')); });
-      } });
+      }; };
+      // Camera: capture=environment opens the rear camera on iPhone and Android. Gallery: several at once. Both feed the same compress and upload path.
+      var camIn = el('input', { type: 'file', accept: 'image/*', capture: 'environment', id: 'gphotoCam', class: 'g-file' });
+      var galIn = el('input', { type: 'file', accept: 'image/*', multiple: true, id: 'gphotos', class: 'g-file' });
+      camIn.onchange = onPick(camIn); galIn.onchange = onPick(galIn);
       function drawPrev() { clear(prev); S.photos.forEach(function (p, i) { prev.appendChild(el('span', { class: 'g-ph' }, [el('img', { src: p.preview, alt: 'Photo ' + (i + 1) }), el('button', { type: 'button', class: 'g-x', 'aria-label': 'Remove photo ' + (i + 1), onclick: function () { S.photos.splice(i, 1); drawPrev(); }, text: '×' })])); }); }
       drawPrev();
-      wrap.appendChild(el('label', { class: 'g-btn g-btn-ghost g-wide', for: 'gphotos', text: 'Add photos (optional)' })); wrap.appendChild(input); wrap.appendChild(prev); wrap.appendChild(msg); return wrap;
+      wrap.appendChild(el('div', { class: 'g-row g-photobtns' }, [el('label', { class: 'g-btn g-btn-primary', for: 'gphotoCam', id: 'gTakePhoto', text: 'Take photo' }), el('label', { class: 'g-btn g-btn-ghost', for: 'gphotos', id: 'gGallery', text: 'Choose from gallery' })]));
+      wrap.appendChild(camIn); wrap.appendChild(galIn); wrap.appendChild(el('p', { class: 'g-hint', text: 'Photos are optional. Up to ' + MAX_PHOTOS + '.' })); wrap.appendChild(prev); wrap.appendChild(msg); return wrap;
     }
     function progressCard(j) {
       var n = j.next, blocked = j.status === 'received' && !j.can_start, msg = el('div', { id: 'gProgMsg', 'aria-live': 'polite' }), note = el('textarea', { class: 'g-input', id: 'gnote', rows: 2, maxlength: 300, placeholder: 'Note for Mechanix Pro (optional)' });
@@ -397,5 +419,5 @@
     if (ses && savedLink(win)) { S.session = ses.t; S.name = ses.name || ''; loadTeam(); openHome(true); } else { go('pin'); }
     d.addEventListener('visibilitychange', function () { if (!d.hidden && S.session && Date.now() - S.jobsAt > 60000) { if (S.screen === 'jobs') fetchJobs(); else if (S.screen === 'home') fetchHome(); } });
   }
-  return { start: start, locText: locText, locAsked: locAsked, markLocAsked: markLocAsked, LOC_KEY: LOC_KEY, money: money, totals: totals, whenText: whenText, telHref: telHref, phoneShow: phoneShow, teamLinks: teamLinks, saveLink: saveLink, savedLink: savedLink, linkFromUrl: linkFromUrl, saveSession: saveSession, savedSession: savedSession, clearSession: clearSession, LINK_KEY: LINK_KEY, SESSION_KEY: SESSION_KEY };
+  return { start: start, locText: locText, locAsked: locAsked, markLocAsked: markLocAsked, LOC_KEY: LOC_KEY, money: money, totals: totals, whenText: whenText, telHref: telHref, navigateUrl: navigateUrl, availabilityText: availabilityText, phoneShow: phoneShow, teamLinks: teamLinks, saveLink: saveLink, savedLink: savedLink, linkFromUrl: linkFromUrl, saveSession: saveSession, savedSession: savedSession, clearSession: clearSession, LINK_KEY: LINK_KEY, SESSION_KEY: SESSION_KEY };
 });

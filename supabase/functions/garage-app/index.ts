@@ -2,7 +2,7 @@
 //   login            { token, pin }                          -> { session, expires_at, garage }   (5 wrong PINs lock 15 minutes; per-IP and per-link rate limits)
 //   me               { session }                             -> { garage }
 //   jobs             { session }                             -> { jobs: [...] }                   (never a phone, address or email)
-//   job              { session, id }                         -> { job }                           (the customer's phone ONLY for this garage's OPEN assignment; each view is logged without the number)
+//   job              { session, id }                         -> { job }                           (the customer's phone and, since 2026-11-09, the job address + pin ONLY for this garage's OPEN assignment, never email; each view is logged without the number)
 //   progress         { session, id, event, photos?, note? }  event: received | work_started | ready (work_started waits for the customer's approval of the latest quote)
 //   photo_upload_url { session, id, types: [...] }           -> signed upload URLs into the private bucket 'garage-updates'
 //   estimate_save / estimate_submit { session, id, lines, notes?, hours? | day? }
@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
 
   /* ---------- reading jobs: only this garage's own assignments ---------- */
   const mine = (id?: string) => { let q = db.from('garage_assignments').select('id,lead_id,status,eta,notes,assigned_at,received_at,started_at,ready_at,returned_at').eq('garage_id', garageId).neq('status', 'cancelled'); if (id) q = q.eq('id', id); return q; };
-  // Lead columns: never address, email or phone here. The phone is fetched separately, only after the contact view is allowed.
+  // Lead columns: never address, email or phone here (the address of an open job is fetched separately in 'job'). The phone is fetched separately, only after the contact view is allowed.
   const LEAD_COLS = 'id,name,booking_id,vehicle,service_id,bike_id,status';
   async function context(rows: any[]) {
     const leadIds = [...new Set(rows.map((r) => r.lead_id))];
@@ -154,6 +154,9 @@ Deno.serve(async (req) => {
     if (isOpen(a.status)) {
       contact = (await rpc('garage_contact_view', { p_access: accessId, p_assignment: a.id })) === true;
       limited = !contact;
+      // 2026-11-09 owner decision: the address of THIS garage's own open job (the assignment was matched on garage_id above). Read in this one place; never in lists.
+      const { data: pl } = await db.from('leads').select('address,area,pincode,lat,lng').eq('id', a.lead_id).maybeSingle();
+      raw.place = (pl as any) ?? null;
       if (contact) { const { data: ph } = await db.from('leads').select('phone').eq('id', a.lead_id).maybeSingle(); (raw.lead as any).phone = (ph as any)?.phone ?? null; }
     }
     return json(req, { ok: true, job: { ...garageJobDetail(raw, contact), contact_limited: limited } });
