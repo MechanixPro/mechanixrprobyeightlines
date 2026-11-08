@@ -88,7 +88,7 @@ test('sitemap, llms.txt, nav and the build copy list include /garage-partners/',
 
 // ---- Round 2: videos, new header pictures, body pictures ----
 const NEW_MEDIA = ['code-handover', 'societies', 'fleet', 'garage'];
-const NEW_STILLS = ['code-handover', 'car-closeup', 'ev-care', 'monsoon-check', 'parts-counter', 'thumbs-up'];
+const NEW_STILLS = ['car-closeup', 'ev-care', 'monsoon-check', 'parts-counter'];   // changed on purpose 2026-11-09: the code-handover and thumbs-up stills were removed (their faces were not Indian) and replaced by the owner's new Indian art
 test('new videos: files exist, under 1.3 MB, no audio track, no AI-tool tags; posters are small', () => {
   for (const n of NEW_MEDIA) {
     const f = `assets/video/${n}.mp4`, b = readFileSync(new URL('../' + f, import.meta.url));
