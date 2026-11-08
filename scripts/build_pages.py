@@ -940,6 +940,9 @@ GARAGE_PAGE = '''<!doctype html>
 <link rel="stylesheet" href="/assets/css/garage.css">
 <script src="/assets/js/config.js" defer></script>
 <script src="/assets/js/install.js" defer></script>
+<script src="/assets/js/qr.js" defer></script>
+<script src="/assets/js/collect-pay.js" defer></script>
+<script src="/assets/js/partner-flow.js" defer></script>
 <script src="/assets/js/garage.js" defer></script>
 </head>
 <body class="garage">
