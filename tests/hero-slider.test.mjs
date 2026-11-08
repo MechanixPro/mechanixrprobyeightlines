@@ -19,9 +19,9 @@ test('markup: a bike carousel with 5 slides and a car carousel with 2, each a la
   assert.equal((b.match(/class="hs-slide/g) || []).length, 5); assert.equal((c.match(/class="hs-slide/g) || []).length, 2);
   for (const [grp, n] of [[b, 5], [c, 2]]) for (let i = 1; i <= n; i++) assert.ok(grp.includes(`role="group" aria-roledescription="slide" aria-label="${i} of ${n}"`), `${i} of ${n}`);
 });
-test('markup: bike order is video, at-your-door, roadside-night, team, bike-closeup; car is hero-car then car-closeup', () => {
+test('markup: bike order is video, hero-quote, hero-road, hero-team, hero-delivery; car is hero-car then car-closeup', () => {
   const order = (g) => [...g.matchAll(/<video\b|data-src="\/assets\/img\/hero\/([\w-]+?)-\d+\.webp"/g)].map((m) => m[1] || 'video');
-  assert.deepEqual(order(set('bike')[0]), ['video', 'at-your-door', 'roadside-night', 'team', 'bike-closeup']);
+  assert.deepEqual(order(set('bike')[0]), ['video', 'hero-quote', 'hero-road', 'hero-team', 'hero-delivery']);   // changed on purpose 2026-11-09: the four picture slides are the owner's new Indian-character art
   assert.deepEqual(order(set('car')[0]), ['hero-car', 'car-closeup']);
   assert.match(set('bike')[0], /poster="\/assets\/img\/hero\/hero-garage-poster\.webp"[^>]*>\s*<source src="\/assets\/video\/hero-garage\.mp4"/);
 });

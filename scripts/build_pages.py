@@ -349,7 +349,7 @@ def body_pic(stem, alt):
             f'width="1200" height="594" loading="lazy" decoding="async" alt="{html.escape(alt)}"></figure>')
 VID_GARAGE = vid('garage', 'A garage owner in a Mechanix Pro polo shirt smiling and talking to the camera in his workshop.', 'A partner workshop')   # Indian-faces version (owner clip, 2026-11-07)
 # The fleet video (assets/video/fleet.mp4) has a visible vertical seam in the footage itself, so it is not shown until a clean re-export is supplied.
-VID_HEADS = {'societies': vid('societies', 'Two mechanics service motorcycles in apartment parking while residents chat nearby.', 'A service day in apartment parking')}
+VID_HEADS = {'societies': body_pic('society-day', 'Two Mechanix Pro mechanics service motorcycles in an apartment parking area while residents of different ages chat nearby') + vid('societies', 'Two mechanics service motorcycles in apartment parking while residents chat nearby.', 'A service day in apartment parking')}
 VID_CODE = vid('code-handover', 'A customer shows a one-time code on her phone to the mechanic, who gives a thumbs up.', 'Show the code on your phone to the mechanic when they arrive.')   # Indian-faces version
 HERO_VIDEO_TAG = '<script src="/assets/js/hero-video.js" defer></script>'
 # Mechu appears on the home, model, area, car, services, help and workshop pages. Never on the single-task pages (book, pay, track, job, rate, warranty, unsubscribe).
@@ -1171,6 +1171,10 @@ GARAGE_VID = '<section><div class="wrap">' + VID_GARAGE + '</div></section>'
 GARAGE_GAL = [('garage-bay', 'A mechanic checking a motorcycle chain on a service stand in a workshop bay', 'In the bay'), ('garage-doorstep', 'A mechanic servicing a motorcycle on a stand in an apartment car park at dusk, with a tool bag beside him', 'At your door'), ('garage-parts', 'A parts counter with labelled oil, filters and brake pads, and a staff member handing over a part', 'Parts counter')]
 GARAGE_GALLERY = '<section><div class="wrap"><div class="sec-head"><h2>Inside a Mechanix Pro garage.</h2></div><ul class="ggal">' + ''.join(f'<li><img src="/assets/img/hero/{st}-600.webp" srcset="/assets/img/hero/{st}-600.webp 600w, /assets/img/hero/{st}-1000.webp 1000w" sizes="(min-width:960px) 380px, calc(100vw - 40px)" width="1000" height="667" loading="lazy" decoding="async" alt="{html.escape(alt)}"><span>{cap}</span></li>' for st, alt, cap in GARAGE_GAL) + '</ul></div></section>'
 GARAGE_VID = GARAGE_VID + GARAGE_GALLERY
+GARAGE_VID = GARAGE_VID + ('<section><div class="wrap"><div class="sec-head"><h2>Join from your phone.</h2><p>You upload your documents and the signed agreement on your phone. We check them, and once you are approved you start taking jobs.</p></div><div class="gpics">'
+    + body_pic('join-onboarding', 'A garage owner in a skull cap uploads documents on his phone while a Mechanix Pro executive shows him where to tap')
+    + body_pic('garage-customer', 'A Mechanix Pro mechanic with a tablet talks with an elderly customer outside a partner garage')
+    + '</div></div></section>')
 GARAGE_WA = 'Hi Mechanix Pro, I run a garage / I am a mechanic and I want to join your network.'
 def garage_band(h2='Bring your garage to Mechanix Pro.', partner=True):
     return (f'''<section><div class="wrap"><div class="final gband"><h2>{h2}</h2><p>Run a garage or work as a mechanic in Bengaluru? Apply to join us. We bring doorstep bookings, you bring the skill.</p><div class="row"><a class="btn btn-primary btn-apply" href="/join/#apply">Apply to join</a><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="{GARAGE_WA}">Ask on WhatsApp</a><a class="btn btn-ghost" href="#" data-call>Call us</a>'''

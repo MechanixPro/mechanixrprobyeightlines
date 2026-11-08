@@ -47,7 +47,7 @@ test('trust-number claims stay off car, roadside, Axlio and garage pages (they a
   for (const f of GARAGE) assert.doesNotMatch(main(read(f + '/index.html')), /ratings?\b.{0,30}\d|₹\s?\d{2,3},?\d* (per|a) (job|month|week)|payout|earn/i, f + ' no invented ratings, payouts or earnings');
 });
 test('pages.css stays within its own size budget and is linked only where a picture or garage block is used', () => {
-  assert.ok(statSync(new URL('../assets/css/pages.css', import.meta.url)).size < 6000, 'pages.css budget 6,000 bytes');
+  assert.ok(statSync(new URL('../assets/css/pages.css', import.meta.url)).size < 6500, 'pages.css budget 6,500 bytes');   // raised on purpose 2026-11-09 from 6,000 (two-picture row on the garage pages)
   assert.ok(statSync(new URL('../assets/css/site.css', import.meta.url)).size < 32000, 'site.css budget 32,000 bytes');
   for (const f of ['book/index.html', 'track/index.html', 'terms/index.html', 'privacy/index.html', 'index.html']) assert.doesNotMatch(read(f), /pages\.css/, f);
   for (const f of GARAGE) assert.match(read(f + '/index.html'), /<link rel="stylesheet" href="\/assets\/css\/pages\.css(\?v=\w+)?">/, f);
