@@ -1285,6 +1285,50 @@ car_page()
 # ---- Search landing pages (src/landing.json): the things riders actually search for, each with its own useful page, FAQ and structured data ----
 LANDING_PRICES = ''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES if k in ('basic', 'general', 'full', 'repair', 'puncture', 'sos'))
 LANDING = json.load(open(os.path.join(ROOT, 'src', 'landing.json'), encoding='utf-8'))
+# ---- City hub sections for /two-wheeler-service-at-home-bangalore/ only: brands, services, how it works, comparison. Text-only brand chips (no logos); every claim already appears in terms or on the site. ----
+def _first_model(prefix):
+    d = os.path.join(ROOT, 'bike-service')
+    hits = sorted(x for x in os.listdir(d) if x.startswith(prefix) and os.path.isdir(os.path.join(d, x))) if os.path.isdir(d) else []
+    return f'/bike-service/{hits[0]}/' if hits else '/services/'
+HUB_PETROL = [('Honda', 'honda-'), ('Hero', 'hero-'), ('TVS', 'tvs-'), ('Bajaj', 'bajaj-'), ('Royal Enfield', 'royal-enfield-'), ('Yamaha', 'yamaha-'), ('Suzuki', 'suzuki-'), ('KTM', 'ktm-'), ('Kawasaki', 'kawasaki-'), ('Jawa and Yezdi', 'jawa-yezdi-'), ('Harley-Davidson', 'harley-davidson-'), ('Triumph', 'triumph-')]
+HUB_EV = [('Ola Electric', 'ola-electric-'), ('Pure EV', 'pure-ev-')]
+HUB_CARDS = [
+    ('Periodic general service', 'Basic, Standard or Full, by engine size.', ['Engine oil, air filter and spark plug checks', 'Brake cleaning and adjustment', 'Chain cleaning and lubrication', 'Basic from {{price:basic}}, before GST'], '/services/#included', 'periodic', False),
+    ('Doorstep bike service at home', 'The mechanic comes to your home, office parking or society.', ['No pickup, no garage queue', 'Standard service from {{price:general}}, before GST', 'Quote first, work after your OK', 'Photos and your bill after the work'], '/services/#prices', 'doorstep', True),
+    ('Brakes and safety check', 'Brake and safety points checked on every service.', ['Front and rear brake cleaning and adjustment', 'Brake cable check and lubrication', 'Nuts and bolts tightened', 'Side and centre stand check'], '/services/#included', 'brakes', False),
+    ('Electrical and battery check', 'Starting trouble, weak lights or a tired battery.', ['Battery checkup', 'Headlight and indicator checkup', 'Battery health test as an add-on', 'Extra work quoted first'], '/services/#addons', 'electrical', False),
+    ('Engine and clutch work', 'Engine idling, noise, clutch and drive checks.', ['Engine idling check and adjustment', 'Clutch inspection and adjustment', 'Throttle cable and exhaust inspection', 'Repair estimate before work'], '/services/#included', 'engine', False),
+    ('Suspension, fork and tyres', 'Ride comfort and grip, checked by eye and by hand.', ['Front and rear tyre condition check', 'Front fork inspection', 'Suspension inspection in the Full service', 'Puncture help and a tyre check as add-ons'], '/services/#addons', 'tyres', False),
+]
+HUB_STEPS = [
+    ('at-your-door', 'A Mechanix Pro mechanic servicing a motorcycle in an apartment car park', 'Tell us your bike and book', 'Pay the small confirmation fee, {{confirmrange}} by engine size. It is adjusted in your final bill.'),
+    ('bike-closeup', 'A close view of a motorcycle being checked by a mechanic', 'The mechanic inspects and quotes', 'You give the one-time code at the door. The mechanic inspects and sends an itemised quote. Work starts only after you say yes.'),
+    ('garage-handshake', 'A customer and a Mechanix Pro mechanic shaking hands after a job', 'Pay after the work', 'Pay online by QR or link, then get your photos and your bill.'),
+]
+HUB_ROWS = [
+    ('Partners checked', 'Documents checked and garage visited before going live', 'Usually not checked'),
+    ('Quote before work', 'Itemised quote, nothing starts without your OK', 'Usually a verbal estimate'),
+    ('One-time code at handover', 'Yes', 'Usually no'),
+    ('Photos at pickup, ready and delivery', 'Yes', 'Rarely'),
+    ('Online payment with a bill', 'QR or link, with a bill', 'Often cash only'),
+    ('Repair warranty', '{{days}}-day service warranty on our work', 'Usually none or verbal'),
+    ('Doorstep service', 'Yes, in our service area', 'You usually take the bike in'),
+    ('Track your job', 'Private tracking link', 'Usually call to ask'),
+]
+def city_hub_block():
+    chips = lambda rows: '<ul class="hub-chips">' + ''.join(f'<li><a href="{_first_model(pre)}">{html.escape(n)}</a></li>' for n, pre in rows) + '</ul>'
+    brands = ('<section id="brands"><div class="wrap"><div class="sec-head"><h2>Brands we service in Bengaluru.</h2><p>We service all major two-wheeler brands. Tell us your model when you book and we confirm it.</p></div>'
+              '<h3 class="hub-lab">Petrol motorcycles and scooters</h3>' + chips(HUB_PETROL) + '<h3 class="hub-lab">Electric two-wheelers</h3>' + chips(HUB_EV) +
+              '<p class="tiny muted">Brand names belong to their owners and are used only to show which bikes we service.</p></div></section>')
+    POP = '<span class="hub-pop">Popular in Bengaluru</span>'
+    cards = ''.join('<li class="hub-card">' + (POP if pop else '') + f'<h3>{html.escape(t)}</h3><p>{html.escape(d)}</p><ul>' + ''.join(f'<li>{html.escape(b)}</li>' for b in bl) + f'</ul><a href="{href}">See what is included</a></li>' for t, d, bl, href, _k, pop in HUB_CARDS)
+    services = f'<section class="band" id="services-hub"><div class="wrap"><div class="sec-head"><h2>Services we provide in Bengaluru.</h2></div><ul class="hub-cards">{cards}</ul></div></section>'
+    steps = ''.join(f'<li class="hub-step"><img src="/assets/img/hero/{im}-700.webp" width="700" height="347" loading="lazy" decoding="async" alt="{html.escape(alt)}"><h3><span class="soon-n">{i + 1}</span> {html.escape(t)}</h3><p>{html.escape(d)}</p></li>' if im == 'at-your-door' else f'<li class="hub-step"><img src="/assets/img/hero/{im}-{"600" if im.startswith("garage") else "700"}.webp" width="600" height="400" loading="lazy" decoding="async" alt="{html.escape(alt)}"><h3><span class="soon-n">{i + 1}</span> {html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for i, (im, alt, t, d) in enumerate(HUB_STEPS))
+    how = f'<section id="how-hub"><div class="wrap"><div class="sec-head"><h2>How a booking works.</h2></div><ol class="hub-steps">{steps}</ol></div></section>'
+    rows = ''.join(f'<tr><th scope="row">{html.escape(a)}</th><td>{html.escape(b)}</td><td>{html.escape(c)}</td></tr>' for a, b, c in HUB_ROWS)
+    cmp_ = ('<section class="band" id="compare"><div class="wrap"><div class="sec-head"><h2>Mechanix Pro vs an unverified roadside workshop.</h2></div><div class="hub-table" role="region" aria-label="Comparison table" tabindex="0"><table><thead><tr><th scope="col">What you get</th><th scope="col">Mechanix Pro</th><th scope="col">An unverified roadside workshop</th></tr></thead><tbody>'
+            + rows + '</tbody></table></div><p class="tiny muted">Based on how most unbranded roadside workshops work. Your experience may differ.</p></div></section>')
+    return brands + services + how + cmp_
 def landing_pages():
     by = {x['slug']: x for x in LANDING}
     for x in LANDING:
@@ -1304,7 +1348,7 @@ def landing_pages():
 {(GARAGE_WHAT + GARAGE_VID) if is_garage else ''}<section><div class="wrap"><div class="sec-head"><h2>{html.escape(x.get("what_h2", "What you get."))}</h2></div>{tiles_block}</div></section>
 <section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Prices, up front.</h2><p>Starting prices for bikes and scooters up to 149cc, excluding GST. 150 to 250cc and 251 to 500cc bikes have their own prices on the <a href="/services/">services page</a>.</p></div><div class="card">{LANDING_PRICES}</div><p style="margin-top:12px">To confirm your slot you pay {{{{confirmrule}}}}.</p><p class="tiny muted" style="margin-top:8px">Prices checked on {TODAY_NICE}.</p></div></section>
 <section class="band"><div class="wrap"><div class="sec-head"><h2>How it works.</h2></div><ol class="soon-steps steps-2">{steps}</ol></div></section>
-{garage_band() if is_garage else ''}<section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Questions we get asked.</h2></div>{faq}<p class="tiny muted" style="margin-top:18px">Prices are before GST; 18% GST is added on your bill. Your exact quote comes on WhatsApp first.</p><div class="rel-row"><span class="tiny muted">Also see:</span>{rel}</div></div></section>
+{garage_band() if is_garage else ''}{city_hub_block() if x['slug'] == 'two-wheeler-service-at-home-bangalore' else ''}<section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Questions we get asked.</h2></div>{faq}<p class="tiny muted" style="margin-top:18px">Prices are before GST; 18% GST is added on your bill. Your exact quote comes on WhatsApp first.</p><div class="rel-row"><span class="tiny muted">Also see:</span>{rel}</div></div></section>
 <section><div class="wrap"><div class="final"><h2>Ready when your bike is.</h2><p>Build your service in under a minute, or just message us.</p><div class="row"><a class="btn btn-primary" href="/book/">Build your service</a><a class="btn btn-ghost" href="#" data-wa="general">Get a quote on WhatsApp</a></div></div></div></section>'''
         write(f"{x['slug']}/index.html", HEAD.format(title=html.escape(x['title']), desc=html.escape(x['desc']), url=url, site=SITE, schema=ld, scripts=LEGAL_JS, body='', nav=NAV, main='') + body + foot())
         urls.append((f"/{x['slug']}/", '0.8'))
