@@ -16,6 +16,8 @@ import * as team from './pages/team.js';
 import * as inbox from './pages/inbox.js';
 import * as callnow from './pages/callnow.js';
 import * as followups from './pages/followups.js';
+import * as watch from './pages/watch.js';
+import { redCount } from "./watch.js";
 import * as playbooks from './pages/playbooks.js';
 import { myRows } from './targets.js';
 import { missedCallQueue } from './speed.js';
@@ -56,6 +58,7 @@ const SCREENS = [
   { id: 'playbooks', title: 'Playbooks', page: 'leads', mod: playbooks },
   { id: 'mine', title: 'My day', page: 'leads' },
   { id: 'dispatch', title: 'Dispatch', page: 'leads', tech: true, mod: dispatch },
+  { id: 'watch', title: 'Service Watch', page: 'leads', tech: true, mod: watch },
   { id: 'issues', title: 'Issues', page: 'leads', mod: issues },
   { id: 'dupes', title: 'Duplicates', page: 'leads', action: 'assign_leads', mod: dupes },
   { id: 'unassigned', title: 'Unassigned', page: 'leads', action: 'take_leads' },
@@ -197,6 +200,7 @@ async function pulse() {
   let dueNow = 0;
   if (mine) {
     { const n = missedCallQueue(mine).length, fb = $('#fuBadge'); if (fb) { fb.textContent = n; fb.hidden = !n; } }
+    if (canTech() && pageOk("leads")) { try { const n = redCount(await rpc("crm_service_watch")), sb2 = $("#swBadge"); if (sb2) { sb2.textContent = n; sb2.hidden = !n; } } catch (e) { /* older database: no badge */ } }
     // A follow-up the agent set has come due: sound and pop-up once for each follow-up time, and it counts in the tab title until it is done.
     const due = mine.filter((l) => l.overdue && l.crm_next_action_at), key = (l) => l.id + '|' + l.crm_next_action_at; dueNow = due.length;
     if (seen.due) { const fresh = due.filter((l) => !seen.due.has(key(l))); if (fresh.length) alertUser(fresh.length === 1 ? 'Follow-up due' : fresh.length + ' follow-ups due', fresh.slice(0, 2).map((l) => l.name).join(', ')); }
@@ -238,7 +242,7 @@ async function refresh() {
 }
 
 function renderTabs() {
-  $('#tabs').innerHTML = screens().map((s) => `<button type="button" data-view="${s.id}" aria-current="false">${esc(s.title)}${s.id === 'unassigned' ? ' <span class="badge" id="unBadge" hidden></span>' : ''}${s.id === 'dispatch' ? ' <span class="badge" id="dpBadge" hidden></span>' : ''}${s.id === 'inbox' ? ' <span class="badge" id="inBadge" hidden></span>' : ''}${s.id === 'followups' ? ' <span class="badge" id="fuBadge" hidden></span>' : ''}${s.id === 'callnow' ? ' <span class="badge" id="cqBadge" hidden></span>' : ''}</button>`).join('');
+  $('#tabs').innerHTML = screens().map((s) => `<button type="button" data-view="${s.id}" aria-current="false">${esc(s.title)}${s.id === 'unassigned' ? ' <span class="badge" id="unBadge" hidden></span>' : ''}${s.id === 'dispatch' ? ' <span class="badge" id="dpBadge" hidden></span>' : ''}${s.id === 'inbox' ? ' <span class="badge" id="inBadge" hidden></span>' : ''}${s.id === 'followups' ? ' <span class="badge" id="fuBadge" hidden></span>' : ''}${s.id === 'watch' ? ' <span class="badge" id="swBadge" hidden></span>' : ''}${s.id === 'callnow' ? ' <span class="badge" id="cqBadge" hidden></span>' : ''}</button>`).join('');
   $$('#tabs [data-view]').forEach((b) => b.addEventListener('click', () => go(b.dataset.view)));
 }
 

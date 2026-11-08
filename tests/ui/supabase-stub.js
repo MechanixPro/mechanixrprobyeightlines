@@ -15,7 +15,7 @@ window.__UI_PENDING = 0;   // calls still in flight; the click-through harness w
 const track = (p) => { window.__UI_PENDING++; return Promise.resolve(p).finally(() => { window.__UI_PENDING--; }); };
 
 function emptyCrew(name, a) {
-  const list = ['crm_queue', 'crm_call_queue', 'crm_my_leads', 'crm_leads_list', 'crm_dispatch_list', 'crm_open_issues', 'crm_replies_waiting', 'crm_unstaffed_jobs', 'crm_conversion_rows', 'crm_duplicate_customers'];
+  const list = ['crm_queue', 'crm_call_queue', 'crm_my_leads', 'crm_leads_list', 'crm_dispatch_list', 'crm_service_watch', 'crm_open_issues', 'crm_replies_waiting', 'crm_unstaffed_jobs', 'crm_conversion_rows', 'crm_duplicate_customers'];
   if (list.includes(name)) return [];
   if (name === 'crm_leads_summary') return { all: 0, new: 0, followups: 0, converted: 0, won: 0, lost: 0, junk: 0, unassigned: 0, pct: null, by_vehicle: {} };
   if (name === 'crm_dashboard') return { range: { from: new Date().toISOString() }, leads: { total: 0, won: 0, won_pct: 0, lost: 0, lost_pct: 0 }, unassigned: 0, chats: { unreplied: 0, total: 0 }, targets: { team: { daily_done: 0, daily_target: 30, monthly_done: 0, monthly_target: 600 }, me: { daily_done: 0, daily_target: 8, monthly_done: 0, monthly_target: 160 } }, agents: [], attribution: [] };

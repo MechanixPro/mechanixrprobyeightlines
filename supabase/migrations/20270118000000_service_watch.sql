@@ -13,7 +13,7 @@ begin
   return coalesce((select jsonb_agg(x.j order by (x.j ->> 'severity') = 'amber', (x.j ->> 'minutes')::int desc) from (
     with b as (
       select l.id, l.ref, l.name, l.phone, l.area, l.vehicle, s.name as svc, l.preferred_date, l.preferred_slot, l.status, l.visit_stage, l.visit_stage_at, l.final_link_id, l.final_paid_at, l.final_link_amount, l.est_total, l.job_place, l.place, l.confirm_fee,
-        m.name as mech_name, m.phone as mech_phone, g.name as garage_name, g.mobile as garage_phone, ga.status as ga_status, ga.assigned_at, ga.received_at, ga.ready_at, ga.returned_at, ga.eta as ga_eta,
+        m.name as mech_name, m.phone as mech_phone, g.name as garage_name, g.mobile as garage_phone, g.id as garage_id, ga.status as ga_status, ga.assigned_at, ga.received_at, ga.ready_at, ga.returned_at, ga.eta as ga_eta,
         q.status as q_status, q.sent_at as q_sent_at, (q.eta_hours is not null or q.eta_date is not null) as q_eta,
         exists (select 1 from public.garage_estimates e where e.assignment_id = ga.id and e.return_day is not null and e.status <> 'rejected') as est_eta,
         exists (select 1 from public.job_quotes jq where jq.lead_id = l.id and jq.sent_at is not null) as quote_ever_sent,
@@ -51,7 +51,7 @@ begin
     )
     select jsonb_build_object('rule', r.rule, 'severity', r.sev, 'lead_id', r.id, 'ref', r.ref, 'name', r.name, 'phone', r.phone, 'area', r.area,
       'vehicle_service', trim(coalesce(r.vehicle, '') || ' ' || coalesce(r.svc, '')), 'slot', nullif(trim(coalesce(r.preferred_date::text, '') || ' ' || coalesce(r.preferred_slot, '')), ''),
-      'minutes', greatest(0, r.mins), 'detail', r.detail, 'mechanic_name', r.mech_name, 'garage_name', r.garage_name,
+      'minutes', greatest(0, r.mins), 'detail', r.detail, 'mechanic_name', r.mech_name, 'garage_name', r.garage_name, 'garage_id', case when boss then r.garage_id end,
       'technician_phone', case when boss then r.mech_phone end, 'garage_phone', case when boss then r.garage_phone end,
       'amount', case when adm then coalesce(r.final_link_amount, r.est_total) end,
       'paid', r.final_paid_at is not null, 'payment_requested', r.final_link_id is not null) as j from r

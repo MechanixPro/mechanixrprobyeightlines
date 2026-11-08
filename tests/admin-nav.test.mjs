@@ -6,7 +6,7 @@ const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 
 test('five sections hold every page exactly once, with the daily work first', () => {
   assert.deepEqual(GROUPS.map((g) => g.id), ['today', 'bookings', 'money', 'team', 'more']);
-  assert.deepEqual([...ALL_TABS].sort(), ['activity', 'board', 'conversion', 'coupons', 'custbook', 'customers', 'dash', 'dispatch', 'garageapp', 'homeimgs', 'invoices', 'issues', 'kyc', 'leads', 'mechanics', 'mechledger', 'offers', 'pins', 'prices', 'reports', 'sales', 'settings', 'waitlist']);
+  assert.deepEqual([...ALL_TABS].sort(), ['activity', 'board', 'conversion', 'coupons', 'custbook', 'customers', 'dash', 'dispatch', 'garageapp', 'homeimgs', 'invoices', 'issues', 'kyc', 'leads', 'mechanics', 'mechledger', 'offers', 'pins', 'prices', 'reports', 'sales', 'settings', 'waitlist', 'watch']);
   assert.equal(new Set(ALL_TABS).size, ALL_TABS.length);
 });
 test('the pages sit where the client expects them', () => {

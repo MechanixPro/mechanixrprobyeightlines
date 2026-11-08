@@ -24,6 +24,7 @@ import { adsConversions } from './ads-export.js';
 import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge } from './booking-steps.js';
 import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
+import { watchList, watchCard, redCount } from "./watch.js";
 import { createFunnelDesk, createRouting } from "./funnel.js";   // Conversion screen
 import { createSpeedPanel } from "./speed-panel.js";
 import { createDupesPanel } from "./dupes-panel.js";
@@ -286,7 +287,7 @@ function syncNav() {
 }
 function render() { try { renderPage(); } catch (e) { console.error('render', S.tab, e); $('#view').innerHTML = errorHtml('This page could not be shown.', e, 'render'); } }
 const failBanner = () => ((S.failed || []).length ? `<div class="alert" role="alert"><b>Some data could not be loaded:</b> ${esc(S.failed.join(', '))}. What you see may be incomplete. <button class="btn btn-ghost btn-sm" type="button" data-retry="boot">Retry</button></div>` : '');
-function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, dispatch, board, leads, customers, mechanics, garageapp, kyc, coupons, issues, pins, waitlist, offers, conversion, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'conversion') funnelDesk.mount($('#fnRoot')); if (S.tab === "sales") { speedPanel.mount($("#spRoot")); targetsPanel.mount($("#tgRoot")); importPanel.mount($("#ipRoot")); } if (S.tab === 'dispatch') loadDispatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'kyc') kycView.mount($('#kycRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); if (S.tab === 'customers') bindDupes(); if (S.tab === 'activity') loadActivity(); }
+function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, watch: watchView, dispatch, board, leads, customers, mechanics, garageapp, kyc, coupons, issues, pins, waitlist, offers, conversion, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'conversion') funnelDesk.mount($('#fnRoot')); if (S.tab === "sales") { speedPanel.mount($("#spRoot")); targetsPanel.mount($("#tgRoot")); importPanel.mount($("#ipRoot")); } if (S.tab === 'dispatch') loadDispatch(); if (S.tab === "watch") loadWatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'kyc') kycView.mount($('#kycRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); if (S.tab === 'customers') bindDupes(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -2217,3 +2218,21 @@ sb.auth.getSession().then(({ data }) => { if (data.session && !recovering) boot(
 
 // Phone card twin (design system phase 1): wide tables get data-label attributes so ds.css can show each row as a card under 700px. Attributes only, no behaviour.
 { let queued = false; new MutationObserver(() => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; labelTables(document.body); }); }).observe(document.body, { childList: true, subtree: true }); }
+
+// Service Watch (Today group): stuck or at-risk jobs, urgent first. Same rules and card markup as Crew (admin/watch.js); the amount shows because every admin may see money.
+function watchView() { return '<div class="view-head"><div><h1>Service Watch</h1><p>Jobs that are stuck or at risk. Urgent first, then the longest stuck.</p></div></div><div id="swWrap" aria-live="polite">' + LOADING + '</div>'; }
+async function loadWatch() {
+  const w = $('#swWrap'); if (!w) return;
+  try {
+    const list = watchList(await adminRpc('crm_service_watch'), true); S.watchRows = list;
+    const red = list.filter((x) => x.severity === 'red').length;
+    w.innerHTML = list.length ? `<p class="small muted"><b>${red}</b> urgent · ${list.length - red} to watch</p>` + list.map(watchCard).join('') : '<div class="mx-empty" role="status"><b>Nothing is stuck. All jobs are moving.</b></div>';
+  } catch (e) { w.innerHTML = '<div class="mx-error" role="alert"><b>Service Watch could not load.</b><p>' + esc(e.message || String(e)) + '</p><button class="btn" type="button" data-w="retry">Try again</button></div>'; }
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('#swWrap [data-w]'); if (!b) return;
+  if (b.dataset.w === 'retry') return loadWatch();
+  const i = (S.watchRows || []).find((x) => x.lead_id === b.dataset.id); if (!i) return;
+  if (b.dataset.w === 'open') { S.tab = 'leads'; render(); openLead(i.lead_id); }
+  if (b.dataset.w === 'reassign') garageDesk.assign({ lead: { id: i.lead_id, booking_id: i.ref, area: i.area }, moveFrom: i.garage_id || undefined }).catch((err) => toast(err.message || String(err), true));
+});
