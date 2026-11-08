@@ -11,9 +11,10 @@
 //   team_contact { session }
 import { signMechanicSession, verifyMechanicSession, mechanicJobItem, duesView, payAmount, istToday, dateOk, monthRange, isOpenLead, LINK_RE, PIN_RE, UUID_RE, LOGIN_MESSAGE } from './mechanic.ts';
 import { mechanicDues, unsettledRows } from './mech-dues.ts';
+import { selfieFresh, checkSelfie, selfiePath, selfiePathOk, TERMS_VERSION, SELFIE_NEEDED } from './partner-avail.ts';
 import { techPct } from './tech-job.ts';
 
-export const ACTIONS = ['login', 'me', 'dashboard', 'jobs', 'dues', 'job_link', 'status_set', 'pay_link', 'team_contact'];
+export const ACTIONS = ['login', 'me', 'dashboard', 'jobs', 'dues', 'job_link', 'status_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'pay_link', 'team_contact'];
 const BAD = 'Could not save. Please try again.', SESSION_OVER = 'Your session has ended. Enter your PIN again.';
 
 export type Deps = {
@@ -71,7 +72,33 @@ export async function handleMechanic(req: Request, d: Deps): Promise<Response> {
   const mechId: string = who.mechanic_id;
   const me = { name: String(who.mechanic_name ?? ''), area: who.area ?? null, availability: who.availability === 'busy' ? 'busy' : 'available' };
 
-  if (action === 'me') return json(req, { ok: true, mechanic: me });
+  const selfieAt = async (): Promise<string | null> => (await rpc('partner_selfie_latest', { p_kind: 'mechanic', p_id: mechId })) ?? null;
+  if (action === 'me') {
+    const terms = (await rpc('partner_terms_status', { p_kind: 'mechanic', p_id: mechId, p_version: TERMS_VERSION })) ?? { accepted: false, tour_done: false };
+    return json(req, { ok: true, mechanic: me, terms: { version: TERMS_VERSION, accepted: !!terms.accepted, tour_done: !!terms.tour_done }, selfie_at: await selfieAt() });
+  }
+  if (action === 'terms_accept') {
+    const r = await rpc('partner_terms_accept', { p_kind: 'mechanic', p_id: mechId, p_version: TERMS_VERSION, p_tour: b?.tour === true });
+    if (!r) return json(req, { error: BAD }, 500);
+    return json(req, { ok: true, terms: { version: TERMS_VERSION, accepted: true, tour_done: !!r.tour_done } });
+  }
+  if (action === 'selfie_upload_url') {
+    const c = checkSelfie(b?.content_type, b?.size);
+    if (!c.ok) return json(req, { error: c.error }, 400);
+    const { count } = await db.from('audit_log').select('id', { count: 'exact', head: true }).eq('action', 'mechanic_selfie_try').eq('details->>access', who.access_id).gte('created_at', ago(60));
+    if ((count ?? 0) >= 10) return json(req, { error: 'Too many tries. Wait a while.' }, 429);
+    await db.from('audit_log').insert({ action: 'mechanic_selfie_try', details: { access: who.access_id } });
+    const path = selfiePath('mechanic', mechId, crypto.randomUUID(), c.ext);
+    const { data, error } = await db.storage.from('selfies').createSignedUploadUrl(path);
+    if (error || !data) { console.error('mechanic-app selfie url'); return json(req, { error: BAD }, 500); }
+    return json(req, { ok: true, path, url: data.signedUrl });
+  }
+  if (action === 'selfie_record') {
+    if (!selfiePathOk(b?.path, 'mechanic', mechId)) return json(req, { error: 'That photo is not valid.' }, 400);
+    const at = await rpc('partner_selfie_record', { p_kind: 'mechanic', p_id: mechId, p_path: b.path });
+    if (!at) return json(req, { error: BAD }, 500);
+    return json(req, { ok: true, selfie_at: at });
+  }
   if (action === 'team_contact') {
     const wa = d.env('GARAGE_TEAM_WHATSAPP').replace(/\D/g, ''), tel = d.env('GARAGE_TEAM_PHONE').replace(/\D/g, '');
     return json(req, { ok: true, whatsapp: /^\d{12}$/.test(wa) ? wa : null, call: /^\d{12}$/.test(tel) ? tel : null });
@@ -161,6 +188,7 @@ export async function handleMechanic(req: Request, d: Deps): Promise<Response> {
     const status = String(b?.status ?? ''); if (!['available', 'busy'].includes(status)) return json(req, { error: 'Choose Available or Busy.' }, 400);
     const num = (v: unknown) => (v === null || v === undefined || v === '' ? null : Number.isFinite(Number(v)) ? Number(v) : null);
     const lat = num(b?.lat), lng = num(b?.lng), acc = num(b?.acc);
+    if (status === 'available' && !selfieFresh(await selfieAt(), now())) return json(req, { error: SELFIE_NEEDED, code: 'selfie' }, 409);
     const r = await rpc('mechanic_status_set', { p_access: who.access_id, p_status: status, p_lat: lat, p_lng: lng, p_acc: acc === null ? null : Math.round(acc) });
     if (!r) return json(req, { error: BAD }, 500);
     if (!r.ok) return json(req, { error: r.error }, 400);

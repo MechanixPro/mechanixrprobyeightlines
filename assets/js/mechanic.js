@@ -101,7 +101,7 @@
               if (code === 'link') { try { win.localStorage.removeItem(LINK_KEY); } catch (e2) {} }
               S.msg = null; msg.appendChild(notice('err', text)); if (code === 'link') setTimeout(renderPin, 1200); return;
             }
-            S.session = r.data.session; S.name = r.data.mechanic && r.data.mechanic.name || ''; S.area = r.data.mechanic && r.data.mechanic.area || ''; saveSession(win, r.data); S.msg = null; loadTeam(); S.date = todayIST(); openHome();
+            S.session = r.data.session; S.name = r.data.mechanic && r.data.mechanic.name || ''; S.area = r.data.mechanic && r.data.mechanic.area || ''; saveSession(win, r.data); S.msg = null; loadTeam(); S.date = todayIST(); enter();
           });
         } }, [el('label', { class: 'g-label', for: 'gpin', text: 'PIN' }), input, el('p', { class: 'g-hint', text: 'The PIN is for you only. Do not share it.' }), msg, btn]));
       }
@@ -112,6 +112,17 @@
 
     /* ---------- home ---------- */
     function loadTeam() { api('team_contact').then(function (r) { if (r.ok) S.team = { whatsapp: r.data.whatsapp, call: r.data.call }; }); }
+    var F = function () { return win.MXP_FLOW; };
+    /* After login: terms (once per version) and the tour (once), then Home. */
+    function enter() {
+      S.screen = 'gate'; render();
+      api('me').then(function (r) {
+        if (ended(r)) return;
+        if (!r.ok || !F()) return openHome();
+        S.selfieAt = r.data.selfie_at || null;
+        F().runGate(win, app, { me: r.data, kind: 'mechanic', api: api, done: openHome });
+      });
+    }
     function openHome() { S.screen = 'home'; S.dash = null; S.jobs = null; S.dues = null; S.pay = null; render(); return refresh(); }
     function refresh(keepPanels) {
       var dateAtStart = S.date;
@@ -137,12 +148,14 @@
       });
     }
     function setStatus(status) {
-      if (S.statusBusy || !S.dash || S.dash === 'error') return; S.statusBusy = true; S.loc = ''; render();
+      if (S.statusBusy || !S.dash || S.dash === 'error') return;
+      if (status === 'available' && F() && !F().selfieFresh(S.selfieAt)) { S.statusErr = null; return F().showSelfie(win, app, { api: api, onDone: function (at) { S.selfieAt = at; S.screen = 'home'; render(); setStatus('available'); }, onCancel: function () { S.screen = 'home'; render(); } }); } S.statusBusy = true; S.loc = ''; render();
       (status === 'available' ? whereAmI() : Promise.resolve(null)).then(function (pos) {
         var body = { status: status }; if (pos) { body.lat = pos.lat; body.lng = pos.lng; body.acc = pos.acc; }
         return api('status_set', body).then(function (r) {
           S.statusBusy = false; if (ended(r)) return;
           if (r.ok) { S.dash.mechanic.availability = r.data.availability; S.loc = status === 'available' ? (r.data.located ? 'Your location was saved.' : 'Location not shared. That is fine, you are still Available.') : ''; }
+          else if (r.data && r.data.code === 'selfie') { S.selfieAt = null; setStatus('available'); return; }
           else S.statusErr = r.data && r.data.error || ERR.gen;
           render();
         });
@@ -194,7 +207,7 @@
       var on = av === 'available';
       return el('section', { class: 'd-avail' + (on ? ' on' : ' off'), 'aria-label': 'Availability' }, [
         el('div', { class: 'd-avail-txt' }, [el('p', { class: 'd-avail-title', id: 'dAvailTitle', text: on ? 'Available for jobs' : 'Not available' }), el('p', { class: 'g-hint', text: 'Crew will not send you new jobs while you are not available.' }),
-          S.loc ? el('p', { class: 'g-hint', role: 'status', text: S.loc }) : null, S.statusErr ? notice('err', S.statusErr) : null]),
+          S.loc ? el('p', { class: 'g-hint', role: 'status', text: S.loc }) : null, F() && S.selfieAt ? el('p', { class: 'g-hint', id: 'dSelfie', text: F().selfieLine(S.selfieAt) }) : null, S.statusErr ? notice('err', S.statusErr) : null]),
         el('button', { class: 'd-sw', type: 'button', role: 'switch', id: 'dAvailSwitch', 'aria-checked': on ? 'true' : 'false', 'aria-label': 'Available for jobs', disabled: S.statusBusy || null, onclick: function () { setStatus(on ? 'busy' : 'available'); } }, [el('span', { class: 'd-knob' })])]);
     }
     function statsCard(m) {
@@ -274,7 +287,7 @@
     var fromUrl = linkFromUrl(win.location.search);
     if (fromUrl) { saveLink(win, fromUrl); try { win.history.replaceState(null, '', '/mechanic/'); } catch (e) {} }
     var ses = savedSession(win);
-    if (ses && savedLink(win)) { S.session = ses.t; S.name = ses.name || ''; loadTeam(); openHome(); } else { go('pin'); }
+    if (ses && savedLink(win)) { S.session = ses.t; S.name = ses.name || ''; loadTeam(); enter(); } else { go('pin'); }
     d.addEventListener('visibilitychange', function () { if (!d.hidden && S.session && S.screen === 'home' && !S.pay && Date.now() - S.at > 60000) refresh(); });
   }
   return { start: start, money: money, todayIST: todayIST, dayLabel: dayLabel, telHref: telHref, phoneShow: phoneShow, teamLinks: teamLinks, saveLink: saveLink, savedLink: savedLink, linkFromUrl: linkFromUrl, saveSession: saveSession, savedSession: savedSession, clearSession: clearSession, dueText: dueText, LINK_KEY: LINK_KEY, SESSION_KEY: SESSION_KEY };

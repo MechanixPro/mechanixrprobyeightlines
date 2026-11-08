@@ -263,3 +263,19 @@ body.g-dark-bg{background:var(--navy)}
 .g-dark .g-tab{color:var(--on-navy)}
 .g-dark .g-tab.on{color:var(--accent)}
 .g-dark .g-tabs{background:var(--navy);border-color:var(--hair)}
+/* Partner flow screens (selfie, terms, tour): dark navy, orange buttons, 56px, no scrolling at 390x700 */
+.pf{box-sizing:border-box;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:20px 16px;padding-bottom:max(20px,env(safe-area-inset-bottom));background:var(--navy);color:var(--on-navy);outline:none}
+.pf h1{margin:0;font-size:24px;line-height:1.2;color:var(--on-navy)}
+.pf-step{margin:0;font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent)}
+.pf-p{margin:0;font-size:16px;line-height:1.45;color:var(--on-navy)}
+.pf-list{margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:16px;line-height:1.35}
+.pf-list li{padding-left:12px;border-left:3px solid var(--accent)}
+.pf-btn{min-height:56px;width:100%;border:0;border-radius:var(--radius-pill);background:var(--accent);color:var(--on-accent);font:700 16px/1 var(--font);cursor:pointer}
+.pf-btn[disabled]{opacity:.6}
+.pf-link{min-height:48px;border:0;background:none;color:var(--on-navy);font:600 16px/1 var(--font);text-decoration:underline;cursor:pointer}
+.pf-err{margin:0;padding:10px 12px;border-radius:var(--radius);background:var(--bad-bg);color:#FFD9D6;border:1px solid #FFB4AE;font-size:16px}
+.pf-file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.pf-prev,.pf-face{align-self:center;width:160px;height:160px;border-radius:50%;object-fit:cover;border:4px solid var(--accent);background:rgba(255,255,255,.08)}
+.pf-num{align-self:center;display:grid;place-items:center;width:96px;height:96px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:24px;font-weight:800}
+.pf-dots{display:flex;gap:8px;justify-content:center}.pf-dots span{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.35)}.pf-dots span.on{background:var(--accent)}
+.pf-tag{font-size:14px;color:var(--text3)}

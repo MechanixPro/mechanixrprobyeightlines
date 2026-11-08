@@ -15,7 +15,7 @@ test('the page is private: noindex, no referrer, no site chrome or analytics, no
   assert.ok(!/tags\.js|adref|mechu|gtag|fbq|analytics|class="dock"|class="top"|hero/i.test(h), 'no analytics, Mechu, dock, header or hero');
   assert.ok(!/style=/.test(h.replace(/<noscript>[\s\S]*<\/noscript>/, '')), 'no inline style');
   for (const f of ['sitemap.xml', 'llms.txt']) assert.ok(!read(f).includes('/mechanic'), 'not in ' + f);
-  const scripts = [...h.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]); assert.deepEqual(scripts, ['/assets/js/config.js', '/assets/js/install.js', '/assets/js/qr.js', '/assets/js/mechanic.js']);
+  const scripts = [...h.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]); assert.deepEqual(scripts, ['/assets/js/config.js', '/assets/js/install.js', '/assets/js/qr.js', '/assets/js/partner-flow.js', '/assets/js/mechanic.js']);
   for (const s of scripts) assert.ok(existsSync(new URL('..' + s, import.meta.url)), s + ' exists');
 });
 test('headers: noindex, no-store and a strict CSP (no inline, no third-party host) for /mechanic/', () => {

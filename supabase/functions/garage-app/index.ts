@@ -9,7 +9,10 @@
 //   statement        { session }                             -> completed jobs, amounts entered by Admin, settled or pending
 //   dashboard        { session }                             -> greeting, today's jobs, Open/Closed, month figures, unsettled amounts Admin entered ("We owe you"), whether the shop location is saved
 //   location_set     { session, lat, lng, acc? }             -> saves the shop location the phone reported (asked politely, never required)
-//   open_set         { session, open }                       -> the Open / Closed switch
+//   open_set         { session, open }                       -> the Open / Closed switch (Open needs a selfie recorded in the last 24 hours)
+//   selfie_upload_url { session, content_type, size }        -> one signed upload URL into the private bucket 'selfies'
+//   selfie_record    { session, path }                       -> records the uploaded selfie
+//   terms_accept     { session, tour? }                      -> records the terms version (and that the tour was seen)
 //   team_contact     { session }                             -> the team's WhatsApp and call numbers when set as secrets (else the page uses its public config)
 // Every response is built in _shared/garage.ts from a whitelist. Customer address and email are never selected from the database at all.
 import { adminDb, env, json, corsHeaders, sha256Hex } from '../_shared/util.ts';
@@ -17,10 +20,11 @@ import { notifyTeamGarage } from '../_shared/after-payment.ts';
 import { createPaymentLink, razorpayReady } from '../_shared/razorpay.ts';
 import { collectAction, cashAllowed, isArrived } from '../_shared/collect-payment.ts';
 import { buildInvoice } from '../_shared/invoice.ts';
+import { selfieFresh, checkSelfie, selfiePath, selfiePathOk, TERMS_VERSION, SELFIE_NEEDED } from '../_shared/partner-avail.ts';
 import { isCode, handoverHash, sameHash, afterWrongTry, doorState, MAX_ATTEMPTS, DOOR_KIND } from '../_shared/handover.ts';
 import { signSession, verifySession, garageJobListItem, garageJobDetail, garageStatement, garageDashboard, cleanLocation, cleanUpload, cleanEstimate, photoPath, photoPathOk, LINK_RE, PIN_RE, UUID_RE, EVENTS, LOGIN_MESSAGE, isOpen, type RawJob } from '../_shared/garage.ts';
 
-const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set'];
+const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set'];
 const BAD = 'Could not save. Please try again.', SESSION_OVER = 'Your session has ended. Enter your PIN again.';
 const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
 
@@ -68,7 +72,33 @@ Deno.serve(async (req) => {
   const garageId: string = who.garage_id, accessId: string = who.access_id, garageName: string = who.garage_name;
   const jobId = String(b?.id ?? '');
 
-  if (action === 'me') return json(req, { ok: true, garage: { name: garageName, label: who.label } });
+  const selfieAt = async (): Promise<string | null> => (await rpc('partner_selfie_latest', { p_kind: 'garage', p_id: garageId })) ?? null;
+  if (action === 'me') {
+    const terms = (await rpc('partner_terms_status', { p_kind: 'garage', p_id: garageId, p_version: TERMS_VERSION })) ?? { accepted: false, tour_done: false };
+    return json(req, { ok: true, garage: { name: garageName, label: who.label }, terms: { version: TERMS_VERSION, accepted: !!terms.accepted, tour_done: !!terms.tour_done }, selfie_at: await selfieAt() });
+  }
+  if (action === 'terms_accept') {
+    const r = await rpc('partner_terms_accept', { p_kind: 'garage', p_id: garageId, p_version: TERMS_VERSION, p_tour: b?.tour === true });
+    if (!r) return json(req, { error: BAD }, 500);
+    return json(req, { ok: true, terms: { version: TERMS_VERSION, accepted: true, tour_done: !!r.tour_done } });
+  }
+  if (action === 'selfie_upload_url') {
+    const c = checkSelfie(b?.content_type, b?.size);
+    if (!c.ok) return json(req, { error: c.error }, 400);
+    const { count } = await db.from('audit_log').select('id', { count: 'exact', head: true }).eq('action', 'garage_selfie_try').eq('details->>access', accessId).gte('created_at', ago(60));
+    if ((count ?? 0) >= 10) return json(req, { error: 'Too many tries. Wait a while.' }, 429);
+    await db.from('audit_log').insert({ action: 'garage_selfie_try', details: { access: accessId } });
+    const path = selfiePath('garage', garageId, crypto.randomUUID(), c.ext);
+    const { data, error } = await db.storage.from('selfies').createSignedUploadUrl(path);
+    if (error || !data) { console.error('garage-app selfie url'); return json(req, { error: BAD }, 500); }
+    return json(req, { ok: true, path, url: data.signedUrl });
+  }
+  if (action === 'selfie_record') {
+    if (!selfiePathOk(b?.path, 'garage', garageId)) return json(req, { error: 'That photo is not valid.' }, 400);
+    const at = await rpc('partner_selfie_record', { p_kind: 'garage', p_id: garageId, p_path: b.path });
+    if (!at) return json(req, { error: BAD }, 500);
+    return json(req, { ok: true, selfie_at: at });
+  }
 
   if (action === 'team_contact') {
     const wa = env('GARAGE_TEAM_WHATSAPP').replace(/\D/g, ''), tel = env('GARAGE_TEAM_PHONE').replace(/\D/g, '');
@@ -85,6 +115,7 @@ Deno.serve(async (req) => {
   }
   if (action === 'open_set') {
     if (typeof b?.open !== 'boolean') return json(req, { error: 'Choose Open or Closed.' }, 400);
+    if (b.open === true && !selfieFresh(await selfieAt())) return json(req, { error: SELFIE_NEEDED, code: 'selfie' }, 409);
     const r = await rpc('garage_open_set', { p_access: accessId, p_open: b.open });
     if (!r) return json(req, { error: BAD }, 500);
     if (!r.ok) return json(req, { error: r.error }, 400);

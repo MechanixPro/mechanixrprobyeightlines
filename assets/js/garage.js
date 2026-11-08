@@ -153,7 +153,7 @@
               if (code === 'link') { try { win.localStorage.removeItem(LINK_KEY); } catch (e2) {} }
               S.msg = null; msg.appendChild(notice('err', text)); if (code === 'link') setTimeout(renderPin, 1200); return;
             }
-            S.session = r.data.session; S.name = r.data.garage && r.data.garage.name || ''; saveSession(win, r.data); S.msg = null; loadTeam(); openHome(true);
+            S.session = r.data.session; S.name = r.data.garage && r.data.garage.name || ''; saveSession(win, r.data); S.msg = null; loadTeam(); enter();
           });
         } }, [el('label', { class: 'g-label', for: 'gpin', text: 'PIN' }), input, el('p', { class: 'g-hint', text: 'The PIN is for your garage only. Do not share it.' }), msg, btn]);
         kids.push(form);
@@ -164,6 +164,17 @@
     }
 
     /* ---------- home (dashboard): greeting, today, status, quick action, month figures, what we owe you, shop location ---------- */
+    var F = function () { return win.MXP_FLOW; };
+    /* After login: terms (once per version) and the tour (once), then Home. */
+    function enter() {
+      S.screen = 'gate'; render();
+      api('me').then(function (r) {
+        if (ended(r)) return;
+        if (!r.ok || !F()) return openHome(true);
+        S.selfieAt = r.data.selfie_at || null;
+        F().runGate(win, app, { me: r.data, kind: 'garage', api: api, done: function () { openHome(true); } });
+      });
+    }
     function openHome(first) { S.screen = 'home'; S.dash = null; render(); fetchJobs(); return fetchHome(first); }
     function fetchHome(first) {
       return api('dashboard').then(function (r) {
@@ -191,8 +202,10 @@
       } catch (e) { fail(); }
     }
     function setOpen(open) {
-      if (S.openBusy || !S.dash || S.dash === 'error') return; S.openBusy = true; render();
-      api('open_set', { open: open }).then(function (r) { S.openBusy = false; if (ended(r)) return; if (r.ok) S.dash.is_open = r.data.open; render(); });
+      if (S.openBusy || !S.dash || S.dash === 'error') return;
+      if (open && F() && !F().selfieFresh(S.selfieAt)) { return F().showSelfie(win, app, { api: api, onDone: function (at) { S.selfieAt = at; S.screen = 'home'; render(); setOpen(true); }, onCancel: function () { S.screen = 'home'; render(); } }); }
+      S.openBusy = true; render();
+      api('open_set', { open: open }).then(function (r) { S.openBusy = false; if (ended(r)) return; if (r.ok) S.dash.is_open = r.data.open; else if (r.data && r.data.code === 'selfie') { S.selfieAt = null; setOpen(true); return; } render(); });
     }
     function renderHome() {
       var dsh = S.dash, body = [];
@@ -201,7 +214,7 @@
       if (dsh === 'error') { body.push(retryCard(S.dashErr || ERR.gen, function () { S.dash = null; render(); fetchHome(); })); shell(body, 'home', true); return; }
       var av = availabilityText(!!dsh.is_open);
       body.push(el('section', { class: 'd-avail' + (dsh.is_open ? ' on' : ' off'), 'aria-label': 'Availability' }, [
-        el('div', { class: 'd-avail-txt' }, [el('p', { class: 'd-avail-title', id: 'dAvailTitle', text: av.title }), el('p', { class: 'g-hint', text: av.help })]),
+        el('div', { class: 'd-avail-txt' }, [el('p', { class: 'd-avail-title', id: 'dAvailTitle', text: av.title }), el('p', { class: 'g-hint', text: av.help }), F() && S.selfieAt ? el('p', { class: 'g-hint', id: 'dSelfie', text: F().selfieLine(S.selfieAt) }) : null]),
         el('button', { class: 'd-sw', type: 'button', role: 'switch', id: 'dAvailSwitch', 'aria-checked': dsh.is_open ? 'true' : 'false', 'aria-label': 'Available for jobs', disabled: S.openBusy || null, onclick: function () { setOpen(!dsh.is_open); } }, [el('span', { class: 'd-knob' })])]));
       var openJobsList = Array.isArray(S.jobs) ? S.jobs.filter(function (x) { return x.tab === 'open'; }) : [], nx = openJobsList[0];
       body.push(el('div', { class: 'g-chips' }, [el('span', { class: 'g-chip g-chip-work', id: 'dTodayChip', text: 'Today: ' + dsh.today_jobs + (dsh.today_jobs === 1 ? ' job' : ' jobs') })]));
@@ -536,7 +549,7 @@
     var fromUrl = linkFromUrl(win.location.search);
     if (fromUrl) { saveLink(win, fromUrl); try { win.history.replaceState(null, '', '/garage/'); } catch (e) {} }
     var ses = savedSession(win);
-    if (ses && savedLink(win)) { S.session = ses.t; S.name = ses.name || ''; loadTeam(); openHome(true); } else { go('pin'); }
+    if (ses && savedLink(win)) { S.session = ses.t; S.name = ses.name || ''; loadTeam(); enter(); } else { go('pin'); }
     d.addEventListener('visibilitychange', function () { if (!d.hidden && S.session && Date.now() - S.jobsAt > 60000) { if (S.screen === 'jobs') fetchJobs(); else if (S.screen === 'home') fetchHome(); } });
   }
   return { jobPage: jobPage, waitText: waitText, cleanCode: cleanCode, isCode: isCode, STEP_EVENT: STEP_EVENT, PAGES: PAGES, start: start, locText: locText, locAsked: locAsked, markLocAsked: markLocAsked, LOC_KEY: LOC_KEY, money: money, totals: totals, whenText: whenText, telHref: telHref, navigateUrl: navigateUrl, availabilityText: availabilityText, phoneShow: phoneShow, teamLinks: teamLinks, saveLink: saveLink, savedLink: savedLink, linkFromUrl: linkFromUrl, saveSession: saveSession, savedSession: savedSession, clearSession: clearSession, LINK_KEY: LINK_KEY, SESSION_KEY: SESSION_KEY };

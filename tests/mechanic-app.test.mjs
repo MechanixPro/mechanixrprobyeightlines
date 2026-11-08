@@ -48,6 +48,7 @@ function world(over = {}) {
       return { ok: true, access_id: ACCESS, mechanic_id: MECH, mechanic_name: 'Test Mechanic', area: 'HSR Layout', session_version: access.version };
     },
     mechanic_session_check: async ({ p_access, p_ver }) => (p_access === ACCESS && p_ver === access.version && access.active ? { ok: true, access_id: ACCESS, mechanic_id: MECH, mechanic_name: 'Test Mechanic', area: 'HSR Layout', payout_rate: 30, availability: access.availability } : { ok: false }),
+    partner_selfie_latest: async () => new Date(NOW).toISOString(),
     mechanic_status_set: async (a) => { calls.status.push(a); access.availability = a.p_status; return { ok: true, availability: a.p_status, located: a.p_status === 'available' && a.p_lat != null }; },
     mechanic_open_job: async ({ p_mechanic, p_lead }) => { calls.open.push([p_mechanic, p_lead]); const l = tables.leads.find((x) => x.id === p_lead); if (!l || l.mechanic_id !== p_mechanic || !['paid', 'scheduled'].includes(l.status)) return { ok: false, error: 'gone' }; if (tables.tech_job_links.some((k) => k.lead_id === p_lead && k.reported_at)) return { ok: false, error: 'reported' }; return { ok: true, token: 'f'.repeat(64) }; },
   };
@@ -63,7 +64,7 @@ function world(over = {}) {
 const noLeak = (out, extra = []) => { for (const bad of [ADDRESS, EMAIL, 'Secret Lane', 'Test Nagar', 'private.person', PIN_CODE, 'Asha Rao', 'Vikram', '9000000000', 'PLACEHOLDER', 'password', 'pin_hash', 'link_hash', ...extra]) assert.ok(!out.includes(bad), `leaked ${bad}`); };
 
 test('the function knows exactly these actions, and refuses everything else', async () => {
-  assert.deepEqual(ACTIONS, ['login', 'me', 'dashboard', 'jobs', 'dues', 'job_link', 'status_set', 'pay_link', 'team_contact']);
+  assert.deepEqual(ACTIONS, ['login', 'me', 'dashboard', 'jobs', 'dues', 'job_link', 'status_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'pay_link', 'team_contact']);
   const w = world();
   assert.equal((await w.call({ action: 'delete_everything' })).status, 400); assert.equal((await w.call({})).status, 400);
   const get = await handleMechanic(new Request('https://x.test/', { method: 'GET' }), w.deps); assert.equal(get.status, 405);
@@ -103,7 +104,7 @@ test('sessions: valid works; a garage session, a tampered one, an expired one, o
   assert.equal((await w.call({ action: 'me', session: s.slice(0, -2) + 'xx' })).status, 401); assert.equal((await w.call({ action: 'me', session: 'a.b' })).status, 401); assert.equal((await w.call({ action: 'me' })).status, 401);
   const old = (await signMechanicSession(SECRET, { access: ACCESS, mechanic: MECH, version: 1 }, NOW - 13 * 3600e3)).token; assert.equal((await w.call({ action: 'me', session: old })).status, 401);
   assert.equal((await w.call({ action: 'me', session: (await signMechanicSession(SECRET, { access: ACCESS, mechanic: OTHER, version: 1 }, NOW)).token })).status, 401, 'claims must match the access');
-  for (const a of ['dashboard', 'jobs', 'dues', 'job_link', 'status_set', 'pay_link', 'team_contact']) assert.equal((await w.call({ action: a })).status, 401, a + ' needs a session');
+  for (const a of ['dashboard', 'jobs', 'dues', 'job_link', 'status_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'pay_link', 'team_contact']) assert.equal((await w.call({ action: a })).status, 401, a + ' needs a session');
   w.access.version = 2; assert.equal((await w.call({ action: 'me', session: s })).status, 401, 'PIN reset or new link ends old sessions');
   w.access.version = 1; w.access.active = false; assert.equal((await w.call({ action: 'jobs', session: s })).status, 401, 'revoked');
 });
