@@ -1344,7 +1344,15 @@ def city_hub_block():
     rows = ''.join(f'<tr><th scope="row">{html.escape(a)}</th><td>{html.escape(b)}</td><td>{html.escape(c)}</td></tr>' for a, b, c in HUB_ROWS)
     cmp_ = ('<section class="band" id="compare"><div class="wrap"><div class="sec-head"><h2>Mechanix Pro vs an unverified roadside workshop.</h2></div><div class="hub-table" role="region" aria-label="Comparison table" tabindex="0"><table><thead><tr><th scope="col">What you get</th><th scope="col">Mechanix Pro</th><th scope="col">An unverified roadside workshop</th></tr></thead><tbody>'
             + rows + '</tbody></table></div><p class="tiny muted">Based on how most unbranded roadside workshops work. Your experience may differ.</p></div></section>')
-    return brands + services + how + cmp_
+    helpline = ('<section class="band" id="helpline"><div class="wrap"><div class="final"><h2>Bike broken down in Bengaluru?</h2><p>Share your live location on WhatsApp. A Mechanix Pro mechanic comes to you, and you approve any extra work before it starts.</p>'
+                '<div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, my bike has broken down in Bengaluru.&#10;Bike and model: &#10;What happened: &#10;I will share my live location.">WhatsApp for help</a><a class="btn btn-ghost" href="#" data-call>Call us</a></div></div></div></section>')
+    partner = ('<section id="own-a-workshop"><div class="wrap"><div class="sec-head"><h2>Own a workshop or work as a mechanic?</h2><p>Join the Mechanix Pro network in Bengaluru and get doorstep and garage jobs sent to your phone.</p></div><ul class="hub-cards">'
+               '<li class="hub-card hp"><h3>Jobs on your phone</h3><p>New jobs arrive in the Mechanix Pro garage and mechanic app, with an alert, address and a Navigate button.</p></li>'
+               '<li class="hub-card hp"><h3>Quote first, fewer disputes</h3><p>Customers approve your itemised quote before work starts, and every job has photos and a one-time code.</p></li>'
+               '<li class="hub-card hp"><h3>Paid every week</h3><p>Finished, paid jobs are settled weekly, with a clear statement in the app.</p></li>'
+               '<li class="hub-card hp"><h3>Join from your phone</h3><p>Upload your documents and the signed agreement on your phone. We check them and tell you when you are approved.</p></li>'
+               '</ul><p class="hub-cta"><a class="btn btn-wa" href="/join/">Apply to join</a> <a class="btn btn-ghost" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I run a garage or I am a mechanic and I want to join your network.">Ask on WhatsApp</a></p></div></section>')
+    return brands + services + how + cmp_ + helpline + partner
 def landing_pages():
     by = {x['slug']: x for x in LANDING}
     for x in LANDING:
