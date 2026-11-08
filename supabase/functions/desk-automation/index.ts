@@ -4,6 +4,7 @@
 //   2. sla: email the supervisors when a customer has waited 15 minutes for a reply, or a new lead has no owner after 15 minutes
 //   3. rating: ask a customer to rate the job, once, a couple of hours after it is completed
 //   5. watchdog: email the supervisors when the automation, the reply checker or AiSensy stops working, or the templates stay unapproved for a day
+//   9. mechanic alert: WhatsApp the assigned mechanic the job link, once per (lead, mechanic)
 //   4. journey: tell the customer when the quote is ready, when the booking is confirmed with the mechanic, and when the service is done (each once)
 import { adminDb, env, json, safeEqual, getSetting, istHour } from '../_shared/util.ts';
 import { PROJECT_API } from '../_shared/aisensy-project.ts';
@@ -16,6 +17,7 @@ import { formatWhen } from '../_shared/when.ts';
 import { runWatchdog } from '../_shared/desk-health.ts';
 import { issueCard, cardUrl } from '../_shared/warranty.ts';
 import { idParam, leadLabel } from '../_shared/booking-id.ts';
+import { JOB_ALERT_TEMPLATE, alertKind, alreadyAlerted, mayAlertNow, mechanicPhone, alertParams, mintTechLink } from '../_shared/job-alert.ts';
 import { sweepConfirmations } from '../_shared/after-payment.ts';
 
 const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
@@ -162,6 +164,41 @@ Deno.serve(async (req) => {
       result.journey = { sent: sentN, failed: failN }; if (sentN || failN) await log('journey', failN === 0, { sent: sentN, failed: failN });
     }
   } catch (e) { result.journey = { error: String((e as Error).message) }; await log('journey', false, { error: String((e as Error).message) }); }
+
+  /* 9. mechanic assigned: WhatsApp the mechanic once per (lead, mechanic) with the job link. Silently skipped until the mxp_job_assigned campaign is ready. Quiet hours 21 to 9, except jobs starting within 2 hours. Switch off: settings desk_auto_mechanic_alert = false. */
+  try {
+    const ready = await getSetting<Record<string, boolean>>(db, 'desk_campaigns', {});
+    const jt = DESK_TEMPLATES.find((t) => t.name === JOB_ALERT_TEMPLATE)!;
+    if (!(await getSetting(db, 'desk_auto_mechanic_alert', true))) result.mechanic_alert = 'off';
+    else if (!ready[jt.campaign] || !env('AISENSY_API_KEY')) { result.mechanic_alert = 'skipped'; if (new Date().getUTCMinutes() < 3) await log('mechanic_alert', true, { skipped: 'campaign not ready' }); }
+    else {
+      const today = new Date(Date.now() + 330 * MIN).toISOString().slice(0, 10);
+      const { data: ls } = await db.from('leads').select('id,ref,booking_id,name,area,pincode,preferred_date,preferred_slot,mechanic_id,vehicle,bike_id,service_id').is('deleted_at', null).eq('status', 'scheduled').not('mechanic_id', 'is', null).gte('preferred_date', today).limit(40);
+      const cands = (ls ?? []) as any[];
+      const ids = cands.map((l) => l.id);
+      const { data: sent } = ids.length ? await db.from('crm_alerts_sent').select('lead_id,kind').in('lead_id', ids) : { data: [] };
+      const todo = cands.filter((l) => !alreadyAlerted(sent ?? [], l.id, l.mechanic_id) && mayAlertNow(l.preferred_date, l.preferred_slot)).slice(0, 10);
+      const mids = [...new Set(todo.map((l) => l.mechanic_id))];
+      const { data: ms } = mids.length ? await db.from('mechanics').select('id,name,phone').in('id', mids) : { data: [] };
+      const bids = todo.map((l) => l.bike_id).filter(Boolean), sids = todo.map((l) => l.service_id).filter(Boolean);
+      const { data: bs } = bids.length ? await db.from('bikes').select('id,brand,model').in('id', bids) : { data: [] };
+      const { data: ss } = sids.length ? await db.from('services').select('id,name').in('id', sids) : { data: [] };
+      let sentN = 0, failN = 0;
+      for (const l of todo) {
+        const m = (ms ?? []).find((x: any) => x.id === l.mechanic_id); const phone = mechanicPhone(m?.phone);
+        if (!m || !phone) continue; // no phone: nothing to send, and not marked so adding a number later still alerts
+        const link = await mintTechLink(db, l.id, l.mechanic_id); if (!link) { failN++; continue; }
+        const b = (bs ?? []).find((x: any) => x.id === l.bike_id);
+        const params = alertParams({ mechanicName: m.name, bookingId: idParam(l), vehicle: [b?.brand, b?.model].filter(Boolean).join(' ') || l.vehicle || '', service: (ss ?? []).find((x: any) => x.id === l.service_id)?.name ?? '', area: l.area, pincode: l.pincode, when: formatWhen(l.preferred_date, l.preferred_slot), link });
+        const r = await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: jt.campaign, phone, name: m.name, params, source: 'mechanix-desk-mechanic-alert' });
+        // Marked either way so a failing number is not retried every three minutes; the log shows the failure.
+        await db.from('crm_alerts_sent').upsert({ lead_id: l.id, kind: alertKind(l.mechanic_id) }, { onConflict: 'lead_id,kind', ignoreDuplicates: true });
+        if (r.ok) { sentN++; await db.from('crm_activities').insert({ lead_id: l.id, actor: null, kind: 'whatsapp', body: 'Job alert sent to ' + String(m.name).split(' ')[0] + ' on WhatsApp' }).then(() => {}, () => {}); }
+        else { failN++; console.error('mechanic_alert', l.ref, r.error); }
+      }
+      result.mechanic_alert = { sent: sentN, failed: failN }; if (sentN || failN) await log('mechanic_alert', failN === 0, { sent: sentN, failed: failN });
+    }
+  } catch (e) { result.mechanic_alert = { error: String((e as Error).message) }; await log('mechanic_alert', false, { error: String((e as Error).message) }); }
 
   /* 6. warranty cards: once a completed booking is fully paid, make its card; send it on WhatsApp when the template is approved. Only for bookings completed after the switch-on time. */
   try {
