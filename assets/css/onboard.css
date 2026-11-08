@@ -50,3 +50,4 @@ p{margin:0}.o-lead{color:var(--on2)}.o-small{font-size:var(--fs-3);color:var(--o
 .o-check .t.ok{background:#157A3E;border-color:#157A3E;color:#fff}
 .o-done{align-items:center;justify-content:center;text-align:center;gap:14px}
 .o-tick{width:72px;height:72px;border-radius:50%;background:#157A3E;color:#fff;font-size:40px;display:flex;align-items:center;justify-content:center}
+body.onb .o-btn{font-weight:700;font-size:var(--fs-4)}

@@ -63,7 +63,7 @@
     var rej = it.rejected && it.rejected[0] && !S.last[it.type] ? it.rejected[0] : null;
     var prev = el('div', { class: 'o-prev' }), state = el('p', { class: 'o-state', 'aria-live': 'polite' });
     if (S.last[it.type] && S.last[it.type].url) prev.appendChild(el('img', { src: S.last[it.type].url, alt: 'Your photo' }));
-    else prev.textContent = done ? 'Uploaded' : (pdfOnly ? 'Choose the signed PDF' : 'Nothing added yet');
+    else prev.textContent = (done || it.have) ? (multi ? 'Photo added. Add more below.' : 'Uploaded') : (pdfOnly ? 'Choose the signed PDF' : 'Nothing added yet');
     state.textContent = multi ? it.have + ' of ' + it.min + ' added' : (done ? 'Uploaded' : '');
     if (done) state.className = 'o-state ok';
     var bar = el('div', { class: 'o-bar', hidden: true }, [el('b')]); bar.hidden = true;
