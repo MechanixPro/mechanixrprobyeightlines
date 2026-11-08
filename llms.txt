@@ -57,6 +57,7 @@ Cancellation: cancel more than 2 hours before your slot and the confirmation fee
 - [Services and prices](https://mechanixpro.in/services/)
 - [Rate card](https://mechanixpro.in/rate-card/)
 - [How it works](https://mechanixpro.in/help/)
+- [How we keep your bike safe](https://mechanixpro.in/our-process/)
 - [Book a service](https://mechanixpro.in/book/)
 - [Track a booking](https://mechanixpro.in/track/)
 - [Roadside help](https://mechanixpro.in/roadside/)

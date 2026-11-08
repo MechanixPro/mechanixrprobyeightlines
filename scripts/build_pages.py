@@ -34,7 +34,7 @@ FOOTER = '''<footer class="foot">
     </div>
     <div class="foot-cols">
       <div><b>Areas</b>{area_links}<a href="/areas/">All Bengaluru PIN codes</a></div>
-      <div><b>Company</b><a href="/services/">Services and prices</a><a href="/rate-card/">Rate card</a><a href="/help/">How it works</a><a href="/roadside/">Roadside help</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
+      <div><b>Company</b><a href="/services/">Services and prices</a><a href="/rate-card/">Rate card</a><a href="/help/">How it works</a><a href="/our-process/">How we keep your bike safe</a><a href="/roadside/">Roadside help</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
     </div>
     <p class="tiny">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Mechanix Pro is a brand of {company_name}, {company_addr}. GSTIN {company_gstin}</p><p class="tiny">Website developed by <a href="https://ziyam.me" target="_blank" rel="noopener" class="inl">ziyam.me</a></p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p>
   </div>
@@ -673,6 +673,17 @@ for slug, (title, desc, h1, lead, points, msg, cta) in GROUP.items():
     _gld = crumbs((_gname, f'/{slug}/')) + page_ld(service_node(_gname, url, _gtype, description=_unesc(re.sub('<[^>]+>', '', lead))))
     write(f'{slug}/index.html', HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=_gld, scripts=LEGAL_JS, body='', nav=NAV, main='page') + body + foot())
     urls.append((f'/{slug}/', '0.6'))
+
+# ---- /our-process/: how a booking is kept safe, step by step (W3). Own block; source in src/our-process.html ----
+def _build_our_process():
+    _t = 'How we keep your bike safe | Mechanix Pro'
+    _d = 'Nine steps from booking to delivery: one-time code at the door, itemised quote you approve, photos, online payment and a bill.'
+    _url = f'{SITE}/our-process/'
+    _body = tok(open(os.path.join(ROOT, 'src', 'our-process.html'), encoding='utf-8').read())
+    _ld = crumbs(('How we keep your bike safe', '/our-process/')) + page_ld({"@type": "WebPage", "@id": _url + '#webpage', "url": _url, "name": _t, "isPartOf": {"@id": SITE + '/#website'}})
+    write('our-process/index.html', HEAD.format(title=html.escape(_t), desc=html.escape(_d), url=_url, site=SITE, schema=_ld, scripts=LEGAL_JS, body='', nav=NAV, main='page') + _body + foot())
+    urls.append(('/our-process/', '0.6'))
+_build_our_process()
 
 # ---- Every Bengaluru PIN code: a small script for the PIN check, and a page that lists them all ----
 _pins = json.load(open(os.path.join(ROOT, 'src', 'pincodes.json'), encoding='utf-8'))['pins']
@@ -1448,7 +1459,7 @@ def llms_txt():
       f"- {COMPANY['legalName']}, operating as Mechanix Pro. {_ADDR}. GSTIN {COMPANY['gstin']}.",
       '- Phone: +91 79652 95649. Email: hello@mechanixpro.in. WhatsApp from the website. Instagram: https://www.instagram.com/themechanixpro/', '',
       '## Pages']
-    for t, u in (('Services and prices', '/services/'), ('Rate card', '/rate-card/'), ('How it works', '/help/'), ('Book a service', '/book/'), ('Track a booking', '/track/'), ('Roadside help', '/roadside/'), ('Car service', '/car-service-bangalore/'), ('Major repairs with pickup and drop', '/major-bike-repair-pickup-and-drop-bangalore/'), ('Verified garages', '/verified-bike-garages-bangalore/'), ('Partner your garage', '/garage-partners/'), ('Join as a garage or mechanic', '/join/'), ('Areas we serve', '/areas/'), ('Guides', '/guides/how-often-to-service-your-bike/'), ('Blog', '/blog/'), ('Refund policy', '/refund-policy/'), ('Terms', '/terms/'), ('Contact', '/contact/')):
+    for t, u in (('Services and prices', '/services/'), ('Rate card', '/rate-card/'), ('How it works', '/help/'), ('How we keep your bike safe', '/our-process/'), ('Book a service', '/book/'), ('Track a booking', '/track/'), ('Roadside help', '/roadside/'), ('Car service', '/car-service-bangalore/'), ('Major repairs with pickup and drop', '/major-bike-repair-pickup-and-drop-bangalore/'), ('Verified garages', '/verified-bike-garages-bangalore/'), ('Partner your garage', '/garage-partners/'), ('Join as a garage or mechanic', '/join/'), ('Areas we serve', '/areas/'), ('Guides', '/guides/how-often-to-service-your-bike/'), ('Blog', '/blog/'), ('Refund policy', '/refund-policy/'), ('Terms', '/terms/'), ('Contact', '/contact/')):
         lines.append(f"- [{t}]({SITE}{u})")
     lines.append('')
     open(os.path.join(ROOT, 'llms.txt'), 'w', encoding='utf-8').write('\n'.join(lines))

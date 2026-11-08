@@ -1,0 +1,57 @@
+<style>
+.op-head{padding:28px 0 8px}.op-head p{font-size:19px;color:var(--muted);max-width:60ch}
+.op-hero{display:block;width:100%;height:auto;border-radius:16px;margin:20px 0 8px;aspect-ratio:1200/594;object-fit:cover}
+.op-steps{list-style:none;margin:28px 0;padding:0;position:relative}
+.op-steps::before{content:"";position:absolute;left:21px;top:8px;bottom:8px;width:2px;background:var(--line)}
+.op-steps li{position:relative;padding:0 0 22px 62px;min-height:44px}
+.op-steps .ic{position:absolute;left:0;top:0;width:44px;height:44px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center}
+.op-steps .ic svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.op-steps h3{margin:0 0 4px;font-size:19px}.op-steps h3 small{color:var(--ember);font-size:13px;font-weight:700;margin-right:8px;letter-spacing:.04em}
+.op-steps p{margin:0;color:var(--muted)}
+.op-boxes{display:grid;gap:16px;margin:28px 0}@media(min-width:760px){.op-boxes{grid-template-columns:1fr 1fr}}
+.op-box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
+.op-wrap h2::before{display:none}.op-wrap h2{padding:0}.op-box h2{margin:0 0 10px;font-size:21px}.op-box ul{margin:0;padding-left:20px}.op-box li{margin:6px 0}
+.op-mock{max-width:360px;margin:12px 0 0;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 6px 20px rgba(20,41,90,.08)}
+.op-mock b.t{display:block;font-size:13px;color:var(--muted);margin-bottom:10px;letter-spacing:.04em;text-transform:uppercase}
+.op-mock ol{list-style:none;margin:0;padding:0}.op-mock li{display:flex;gap:10px;align-items:center;padding:7px 0;font-size:15px}
+.op-mock li i{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);flex:none}
+.op-mock li.done i{background:var(--ok);border-color:var(--ok)}.op-mock li.now i{border-color:var(--ember);background:var(--ember-hot)}
+.op-mock li.now{font-weight:700}.op-mock li span{margin-left:auto;color:var(--muted);font-size:13px}
+main.page .op-box h2{margin:0 0 10px;padding:0;border:0;font-size:21px}
+.op-cta{margin:32px 0 8px}
+</style>
+<section class="op-head">
+  <div class="wrap op-wrap">
+    <h1 style="font-size:clamp(32px,6vw,50px)">How we keep your bike safe.</h1>
+    <p>Nine steps, from your booking to the finished job. You can see each one on your tracking page.</p>
+    <img class="op-hero" src="/assets/img/hero/code-handover-700.webp" srcset="/assets/img/hero/code-handover-700.webp 700w, /assets/img/hero/code-handover-1200.webp 1200w" sizes="(min-width:960px) 1140px, calc(100vw - 40px)" width="1200" height="594" alt="A customer shares a one-time code with a mechanic at the door" decoding="async">
+  </div>
+</section>
+<section class="op-wrap">
+  <div class="wrap">
+    <ol class="op-steps">
+      <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/></svg></span><h3><small>STEP 1</small>You book and pay a small confirmation fee</h3><p>The fee is {{confirmrange}} by engine size, GST included. It is adjusted in your final bill.</p></li>
+      <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 10 18.7l1-1"/></svg></span><h3><small>STEP 2</small>You get your booking ID, tracking link and code</h3><p>You get a booking ID, a private tracking link and a 4-digit code by email and WhatsApp.</p></li>
+      <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><h3><small>STEP 3</small>We confirm your slot and assign a mechanic</h3><p>We confirm your slot. A checked mechanic or partner garage is assigned to your job.</p></li>
+      <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.6-6-10a6 6 0 0 1 12 0c0 4.4-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></svg></span><h3><small>STEP 4</small>They tell you when they are on the way</h3><p>You are told when they are on the way and when they are near. You can see it on your tracking page.</p></li>
+      <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><h3><small>STEP 5</small>At the door you share your one-time code</h3><p>Work cannot start without it.</p></li>
+      <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4M10 12h6M10 16h6"/></svg></span><h3><small>STEP 6</small>They inspect and send you an itemised quote</h3><p>Nothing starts until you say yes, on your tracking page or by phone.</p></li>
+      <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><h3><small>STEP 7</small>Photos at pickup, when work is done and at delivery</h3><p>Replaced parts are shown to you.</p></li>
+      <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v0M17 20h4"/></svg></span><h3><small>STEP 8</small>You pay the final amount online</h3><p>Pay by QR or link. Cash or UPI only if you chose to inspect first. You always get a bill.</p></li>
+      <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg></span><h3><small>STEP 9</small>Your repair work is covered for {{days}} days, and you can rate us</h3><p>Our service work is covered for {{days}} days from the service date. If the same work fails in that time, we redo it free. Parts carry a limited warranty on the terms of the part's manufacturer or supplier.</p></li>
+    </ol>
+    <h2>What your tracking page looks like</h2>
+    <p class="muted">A sample, not a real booking.</p>
+    <div class="op-mock" role="img" aria-label="Sample tracking timeline">
+      <b class="t">Sample tracking</b>
+      <ol><li class="done"><i></i>Booking confirmed</li><li class="done"><i></i>Mechanic assigned</li><li class="done"><i></i>On the way</li><li class="now"><i></i>Quote waiting for your yes</li><li><i></i>Work in progress</li><li><i></i>Delivered</li></ol>
+    </div>
+    <div class="op-boxes">
+      <div class="op-box"><h2>Who works on your bike</h2><ul><li>Partners and mechanics send their documents and photos.</li><li>We check them before they take jobs.</li><li>We do not publish their documents.</li></ul></div>
+      <div class="op-box"><h2>Your money</h2><ul><li>The confirmation fee is adjusted in your final bill.</li><li>Prices are shown before work.</li><li>No work without your OK.</li><li>Read our <a href="/refund-policy/">refund policy</a>.</li></ul></div>
+      <div class="op-box"><h2>Your data</h2><ul><li>When your vehicle goes to a partner workshop, we share your first name and mobile number with it.</li><li>The workshop sees them only while your job is open.</li><li>We never share your address or email with the workshop.</li><li>Details are in our <a href="/privacy/">privacy policy</a>.</li></ul></div>
+      <div class="op-box"><h2>If something goes wrong</h2><ul><li><a href="#" data-call>Call us</a> or <a href="#" data-wa="general">message us on WhatsApp</a>.</li><li><a href="/track/">Track your job</a>.</li><li>Read our <a href="/terms/">terms</a> and <a href="/refund-policy/">refund policy</a>.</li></ul></div>
+    </div>
+    <div class="op-cta"><h2>Ready when you are.</h2><p class="muted">Pick your bike and a slot. Nothing starts without your code and your OK.</p><a class="btn btn-primary" href="/book/">Book a service</a></div>
+  </div>
+</section>
