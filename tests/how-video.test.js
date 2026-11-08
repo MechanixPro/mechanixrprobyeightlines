@@ -16,8 +16,8 @@ test('the home page has one muted autoplay hero loop; every other video is muted
   const all = read('index.html').match(/<video[^>]*>/g) || [];
   const hero = all.filter((v) => /class="hm-v"/.test(v)), vids = all.filter((v) => !/class="hm-v"/.test(v));
   assert.equal(hero.length, 1); assert.match(hero[0], /muted/); assert.match(hero[0], /autoplay/); assert.match(hero[0], /loop/); assert.match(hero[0], /playsinline/);
-  assert.equal(vids.length, 4, 'the two oil-change videos in Our work, the welcome video and the apartment service day video (all tap-to-play)');   // changed on purpose 2026-11-08: welcome and apartment videos added
-  vids.forEach((v) => { assert.match(v, /muted/); assert.doesNotMatch(v, /autoplay/); assert.match(v, /preload="none"/); });
+  assert.equal(vids.length, 5, 'the two oil-change videos in Our work, the welcome video, the apartment service day video and the garage partner video (all tap-to-play)');   // changed on purpose 2026-11-08: welcome and apartment videos added, then the garage partner video with sound
+  vids.forEach((v) => { if (!/garage-partner-poster/.test(v)) assert.match(v, /muted/); assert.doesNotMatch(v, /autoplay/); assert.match(v, /preload="none"/); });   // the garage partner video is the one tap-to-play video that carries sound, so it is not muted
   assert.match(vids[0], /\bcontrols\b/);
 });
 test('the first play is recorded through the shared tags, with no personal data', () => {
