@@ -9,6 +9,8 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
   var PAGES = ['offer', 'navigate', 'phone', 'code', 'inspect', 'ready', 'done'];
+  /** 75 seconds becomes 01:15. */
+  function waitText(sec) { sec = Math.max(0, Math.floor(Number(sec) || 0)); var m = Math.floor(sec / 60), r = sec % 60; return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r; }
   /** The 4-digit code: digits only, at most four. */
   function cleanCode(v) { return String(v == null ? '' : v).replace(/\D/g, '').slice(0, 4); }
   function isCode(v) { return /^[0-9]{4}$/.test(String(v == null ? '' : v)); }
@@ -96,6 +98,16 @@
     function lock(msg) { clearSession(win); S.session = null; S.dash = null; S.jobs = null; S.job = null; S.statement = null; S.msg = msg || null; go('pin'); }
     function go(screen, opts) { S.screen = screen; if (opts) Object.keys(opts).forEach(function (k) { S[k] = opts[k]; }); render(); try { win.scrollTo(0, 0); } catch (e) {} }
 
+    /* haptics, alert tone (Web Audio, no files) and the vibrate pattern while a new job waits */
+    function buzz(p) { try { if (win.navigator && win.navigator.vibrate) win.navigator.vibrate(p); } catch (e) {} }
+    var AC = null, alertTimer = null;
+    function unlockAudio() { try { var C0 = win.AudioContext || win.webkitAudioContext; if (!C0) return; if (!AC) AC = new C0(); if (AC.state === 'suspended') AC.resume(); } catch (e) {} }
+    d.addEventListener('pointerdown', unlockAudio, true);
+    function beep() { try { if (!AC || AC.state !== 'running') return; var t = AC.currentTime; [880, 1175].forEach(function (f, i) { var o = AC.createOscillator(), g = AC.createGain(); o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, t + i * 0.22); g.gain.exponentialRampToValueAtTime(0.35, t + i * 0.22 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.22 + 0.2); o.connect(g); g.connect(AC.destination); o.start(t + i * 0.22); o.stop(t + i * 0.22 + 0.22); }); } catch (e) {} }
+    function startAlert() { if (alertTimer) return; var ring = function () { beep(); buzz([300, 150, 300]); }; ring(); alertTimer = win.setInterval(ring, 2500); }
+    function stopAlert() { if (alertTimer) { win.clearInterval(alertTimer); alertTimer = null; } buzz(0); }
+    var ringTimer = null;
+    function stopRing() { if (ringTimer) { win.clearInterval(ringTimer); ringTimer = null; } }
     /* small pieces */
     var chip = function (job) { return el('span', { class: 'g-chip g-chip-' + (CHIP[job.status] || 'new'), text: job.status_label }); };
     var notice = function (kind, text) { return el('p', { class: 'g-note g-note-' + kind, role: kind === 'err' ? 'alert' : 'status', text: text }); };
@@ -111,7 +123,7 @@
 
     /* ---------- shell ---------- */
     function shell(body, active, noLock) {
-      clear(app); app.classList.remove('g-wiz');
+      clear(app); app.classList.remove('g-wiz'); var dark = !!S.session && (active === 'home' || active === 'jobs'); app.classList.toggle('g-dark', dark); d.body.classList.toggle('g-dark-bg', dark);
       var head = el('header', { class: 'g-top' }, [el('div', { class: 'g-brand' }, [el('img', { src: '/assets/img/logo-mark.webp', alt: '', width: 28, height: 28 }), el('div', {}, [el('b', { text: 'Mechanix Pro Garage' }), el('span', { text: S.name || '' })])]),
         S.session && !noLock ? el('button', { class: 'g-lock', type: 'button', onclick: function () { lock('You are signed out.'); }, text: 'Lock' }) : null]);
       var tabs = S.session ? el('nav', { class: 'g-tabs g-tabs-4', 'aria-label': 'Garage app' }, [['home', 'Home'], ['jobs', 'Jobs'], ['statement', 'Statement'], ['help', 'Help']].map(function (t) {
@@ -151,7 +163,7 @@
     }
 
     /* ---------- home (dashboard): greeting, today, status, quick action, month figures, what we owe you, shop location ---------- */
-    function openHome(first) { S.screen = 'home'; S.dash = null; render(); return fetchHome(first); }
+    function openHome(first) { S.screen = 'home'; S.dash = null; render(); fetchJobs(); return fetchHome(first); }
     function fetchHome(first) {
       return api('dashboard').then(function (r) {
         if (ended(r)) return;
@@ -190,6 +202,10 @@
       body.push(el('section', { class: 'd-avail' + (dsh.is_open ? ' on' : ' off'), 'aria-label': 'Availability' }, [
         el('div', { class: 'd-avail-txt' }, [el('p', { class: 'd-avail-title', id: 'dAvailTitle', text: av.title }), el('p', { class: 'g-hint', text: av.help })]),
         el('button', { class: 'd-sw', type: 'button', role: 'switch', id: 'dAvailSwitch', 'aria-checked': dsh.is_open ? 'true' : 'false', 'aria-label': 'Available for jobs', disabled: S.openBusy || null, onclick: function () { setOpen(!dsh.is_open); } }, [el('span', { class: 'd-knob' })])]));
+      var openJobsList = Array.isArray(S.jobs) ? S.jobs.filter(function (x) { return x.tab === 'open'; }) : [], nx = openJobsList[0];
+      body.push(el('div', { class: 'g-chips' }, [el('span', { class: 'g-chip g-chip-work', id: 'dTodayChip', text: 'Today: ' + dsh.today_jobs + (dsh.today_jobs === 1 ? ' job' : ' jobs') })]));
+      body.push(el('section', { class: 'g-next-card', 'aria-label': 'Next job' }, nx ? [el('p', { class: 'g-wiz-l', text: nx.status === 'sent' ? 'New job waiting' : 'Next job' }), el('p', { class: 'g-key', id: 'dNextJob', text: nx.vehicle }), el('p', { class: 'g-wiz-l', text: nx.work }),
+        el('button', { class: 'g-btn g-btn-primary g-wide g-step-btn', type: 'button', id: 'dOpenNext', text: nx.status === 'sent' ? 'View offer' : 'Continue job', onclick: function () { buzz(15); openJob(nx.id); } })] : [el('p', { class: 'g-key', id: 'dNextJob', text: Array.isArray(S.jobs) ? 'No open jobs' : 'Checking for jobs' }), el('p', { class: 'g-wiz-l', text: dsh.is_open ? 'New jobs appear here and ring your phone.' : 'Switch Available on to get jobs.' })]));
       body.push(el('div', { class: 'd-two' }, [el('section', { class: 'd-card', 'aria-label': 'Today’s jobs' }, [el('p', { class: 'd-label', text: 'Today’s jobs' }), el('p', { class: 'd-big', id: 'dToday', text: String(dsh.today_jobs) })]), el('section', { class: 'd-card', 'aria-label': 'Open now' }, [el('p', { class: 'd-label', text: 'Open now' }), el('p', { class: 'd-big', id: 'dOpenJobs', text: String(dsh.open_jobs) })])]));
       body.push(el('section', { class: 'd-card', 'aria-label': 'Quick actions' }, [el('p', { class: 'd-label', text: 'Quick actions' }), el('button', { class: 'g-btn g-btn-primary d-xl', type: 'button', id: 'dGet', onclick: function () { S.tab = 'open'; openJobs(); }, text: 'Get my jobs' })]));
       body.push(el('section', { class: 'd-card', 'aria-label': 'My monthly stats' }, [el('p', { class: 'd-label', text: 'My monthly stats' }), el('div', { class: 'd-stats' }, [
@@ -212,7 +228,7 @@
     function fetchJobs() {
       return api('jobs').then(function (r) {
         if (ended(r)) return; if (!r.ok) { S.jobs = 'error'; S.jobsErr = r.data && r.data.error || ERR.gen; } else { S.jobs = r.data.jobs || []; if (r.data.garage && r.data.garage.name) S.name = r.data.garage.name; S.jobsAt = Date.now(); }
-        if (S.screen === 'jobs') render();
+        if (S.screen === 'jobs' || S.screen === 'home') render();
       });
     }
     function renderJobs() {
@@ -242,7 +258,7 @@
     }
 
     /* ---------- one job ---------- */
-    function openJob(id) { S.jobId = id; S.job = null; S.draft = null; S.photos = []; S.confirm = null; S.msg = null; S.screen = 'job'; render(); fetchJob(); try { win.location.hash = '#/job/' + id; } catch (e) {} }
+    function openJob(id) { (S.seen = S.seen || {})[id] = true; S.jobId = id; S.job = null; S.draft = null; S.photos = []; S.confirm = null; S.msg = null; S.screen = 'job'; render(); fetchJob(); try { win.location.hash = '#/job/' + id; } catch (e) {} }
     function fetchJob() {
       return api('job', { id: S.jobId }).then(function (r) {
         if (ended(r)) return; if (!r.ok) { S.job = 'error'; S.jobErr = r.data && r.data.error || ERR.gen; S.jobGone = r.status === 404; } else { S.job = r.data.job; }
@@ -302,6 +318,18 @@
     /* Owner rule: one step per screen, no scrolling, one big primary button, at most 3 lines. Local steps (arrived, vehicle found) have no event; the others map to existing events (docs/j3-notes.md). */
     function flowOf(id) { S.flow = S.flow || {}; return S.flow[id] || (S.flow[id] = {}); }
     function toJobs() { try { win.history.replaceState(null, '', '/garage/'); } catch (e) {} openJobs(); }
+    function svgTick() { var n = 'http://www.w3.org/2000/svg', v = d.createElementNS(n, 'svg'), c = d.createElementNS(n, 'circle'), p = d.createElementNS(n, 'path'); v.setAttribute('viewBox', '0 0 80 80'); v.setAttribute('width', '96'); v.setAttribute('height', '96'); c.setAttribute('cx', '40'); c.setAttribute('cy', '40'); c.setAttribute('r', '36'); p.setAttribute('d', 'M24 41l11 11 21-24'); v.appendChild(c); v.appendChild(p); return v; }
+    /* how long the offer has waited (not an auto-expire): a ring that fills over 15 minutes and mm:ss in the middle */
+    function waitRing(j) {
+      var t0 = j.timeline && j.timeline[0] && j.timeline[0].at ? Date.parse(j.timeline[0].at) : Date.now(), n = 'http://www.w3.org/2000/svg', R = 54, C = 2 * Math.PI * R;
+      var svg = d.createElementNS(n, 'svg'), bg = d.createElementNS(n, 'circle'), fg = d.createElementNS(n, 'circle'); svg.setAttribute('viewBox', '0 0 128 128'); svg.setAttribute('class', 'g-ring-svg'); svg.setAttribute('aria-hidden', 'true');
+      [bg, fg].forEach(function (c, i) { c.setAttribute('cx', '64'); c.setAttribute('cy', '64'); c.setAttribute('r', String(R)); c.setAttribute('class', i ? 'g-ring-fg' : 'g-ring-bg'); svg.appendChild(c); });
+      fg.setAttribute('stroke-dasharray', String(C));
+      var txt = el('b', { class: 'g-ring-t', id: 'gWait' }), cap = el('span', { class: 'g-ring-c', text: 'waiting' }), box = el('div', { class: 'g-ring', role: 'timer', 'aria-label': 'Time this offer has waited' }, [svg, el('div', { class: 'g-ring-in' }, [txt, cap])]);
+      function tickR() { var sec = Math.max(0, Math.floor((Date.now() - t0) / 1000)); txt.textContent = waitText(sec); fg.setAttribute('stroke-dashoffset', String(C * (1 - Math.min(1, sec / 900)))); }
+      tickR(); if (j.status === 'sent') { stopRing(); ringTimer = win.setInterval(tickR, 1000); }
+      return box;
+    }
     function wizTop(j, page) {
       var idx = PAGES.indexOf(page), f = flowOf(j.id);
       var back = el('button', { class: 'g-back', type: 'button', id: 'gBack', text: '← Back', onclick: function () { if (page === 'estimate') { f.view = 'inspect'; render(); } else if (page === 'phone' || page === 'code') { f.view = PAGES[idx - 1]; render(); } else toJobs(); } });
@@ -309,21 +337,23 @@
     }
     function wizPage(j, page) {
       var f = flowOf(j.id), idx = PAGES.indexOf(page), nat = jobPage(j, { }), natIdx = PAGES.indexOf(nat), msg = el('div', { id: 'gProgMsg', 'aria-live': 'polite' });
-      var advance = function () { var n = PAGES[idx + 1]; f.view = idx + 1 >= natIdx ? null : n; render(); };
-      var big = function (id, text, fn, off) { return el('button', { class: 'g-btn g-btn-primary g-wide g-step-btn', type: 'button', id: id, disabled: off || null, text: text, onclick: function () { fn(this); } }); };
+      var advance = function () { var n = PAGES[idx + 1]; f.view = idx + 1 >= natIdx ? null : n; S.tick = true; render(); };
+      var big = function (id, text, fn, off) { return el('button', { class: 'g-btn g-btn-primary g-wide g-step-btn', type: 'button', id: id, disabled: off || null, text: text, onclick: function () { buzz(15); fn(this); } }); };
       var send = function (btn, event, items) {
         btn.disabled = true; var old = btn.textContent; btn.textContent = 'Saving'; clear(msg);
         uploadPhotos(j.id, items).then(function (paths) { return api('progress', { id: j.id, event: event, photos: paths }); }).then(function (r) {
           if (ended(r)) return; btn.disabled = false; btn.textContent = old;
           if (!r.ok) { msg.appendChild(notice('err', r.data && r.data.error || ERR.gen)); return; }
-          S.photos = []; f.view = null; S.job = null; render(); fetchJob(); S.jobs = null;
+          S.photos = []; f.view = null; S.job = null; S.tick = true; stopAlert(); render(); fetchJob(); S.jobs = null;
         }).catch(function (e) { btn.disabled = false; btn.textContent = old; msg.appendChild(notice('err', e && e.message || ERR.gen)); });
       };
       var pl = j.place || {}, area = [pl.area, pl.pincode].filter(Boolean).join(' · '), kids = [], title = j.vehicle, lines = [];
       if (page === 'offer') {
-        lines = [(area || 'Customer area not shown') + ' · ' + j.work, whenText(j.return_by) ? 'Return by ' + whenText(j.return_by) : 'Return time not set'];
-        kids.push(big('gStepAccept', 'Accept job', function (b) { send(b, 'received', []); }));
-        var cant = el('button', { class: 'g-btn g-btn-ghost g-wide', type: 'button', id: 'gCantTake', text: 'Can’t take it' }); cant.onclick = function () { cant.replaceWith(el('div', {}, [notice('info', 'Tell the team now so they can send this job elsewhere.'), teamButtons()])); };
+        title = j.vehicle; lines = [(area || 'Customer area not shown'), j.work + (whenText(j.return_by) ? ' · return by ' + whenText(j.return_by) : '')];
+        kids.push(waitRing(j));
+        if (j.status === 'sent') startAlert();
+        kids.push(el('button', { class: 'g-btn g-btn-primary g-wide g-step-btn g-accept', type: 'button', id: 'gStepAccept', text: 'Accept job', onclick: function () { stopAlert(); buzz(15); send(this, 'received', []); } }));
+        var cant = el('button', { class: 'g-btn g-btn-ghost g-cant', type: 'button', id: 'gCantTake', text: 'Can’t take it' }); cant.onclick = function () { stopAlert(); cant.replaceWith(el('div', {}, [notice('info', 'Tell the team now so they can send this job elsewhere.'), teamButtons()])); };
         kids.push(cant);
       } else if (page === 'navigate') {
         title = 'Go to the customer'; lines = [pl.address || area || 'Address not shown'];
@@ -357,7 +387,9 @@
         title = 'Ready for return'; lines = ['Mechanix Pro has been told.', 'The team hands the vehicle back and closes the job.'];
         kids.push(big('gStepDone', 'All jobs', toJobs));
       }
-      return el('div', { class: 'g-wiz-page' }, [wizTop(j, page), el('h1', { class: 'g-wiz-h', text: title })].concat(lines.map(function (t, i) { return el('p', { class: 'g-wiz-l', id: i === 0 ? 'gStepHint' : null, text: t }); }), [el('div', { class: 'g-wiz-btns' }, kids), msg]));
+      if (page !== 'offer') stopAlert();
+      var tick = S.tick ? el('div', { class: 'g-tick', 'aria-hidden': 'true' }, [svgTick()]) : null; S.tick = false;
+      return el('div', { class: 'g-wiz-page' + (page === 'offer' && j.status === 'sent' ? ' g-offer' : '') }, [tick, wizTop(j, page), el('h1', { class: 'g-wiz-h g-key', text: title })].concat(lines.map(function (t, i) { return el('p', { class: 'g-wiz-l', id: i === 0 ? 'gStepHint' : null, text: t }); }), [el('div', { class: 'g-wiz-btns' }, kids), msg]));
     }
     /* four big numeric boxes: one hidden number input holds the digits (numeric keypad), the boxes only show them */
     function codeBoxes(onDone) {
@@ -367,7 +399,7 @@
       function paint() { var v = inp.value; boxes.forEach(function (b, i) { b.textContent = v.charAt(i) ? '\u2022' : ''; b.className = 'g-code-box' + (i === v.length ? ' is-cur' : ''); }); }
       inp.oninput = function () { inp.value = cleanCode(inp.value); paint(); go.disabled = !isCode(inp.value); };
       var go = el('button', { class: 'g-btn g-btn-primary g-wide g-step-btn', type: 'button', id: 'gStepCode', disabled: true, text: 'Confirm code', onclick: function () {
-        if (!isCode(inp.value)) return; go.disabled = true; go.textContent = 'Checking';
+        if (!isCode(inp.value)) return; buzz(15); go.disabled = true; go.textContent = 'Checking';
         onDone(inp.value, function () { inp.value = ''; paint(); go.textContent = 'Confirm code'; inp.focus(); });
       } });
       paint();
@@ -458,11 +490,33 @@
     }
 
     function render() {
+      stopRing(); if (S.screen !== 'job') stopAlert();
       if (S.screen === 'pin') return renderPin(); if (S.screen === 'home') return renderHome(); if (S.screen === 'jobs') return renderJobs(); if (S.screen === 'job') return renderJob();
       if (S.screen === 'statement') return renderStatement(); if (S.screen === 'help') return renderHelp();
       shell([loading('Opening')], null);
     }
 
+    /* every 15 seconds: look for a newly assigned job this phone has not shown yet, and open its offer page */
+    win.setInterval(function () {
+      if (!S.session || d.hidden || S.screen === 'pin' || S.screen === 'boot') return;
+      api('jobs').then(function (r) {
+        if (ended(r) || !r.ok) return; S.jobs = r.data.jobs || []; S.jobsAt = Date.now();
+        var busy = S.screen === 'job' && S.job && S.job !== 'error' && S.job.status !== 'sent' && S.job.status !== 'ready';
+        var fresh = S.jobs.filter(function (x) { return x.status === 'sent' && !(S.seen || {})[x.id]; })[0];
+        if (fresh && !busy && !(S.screen === 'job' && S.jobId === fresh.id)) openJob(fresh.id); else if (S.screen === 'jobs') render();
+      });
+    }, 15000);
+    /* splash: once per session, CSS only, not shown for reduced motion */
+    (function () {
+      var seen = false; try { seen = win.sessionStorage.getItem('mxp_garage_splash') === '1'; win.sessionStorage.setItem('mxp_garage_splash', '1'); } catch (e) {}
+      var calm = win.matchMedia && win.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (seen || calm) return;
+      var n = 'http://www.w3.org/2000/svg', v = d.createElementNS(n, 'svg'), sh = d.createElementNS(n, 'path'), bo = d.createElementNS(n, 'path');
+      v.setAttribute('viewBox', '0 0 100 120'); v.setAttribute('class', 'g-sp-svg'); v.setAttribute('aria-hidden', 'true');
+      sh.setAttribute('d', 'M50 6 L90 22 V58 C90 84 72 102 50 114 C28 102 10 84 10 58 V22 Z'); sh.setAttribute('class', 'g-sp-shield'); bo.setAttribute('d', 'M56 30 L36 66 H50 L44 94 L66 55 H52 Z'); bo.setAttribute('class', 'g-sp-bolt'); v.appendChild(sh); v.appendChild(bo);
+      var box = el('div', { class: 'g-splash', id: 'gSplash', 'aria-hidden': 'true' }, [v, el('b', { class: 'g-sp-name', text: 'Mechanix Pro' }), el('span', { class: 'g-sp-sub', text: 'Garage partner' })]);
+      d.body.appendChild(box); win.setTimeout(function () { if (box.parentNode) box.parentNode.removeChild(box); }, 1400);
+    })();
     /* ---------- boot ---------- */
     var fromUrl = linkFromUrl(win.location.search);
     if (fromUrl) { saveLink(win, fromUrl); try { win.history.replaceState(null, '', '/garage/'); } catch (e) {} }
@@ -470,5 +524,5 @@
     if (ses && savedLink(win)) { S.session = ses.t; S.name = ses.name || ''; loadTeam(); openHome(true); } else { go('pin'); }
     d.addEventListener('visibilitychange', function () { if (!d.hidden && S.session && Date.now() - S.jobsAt > 60000) { if (S.screen === 'jobs') fetchJobs(); else if (S.screen === 'home') fetchHome(); } });
   }
-  return { jobPage: jobPage, cleanCode: cleanCode, isCode: isCode, STEP_EVENT: STEP_EVENT, PAGES: PAGES, start: start, locText: locText, locAsked: locAsked, markLocAsked: markLocAsked, LOC_KEY: LOC_KEY, money: money, totals: totals, whenText: whenText, telHref: telHref, navigateUrl: navigateUrl, availabilityText: availabilityText, phoneShow: phoneShow, teamLinks: teamLinks, saveLink: saveLink, savedLink: savedLink, linkFromUrl: linkFromUrl, saveSession: saveSession, savedSession: savedSession, clearSession: clearSession, LINK_KEY: LINK_KEY, SESSION_KEY: SESSION_KEY };
+  return { jobPage: jobPage, waitText: waitText, cleanCode: cleanCode, isCode: isCode, STEP_EVENT: STEP_EVENT, PAGES: PAGES, start: start, locText: locText, locAsked: locAsked, markLocAsked: markLocAsked, LOC_KEY: LOC_KEY, money: money, totals: totals, whenText: whenText, telHref: telHref, navigateUrl: navigateUrl, availabilityText: availabilityText, phoneShow: phoneShow, teamLinks: teamLinks, saveLink: saveLink, savedLink: savedLink, linkFromUrl: linkFromUrl, saveSession: saveSession, savedSession: savedSession, clearSession: clearSession, LINK_KEY: LINK_KEY, SESSION_KEY: SESSION_KEY };
 });

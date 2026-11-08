@@ -211,3 +211,55 @@ textarea.g-input{min-height:84px;resize:vertical}
 .g-btn-navy{background:var(--navy);color:var(--on-navy);border:0}
 .g-step-nav{min-height:56px;font-size:20px}
 .g-step-btn{min-height:56px;font-size:20px}
+
+/* Partner-app look: dark navy surface, orange buttons, big key lines (tokens only) */
+body.g-dark-bg{background:var(--navy)}
+.g-dark{--paper:var(--navy);--card:color-mix(in srgb,var(--on-navy) 9%,var(--navy));--surface:var(--card);--surface2:color-mix(in srgb,var(--on-navy) 14%,var(--navy));--surface3:color-mix(in srgb,var(--on-navy) 22%,var(--navy));
+  --hair:color-mix(in srgb,var(--on-navy) 22%,var(--navy));--border2:color-mix(in srgb,var(--on-navy) 55%,var(--navy));--tx:var(--on-navy);--text:var(--on-navy);--text2:var(--on-navy);--tx2:color-mix(in srgb,var(--on-navy) 78%,var(--navy));--text3:color-mix(in srgb,var(--on-navy) 78%,var(--navy));
+  color:var(--on-navy);background:var(--navy);border-radius:0}
+.g-dark .g-card,.g-dark .d-card,.g-dark .g-next-card{border-radius:16px}
+.g-dark .g-back,.g-dark .g-link{color:var(--on-navy)}
+.g-dark .g-btn-ghost{background:transparent;color:var(--on-navy);border-color:var(--border2)}
+.g-dark .g-btn-navy{background:color-mix(in srgb,var(--on-navy) 16%,var(--navy));color:var(--on-navy);border:1px solid var(--border2)}
+.g-dark .g-btn-primary{background:var(--accent);color:var(--on-accent)}
+.g-key{font-size:24px;font-weight:800;line-height:1.15;margin:0;letter-spacing:-.02em}
+.g-wiz .g-step-btn,.g-next-card .g-step-btn{min-height:60px;font-size:20px;border-radius:16px}
+.g-chips{display:flex;gap:8px}
+.g-next-card{display:flex;flex-direction:column;gap:8px;padding:16px;border:1px solid var(--hair);background:var(--card)}
+.g-next-card .g-key{font-size:24px}
+/* offer page: red pulsing border while a new job waits, waiting ring, huge Accept */
+.g-offer{border:3px solid var(--bad);border-radius:16px;padding:10px;animation:g-pulse 1.4s ease-in-out infinite}
+@keyframes g-pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--bad) 70%,transparent)}50%{box-shadow:0 0 0 10px transparent}}
+.g-ring{position:relative;width:132px;height:132px;margin:0 auto}
+.g-ring-svg{width:100%;height:100%;transform:rotate(-90deg)}
+.g-ring-bg,.g-ring-fg{fill:none;stroke-width:10}
+.g-ring-bg{stroke:var(--surface3)}
+.g-ring-fg{stroke:var(--accent);stroke-linecap:round}
+.g-ring-in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.g-ring-t{font-size:24px;font-variant-numeric:tabular-nums}
+.g-ring-c{font-size:14px;color:var(--tx2)}
+.g-accept{min-height:64px;font-size:24px;background:var(--good);color:var(--on-navy)}
+.g-dark .g-accept{background:var(--good);color:var(--on-navy)}
+.g-cant{min-height:44px;font-size:16px}
+/* step done tick */
+.g-tick{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:9;animation:g-tick-out .9s ease forwards}
+.g-tick svg circle{fill:var(--good);stroke:none}
+.g-tick svg path{fill:none;stroke:var(--on-navy);stroke-width:6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;stroke-dashoffset:60;animation:g-draw .4s .1s ease forwards}
+@keyframes g-draw{to{stroke-dashoffset:0}}
+@keyframes g-tick-out{0%{opacity:0;transform:scale(.6)}20%{opacity:1;transform:scale(1)}75%{opacity:1}100%{opacity:0}}
+/* splash: shield draws in, bolt flashes orange, name fades up (about 1.2 s) */
+.g-splash{position:fixed;inset:0;z-index:99;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--on-navy);animation:g-sp-out .25s 1.15s ease forwards}
+.g-sp-svg{width:120px;height:144px}
+.g-sp-shield{fill:none;stroke:var(--on-navy);stroke-width:5;stroke-linejoin:round;stroke-dasharray:340;stroke-dashoffset:340;animation:g-draw-s .7s ease forwards}
+.g-sp-bolt{fill:var(--accent);opacity:0;animation:g-flash .5s .6s ease forwards}
+.g-sp-name{font-size:24px;opacity:0;transform:translateY(8px);animation:g-up .4s .8s ease forwards}
+.g-sp-sub{font-size:16px;opacity:0;animation:g-up .4s .95s ease forwards}
+@keyframes g-draw-s{to{stroke-dashoffset:0}}
+@keyframes g-flash{0%{opacity:0}40%{opacity:1;filter:brightness(1.8)}100%{opacity:1}}
+@keyframes g-up{to{opacity:1;transform:none}}
+@keyframes g-sp-out{to{opacity:0;visibility:hidden}}
+@media (prefers-reduced-motion:reduce){.g-splash{display:none}.g-offer,.g-tick,.g-tick svg path{animation:none}.g-tick{display:none}}
+.g-dark .g-chips .g-chip{background:var(--accent);color:var(--on-accent);font-size:16px;min-height:32px;padding:4px 14px}
+.g-dark .g-tab{color:var(--on-navy)}
+.g-dark .g-tab.on{color:var(--accent)}
+.g-dark .g-tabs{background:var(--navy);border-color:var(--hair)}

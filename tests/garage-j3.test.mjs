@@ -60,3 +60,13 @@ test('Dispatch: garage step chip, and the red chip only after 15 minutes unaccep
   assert.equal(garageStepChips(r({ garage_status: 'in_work' }), now)[0].text, 'Work started');
   assert.deepEqual(garageStepChips({}, now), []);
 });
+test('waitText: mm:ss for the offer ring', () => { assert.equal(G.waitText(9), '00:09'); assert.equal(G.waitText(75), '01:15'); assert.equal(G.waitText(-3), '00:00'); assert.equal(G.waitText('x'), '00:00'); });
+test('partner-app feel: splash once per session and not for reduced motion, 15s poll for new offers, alert tone and vibrate, tick, dark tokens only', () => {
+  const g = read('assets/js/garage.js'), c = read('assets/css/garage.css');
+  assert.match(g, /mxp_garage_splash/); assert.match(g, /prefers-reduced-motion: reduce/); assert.match(g, /\}, 15000\)/);
+  assert.match(g, /createOscillator/); assert.match(g, /navigator\.vibrate/); assert.match(g, /buzz\(15\)/); assert.match(g, /pointerdown', unlockAudio/);
+  assert.ok(!/new Audio\(|\.mp3|\.wav/.test(g), 'no audio files');
+  assert.match(c, /@media \(prefers-reduced-motion:reduce\)\{\.g-splash\{display:none\}/);
+  assert.match(c, /\.g-accept\{min-height:64px/); assert.match(c, /\.g-offer\{border:3px solid var\(--bad\)/);
+  const dark = c.slice(c.indexOf('.g-dark{'), c.indexOf('.g-key{')); assert.ok(!/#[0-9a-fA-F]{3,6}\b/.test(dark), 'dark theme uses tokens only');
+});
