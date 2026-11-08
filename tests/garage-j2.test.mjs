@@ -18,7 +18,7 @@ test('availabilityText: one wording for both apps', () => {
 });
 test('garage.js: Address card with Navigate and Call customer, camera and gallery inputs, switch at the top of Home', () => {
   const g = read('assets/js/garage.js');
-  assert.match(g, /section\('Address'/); assert.match(g, /id: 'gNavigate'/); assert.match(g, /Call customer/); assert.match(g, /2026-11-09 owner decision/);
+  assert.match(g, /Go to the customer/); assert.match(g, /id: 'gNavigate'/); assert.match(g, /gCallCustomer/);   // J3: the Address card became the one-step Navigate page, and the number moved to the Vehicle-found page assert.match(g, /2026-11-09 owner decision/);
   assert.match(g, /capture: 'environment'/); assert.match(g, /Take photo/); assert.match(g, /Choose from gallery/); assert.match(g, /accept: 'image\/\*', multiple: true/);
   assert.ok(!/createObjectURL/.test(g), 'previews stay data: URLs');
   assert.ok(g.indexOf("'Availability'") < g.indexOf("'My monthly stats'") && g.indexOf("'Availability'") < g.indexOf("class: 'd-two'"), 'availability card sits above the day cards');

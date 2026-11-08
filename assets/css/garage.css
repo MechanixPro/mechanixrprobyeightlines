@@ -190,12 +190,24 @@ textarea.g-input{min-height:84px;resize:vertical}
 /* J3: one-button job steps */
 .g-step .g-step-btn{min-height:56px;font-size:20px;margin-top:12px}
 .g-step .g-btn-ghost.g-wide{margin-top:12px}
-.g-step-hint{font-size:16px;margin:12px 0 4px}
-.g-strip{display:flex;gap:4px;list-style:none;margin:0;padding:0}
-.g-strip li{flex:1;min-width:0;text-align:center;font-size:14px;padding:8px 2px;border-radius:var(--radius-field);background:var(--surface2);color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.g-strip li.is-done{background:var(--good-bg);color:var(--good-text)}
-.g-strip li.is-now{background:var(--accent);color:var(--on-accent);font-weight:700}
 .g-code{display:flex;gap:10px;justify-content:center;position:relative;margin:12px 0}
 .g-code-box{width:64px;height:72px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;border:2px solid var(--border2);border-radius:var(--radius-field);background:var(--surface)}
 .g-code-box.is-cur{border-color:var(--accent)}
 .g-code-in{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;border:0;background:transparent}
+
+/* Owner rule: one step per screen, no scrolling at 390x700 */
+.g-wiz .g-tabs{display:none}
+.g-wiz .g-main{padding:8px 16px 16px;gap:10px}
+.g-wiz-top{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.g-dots{display:flex;gap:8px;list-style:none;margin:0;padding:0}
+.g-dots li{width:12px;height:12px;border-radius:50%;background:var(--surface3)}
+.g-dots li.is-done{background:var(--good)}
+.g-dots li.is-now{background:var(--accent);width:28px;border-radius:8px}
+.g-wiz-page{display:flex;flex-direction:column;gap:10px}
+.g-wiz-h{font-size:24px;margin:8px 0 0}
+.g-wiz-l{font-size:16px;margin:0;color:var(--text2)}
+.g-wiz-btns{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.g-wiz-btns .g-step-btn{margin-top:0}
+.g-btn-navy{background:var(--navy);color:var(--on-navy);border:0}
+.g-step-nav{min-height:56px;font-size:20px}
+.g-step-btn{min-height:56px;font-size:20px}

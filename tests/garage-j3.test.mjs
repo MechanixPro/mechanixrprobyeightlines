@@ -9,23 +9,23 @@ const G = require('../assets/js/garage.js');
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const EVENTS = ['received', 'work_started', 'ready'];
 
-test('jobStep: New, Here, Code, Start (or Estimate when the quote blocks), Ready, Handed', () => {
+test('jobPage: offer, navigate, phone, code, inspect (or estimate), ready, done; Back views keep the choices', () => {
   const j = (o) => ({ status: 'received', code_needed: true, code: 'open', can_start: true, open: true, ...o });
-  assert.equal(G.jobStep(j({ status: 'sent' }), false), 'new');
-  assert.equal(G.jobStep(j(), false), 'here');
-  assert.equal(G.jobStep(j(), true), 'code');
-  assert.equal(G.jobStep(j({ code: 'verified' }), false), 'start');
-  assert.equal(G.jobStep(j({ code: 'verified', can_start: false }), false), 'estimate');
-  assert.equal(G.jobStep(j({ code_needed: false }), false), 'start');
-  assert.equal(G.jobStep(j({ status: 'in_work' }), false), 'ready');
-  assert.equal(G.jobStep(j({ status: 'ready' }), false), 'handed');
-  assert.equal(G.jobStep(j({ status: 'returned' }), false), 'closed');
+  assert.equal(G.jobPage(j({ status: 'sent' }), {}), 'offer');
+  assert.equal(G.jobPage(j(), {}), 'navigate');
+  assert.equal(G.jobPage(j(), { arrived: true }), 'phone');
+  assert.equal(G.jobPage(j(), { arrived: true, found: true }), 'code');
+  assert.equal(G.jobPage(j(), { arrived: true, found: true, view: 'phone' }), 'phone');   // Back
+  assert.equal(G.jobPage(j(), { view: 'done' }), 'navigate');                            // a view never skips ahead
+  assert.equal(G.jobPage(j({ code: 'verified' }), {}), 'inspect');
+  assert.equal(G.jobPage(j({ code: 'verified', can_start: false }), { view: 'estimate' }), 'estimate');
+  assert.equal(G.jobPage(j({ code_needed: false }), {}), 'inspect');
+  assert.equal(G.jobPage(j({ status: 'in_work' }), {}), 'ready');
+  assert.equal(G.jobPage(j({ status: 'ready' }), {}), 'done');
 });
-test('every step event is one the database accepts; the strip position never goes backwards', () => {
+test('every page event is one the database accepts; pages are in the owner order', () => {
   for (const e of Object.values(G.STEP_EVENT)) assert.ok(e === null || EVENTS.includes(e));
-  const order = ['new', 'here', 'code', 'start', 'ready', 'handed'].map(G.stripIndex);
-  assert.deepEqual(order, [...order].sort((a, b) => a - b));
-  assert.equal(G.stripIndex('estimate'), G.stripIndex('start'));
+  assert.deepEqual(G.PAGES, ['offer', 'navigate', 'phone', 'code', 'inspect', 'ready', 'done']);
 });
 test('code boxes: digits only, four at most', () => {
   assert.equal(G.cleanCode('12a-345'), '1234'); assert.equal(G.cleanCode(null), '');
@@ -37,7 +37,7 @@ test('garage.js: one primary step button, numeric keypad code boxes, Can’t tak
   assert.match(g, /inputmode: 'numeric'/); assert.match(g, /verify_code/); assert.match(g, /teamButtons\(\)/);
   assert.ok(!/setAttribute\('style'|\.style\./.test(g));
   const c = read('assets/css/garage.css');
-  assert.match(c, /\.g-step \.g-step-btn\{min-height:56px/);
+  assert.match(c, /\.g-step-btn\{min-height:56px/); assert.match(g, /gStepArrived/); assert.match(g, /gStepFound/); assert.match(g, /g-dots/);
 });
 test('garage-app: verify_code uses the shared check (hash, counted try, lockout) and never returns the code', () => {
   const f = read('supabase/functions/garage-app/index.ts');
