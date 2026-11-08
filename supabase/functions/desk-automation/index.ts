@@ -5,6 +5,7 @@
 //   3. rating: ask a customer to rate the job, once, a couple of hours after it is completed
 //   5. watchdog: email the supervisors when the automation, the reply checker or AiSensy stops working, or the templates stay unapproved for a day
 //   9. mechanic alert: WhatsApp the assigned mechanic the job link, once per (lead, mechanic)
+//  10. unpaid booking reminder: one WhatsApp to a customer who started a /book/ booking and has not paid the confirmation fee
 //   4. journey: tell the customer when the quote is ready, when the booking is confirmed with the mechanic, and when the service is done (each once)
 import { adminDb, env, json, safeEqual, getSetting, istHour } from '../_shared/util.ts';
 import { PROJECT_API } from '../_shared/aisensy-project.ts';
@@ -18,6 +19,7 @@ import { runWatchdog } from '../_shared/desk-health.ts';
 import { issueCard, cardUrl } from '../_shared/warranty.ts';
 import { idParam, leadLabel } from '../_shared/booking-id.ts';
 import { JOB_ALERT_TEMPLATE, alertKind, alreadyAlerted, mayAlertNow, mechanicPhone, alertParams, mintTechLink } from '../_shared/job-alert.ts';
+import { UNPAID_TEMPLATE, UNPAID_KIND, UNPAID_OPEN, shouldRemind, unpaidParams } from '../_shared/unpaid-reminder.ts';
 import { sweepConfirmations } from '../_shared/after-payment.ts';
 import { autoAssignGarages } from '../_shared/auto-garage-run.ts';
 
@@ -200,6 +202,38 @@ Deno.serve(async (req) => {
       result.mechanic_alert = { sent: sentN, failed: failN }; if (sentN || failN) await log('mechanic_alert', failN === 0, { sent: sentN, failed: failN });
     }
   } catch (e) { result.mechanic_alert = { error: String((e as Error).message) }; await log('mechanic_alert', false, { error: String((e as Error).message) }); }
+
+  /* 10. unpaid booking reminder: one WhatsApp per lead, 30 minutes to 24 hours after a /book/ booking was started but the confirmation fee is unpaid. Silently skipped (logged once an hour) until the mxp_booking_unpaid campaign is ready. Quiet hours 21 to 9 wait for the window. Switch off: settings desk_auto_unpaid_reminder = false. */
+  try {
+    const ready = await getSetting<Record<string, boolean>>(db, 'desk_campaigns', {});
+    const ut = DESK_TEMPLATES.find((t) => t.name === UNPAID_TEMPLATE)!;
+    if (!(await getSetting(db, 'desk_auto_unpaid_reminder', true))) result.unpaid_reminder = 'off';
+    else if (!ready[ut.campaign] || !env('AISENSY_API_KEY')) { result.unpaid_reminder = 'skipped'; if (new Date().getUTCMinutes() < 3) await log('unpaid_reminder', true, { skipped: 'campaign not ready' }); }
+    else {
+      const now = Date.now();
+      const { data: ls } = await db.from('leads').select('id,name,phone,status,vehicle,confirm_fee,rzp_order_id,confirm_paid_at,consent_whatsapp,opted_out,deleted_at,created_at,crm_first_contact_at,bike_id').is('deleted_at', null).is('confirm_paid_at', null).not('rzp_order_id', 'is', null).eq('consent_whatsapp', true).eq('opted_out', false).in('status', UNPAID_OPEN)
+        .gt('created_at', new Date(now - 24 * 3600_000).toISOString()).lt('created_at', new Date(now - 30 * MIN).toISOString()).order('created_at').limit(40);
+      const cands = (ls ?? []) as any[];
+      const ids = cands.map((l) => l.id);
+      const { data: sent } = ids.length ? await db.from('crm_alerts_sent').select('lead_id,kind').in('lead_id', ids).eq('kind', UNPAID_KIND) : { data: [] };
+      const todo = cands.filter((l) => shouldRemind(l, sent ?? [])).slice(0, 10);
+      const bids = todo.map((l) => l.bike_id).filter(Boolean);
+      const { data: bs } = bids.length ? await db.from('bikes').select('id,brand,model').in('id', bids) : { data: [] };
+      let sentN = 0, failN = 0;
+      for (const l of todo) {
+        const b = (bs ?? []).find((x: any) => x.id === l.bike_id);
+        const r = await sendCampaign({ apiKey: env('AISENSY_API_KEY'), campaignName: ut.campaign, phone: l.phone, name: l.name, params: unpaidParams({ name: l.name, vehicle: l.vehicle, brand: b?.brand, model: b?.model, fee: l.confirm_fee }), source: 'mechanix-desk-unpaid-reminder' });
+        // Marked either way so a failing number is not retried every three minutes; the log shows the failure.
+        await db.from('crm_alerts_sent').upsert({ lead_id: l.id, kind: UNPAID_KIND }, { onConflict: 'lead_id,kind', ignoreDuplicates: true });
+        if (r.ok) {
+          sentN++;
+          await db.from('messages').insert({ lead_id: l.id, phone: l.phone, direction: 'out', sender: 'system', body: 'Booking reminder sent automatically' }).then(() => {}, () => {});
+          await db.from('crm_activities').insert({ lead_id: l.id, actor: null, kind: 'whatsapp', body: 'Unpaid booking reminder sent automatically on WhatsApp' }).then(() => {}, () => {});
+        } else { failN++; console.error('unpaid_reminder', l.id, r.error); }
+      }
+      result.unpaid_reminder = { sent: sentN, failed: failN }; if (sentN || failN) await log('unpaid_reminder', failN === 0, { sent: sentN, failed: failN });
+    }
+  } catch (e) { result.unpaid_reminder = { error: String((e as Error).message) }; await log('unpaid_reminder', false, { error: String((e as Error).message) }); }
 
   /* 6. warranty cards: once a completed booking is fully paid, make its card; send it on WhatsApp when the template is approved. Only for bookings completed after the switch-on time. */
   try {
