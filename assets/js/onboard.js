@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   var win = window, d = document, C = win.MXP || {}, app = d.getElementById('app'); if (!app) return;
-  var KEY = 'mxp_onboard_t', AGREEMENT = '/assets/legal/Mechanix-Pro-Garage-Partner-Agreement.pdf';
+  var KEY = 'mxp_onboard_t', AGREEMENT = '/assets/legal/Mechanix-Pro-Garage-Partner-Agreement.pdf', AGREEMENT_M = '/assets/legal/Mechanix-Pro-Mechanic-Engagement-Terms.pdf';
   var CONSENT = 'We collect these documents only to verify you. Only authorised Mechanix Pro staff can see them. We keep them while you work with us and as the law requires. You can ask us to delete them.';
   var NET = 'Check your internet and try again.';
   var S = { me: null, steps: [], i: 0, agreed: false, busy: false, err: null, last: {} };
@@ -54,8 +54,8 @@
   function agreement() {
     var mech = S.me.kind === 'mechanic';
     shell('agreement', [el('h1', { text: 'Partner agreement' }),
-      mech ? el('p', { class: 'o-lead', text: 'Your agreement will be sent to you.' }) : el('p', { class: 'o-lead', text: 'Print it, sign every page, scan it as one PDF.' }),
-      el('div', { style: 'flex:1' }), mech ? null : el('a', { class: 'o-btn alt', href: AGREEMENT, download: 'Mechanix-Pro-Garage-Partner-Agreement.pdf', text: 'Download agreement' }), next('Next', function () { go(S.i + 1); })], true);
+      el('p', { class: 'o-lead', text: 'Print it, sign every page, scan it as one PDF.' }),
+      el('div', { style: 'flex:1' }), el('a', { class: 'o-btn alt', href: mech ? AGREEMENT_M : AGREEMENT, download: mech ? 'Mechanix-Pro-Mechanic-Engagement-Terms.pdf' : 'Mechanix-Pro-Garage-Partner-Agreement.pdf', text: 'Download agreement' }), next('Next', function () { go(S.i + 1); })], true);
   }
 
   function docStep() {
