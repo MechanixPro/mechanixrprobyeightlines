@@ -137,11 +137,25 @@ async function boot() {
   shell ||= initShell({ jumps: [['today', 'Today', () => goGroup('today')], ['bookings', 'Bookings', () => goGroup('bookings')], ['money', 'Money', () => goGroup('money')], ['team', 'Team', () => goGroup('team')]] });
   await bootData();
   if (!S.channel) S.channel = sb.channel('mxp-admin')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async (p) => { if (p.eventType === 'INSERT') toast('New lead'); await loadLeads(); if (!['prices', 'settings', 'offers', 'homeimgs'].includes(S.tab)) render(); if (S.open) openLead(S.open, true); })
+    // Performance (2026-11-09): every change to any lead used to reload all leads in every open Admin tab, which with the WhatsApp chat stamps kept the database near 100% CPU.
+    // Now a burst of changes causes at most one reload per 20 seconds, and none while the tab is hidden (it refreshes when the tab is shown again).
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, (p) => { if (p.eventType === 'INSERT') toast('New lead'); rtKick(); })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ledger_entries' }, async () => { await Promise.all([loadLedger(), loadLeads()]); if (['sales', 'mechledger'].includes(S.tab)) render(); })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (p) => { if (S.open && p.new?.lead_id === S.open) openLead(S.open, true); })
     .subscribe();
 }
+
+/* Throttled refresh for realtime lead changes (see the note where the channel is opened). */
+const RT = { last: 0, timer: null };
+async function rtRefresh() {
+  RT.timer = null; RT.last = Date.now();
+  await loadLeads(); if (!['prices', 'settings', 'offers', 'homeimgs'].includes(S.tab)) render(); if (S.open) openLead(S.open, true);
+}
+function rtKick() {
+  if (document.hidden || RT.timer) return;
+  RT.timer = setTimeout(rtRefresh, Math.max(0, 20000 - (Date.now() - RT.last)));
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.me && Date.now() - RT.last > 20000) rtKick(); });
 
 /* The engine size lives on the bike. An invoice needs it, so bring it onto the booking before billing. */
 // Invoice numbers run in one series (MP/26-27/0001). A booking gets its number when its first invoice is made, and keeps it.
