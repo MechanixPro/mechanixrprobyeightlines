@@ -79,3 +79,17 @@ export function snoozeAt(days, now = Date.now()) {
 
 /** Removes money from rows for people who must not see it (supervisors). */
 export const withoutMoney = (list, canSee) => (canSee ? list : (list || []).map((l) => { const c = { ...l }; delete c.est_total; delete c.value; return c; }));
+
+/** An IVR call nobody has picked up yet: page 'ivr' (or, when the queue rows carry no page, source 'phone'), the missed-call note, still open, never contacted. */
+export function isMissedCall(lead) {
+  if (!lead) return false;
+  const ivr = lead.page === 'ivr' || (lead.page == null && lead.source === 'phone');
+  return ivr && /missed call/i.test(String(lead.notes || '')) && !lead.crm_first_contact_at && OPEN_STATUSES.includes(lead.status);
+}
+
+/** Missed-call leads, oldest first, with minutesWaiting. */
+export function missedCallQueue(leads, now = Date.now()) {
+  return rows(leads).filter(isMissedCall).filter((l) => Number.isFinite(ms(l.created_at)))
+    .map((l) => ({ ...l, minutesWaiting: Math.max(0, Math.round((now - ms(l.created_at)) / MIN)) }))
+    .sort((a, b) => b.minutesWaiting - a.minutesWaiting);
+}

@@ -116,3 +116,4 @@ body:not(.admin){font-size:var(--fs-4)}
 .pb-step input{flex:0 0 24px;width:24px;height:24px;margin:0}.pb-step:has(input:checked){background:var(--surface2);color:var(--text3)}
 .pb-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pb-f{display:block;margin:0 0 12px;font-size:14px;color:var(--text2)}.pb-f input,.pb-f textarea{display:block;margin-top:4px}
 @media(max-width:640px){.pb-fields{grid-template-columns:1fr}}
+.fu-bigcall{flex:2 1 100%;min-height:56px;font-size:18px;font-weight:700}

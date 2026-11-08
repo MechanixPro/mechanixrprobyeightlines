@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { firstReplyMinutes, median, speedStats, speedByPerson, longestWaiting, followUpQueue, followUpBucket, bucketCounts, snoozeAt, fmtMinutes, withoutMoney } from '../crm/speed.js';
+import { firstReplyMinutes, median, speedStats, speedByPerson, longestWaiting, followUpQueue, followUpBucket, bucketCounts, snoozeAt, fmtMinutes, withoutMoney, isMissedCall, missedCallQueue } from '../crm/speed.js';
 
 const NOW = new Date('2027-01-10T08:00:00Z').getTime(); // 13:30 IST
 const L = (o) => ({ status: 'new', created_at: '2027-01-10T06:00:00Z', ...o });
@@ -73,4 +73,21 @@ test('admin and crew wiring', () => {
   assert.match(fs.readFileSync('crm/crm.js', 'utf8'), /id: 'followups'/);
   const a = fs.readFileSync('admin/admin.js', 'utf8'); assert.match(a, /id="spRoot"/); assert.match(a, /speedPanel\.mount/);
   assert.ok(!/est_total|rupee/.test(fs.readFileSync('admin/speed-panel.js', 'utf8')));
+});
+
+test('missed calls: only open, uncontacted IVR missed-call leads, oldest first', () => {
+  const now = Date.parse('2026-11-08T10:00:00Z'), ago = (m) => new Date(now - m * 60000).toISOString();
+  const mk = (id, o = {}) => ({ id, page: 'ivr', source: 'phone', notes: 'Missed call to the IVR number.', status: 'new', crm_first_contact_at: null, created_at: ago(10), ...o });
+  assert.equal(isMissedCall(mk('a')), true);
+  assert.equal(isMissedCall(mk('b', { page: 'home', source: 'website' })), false);
+  assert.equal(isMissedCall(mk('c', { notes: 'Answered call' })), false);
+  assert.equal(isMissedCall(mk('d', { crm_first_contact_at: ago(1) })), false);
+  assert.equal(isMissedCall(mk('e', { status: 'lost' })), false);
+  assert.equal(isMissedCall(mk('f', { page: undefined })), true, 'queue rows without page fall back to source phone');
+  assert.equal(isMissedCall(mk('g', { page: undefined, source: 'website' })), false);
+  assert.equal(isMissedCall(null), false);
+  const q = missedCallQueue([mk('new', { created_at: ago(5) }), mk('old', { created_at: ago(130) }), mk('x', { status: 'won' }), mk('mid', { created_at: ago(61) })], now);
+  assert.deepEqual(q.map((l) => l.id), ['old', 'mid', 'new']);
+  assert.deepEqual(q.map((l) => l.minutesWaiting), [130, 61, 5]);
+  assert.deepEqual(missedCallQueue(null, now), []);
 });

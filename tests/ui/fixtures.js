@@ -20,6 +20,7 @@ const queue = [
   lead(5, { status: 'paid', booking_id: 'MP-2611-0005', confirm_fee: 49, confirm_paid_at: ago(100), mechanic_name: '[Mechanic Name]', mechanic_id: 'mech-1' }),
 ];
 const callRows = [lead(11, { crm_owner: null, owner_name: null, created_at: ago(5) }), lead(12, { created_at: ago(70) }), lead(13, { crm_owner: null, owner_name: null, created_at: ago(300) }), lead(14, { created_at: ago(2000) })];
+const missedCalls = [lead(21, { name: '[Caller 21]', source: 'phone', page: 'ivr', notes: 'Missed call to the IVR number.', service_name: null, bike: null, area: null, created_at: ago(8) }), lead(22, { name: '[Caller 22]', source: 'phone', page: 'ivr', notes: 'Missed call to the IVR number.', service_name: null, bike: null, area: null, created_at: ago(75) }), lead(23, { name: '[Caller 23]', source: 'phone', page: 'ivr', notes: 'Missed call to the IVR number.', service_name: null, bike: null, area: null, created_at: ago(190) })];
 const leadRows = queue.map((l, i) => ({ id: l.id, lead: l.name, mobile: l.phone, platform: l.utm_source, source: l.source, stage: l.status, owner_name: l.owner_name, mechanic_id: l.mechanic_id || null, mechanic_name: l.mechanic_name || null, disposition: i % 2 ? 'Interested' : null, sub_disposition: null, follow_up: l.crm_next_action_at, created_at: l.created_at, last_activity: ago(10 + i), booking_id: l.booking_id, bike: l.bike, area: l.area, is_late: l.is_late, overdue: l.overdue, crm_first_contact_at: l.crm_first_contact_at, confirm_fee: l.confirm_fee, confirm_paid_at: l.confirm_paid_at }));
 const dispatch = [
   { id: 'lead-5', booking_id: 'MP-2611-0005', vehicle: 'bike', confirm_fee: 49, review: false, first_name: '[Customer Name 5]', area: 'Indiranagar', pincode: '560038', preferred_date: '2026-11-06', preferred_slot: 'morning', bike: '[Vehicle 5]', service_name: 'Basic service', mechanic_id: null, mechanic_name: null, visit_stage: null },
@@ -46,7 +47,7 @@ const crewHandlers = {
     { user_id: 'u1', name: '[Care Buddy 1]', role: 'sales', day: { target: { calls: 20, quotes_sent: 5, paid_bookings: 2 }, actual: { calls: 8, quotes_sent: 4, paid_bookings: 2 } }, week: { target: { calls: 100, quotes_sent: 25, paid_bookings: 10 }, actual: { calls: 60, quotes_sent: 11, paid_bookings: 4 } } },
     { user_id: 'u2', name: '[Care Buddy 2]', role: 'sales', day: { target: null, actual: { calls: 3, quotes_sent: 0, paid_bookings: 0 } }, week: { target: null, actual: { calls: 9, quotes_sent: 1, paid_bookings: 0 } } }] }),
   crm_targets_set: () => null,
-  crm_queue: (a, ui) => (a.p_view === 'unassigned' ? queue.slice(0, 1).map((l) => ({ ...l, crm_owner: null, owner_name: null })) : (ui && ui.extra ? queue.concat(extraLeads) : queue)),
+  crm_queue: (a, ui) => (a.p_view === 'unassigned' ? queue.slice(0, 1).map((l) => ({ ...l, crm_owner: null, owner_name: null })) : (ui && ui.extra ? queue.concat(extraLeads) : ui && ui.missed ? queue.concat(missedCalls) : queue)),
   crm_call_queue: () => callRows,
   crm_my_leads: () => leadRows,
   crm_leads_list: () => leadRows,
