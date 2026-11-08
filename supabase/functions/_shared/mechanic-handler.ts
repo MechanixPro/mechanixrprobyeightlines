@@ -4,6 +4,9 @@
 //   me           { session }               -> { mechanic }
 //   dashboard    { session, date? }        -> greeting, availability, bookings count for the date, month stats, cash due
 //   jobs         { session, date? }        -> this mechanic's jobs for a day (whitelisted; phone only on open jobs; never address or email)
+//   offers       { session }               -> assigned open jobs with assigned_at and accepted_at (the app polls this every 15 s)
+//   accept       { session, id }           -> records mechanic_accepted_at, only for this mechanic's own open job (idempotent)
+//   decline      { session, id, reason? }  -> writes a Crew note and an audit row; never unassigns
 //   dues         { session }               -> total due and the unsettled jobs (Total collected, Your payout, Due to platform)
 //   job_link     { session, id }           -> { url }  a fresh /job/?t=... link for one of this mechanic's open jobs
 //   status_set   { session, status, lat?, lng?, acc? }   Available / Busy (Available may carry the last known location)
@@ -14,7 +17,7 @@ import { mechanicDues, unsettledRows } from './mech-dues.ts';
 import { selfieFresh, checkSelfie, selfiePath, selfiePathOk, TERMS_VERSION, SELFIE_NEEDED } from './partner-avail.ts';
 import { techPct } from './tech-job.ts';
 
-export const ACTIONS = ['login', 'me', 'dashboard', 'jobs', 'dues', 'job_link', 'status_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'pay_link', 'team_contact'];
+export const ACTIONS = ['login', 'me', 'dashboard', 'jobs', 'offers', 'accept', 'decline', 'dues', 'job_link', 'status_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'pay_link', 'team_contact'];
 const BAD = 'Could not save. Please try again.', SESSION_OVER = 'Your session has ended. Enter your PIN again.';
 
 export type Deps = {
@@ -162,6 +165,27 @@ export async function handleMechanic(req: Request, d: Deps): Promise<Response> {
     const date = pickDate(b?.date), jobs = await dayJobs(date);
     if (!jobs) return json(req, { error: 'Could not load your bookings. Please try again.' }, 500);
     return json(req, { ok: true, date, jobs });
+  }
+
+  if (action === 'offers') {
+    const { data, error } = await db.from('leads').select(DAY_COLS + ',mechanic_assigned_at,mechanic_accepted_at').eq('mechanic_id', mechId).in('status', ['paid', 'scheduled']).is('deleted_at', null).order('mechanic_assigned_at', { ascending: false }).limit(30);
+    if (error) return json(req, { error: 'Could not load your jobs. Please try again.' }, 500);
+    const rows: any[] = data ?? [], sIds = [...new Set(rows.map((r) => r.service_id).filter(Boolean))], bIds = [...new Set(rows.map((r) => r.bike_id).filter(Boolean))];
+    const [sv, bk] = await Promise.all([
+      sIds.length ? db.from('services').select('id,name').in('id', sIds) : Promise.resolve({ data: [] }),
+      bIds.length ? db.from('bikes').select('id,brand,model,reg_no').in('id', bIds) : Promise.resolve({ data: [] }),
+    ]);
+    const S = new Map<string, string>((sv.data ?? []).map((x: any) => [x.id, x.name])), K = new Map<string, any>((bk.data ?? []).map((x: any) => [x.id, x]));
+    return json(req, { ok: true, today: istToday(now()), jobs: rows.map((l) => ({ ...mechanicJobItem({ lead: l, service: S.get(l.service_id) ?? null, bike: K.get(l.bike_id) ?? null, reported: false }), assigned_at: l.mechanic_assigned_at ?? null, accepted_at: l.mechanic_accepted_at ?? null })) });
+  }
+
+  if (action === 'accept' || action === 'decline') {
+    const id = String(b?.id ?? ''); if (!UUID_RE.test(id)) return json(req, { error: 'This job is not available.', code: 'gone' }, 404);
+    // The RPC itself checks leads.mechanic_id = this mechanic, so a mechanic can never accept or decline someone else's job.
+    const r = action === 'accept' ? await rpc('mechanic_offer_accept', { p_mechanic: mechId, p_lead: id }) : await rpc('mechanic_offer_decline', { p_mechanic: mechId, p_lead: id, p_reason: String(b?.reason ?? '').slice(0, 200) });
+    if (!r) return json(req, { error: BAD }, 500);
+    if (!r.ok) return json(req, { error: 'This job is not assigned to you any more.', code: 'gone' }, 404);
+    return json(req, { ok: true, already: !!r.already });
   }
 
   if (action === 'dues') {

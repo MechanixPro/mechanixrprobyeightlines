@@ -9,7 +9,7 @@
   if (typeof module === 'object' && module.exports) module.exports = api; else { root.MXP_MECH = api; if (root.document) api.start(root); }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
-  var LINK_KEY = 'mxp_mech_link', SESSION_KEY = 'mxp_mech_session', LINK_RE = /^[0-9a-f]{48}$/;
+  var LINK_KEY = 'mxp_mech_link', SESSION_KEY = 'mxp_mech_session', LINK_RE = /^[0-9a-f]{48}$/, SEEN_KEY = 'mxp_mech_seen';
 
   /* ---------- pure helpers ---------- */
   function money(n) { n = Number(n) || 0; return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: Math.round(n * 100) % 100 ? 2 : 0, maximumFractionDigits: 2 }); }
@@ -20,6 +20,7 @@
     var d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
     return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
   }
+  function waitText(sec) { sec = Math.max(0, Math.floor(Number(sec) || 0)); var m = Math.floor(sec / 60), r = sec % 60; return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r; }
   function digits(s) { return String(s || '').replace(/\D/g, ''); }
   function telHref(p) { p = digits(p).slice(-10); return /^[6-9]\d{9}$/.test(p) ? 'tel:+91' + p : null; }
   function phoneShow(p) { p = digits(p).slice(-10); return /^[6-9]\d{9}$/.test(p) ? '+91 ' + p.slice(0, 5) + ' ' + p.slice(5) : ''; }
@@ -60,7 +61,7 @@
         .catch(function () { return { ok: false, status: 0, data: { error: ERR.net }, network: true }; });
     }
     function ended(r) { if (r.status === 401 && r.data && r.data.code === 'session') { lock('Your session has ended. Enter your PIN again.'); return true; } return false; }
-    function lock(msg) { clearSession(win); S.session = null; S.dash = null; S.jobs = null; S.dues = null; S.pay = null; S.cache = {}; S.msg = msg || null; go('pin'); }
+    function lock(msg) { stopAlert(); clearSession(win); S.session = null; S.dash = null; S.jobs = null; S.dues = null; S.pay = null; S.cache = {}; S.offers = null; S.msg = msg || null; go('pin'); }
     function go(screen) { S.screen = screen; render(); try { win.scrollTo(0, 0); } catch (e) {} }
     var notice = function (kind, text) { return el('p', { class: 'g-note g-note-' + kind, role: kind === 'err' ? 'alert' : 'status', text: text }); };
     var loading = function (t) { return el('div', { class: 'g-card g-center g-loading', role: 'status' }, [el('span', { class: 'g-spin', 'aria-hidden': 'true' }), el('p', { text: t || 'Loading' })]); };
@@ -72,8 +73,91 @@
       return el('div', { class: 'g-row' }, kids);
     }
 
+
+    /* ---------- partner look: haptics, alarm tone (Web Audio, no files), offer page, splash (same pattern as /garage/) ---------- */
+    function buzz(p) { try { if (win.navigator && win.navigator.vibrate) win.navigator.vibrate(p); } catch (e) {} }
+    var AC = null, alertTimer = null, ringTimer = null;
+    function unlockAudio() { try { var C0 = win.AudioContext || win.webkitAudioContext; if (!C0) return; if (!AC) AC = new C0(); if (AC.state === 'suspended') AC.resume(); } catch (e) {} }
+    d.addEventListener('pointerdown', unlockAudio, true);
+    function beep() { try { if (!AC || AC.state !== 'running') return; var t = AC.currentTime; [880, 1175].forEach(function (f, i) { var o = AC.createOscillator(), g = AC.createGain(); o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, t + i * 0.22); g.gain.exponentialRampToValueAtTime(0.35, t + i * 0.22 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.22 + 0.2); o.connect(g); g.connect(AC.destination); o.start(t + i * 0.22); o.stop(t + i * 0.22 + 0.22); }); } catch (e) {} }
+    function startAlert() { if (alertTimer) return; var ring = function () { beep(); buzz([300, 150, 300]); }; ring(); alertTimer = win.setInterval(ring, 2500); }
+    function stopAlert() { if (alertTimer) { win.clearInterval(alertTimer); alertTimer = null; } buzz(0); }
+    function stopRing() { if (ringTimer) { win.clearInterval(ringTimer); ringTimer = null; } }
+    function seenMap() { try { return JSON.parse(win.localStorage.getItem(SEEN_KEY) || '{}') || {}; } catch (e) { return {}; } }
+    function markSeen(id) { var m = seenMap(); m[id] = Date.now(); var ks = Object.keys(m); if (ks.length > 60) ks.sort(function (a, b) { return m[a] - m[b]; }).slice(0, ks.length - 60).forEach(function (k) { delete m[k]; }); try { win.localStorage.setItem(SEEN_KEY, JSON.stringify(m)); } catch (e) {} }
+    function svgTick() { var n = 'http://www.w3.org/2000/svg', v = d.createElementNS(n, 'svg'), c = d.createElementNS(n, 'circle'), q = d.createElementNS(n, 'path'); v.setAttribute('viewBox', '0 0 80 80'); v.setAttribute('width', '96'); v.setAttribute('height', '96'); c.setAttribute('cx', '40'); c.setAttribute('cy', '40'); c.setAttribute('r', '36'); q.setAttribute('d', 'M24 41l11 11 21-24'); v.appendChild(c); v.appendChild(q); return v; }
+    function waitRing(j) {
+      var t0 = j.assigned_at ? Date.parse(j.assigned_at) : Date.now(); if (!(t0 > 0)) t0 = Date.now();
+      var n = 'http://www.w3.org/2000/svg', R = 54, C2 = 2 * Math.PI * R, svg = d.createElementNS(n, 'svg'), bg = d.createElementNS(n, 'circle'), fg = d.createElementNS(n, 'circle'); svg.setAttribute('viewBox', '0 0 128 128'); svg.setAttribute('class', 'g-ring-svg'); svg.setAttribute('aria-hidden', 'true');
+      [bg, fg].forEach(function (c, i) { c.setAttribute('cx', '64'); c.setAttribute('cy', '64'); c.setAttribute('r', String(R)); c.setAttribute('class', i ? 'g-ring-fg' : 'g-ring-bg'); svg.appendChild(c); });
+      fg.setAttribute('stroke-dasharray', String(C2));
+      var txt = el('b', { class: 'g-ring-t', id: 'gWait' }), box = el('div', { class: 'g-ring', role: 'timer', 'aria-label': 'Time this offer has waited' }, [svg, el('div', { class: 'g-ring-in' }, [txt, el('span', { class: 'g-ring-c', text: 'waiting' })])]);
+      function tickR() { var sec = Math.max(0, Math.floor((Date.now() - t0) / 1000)); txt.textContent = waitText(sec); fg.setAttribute('stroke-dashoffset', String(C2 * (1 - Math.min(1, sec / 900)))); }
+      tickR(); stopRing(); ringTimer = win.setInterval(tickR, 1000); return box;
+    }
+    function offerOf(id) { var o = S.offers; if (!o || o === 'error') return null; for (var i = 0; i < o.length; i++) if (o[i].id === id) return o[i]; return null; }
+    function openOffer(j) { markSeen(j.id); S.offerId = j.id; S.offerErr = null; S.tick = false; S.screen = 'offer'; render(); try { win.scrollTo(0, 0); } catch (e) {} }
+    function renderOffer() {
+      var j = offerOf(S.offerId); if (!j || j.accepted_at) { stopAlert(); return openHome(); }
+      clear(app); app.classList.add('g-wiz'); app.classList.add('g-dark'); d.body.classList.add('g-dark-bg');
+      startAlert();
+      var msg = el('div', { id: 'gOfferMsg', 'aria-live': 'polite' }, S.offerErr ? [notice('err', S.offerErr)] : []);
+      var accept = el('button', { class: 'g-btn g-btn-primary g-wide g-step-btn g-accept', type: 'button', id: 'gOfferAccept', text: 'Accept job', onclick: function () { acceptOffer(j, this, msg); } });
+      var cant = el('button', { class: 'g-btn g-btn-ghost g-cant', type: 'button', id: 'gCantTake', text: 'Can’t take it', onclick: function () { declineOffer(j, cant, msg); } });
+      var tick = S.tick ? el('div', { class: 'g-tick', 'aria-hidden': 'true' }, [svgTick()]) : null; S.tick = false;
+      var lines = [[j.area, j.slot, j.date && j.date !== S.today ? dayLabel(j.date) : 'Today'].filter(Boolean).join(' · ')];
+      app.appendChild(el('main', { class: 'g-main', id: 'gmain', tabindex: '-1' }, [el('div', { class: 'g-wiz-page g-offer' }, [tick,
+        el('p', { class: 'g-wiz-l', text: 'New job for you' }), el('h1', { class: 'g-wiz-h g-key', text: j.vehicle + ' · ' + j.service })].concat(lines.map(function (t) { return el('p', { class: 'g-wiz-l', id: 'gOfferHint', text: t }); }), [waitRing(j), el('div', { class: 'g-wiz-btns' }, [accept, cant]), msg]))]));
+    }
+    function acceptOffer(j, btn, msg) {
+      stopAlert(); buzz(15); btn.disabled = true; btn.textContent = 'Accepting'; clear(msg);
+      api('accept', { id: j.id }).then(function (r) {
+        if (ended(r)) return;
+        if (!r.ok) { btn.disabled = false; btn.textContent = 'Accept job'; if (r.data && r.data.code === 'gone') { S.offerErr = null; S.offers = null; S.msg = null; return openHome(); } msg.appendChild(notice('err', r.data && r.data.error || ERR.gen)); startAlert(); return; }
+        j.accepted_at = new Date().toISOString(); S.tick = true; render();
+        win.setTimeout(function () {
+          api('job_link', { id: j.id }).then(function (r2) {
+            if (ended(r2)) return;
+            if (r2.ok && /^\/job\/\?t=[0-9a-f]{64}$/.test(r2.data.url)) { win.location.href = r2.data.url; return; }
+            S.openErr = { id: j.id, text: r2.data && r2.data.error || ERR.gen }; openHome();
+          });
+        }, 700);
+      });
+    }
+    function declineOffer(j, btn, msg) {
+      stopAlert(); btn.disabled = true; clear(msg);
+      api('decline', { id: j.id, reason: 'Declined in the mechanic app' }).then(function (r) {
+        if (ended(r)) return;
+        if (!r.ok && !(r.data && r.data.code === 'gone')) { btn.disabled = false; msg.appendChild(notice('err', r.data && r.data.error || ERR.gen)); startAlert(); return; }
+        j.declined = true; clear(msg);
+        msg.appendChild(notice('info', 'The team has been told. Please call them now so they can send this job to someone else.'));
+        msg.appendChild(teamButtons()); msg.appendChild(el('button', { class: 'g-btn g-btn-ghost', type: 'button', id: 'gOfferHome', onclick: function () { openHome(); }, text: 'Back to Home' }));
+      });
+    }
+    /* every 15 seconds: look for a newly assigned job this phone has not shown yet, and open its offer page */
+    function pollOffers() {
+      if (!S.session || d.hidden || S.screen === 'pin' || S.screen === 'boot' || S.screen === 'gate') return Promise.resolve();
+      return api('offers').then(function (r) {
+        if (ended(r) || !r.ok) return; S.offers = r.data.jobs || []; S.today = r.data.today || S.today;
+        var seen = seenMap(), fresh = S.offers.filter(function (x) { return !x.accepted_at && !seen[x.id]; })[0];
+        if (fresh && S.screen !== 'offer') openOffer(fresh); else if (S.screen === 'home') render();
+      });
+    }
+    win.setInterval(pollOffers, 15000);
+    /* splash: once per session, CSS only, not shown for reduced motion */
+    (function () {
+      var seen = false; try { seen = win.sessionStorage.getItem('mxp_mech_splash') === '1'; win.sessionStorage.setItem('mxp_mech_splash', '1'); } catch (e) {}
+      var calm = win.matchMedia && win.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (seen || calm) return;
+      var n = 'http://www.w3.org/2000/svg', v = d.createElementNS(n, 'svg'), sh = d.createElementNS(n, 'path'), bo = d.createElementNS(n, 'path');
+      v.setAttribute('viewBox', '0 0 100 120'); v.setAttribute('class', 'g-sp-svg'); v.setAttribute('aria-hidden', 'true');
+      sh.setAttribute('d', 'M50 6 L90 22 V58 C90 84 72 102 50 114 C28 102 10 84 10 58 V22 Z'); sh.setAttribute('class', 'g-sp-shield'); bo.setAttribute('d', 'M56 30 L36 66 H50 L44 94 L66 55 H52 Z'); bo.setAttribute('class', 'g-sp-bolt'); v.appendChild(sh); v.appendChild(bo);
+      var box = el('div', { class: 'g-splash', id: 'gSplash', 'aria-hidden': 'true' }, [v, el('b', { class: 'g-sp-name', text: 'Mechanix Pro' }), el('span', { class: 'g-sp-sub', text: 'Mechanic partner' })]);
+      d.body.appendChild(box); win.setTimeout(function () { if (box.parentNode) box.parentNode.removeChild(box); }, 1400);
+    })();
+
     function shell(body, active, noHead) {
-      clear(app);
+      clear(app); app.classList.remove('g-wiz'); var dark = !!S.session && active === 'home'; app.classList.toggle('g-dark', dark); d.body.classList.toggle('g-dark-bg', dark);
       if (!noHead) app.appendChild(el('header', { class: 'g-top' }, [el('div', { class: 'g-brand' }, [el('img', { src: '/assets/img/logo-mark.webp', alt: '', width: 28, height: 28 }), el('div', {}, [el('b', { text: 'Mechanix Pro Mechanic' }), el('span', { text: S.name || '' })])])]));
       app.appendChild(el('main', { class: 'g-main', id: 'gmain', tabindex: '-1' }, body));
       if (S.session) app.appendChild(el('nav', { class: 'g-tabs g-tabs-2', 'aria-label': 'Mechanic app' }, [['home', 'Home'], ['help', 'Help']].map(function (t) {
@@ -123,7 +207,7 @@
         F().runGate(win, app, { me: r.data, kind: 'mechanic', api: api, done: openHome });
       });
     }
-    function openHome() { S.screen = 'home'; S.dash = null; S.jobs = null; S.dues = null; S.pay = null; render(); return refresh(); }
+    function openHome() { S.screen = 'home'; S.dash = null; S.jobs = null; S.dues = null; S.pay = null; render(); pollOffers(); return refresh(); }
     function refresh(keepPanels) {
       var dateAtStart = S.date;
       return Promise.all([api('dashboard', { date: dateAtStart }), api('jobs', { date: dateAtStart }), S.duesOpen || keepPanels ? api('dues') : Promise.resolve(null)]).then(function (rs) {
@@ -251,6 +335,23 @@
       return el('section', { class: 'g-list', 'aria-live': 'polite' }, kids);
     }
 
+    /* Home: "Today: N jobs" and the next job (accepted jobs first, soonest first; a job still waiting for Accept shows View offer) */
+    function nextJob() {
+      var o = S.offers; if (!o || o === 'error') return null;
+      var rank = { asap: 0, morning: 1, afternoon: 2, evening: 3 };
+      var list = o.filter(function (x) { return !x.declined; }).slice().sort(function (a, b) { return (a.accepted_at ? 1 : 0) - (b.accepted_at ? 1 : 0) || String(a.date).localeCompare(String(b.date)) || (rank[a.slot] || 4) - (rank[b.slot] || 4); });
+      return list[0] || null;
+    }
+    function nextCard() {
+      var dash = S.dash, n = dash && dash !== 'error' && S.date === dash.today ? dash.bookings_count : null, nx = nextJob(), kids = [el('p', { class: 'g-wiz-l', id: 'dTodayJobs', text: 'Today: ' + (n == null ? '-' : n) + (n === 1 ? ' job' : ' jobs') })];
+      if (!nx) kids.push(el('p', { class: 'g-wiz-l', text: 'No job waiting. Stay Available and we will ring you.' }));
+      else {
+        kids.push(el('p', { class: 'g-wiz-l', text: nx.accepted_at ? 'Next job' : 'New job waiting' }), el('p', { class: 'g-key', id: 'dNextJob', text: nx.vehicle + ' · ' + nx.service }), el('p', { class: 'g-wiz-l', text: [nx.area, nx.slot, nx.date && nx.date !== S.today ? dayLabel(nx.date) : 'Today'].filter(Boolean).join(' · ') }));
+        var b = el('button', { class: 'g-btn g-btn-primary g-wide g-step-btn', type: 'button', id: 'dNextGo', text: nx.accepted_at ? 'Open job' : 'View offer' });
+        b.addEventListener('click', function () { if (nx.accepted_at) openBooking(nx, b); else openOffer(nx); }); kids.push(b);
+      }
+      return el('section', { class: 'g-next-card', 'aria-label': 'Next job' }, kids);
+    }
     function renderHome() {
       var dash = S.dash, body = [];
       var banner = el('div', { class: 'd-banner' }, [el('div', {}, [el('h1', { text: 'Hello, ' + (S.name || 'mechanic') }), S.area ? el('p', { text: S.area }) : null]), el('button', { class: 'd-out', type: 'button', id: 'dLogout', onclick: function () { lock('You are signed out.'); }, text: 'Logout' })]);
@@ -258,6 +359,7 @@
       if (dash === null) { body.push(loading('Loading your day')); shell(body, 'home', true); return; }
       if (dash === 'error') { body.push(el('div', { class: 'g-card g-center' }, [el('p', { text: S.dashErr || ERR.gen }), el('button', { class: 'g-btn g-btn-primary', type: 'button', onclick: function () { S.dash = null; render(); refresh(); }, text: 'Retry' })])); shell(body, 'home', true); return; }
       body.push(statusCard(dash.mechanic.availability));
+      body.push(nextCard());
       body.push(cashCard(dash.cash));
       var p = payPanel(); if (p) body.push(p);
       body.push(el('section', { class: 'd-card', 'aria-label': 'Today’s bookings count' }, [el('p', { class: 'd-label', text: 'Today’s bookings' }), el('p', { class: 'd-big', id: 'dCount', text: String(S.date === dash.today ? dash.bookings_count : (S.jobs && S.jobs !== 'error' ? S.jobs.length : dash.bookings_count)) })]));
@@ -279,7 +381,9 @@
     }
 
     function render() {
+      stopRing(); if (S.screen !== 'offer') stopAlert();
       if (S.screen === 'pin') return renderPin(); if (S.screen === 'home') return renderHome(); if (S.screen === 'help') return renderHelp();
+      if (S.screen === 'offer') return renderOffer();
       shell([loading('Opening')], null);
     }
 
@@ -290,5 +394,5 @@
     if (ses && savedLink(win)) { S.session = ses.t; S.name = ses.name || ''; loadTeam(); enter(); } else { go('pin'); }
     d.addEventListener('visibilitychange', function () { if (!d.hidden && S.session && S.screen === 'home' && !S.pay && Date.now() - S.at > 60000) refresh(); });
   }
-  return { start: start, money: money, todayIST: todayIST, dayLabel: dayLabel, telHref: telHref, phoneShow: phoneShow, teamLinks: teamLinks, saveLink: saveLink, savedLink: savedLink, linkFromUrl: linkFromUrl, saveSession: saveSession, savedSession: savedSession, clearSession: clearSession, dueText: dueText, LINK_KEY: LINK_KEY, SESSION_KEY: SESSION_KEY };
+  return { start: start, money: money, todayIST: todayIST, dayLabel: dayLabel, telHref: telHref, phoneShow: phoneShow, teamLinks: teamLinks, waitText: waitText, saveLink: saveLink, savedLink: savedLink, linkFromUrl: linkFromUrl, saveSession: saveSession, savedSession: savedSession, clearSession: clearSession, dueText: dueText, LINK_KEY: LINK_KEY, SESSION_KEY: SESSION_KEY };
 });

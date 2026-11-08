@@ -46,7 +46,7 @@ test('the app code: no inline style, no innerHTML or eval, no phone number, no t
   }
   const j = read('assets/js/mechanic.js');
   assert.ok(!/localStorage\.setItem\([^)]*(phone|pay|url|amount)/i.test(j), 'only the link and the session are stored');
-  assert.deepEqual([...j.matchAll(/localStorage\.(?:set|get|remove)Item\(([A-Z_]+)/g)].map((m) => m[1]).filter((v, i, a) => a.indexOf(v) === i).sort(), ['LINK_KEY', 'SESSION_KEY']);
+  assert.deepEqual([...j.matchAll(/localStorage\.(?:set|get|remove)Item\(([A-Z_]+)/g)].map((m) => m[1]).filter((v, i, a) => a.indexOf(v) === i).sort(), ['LINK_KEY', 'SEEN_KEY', 'SESSION_KEY']);   // Why: M1a adds SEEN_KEY, only job ids already shown as an offer on this phone (so one job never rings twice); no phone, amount or url
   assert.ok(!/style=/.test(read('assets/css/garage.css')) && !/url\(http/.test(read('assets/css/garage.css')));
   assert.match(j, /mechanic-app/); assert.ok(!/garage-app/.test(j));
 });
