@@ -56,7 +56,7 @@ export async function editBooking(ctx, lead) {
   let techs = [];
   if (ctx.can('assign_leads') || ctx.can('manage_technicians')) {
     try { techs = rankTechs((await rpc('crm_tech_board', { p_date: lead.preferred_date || null })).techs, lead); }
-    catch (e) { try { techs = (await rpc('crm_mechanic_picker')).map((t) => ({ id: t.id, name: t.name, label: t.name + (t.area ? ' · ' + t.area : '') })); } catch (e2) { techs = []; } }
+    catch (e) { try { techs = (await rpc('crm_mechanic_picker')).map((t) => ({ id: t.id, name: t.name, label: t.name + (t.area ? ' · ' + t.area : '') + (t.available === false ? ' (Not available)' : '') })); } catch (e2) { techs = []; } }
   }
   if (lead.mechanic_id && !techs.some((t) => t.id === lead.mechanic_id)) techs = [{ id: lead.mechanic_id, name: lead.mechanic_name || 'Current technician', label: lead.mechanic_name || 'Current technician' }, ...techs];
   const body = `${techs.length ? field('Technician', 'mechanic_id', { type: 'select', blank: 'Not assigned', value: lead.mechanic_id || '', options: techs.map((t) => [t.id, t.label]), hint: (lead.preferred_date ? 'Free in this slot and covering this PIN code come first. ' : 'Set the date to see who is free. ') + 'Send them the job on WhatsApp from the booking after saving.' }) : ''}

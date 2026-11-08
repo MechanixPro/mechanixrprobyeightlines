@@ -1,5 +1,7 @@
 // Partner garage app: pure helpers (no Deno APIs, so Node can test them). Used by the garage-app Edge Function. Design: docs/superpowers/specs/2026-11-06-partner-garage-app-design.md
-// Everything a garage's device receives is built here, field by field, from a whitelist. The customer's address and email are never read. The phone is read in ONE place (garageJobDetail)
+// Everything a garage's device receives is built here, field by field, from a whitelist. The customer's email is never read. The phone and (since 2026-11-09, owner decision: the garage must see where to go) the job address are read only in garageJobDetail,
+// and only for an open job. The address is never in the job list, dashboard or statement.
+// (old: The phone is read in ONE place (garageJobDetail)
 // and only while the garage has an open assignment for that lead.
 
 /** How the customer contact reaches the garage. 'direct' = the number itself (owner decision 2026-11-06). 'masked' is reserved for later: with it the detail carries no number and the app shows
@@ -67,6 +69,7 @@ export const PIN_RE = /^[0-9]{4,6}$/;
 /* ---------- whitelist serializers ---------- */
 export type RawJob = {
   assignment: Record<string, any>;
+  place?: Record<string, any> | null;                        // address row of the lead, filled only for an open assignment
   lead: Record<string, any>;                                 // the whole lead row may be passed in: only the fields below are ever read
   service?: string | null;
   vehicle?: { brand?: string | null; model?: string | null; reg_no?: string | null } | null;
@@ -105,6 +108,17 @@ function base(raw: RawJob) {
 export function garageJobListItem(raw: RawJob) { return base(raw); }
 
 /** The job detail. includeContact must be true only when the caller already proved an open assignment for this garage and the contact view was logged. */
+/** Where the customer is: address, area, pincode and the shared pin. Only for an open job. No name, phone or email. */
+export function jobPlace(lead: Record<string, any> | null | undefined, open: boolean) {
+  if (!open || !lead) return undefined;
+  const num = (v: unknown, lo: number, hi: number) => { const n = Number(v); return v !== null && v !== undefined && v !== '' && Number.isFinite(n) && n >= lo && n <= hi ? n : null; };
+  const pin = String(lead.pincode ?? '').trim();
+  const place = { address: scrubText(lead.address, 200), area: scrubText(lead.area, 80), pincode: /^\d{6}$/.test(pin) ? pin : null, lat: num(lead.lat, 6, 38), lng: num(lead.lng, 68, 98) };
+  const hasPin = place.lat !== null && place.lng !== null;
+  if (!hasPin) { place.lat = null; place.lng = null; }
+  return place.address || place.area || place.pincode || hasPin ? place : undefined;
+}
+
 export function garageJobDetail(raw: RawJob, includeContact: boolean) {
   const b = base(raw), a = raw.assignment;
   const out: Record<string, any> = {
@@ -122,6 +136,8 @@ export function garageJobDetail(raw: RawJob, includeContact: boolean) {
     const p = digits10(raw.lead?.phone);
     if (/^[6-9]\d{9}$/.test(p)) out.customer_phone = p;
   }
+  const place = jobPlace(raw.place, b.open);
+  if (place) out.place = place;
   return out;
 }
 

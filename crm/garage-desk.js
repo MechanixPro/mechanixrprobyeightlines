@@ -134,7 +134,7 @@ export function createGarageDesk(deps) {
       const [garages, bookings] = await Promise.all([rpc('crm_garage_picker'), lead ? Promise.resolve(null) : rpc('crm_dispatch_list', { p_days: 7 })]);
       const list = (garages || []).filter((g) => g.status !== 'paused' && g.id !== moveFrom);
       const access = (S.data && S.data.access) || [];
-      const opt = (g) => `<option value="${esc(g.id)}"${g.id === garageId ? ' selected' : ''}>${esc(g.name)}${g.code ? ' · ' + esc(g.code) : ''}${access.length && !access.some((x) => x.garage_id === g.id && x.active) ? ' (no app access)' : ''}</option>`;
+      const opt = (g) => `<option value="${esc(g.id)}"${g.id === garageId ? ' selected' : ''}>${esc(g.name)}${g.code ? ' · ' + esc(g.code) : ''}${access.length && !access.some((x) => x.garage_id === g.id && x.active) ? ' (no app access)' : ''}${g.available === false ? ' (Not available)' : ''}</option>`;
       const pick = lead ? '' : `<label class="flow-label" for="gd-lead">Booking</label><select id="gd-lead" name="lead"><option value="">Choose</option>${(bookings || []).map((b) => `<option value="${esc(b.id)}">${esc(b.booking_id || 'Booking')} · ${esc(b.first_name || '')} · ${esc(b.area || 'No area')}${b.bike ? ' · ' + esc(b.bike) : ''}</option>`).join('')}</select>`;
       return deps.dialog({ title: moveFrom ? 'Move to another garage' : 'Send to a partner garage', intro: lead ? esc([lead.booking_id, lead.area].filter(Boolean).join(' · ') || 'This booking') : 'Pick the booking and the garage. The garage sees the vehicle, the work and the first name only.',
         body: `${pick}<label class="flow-label" for="gd-garage">Garage</label><select id="gd-garage" name="garage"><option value="">Choose</option>${list.map(opt).join('')}</select>

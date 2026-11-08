@@ -191,11 +191,11 @@
         due ? el('div', { class: 'd-row' }, [el('button', { class: 'g-btn g-btn-primary', type: 'button', id: 'dPayAll', onclick: function () { startPay('all'); }, text: 'Pay all' }), el('button', { class: 'g-btn g-btn-ghost', type: 'button', id: 'dQrAll', onclick: function () { startPay('all', null, true); }, text: 'QR code' })]) : null]);
     }
     function statusCard(av) {
-      return el('section', { class: 'd-card', 'aria-label': 'Current status' }, [el('p', { class: 'd-label', text: 'Current status' }),
-        el('div', { class: 'd-toggle' }, [
-          el('button', { class: 'd-opt' + (av === 'available' ? ' on-ok' : ''), type: 'button', id: 'dAvail', 'aria-pressed': av === 'available' ? 'true' : 'false', disabled: S.statusBusy || null, onclick: function () { setStatus('available'); }, text: 'Available' }),
-          el('button', { class: 'd-opt' + (av === 'busy' ? ' on-off' : ''), type: 'button', id: 'dBusy', 'aria-pressed': av === 'busy' ? 'true' : 'false', disabled: S.statusBusy || null, onclick: function () { setStatus('busy'); }, text: 'Busy' })]),
-        S.loc ? el('p', { class: 'g-hint', role: 'status', text: S.loc }) : null, S.statusErr ? notice('err', S.statusErr) : null]);
+      var on = av === 'available';
+      return el('section', { class: 'd-avail' + (on ? ' on' : ' off'), 'aria-label': 'Availability' }, [
+        el('div', { class: 'd-avail-txt' }, [el('p', { class: 'd-avail-title', id: 'dAvailTitle', text: on ? 'Available for jobs' : 'Not available' }), el('p', { class: 'g-hint', text: 'Crew will not send you new jobs while you are not available.' }),
+          S.loc ? el('p', { class: 'g-hint', role: 'status', text: S.loc }) : null, S.statusErr ? notice('err', S.statusErr) : null]),
+        el('button', { class: 'd-sw', type: 'button', role: 'switch', id: 'dAvailSwitch', 'aria-checked': on ? 'true' : 'false', 'aria-label': 'Available for jobs', disabled: S.statusBusy || null, onclick: function () { setStatus(on ? 'busy' : 'available'); } }, [el('span', { class: 'd-knob' })])]);
     }
     function statsCard(m) {
       return el('section', { class: 'd-card', 'aria-label': 'My monthly stats' }, [el('p', { class: 'd-label', text: 'My monthly stats' }), el('div', { class: 'd-stats' }, [
@@ -244,11 +244,11 @@
       body.push(banner);
       if (dash === null) { body.push(loading('Loading your day')); shell(body, 'home', true); return; }
       if (dash === 'error') { body.push(el('div', { class: 'g-card g-center' }, [el('p', { text: S.dashErr || ERR.gen }), el('button', { class: 'g-btn g-btn-primary', type: 'button', onclick: function () { S.dash = null; render(); refresh(); }, text: 'Retry' })])); shell(body, 'home', true); return; }
+      body.push(statusCard(dash.mechanic.availability));
       body.push(cashCard(dash.cash));
       var p = payPanel(); if (p) body.push(p);
       body.push(el('section', { class: 'd-card', 'aria-label': 'Today’s bookings count' }, [el('p', { class: 'd-label', text: 'Today’s bookings' }), el('p', { class: 'd-big', id: 'dCount', text: String(S.date === dash.today ? dash.bookings_count : (S.jobs && S.jobs !== 'error' ? S.jobs.length : dash.bookings_count)) })]));
       body.push(el('section', { class: 'd-card', 'aria-label': 'Quick actions' }, [el('p', { class: 'd-label', text: 'Quick actions' }), el('button', { class: 'g-btn g-btn-primary d-xl', type: 'button', id: 'dGet', onclick: function () { S.date = todayIST(); S.dash = null; S.jobs = null; render(); refresh().then(function () { var b = d.getElementById('dBookings'); if (b && b.scrollIntoView) try { b.scrollIntoView({ block: 'start' }); } catch (e) {} }); }, text: 'Get my bookings' })]));
-      body.push(statusCard(dash.mechanic.availability));
       body.push(statsCard(dash.month));
       body.push(unsettledCard());
       var dateIn = el('input', { class: 'g-input', type: 'date', id: 'dDate', value: S.date, 'aria-label': 'Booking date', onchange: function (e) { if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) { S.date = e.target.value; loadJobs(); } } });

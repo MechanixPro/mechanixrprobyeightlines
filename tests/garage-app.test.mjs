@@ -28,15 +28,21 @@ test('the job list never holds a phone, address or email, whatever the lead row 
     assert.ok(out.includes('"customer_first_name":"Asha"'));
   }
 });
-test('the job detail never holds the address or email, and holds the phone ONLY for an open job with contact allowed', () => {
+// 2026-11-09 owner decision: the garage must see where to go. The old rule "the address never reaches this app" is replaced by: address, area, pincode and pin only for an OPEN job's detail; never email; never in lists.
+test('the job detail holds the address only for an open job, never the email, and the phone ONLY for an open job with contact allowed', () => {
   for (const s of ['sent', 'received', 'in_work', 'ready']) {
-    const out = JSON.stringify(garageJobDetail(rawJob(s), true));
-    for (const bad of [ADDRESS, EMAIL, 'Secret Lane', 'Test Nagar', 'private.person', 'Asha Rao']) assert.ok(!out.includes(bad), `detail leaked ${bad} at ${s}`);
+    const raw = rawJob(s); raw.place = { address: 'Flat 4, Secret Lane', area: 'Test Nagar', pincode: '560102', lat: 12.9, lng: 77.6 };
+    const d = garageJobDetail(raw, true), out = JSON.stringify(d);
+    for (const bad of [EMAIL, 'private.person', 'Asha Rao']) assert.ok(!out.includes(bad), `detail leaked ${bad} at ${s}`);
+    assert.deepEqual(d.place, { address: 'Flat 4, Secret Lane', area: 'Test Nagar', pincode: '560102', lat: 12.9, lng: 77.6 });
     assert.equal(out.split(PHONE).length - 1, 1, 'the number appears exactly once (customer_phone), not in any note');
-    assert.equal(garageJobDetail(rawJob(s), true).customer_phone, PHONE);
+    assert.equal(d.customer_phone, PHONE);
   }
-  for (const s of ['returned', 'cancelled']) assert.equal(garageJobDetail(rawJob(s), true).customer_phone, undefined, 'no number after the job is closed, even if the caller asks');
-  assert.ok(!JSON.stringify(garageJobDetail(rawJob('received'), false)).includes(PHONE), 'no number unless contact was allowed (revoked, off, rate limited)');
+  for (const s of ['returned', 'cancelled']) { const raw = rawJob(s); raw.place = { address: 'Flat 4', area: 'X', pincode: '560102', lat: 12.9, lng: 77.6 }; const d = garageJobDetail(raw, true); assert.equal(d.customer_phone, undefined); assert.equal(d.place, undefined, 'no address once the job is closed'); }
+  assert.equal(garageJobDetail(rawJob('received'), true).place, undefined, 'the lead row alone never yields an address: only the place the function fetched for an open job');
+  assert.ok(!JSON.stringify(garageJobDetail(rawJob('received'), false)).includes(PHONE), 'no number unless contact was allowed');
+  assert.ok(!JSON.stringify(garageJobDetail(rawJob('received'), false)).includes(ADDRESS), 'the whole lead row is never passed through');
+  const noPin = garageJobDetail({ ...rawJob('received'), place: { address: 'A', area: null, pincode: 'x', lat: 99, lng: 77 } }, false).place; assert.deepEqual(noPin, { address: 'A', area: null, pincode: null, lat: null, lng: null });
 });
 test('the whitelist: unknown fields on the lead, assignment or vehicle are never passed through (fuzz)', () => {
   const rnd = () => Math.random().toString(36).slice(2);
@@ -124,7 +130,10 @@ test('the Edge Function: login limits, session check on every call, whitelist on
   const f = read('supabase/functions/garage-app/index.ts');
   assert.match(f, /garage_login_try/); assert.match(f, /perIp \?\? 0\) >= 20/); assert.match(f, /perLink \?\? 0\) >= 15/); assert.match(f, /garage_session_check/); assert.match(f, /verifySession/);
   assert.match(f, /GARAGE_SESSION_SECRET/); assert.match(f, /503/);
-  assert.ok(!/select\('[^']*\b(address|email|landmark|lat|lng)\b/.test(f), 'no query selects address or email');
+  // 2026-11-09: the address is selected in exactly one place, inside the open-assignment block of 'job'; email and landmark never.
+  assert.ok(!/select\('[^']*\b(email|landmark)\b/.test(f), 'no query selects email');
+  assert.deepEqual(f.match(/select\('[^']*\baddress\b[^']*'\)/g), ["select('address,area,pincode,lat,lng')"]);
+  assert.ok(f.indexOf("select('address,area,pincode,lat,lng')") > f.indexOf('if (isOpen(a.status))'), 'only inside the open-job block');
   const phoneSelects = f.match(/select\('[^']*\bphone\b[^']*'\)/g) || []; assert.deepEqual(phoneSelects, ["select('phone')"], 'the phone is selected in exactly one place');
   assert.ok(f.indexOf('garage_contact_view') < f.indexOf("select('phone')"), 'the view is logged before the number is read');
   assert.match(f, /\.eq\('garage_id', garageId\)/); assert.match(f, /photoPathOk/); assert.match(f, /createSignedUploadUrl/); assert.match(f, /createSignedUrl\(p, 600\)/);
