@@ -298,3 +298,17 @@ tr.is-paid td:first-child{box-shadow:inset 4px 0 0 var(--good)}
 .ip-table td{overflow-wrap:normal}@media(max-width:520px){.ip-src{display:none}}
 .ip-table{min-width:340px}
 .ip-card .ip-table{width:100%;table-layout:auto}.ip-card .ip-table td.ip-ph{padding-right:var(--s4)}.ip-card .ip-table td:last-child,.ip-card .ip-table th:last-child{padding-left:var(--s3)}
+
+/* Partner KYC review */
+.kv-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--s3)}
+.kv-row{display:grid;gap:var(--s2);padding:var(--s3);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+.kv-open{display:grid;gap:var(--s1);text-align:left;min-height:var(--tap);background:none;border:0;padding:0;font:inherit;color:var(--text);cursor:pointer;width:100%}
+.kv-name{font-size:var(--fs-4);font-weight:700}.kv-sub,.kv-count,.kv-hint,.kv-none,.kv-why{font-size:var(--fs-4);color:var(--text3);margin:0}
+.kv-link,.kv-detail .btn,.kv-big{min-height:var(--tap);font-size:var(--fs-4)}
+.kv-docs{list-style:none;margin:var(--s4) 0;padding:0;display:grid;gap:var(--s3)}
+.kv-doc{padding:var(--s3);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+.kv-file{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2);padding:var(--s2) 0;border-top:1px solid var(--border)}
+.kv-fname{font-size:var(--fs-4);flex:1 1 140px}.kv-why{flex-basis:100%}.kv-acts{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.kv-f{display:grid;gap:var(--s1);font-size:var(--fs-4);margin:var(--s3) 0}.kv-f textarea{font:inherit;font-size:var(--fs-4);padding:var(--s2);border:1px solid var(--border2);border-radius:var(--radius-field);width:100%;box-sizing:border-box}
+.kv-big-row{display:flex;flex-wrap:wrap;gap:var(--s3)}.kv-big{min-height:var(--tap-lg);flex:1 1 160px}
+.kv-note{font-size:var(--fs-4);margin:var(--s3) 0}.kv-title{font-size:var(--fs-5);margin:var(--s3) 0 var(--s1)}
