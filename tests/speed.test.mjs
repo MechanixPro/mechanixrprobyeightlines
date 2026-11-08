@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { firstReplyMinutes, median, speedStats, speedByPerson, longestWaiting, followUpQueue, followUpBucket, bucketCounts, snoozeAt, fmtMinutes, withoutMoney, isMissedCall, missedCallQueue } from '../crm/speed.js';
+import { firstReplyMinutes, median, speedStats, speedByPerson, longestWaiting, followUpQueue, followUpBucket, bucketCounts, snoozeAt, fmtMinutes, withoutMoney, isMissedCall, missedCallQueue, quotesWaiting } from '../crm/speed.js';
 
 const NOW = new Date('2027-01-10T08:00:00Z').getTime(); // 13:30 IST
 const L = (o) => ({ status: 'new', created_at: '2027-01-10T06:00:00Z', ...o });
@@ -90,4 +90,19 @@ test('missed calls: only open, uncontacted IVR missed-call leads, oldest first',
   assert.deepEqual(q.map((l) => l.id), ['old', 'mid', 'new']);
   assert.deepEqual(q.map((l) => l.minutesWaiting), [130, 61, 5]);
   assert.deepEqual(missedCallQueue(null, now), []);
+});
+
+test('quotes waiting: 2 hour threshold, expired and decided excluded, oldest first, money for admin only', () => {
+  const h = (n) => new Date(NOW - n * 3600e3).toISOString();
+  const q = [
+    { id: 'a', sent_at: h(1.9), total: 100 }, { id: 'b', sent_at: h(2), total: 200 }, { id: 'c', sent_at: h(30), total: 300 },
+    { id: 'd', sent_at: h(5), total: 400, valid_until: h(1) }, { id: 'e', sent_at: h(5), status: 'approved' }, { id: 'f', sent_at: h(6), decided_at: h(3) },
+    { id: 'g', sent_at: h(9), valid_until: new Date(NOW + 3600e3).toISOString(), total: 700 }, { id: 'h' }, null, { id: 'i', sent_at: 'junk' },
+  ];
+  const admin = quotesWaiting(q, NOW, true);
+  assert.deepEqual(admin.map((x) => x.id), ['c', 'g', 'b']);
+  assert.equal(admin[0].stale, true); assert.equal(admin[1].stale, false); assert.equal(admin[2].minutesWaiting, 120);
+  assert.equal(admin[0].total, 300);
+  for (const x of quotesWaiting(q, NOW, false)) assert.equal('total' in x, false);
+  assert.deepEqual(quotesWaiting(null, NOW), []);
 });

@@ -93,3 +93,16 @@ export function missedCallQueue(leads, now = Date.now()) {
     .map((l) => ({ ...l, minutesWaiting: Math.max(0, Math.round((now - ms(l.created_at)) / MIN)) }))
     .sort((a, b) => b.minutesWaiting - a.minutesWaiting);
 }
+
+/** Quotes waiting: the latest sent quote has had no decision for 2 hours or more and is not expired. Oldest first, with hoursWaiting and a stale flag (24 h+).
+ *  Money is kept only when canSee is true (admin); otherwise total is removed. */
+export const QUOTE_WAIT_MIN = 120, QUOTE_STALE_MIN = 24 * 60;
+export function quotesWaiting(list, now = Date.now(), canSee = false) {
+  return rows(list).filter((q) => {
+    const s = ms(q.sent_at), v = ms(q.valid_until);
+    if (!Number.isFinite(s) || (now - s) < QUOTE_WAIT_MIN * MIN) return false;
+    if (q.decided_at || (q.status && q.status !== 'sent')) return false;
+    return !(Number.isFinite(v) && v <= now);
+  }).map((q) => { const c = { ...q, minutesWaiting: Math.round((now - ms(q.sent_at)) / MIN) }; c.stale = c.minutesWaiting >= QUOTE_STALE_MIN; if (!canSee) delete c.total; return c; })
+    .sort((a, b) => b.minutesWaiting - a.minutesWaiting);
+}

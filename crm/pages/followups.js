@@ -1,12 +1,12 @@
 import { rpc, esc, head, toast, clean, modal, field, vehicleTag } from '../ui.js';
 import { emptyState, errorState, skeleton, chip } from '../ds.js';
 import { LOST_REASONS, lostReasonCheck, sourceName, vehicleOf, telUrl, waUrl, firstMessage } from '../crm-rules.js';
-import { followUpQueue, bucketCounts, snoozeAt, missedCallQueue, fmtMinutes } from '../speed.js';
+import { followUpQueue, bucketCounts, snoozeAt, missedCallQueue, fmtMinutes, quotesWaiting } from '../speed.js';
 
 // Follow-ups: open leads whose next follow-up is due, overdue first, then today, then later. One tap to call, WhatsApp, snooze or mark lost.
 // Mine for an agent, everyone's for a supervisor. Money shows only to the admin (supervisors never see it).
 const st = { bucket: null };
-const BUCKETS = [['missed', 'Missed calls'], ['due', 'Overdue and today'], ['overdue', 'Overdue'], ['today', 'Today'], ['later', 'Later'], ['nodate', 'No date set']];
+const BUCKETS = [['quotes', 'Quotes waiting'], ['missed', 'Missed calls'], ['due', 'Overdue and today'], ['overdue', 'Overdue'], ['today', 'Today'], ['later', 'Later'], ['nodate', 'No date set']];
 const money = (ctx) => !!(ctx.me && ctx.me.is_admin);
 const rupee = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 
@@ -22,18 +22,21 @@ async function draw(root, ctx) {
   const all = ctx.can('view_all_leads');
   const raw = await rpc('crm_queue', { p_view: all ? 'all' : 'mine', p_search: null });
   const missed = missedCallQueue(raw);
+  let qraw = [], qOff = false;
+  try { qraw = await rpc('crm_quotes_waiting'); } catch (e) { qOff = true; }
+  const quotes = quotesWaiting(qraw, Date.now(), money(ctx));
   if (!st.bucket) st.bucket = missed.length ? 'missed' : 'due';
   const queue = followUpQueue(raw), counts = bucketCounts(queue), showMoney = money(ctx);
   const pick = (b) => queue.filter((l) => (b === 'due' ? l.bucket === 'overdue' || l.bucket === 'today' : l.bucket === b));
-  const isMissed = st.bucket === 'missed', rows = isMissed ? missed : pick(st.bucket), me = ctx.me;
-  const tabs = BUCKETS.map(([k, t]) => { const n = k === 'missed' ? missed.length : k === 'due' ? counts.overdue + counts.today : counts[k]; return `<button type="button" class="chip pick${k === st.bucket ? ' on' : ''}" data-fu-tab="${k}" aria-pressed="${k === st.bucket}">${esc(k === 'missed' ? 'Missed calls (' + n + ')' : t)}${k === 'missed' ? '' : ' <b>' + n + '</b>'}</button>`; }).join('');
+  const isMissed = st.bucket === 'missed', isQuotes = st.bucket === 'quotes', rows = isQuotes ? quotes : isMissed ? missed : pick(st.bucket), me = ctx.me;
+  const tabs = BUCKETS.map(([k, t]) => { const n = k === 'quotes' ? quotes.length : k === 'missed' ? missed.length : k === 'due' ? counts.overdue + counts.today : counts[k]; return `<button type="button" class="chip pick${k === st.bucket ? ' on' : ''}" data-fu-tab="${k}" aria-pressed="${k === st.bucket}">${esc(k === 'missed' ? 'Missed calls (' + n + ')' : k === 'quotes' ? 'Quotes waiting (' + n + ')' : t)}${k === 'missed' || k === 'quotes' ? '' : ' <b>' + n + '</b>'}</button>`; }).join('');
   const summary = `<p class="small muted">${counts.overdue} overdue · ${counts.today} due today · ${counts.later} later${counts.nodate ? ' · ' + counts.nodate + ' with no date' : ''}</p>`;
   root.innerHTML = head('Follow-ups', 'Overdue first, then due today. Call, message, snooze or close each one.') + summary + `<div class="filters fu-tabs" role="group">${tabs}</div>` +
-    (rows.length ? rows.map((l) => (isMissed ? missedCard(l, me) : card(l, me, ctx, showMoney))).join('') : emptyState({ title: isMissed ? 'No missed calls waiting.' : st.bucket === 'due' ? 'Nothing due. You are on top of it.' : 'Nothing here.', text: isMissed ? 'Every IVR call has been picked up or called back.' : st.bucket === 'due' ? 'Check Later for what is coming up.' : '' }));
+    (isQuotes && qOff ? emptyState({ title: 'Quotes waiting is not available yet.', text: 'The other tabs still work.' }) : rows.length ? rows.map((l) => (isQuotes ? quoteCard(l, me, showMoney) : isMissed ? missedCard(l, me) : card(l, me, ctx, showMoney))).join('') : isQuotes ? emptyState({ title: 'No quotes waiting.', text: 'Every sent quote has an answer, or is under 2 hours old.' }) : emptyState({ title: isMissed ? 'No missed calls waiting.' : st.bucket === 'due' ? 'Nothing due. You are on top of it.' : 'Nothing here.', text: isMissed ? 'Every IVR call has been picked up or called back.' : st.bucket === 'due' ? 'Check Later for what is coming up.' : '' }));
   root.onclick = async (e) => {
     const t = e.target.closest('[data-fu-tab]'); if (t) { st.bucket = t.dataset.fuTab; return draw(root, ctx).catch((x) => toast(clean(x), true)); }
     const b = e.target.closest('[data-fu]'); if (!b) return;
-    const id = b.dataset.id, lead = queue.find((x) => x.id === id), act = b.dataset.fu;
+    const id = b.dataset.id, lead = queue.find((x) => x.id === id) || quotes.find((x) => x.id === id), act = b.dataset.fu;
     if (act === 'call' || act === 'wa') return;   // plain links; the lead sheet logs the outcome
     if (act === 'open') return ctx.openLead(id, 'call');
     if (act === 'lost') return lostDialog(lead, ctx, () => draw(root, ctx));
@@ -43,6 +46,18 @@ async function draw(root, ctx) {
       catch (err) { b.disabled = false; toast(clean(err), true); }
     }
   };
+}
+
+function quoteCard(l, me, showMoney) {
+  return `<article class="fu-card fu-quote${l.stale ? ' fu-late' : ''}" data-id="${esc(l.id)}">
+    <div class="fu-main"><b>${esc(l.name || 'Customer')}</b> <small class="muted">${esc(l.ref || '')}</small>
+      <p class="small">${chip('Quote sent ' + fmtMinutes(l.minutesWaiting) + ' ago', l.stale ? 'bad' : 'warn')}${showMoney && l.total != null ? ` <b>${rupee(l.total)}</b>` : ''}</p></div>
+    <div class="fu-act">
+      <a class="btn call fu-bigcall" href="${telUrl(l.phone)}" data-fu="call" data-id="${esc(l.id)}">Call</a>
+      <a class="btn wa" href="${waUrl(l.phone, firstMessage(l, me && me.name))}" target="_blank" rel="noopener" data-fu="wa" data-id="${esc(l.id)}">WhatsApp</a>
+      <button class="btn ghost" type="button" data-fu="open" data-id="${esc(l.id)}">Open</button>
+      <button class="btn ghost" type="button" data-fu="lost" data-id="${esc(l.id)}">Mark lost</button>
+    </div></article>`;
 }
 
 function missedCard(l, me) {
