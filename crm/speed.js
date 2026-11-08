@@ -106,3 +106,15 @@ export function quotesWaiting(list, now = Date.now(), canSee = false) {
   }).map((q) => { const c = { ...q, minutesWaiting: Math.round((now - ms(q.sent_at)) / MIN) }; c.stale = c.minutesWaiting >= QUOTE_STALE_MIN; if (!canSee) delete c.total; return c; })
     .sort((a, b) => b.minutesWaiting - a.minutesWaiting);
 }
+
+/** Not paid yet: /book/ customers with a payment order who have not paid. 15 minutes minimum (they may still be paying), 3 days maximum.
+ *  Newest first (fresh abandons convert best): those under 24 h come first, then the older ones, each group newest first. Money kept only when canSee (admin). */
+export const UNPAID_MIN = 15, UNPAID_MAX_MIN = 3 * 24 * 60, UNPAID_FRESH_MIN = 24 * 60;
+export function unpaidBookings(list, now = Date.now(), canSee = false) {
+  return rows(list).filter((r) => {
+    const c = ms(r.created_at); if (!Number.isFinite(c) || r.confirm_paid_at) return false;
+    const age = (now - c) / MIN;
+    return age >= UNPAID_MIN && age <= UNPAID_MAX_MIN;
+  }).map((r) => { const m = Math.round((now - ms(r.created_at)) / MIN), o = { ...r, minutesWaiting: m, older: m >= UNPAID_FRESH_MIN }; if (!canSee) delete o.confirm_fee; return o; })
+    .sort((a, b) => (a.older - b.older) || (a.minutesWaiting - b.minutesWaiting));
+}

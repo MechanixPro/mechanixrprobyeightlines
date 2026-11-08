@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { firstReplyMinutes, median, speedStats, speedByPerson, longestWaiting, followUpQueue, followUpBucket, bucketCounts, snoozeAt, fmtMinutes, withoutMoney, isMissedCall, missedCallQueue, quotesWaiting } from '../crm/speed.js';
+import { firstReplyMinutes, median, speedStats, speedByPerson, longestWaiting, followUpQueue, followUpBucket, bucketCounts, snoozeAt, fmtMinutes, withoutMoney, isMissedCall, missedCallQueue, quotesWaiting, unpaidBookings } from '../crm/speed.js';
 
 const NOW = new Date('2027-01-10T08:00:00Z').getTime(); // 13:30 IST
 const L = (o) => ({ status: 'new', created_at: '2027-01-10T06:00:00Z', ...o });
@@ -105,4 +105,15 @@ test('quotes waiting: 2 hour threshold, expired and decided excluded, oldest fir
   assert.equal(admin[0].total, 300);
   for (const x of quotesWaiting(q, NOW, false)) assert.equal('total' in x, false);
   assert.deepEqual(quotesWaiting(null, NOW), []);
+});
+
+test('not paid yet: 15 minute floor, 3 day cap, paid excluded, fresh first, money for admin only', () => {
+  const m = (n) => new Date(NOW - n * 60e3).toISOString();
+  const r = [{ id: 'a', created_at: m(14), confirm_fee: 49 }, { id: 'b', created_at: m(15), confirm_fee: 69 }, { id: 'c', created_at: m(60 * 30), confirm_fee: 99 }, { id: 'd', created_at: m(60 * 5), confirm_fee: 49 },
+    { id: 'e', created_at: m(60 * 24 * 3 + 1) }, { id: 'f', created_at: m(60 * 24 * 3) }, { id: 'g', created_at: m(120), confirm_paid_at: m(10) }, { id: 'h', created_at: m(60 * 25) }, { id: 'i' }, null];
+  const a = unpaidBookings(r, NOW, true);
+  assert.deepEqual(a.map((x) => x.id), ['b', 'd', 'h', 'c', 'f']);   // under 24 h newest first, then older newest first
+  assert.equal(a[0].minutesWaiting, 15); assert.equal(a[2].older, true); assert.equal(a[1].older, false); assert.equal(a[1].confirm_fee, 49);
+  for (const x of unpaidBookings(r, NOW, false)) assert.equal('confirm_fee' in x, false);
+  assert.deepEqual(unpaidBookings(null, NOW), []);
 });
