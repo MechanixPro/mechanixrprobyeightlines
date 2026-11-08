@@ -756,7 +756,7 @@ const flow = createFlow({
 });
 // Wire the shared flow card to the page. This must come after `const flow` above: calling it earlier is a temporal-dead-zone error that stops the whole module.
 flow.bind($('#sheetPanel'), () => leadOf(S.open), () => S.flow);
-flow.bindDispatch($('#view'), () => S.dispatchRows || []);
+flow.bindDispatch($('#view'), () => S.dispatchRows || [], () => S.dispatchTell || {}, () => { const w = document.getElementById('dpWrap'); if (w) w.innerHTML = flow.dispatchHtml(S.dispatchRows, S.dispatchSeen || {}, S.dispatchTell); });
 flow.bindIssues($('#view'), () => loadCustIssues());
 async function openLead(id, silent) { await openLeadBase(id, silent); await paintFlow(id); }
 async function paintFlow(id) {
@@ -1922,7 +1922,7 @@ async function loadCustIssues() {
 }
 async function loadDispatch() {
   const w = $('#dpWrap'); if (!w) return;
-  try { const { data, error } = await sb.rpc('crm_dispatch_list', { p_days: 7 }); if (error) throw error; S.dispatchRows = data || []; let seen = {}; try { const r = await sb.rpc('crm_tech_seen', { p_ids: S.dispatchRows.filter((x) => x.mechanic_id).map((x) => x.id) }); seen = r.data || {}; } catch (x) { /* older database: no last seen */ } w.innerHTML = flow.dispatchHtml(S.dispatchRows, seen); } catch (e) { w.innerHTML = errorHtml('Could not load Dispatch.', e, 'render'); }
+  try { const { data, error } = await sb.rpc('crm_dispatch_list', { p_days: 7 }); if (error) throw error; S.dispatchRows = data || []; let seen = {}; try { const r = await sb.rpc('crm_tech_seen', { p_ids: S.dispatchRows.filter((x) => x.mechanic_id).map((x) => x.id) }); seen = r.data || {}; } catch (x) { /* older database: no last seen */ } S.dispatchSeen = seen; S.dispatchTell = await flow.loadTell(S.dispatchRows); w.innerHTML = flow.dispatchHtml(S.dispatchRows, seen, S.dispatchTell); } catch (e) { w.innerHTML = errorHtml('Could not load Dispatch.', e, 'render'); }
 }
 function board() {
   const onWay = new Set((S.dispatchRows || []).filter((r) => WAY_STAGES.includes(r.visit_stage)).map((r) => r.id));

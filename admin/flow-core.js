@@ -4,6 +4,7 @@
 import { chip, emptyState, errorState, NOTICE_TONE, ISSUE_TONE } from './ds.js';
 import { paidBadge, visitSub, callScript, quoteTotals, quoteCheck, QUOTE_KINDS, NOTICE_LABEL, resendable, dispatchOrder, confirmPending, confirmPaid, ISSUE_TYPES, seenLine, mapsUrl, issueOrder } from './flow-rules.js';
 import { quoteStatus, validityLabel } from './quote-doc.js';
+import { tellMessage, tellUrl, toldInfo, toldLabel, notToldYet, toldNoteBody, mechanicWaPhone } from './tell-mechanic.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const inr = (n) => '₹' + (Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -210,13 +211,36 @@ export function createFlow(deps) {
 
   /* ----- Dispatch ----- */
   const seenRow = (s) => (s ? `<div class="flow-muted" data-seen>${esc(seenLine(s.age_s) || '')}${mapsUrl(s.lat, s.lng) ? ` · <a href="${esc(mapsUrl(s.lat, s.lng))}" target="_blank" rel="noopener">Open in Maps</a>` : ''}</div>` : '');
-  function dispatchHtml(rows, seen) {
+  // Per assigned booking: the mechanic's phone and the "Mechanic told" note, read once from crm_lead (the Dispatch list does not carry them). One failed read leaves that card without the chip, never blanks the list.
+  async function loadTell(rows) {
+    const out = {};
+    await Promise.all((rows || []).filter((r) => r.mechanic_id).map(async (r) => {
+      try { const d = await rpc('crm_lead', { p_id: r.id }); const l = (d && d.lead) || {}; out[r.id] = { phone: l.mechanic_phone || '', told: toldInfo(d && d.activities, r.mechanic_name) }; } catch (e) { /* no chip for this card */ }
+    }));
+    return out;
+  }
+  const tellBlock = (r, tell) => {
+    const t = tell && tell[r.id]; if (!r.mechanic_id || !t) return '';
+    const state = t.told ? chip(toldLabel(t.told.at), 'good', 'flow-told') : notToldYet(r, null) ? chip('Mechanic not told yet', 'bad', 'flow-nottold') : '';
+    const btn = mechanicWaPhone(t.phone) ? `<button class="flow-btn ${t.told ? '' : 'flow-primary'}" type="button" data-dispatch="tell">${t.told ? 'Tell mechanic again' : 'Tell mechanic'}</button>` : '<button class="flow-btn flow-primary" type="button" data-dispatch="open">Add the mechanic’s phone</button>';
+    return `<div class="flow-row flow-tell">${state}${btn}</div>`;
+  };
+  // Opens WhatsApp with the job message, then notes it on the booking. The window opens first, while the tap still counts.
+  async function tellMechanic(row, tell) {
+    const t = tell && tell[row.id]; if (!t || !mechanicWaPhone(t.phone)) return deps.openLead && deps.openLead(row.id);
+    const win = window.open('about:blank', '_blank'); let url = null;
+    try { url = await rpc('crm_tech_link', { p_lead: row.id }); } catch (e) { toast('The job link could not be made: ' + cleanErr(e) + ' The message says the link will follow.', true); }
+    const wa = tellUrl(t.phone, tellMessage(row, url));
+    if (win) { win.opener = null; win.location.href = wa; } else window.open(wa, '_blank', 'noopener');
+    try { await rpc('crm_log', { p_id: row.id, p_kind: 'note', p_body: toldNoteBody(row.mechanic_name), p_next_action: null, p_status: null, p_lost_reason: null }); t.told = { at: new Date().toISOString() }; } catch (e) { toast('WhatsApp opened, but the note could not be saved: ' + cleanErr(e), true); }
+  }
+  function dispatchHtml(rows, seen, tell) {
     const list = dispatchOrder(rows || []);
     if (!list.length) return emptyState({ title: 'No paid bookings waiting', text: 'New paid bookings appear here first.' });
     const un = list.filter((r) => !r.mechanic_id), on = list.filter((r) => r.mechanic_id);
     const li = (r) => `<li class="flow-d flow-d-paid ${r.mechanic_id ? '' : 'flow-d-open'}" data-id="${esc(r.id)}"><div><b>${esc(r.booking_id || 'Booking')}</b> ${chip(String(r.vehicle || 'bike').toUpperCase())} ${r.confirm_fee != null ? chip('PAID ₹' + r.confirm_fee, 'good', 'flow-paid') : ''} ${r.review ? chip('Fee needs a check', 'warn') : ''}</div>
       <div>${esc(r.first_name || '')} · ${esc([r.area, r.pincode].filter(Boolean).join(' ') || 'No area')}</div><div class="flow-muted">${esc(r.preferred_date || '')} · ${esc(SLOT[r.preferred_slot] || r.preferred_slot || '')}${r.bike ? ' · ' + esc(r.bike) : ''}${r.service_name ? ' · ' + esc(r.service_name) : ''}</div>
-      <div>${r.mechanic_name ? `Mechanic: <b>${esc(r.mechanic_name)}</b>${r.visit_stage ? ' · ' + esc(STAGE[r.visit_stage] || r.visit_stage) : ''}` : '<b class="flow-bad">Unassigned</b>'}</div>${seenRow(seen && seen[r.id])}
+      <div>${r.mechanic_name ? `Mechanic: <b>${esc(r.mechanic_name)}</b>${r.visit_stage ? ' · ' + esc(STAGE[r.visit_stage] || r.visit_stage) : ''}` : '<b class="flow-bad">Unassigned</b>'}</div>${seenRow(seen && seen[r.id])}${tellBlock(r, tell)}
       <div class="flow-row"><button class="flow-btn ${r.mechanic_id ? '' : 'flow-primary'}" type="button" data-dispatch="assign">${r.mechanic_id ? 'Reassign' : 'Assign mechanic'}</button><button class="flow-btn flow-ghost" type="button" data-dispatch="open">Open</button></div></li>`;
     const head = (t, n, cls) => `<h3 class="flow-dhead ${cls}">${t} <span class="flow-dcount">${n}</span></h3>`;
     return `${un.length ? head('Paid, needs a mechanic', un.length, 'flow-dhead-paid') + `<ul class="flow-dispatch">${un.map(li).join('')}</ul>` : ''}${on.length ? (un.length ? head('Assigned', on.length, '') : '') + `<ul class="flow-dispatch">${on.map(li).join('')}</ul>` : ''}`;
@@ -238,11 +262,11 @@ export function createFlow(deps) {
       } catch (x) { toast(cleanErr(x), true); }
     });
   }
-  function bindDispatch(root, getRows) {
+  function bindDispatch(root, getRows, getTell, redraw) {
     root.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-dispatch]'); if (!b) return; const id = b.closest('[data-id]').dataset.id, row = getRows().find((x) => x.id === id); if (!row) return;
-      try { if (b.dataset.dispatch === 'open' && deps.openLead) return deps.openLead(id); if (b.dataset.dispatch === 'assign') await actions.assign({ id, name: row.first_name, area: row.area, pincode: row.pincode, mechanic_name: row.mechanic_name }); } catch (x) { toast(cleanErr(x), true); }
+      try { if (b.dataset.dispatch === 'open' && deps.openLead) return deps.openLead(id); if (b.dataset.dispatch === 'tell') { await tellMechanic(row, getTell && getTell()); if (redraw) redraw(); return; } if (b.dataset.dispatch === 'assign') await actions.assign({ id, name: row.first_name, area: row.area, pincode: row.pincode, mechanic_name: row.mechanic_name }); } catch (x) { toast(cleanErr(x), true); }
     });
   }
-  return { load, withFlow, card, bind, dispatchHtml, bindDispatch, issuesHtml, bindIssues, actions, dialog };
+  return { load, withFlow, card, bind, dispatchHtml, loadTell, bindDispatch, issuesHtml, bindIssues, actions, dialog };
 }

@@ -23,3 +23,4 @@
 .gd h2{margin:0 0 4px}.gd .flow-seg{flex-wrap:wrap}
 .gd-q{width:100%;padding:0 12px;margin:8px 0 16px}
 .gd-lines{width:100%;border-collapse:collapse;font-size:14px}.gd-lines td{padding:4px 8px 4px 0;border-bottom:1px solid var(--border);vertical-align:top}.gd-lines .gd-n{text-align:right;white-space:nowrap}
+.flow-tell{align-items:center}.flow-tell .mx-chip{font-size:var(--fs-3)}
