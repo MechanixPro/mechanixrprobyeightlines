@@ -8,6 +8,26 @@
   if (typeof module === 'object' && module.exports) module.exports = api; else { root.MXP_GARAGE = api; if (root.document) api.start(root); }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
+  var STEPS = [['new', 'New'], ['here', 'Here'], ['code', 'Code'], ['work', 'Work'], ['ready', 'Ready'], ['handed', 'Done']];
+  /** The 4-digit code: digits only, at most four. */
+  function cleanCode(v) { return String(v == null ? '' : v).replace(/\D/g, '').slice(0, 4); }
+  function isCode(v) { return /^[0-9]{4}$/.test(String(v == null ? '' : v)); }
+  /** Which one-button step a job is on. j: status, code ('verified' | 'open' | 'locked' | 'expired' | 'none'), code_needed, can_start, open. hasPhoto: the Customer-here photo is taken. */
+  function jobStep(j, hasPhoto) {
+    if (!j) return 'closed';
+    if (j.status === 'sent') return 'new';
+    if (j.status === 'received') {
+      if (j.code_needed && j.code !== 'verified') return hasPhoto ? 'code' : 'here';
+      return j.can_start ? 'start' : 'estimate';
+    }
+    if (j.status === 'in_work') return 'ready';
+    if (j.status === 'ready') return 'handed';
+    return 'closed';
+  }
+  /** Position on the progress strip (New, Here, Code, Work, Ready, Done). */
+  function stripIndex(step) { return { 'new': 0, here: 1, code: 2, estimate: 3, start: 3, ready: 4, handed: 5, closed: 5 }[step] || 0; }
+  /** Event each step sends (null: no event, or the screen does it another way). */
+  var STEP_EVENT = { 'new': 'received', code: null, here: null, estimate: null, start: 'work_started', ready: 'ready', handed: null };
   var LINK_KEY = 'mxp_garage_link', SESSION_KEY = 'mxp_garage_session', LOC_KEY = 'mxp_garage_loc_asked', LINK_RE = /^[0-9a-f]{48}$/, MAX_PHOTOS = 4;
 
   /* ---------- pure helpers ---------- */
@@ -238,12 +258,6 @@
       body.push(el('div', { class: 'g-jh' }, [el('div', {}, [el('h1', { text: j.vehicle }), el('p', { class: 'g-muted', text: (j.reg_no ? j.reg_no + ' · ' : '') + (j.booking_id || '') })]), chip(j)]));
       var rb = whenText(j.return_by); body.push(el('p', { class: 'g-return', text: rb ? 'Return by ' + rb : 'Return time not set' }));
 
-      // customer: first name, and the number only while the job is open
-      var cust = [el('p', { class: 'g-big', text: j.customer_first_name })];
-      if (j.customer_phone) { cust.push(el('a', { class: 'g-btn g-btn-primary g-wide', href: telHref(j.customer_phone), id: 'gCallCustomer', text: 'Call customer ' + phoneShow(j.customer_phone) }), el('p', { class: 'g-hint', text: 'Use this number only for this job. Mechanix Pro records that you opened it.' })); }
-      else if (j.contact_limited) cust.push(notice('info', 'Too many opens just now. Wait a few minutes to see the number again.'));
-      else if (!j.open) cust.push(el('p', { class: 'g-muted', text: 'This job is closed, so the customer’s number is no longer shown.' }));
-      body.push(section('Customer', cust));
       if (j.place) {
         var pl = j.place, nav = navigateUrl(pl), addr = [];
         if (pl.address) addr.push(el('p', { class: 'g-addr', id: 'gAddress', text: pl.address }));
@@ -252,14 +266,20 @@
         if (j.customer_phone) addr.push(el('a', { class: 'g-btn g-btn-ghost g-wide', href: telHref(j.customer_phone), id: 'gCallCustomer2', text: 'Call customer' }));
         body.push(section('Address', addr));
       }
+      if (j.open && j.status !== 'ready') body.push(stepCard(j, jobStep(j, ((S.herePaths && S.herePaths[j.id]) || []).length > 0)));
+      // customer: first name, and the number only while the job is open
+      var cust = [el('p', { class: 'g-big', text: j.customer_first_name })];
+      if (j.customer_phone) { cust.push(el('a', { class: 'g-btn g-btn-primary g-wide', href: telHref(j.customer_phone), id: 'gCallCustomer', text: 'Call customer ' + phoneShow(j.customer_phone) }), el('p', { class: 'g-hint', text: 'Use this number only for this job. Mechanix Pro records that you opened it.' })); }
+      else if (j.contact_limited) cust.push(notice('info', 'Too many opens just now. Wait a few minutes to see the number again.'));
+      else if (!j.open) cust.push(el('p', { class: 'g-muted', text: 'This job is closed, so the customer’s number is no longer shown.' }));
+      body.push(section('Customer', cust));
       body.push(section('Work needed', [el('p', { text: j.work }), j.work_needed ? el('p', { class: 'g-quote', text: j.work_needed }) : null]));
       if (j.found) body.push(section('What was found', [el('p', { text: j.found })]));
       if (j.pickup && (j.pickup.note || (j.pickup.photos || []).length)) body.push(section('Pickup notes and photos', [j.pickup.note ? el('p', { text: j.pickup.note }) : null, photoGrid(j.pickup.photos)]));
       body.push(section('Quote', [el('p', { class: 'g-q g-q-' + j.quote.status, text: j.quote.label })]));
 
       // progress
-      if (j.next) body.push(progressCard(j));
-      else if (j.status === 'ready') body.push(section('Ready for return', [el('p', { text: 'Mechanix Pro has been told. The mechanic will bring the vehicle back to the customer.' })]));
+      if (j.status === 'ready') body.push(stepCard(j, 'handed'));
       else if (!j.open) body.push(section('Closed', [el('p', { text: 'This job is ' + j.status_label.toLowerCase() + '.' })]));
       body.push(timelineCard(j));
       body.push(estimateCard(j));
@@ -305,24 +325,79 @@
       wrap.appendChild(el('div', { class: 'g-row g-photobtns' }, [el('label', { class: 'g-btn g-btn-primary', for: 'gphotoCam', id: 'gTakePhoto', text: 'Take photo' }), el('label', { class: 'g-btn g-btn-ghost', for: 'gphotos', id: 'gGallery', text: 'Choose from gallery' })]));
       wrap.appendChild(camIn); wrap.appendChild(galIn); wrap.appendChild(el('p', { class: 'g-hint', text: 'Photos are optional. Up to ' + MAX_PHOTOS + '.' })); wrap.appendChild(prev); wrap.appendChild(msg); return wrap;
     }
-    function progressCard(j) {
-      var n = j.next, blocked = j.status === 'received' && !j.can_start, msg = el('div', { id: 'gProgMsg', 'aria-live': 'polite' }), note = el('textarea', { class: 'g-input', id: 'gnote', rows: 2, maxlength: 300, placeholder: 'Note for Mechanix Pro (optional)' });
-      var go1 = el('button', { class: 'g-btn g-btn-primary g-wide g-xl', type: 'button', id: 'gProgress', disabled: blocked || null, text: n.label, onclick: function () {
-        if (n.event === 'ready' && S.confirm !== 'ready') { S.confirm = 'ready'; clear(msg); msg.appendChild(el('div', { class: 'g-confirm' }, [el('p', { text: 'Mark this vehicle ready for return? Mechanix Pro will be told.' }), el('div', { class: 'g-row' }, [
-          el('button', { class: 'g-btn g-btn-primary', type: 'button', id: 'gConfirmYes', onclick: function () { go1.click(); }, text: 'Yes, ready for return' }), el('button', { class: 'g-btn g-btn-ghost', type: 'button', onclick: function () { S.confirm = null; clear(msg); }, text: 'Not yet' })])])); return; }
-        go1.disabled = true; var old = go1.textContent; go1.textContent = 'Saving'; clear(msg);
-        var items = S.photos.slice();
-        uploadPhotos(j.id, items).then(function (paths) { return api('progress', { id: j.id, event: n.event, photos: paths, note: note.value.trim() || null }); }).then(function (r) {
-          if (ended(r)) return; go1.disabled = false; go1.textContent = old;
+    /* J3: one big button per step. Each button maps to an event the database already accepts (docs/j3-notes.md). */
+    function stepCard(j, step) {
+      var msg = el('div', { id: 'gProgMsg', 'aria-live': 'polite' }), kids = [], hint = '';
+      var photoDone = function () { return (S.herePaths && S.herePaths[j.id]) || []; };
+      var send = function (btn, event, items, held) {
+        btn.disabled = true; var old = btn.textContent; btn.textContent = 'Saving'; clear(msg);
+        uploadPhotos(j.id, items).then(function (paths) { return api('progress', { id: j.id, event: event, photos: (held || []).concat(paths) }); }).then(function (r) {
+          if (ended(r)) return; btn.disabled = false; btn.textContent = old;
           if (!r.ok) { msg.appendChild(notice('err', r.data && r.data.error || ERR.gen)); return; }
-          S.photos = []; S.confirm = null; S.job = null; render(); fetchJob(); S.jobs = null;
-        }).catch(function (e) { go1.disabled = false; go1.textContent = old; msg.appendChild(notice('err', e && e.message || ERR.gen)); });
-      } });
-      var kids = [];
-      if (blocked) kids.push(notice('warn', j.start_blocked_reason || 'The customer has not approved the quote yet.'));
-      kids.push(photoPicker(), note, go1, msg);
-      return section('Next step', kids, 'g-next');
+          S.photos = []; if (S.herePaths) delete S.herePaths[j.id]; S.job = null; render(); fetchJob(); S.jobs = null;
+        }).catch(function (e) { btn.disabled = false; btn.textContent = old; msg.appendChild(notice('err', e && e.message || ERR.gen)); });
+      };
+      var big = function (id, text, fn, off) { return el('button', { class: 'g-btn g-btn-primary g-wide g-step-btn', type: 'button', id: id, disabled: off || null, text: text, onclick: function () { fn(this); } }); };
+      if (step === 'new') {
+        hint = 'Accept this job to start.';
+        kids.push(big('gStepAccept', 'Accept job', function (b) { send(b, 'received', []); }));
+        kids.push(el('button', { class: 'g-btn g-btn-ghost g-wide', type: 'button', id: 'gCantTake', text: 'Can’t take it', onclick: function () { clear(msg); msg.appendChild(notice('info', 'Tell the team now so they can send this job to another garage.')); msg.appendChild(teamButtons()); } }));
+      } else if (step === 'here') {
+        hint = 'Customer is here. Take a photo of the vehicle.';
+        kids.push(photoPicker());
+        var btn = big('gStepHere', 'Customer is here', function (b) {
+          b.disabled = true; var old = b.textContent; b.textContent = 'Saving'; clear(msg);
+          uploadPhotos(j.id, S.photos.slice()).then(function (paths) { S.herePaths = S.herePaths || {}; S.herePaths[j.id] = paths; S.photos = []; render(); }).catch(function (e) { b.disabled = false; b.textContent = old; msg.appendChild(notice('err', e && e.message || ERR.gen)); });
+        }, !S.photos.length);
+        kids.push(btn);
+      } else if (step === 'code') {
+        hint = 'Ask the customer for their 4-digit code and type it here.';
+        if (j.code === 'locked' || j.code === 'expired' || j.code === 'none') kids.push(notice('warn', j.code === 'locked' ? 'Too many wrong codes. The team will send a new code.' : j.code === 'expired' ? 'The code has expired. Ask the team for a new one.' : 'The customer has no code yet. Ask the team to send one.'), teamButtons());
+        else kids.push(codeBoxes(function (code, done) {
+          clear(msg);
+          api('verify_code', { id: j.id, code: code }).then(function (r) {
+            if (ended(r)) return;
+            if (r.ok) { S.job = null; render(); fetchJob(); return; }
+            done(); msg.appendChild(notice('err', r.data && r.data.error || ERR.gen));
+            if (r.data && r.data.locked) { S.job = null; fetchJob(); }
+          });
+        }));
+      } else if (step === 'estimate') {
+        hint = 'The customer must approve the quote before work. Send your estimate.';
+        kids.push(big('gStepEstimate', 'Send estimate', function () { var f = d.getElementById('gEstForm') || d.getElementById('gProgMsg'); if (f && f.scrollIntoView) f.scrollIntoView(); }));
+        if (j.start_blocked_reason) kids.push(notice('warn', j.start_blocked_reason));
+      } else if (step === 'start') {
+        hint = 'Code confirmed. Start the work.';
+        kids.push(big('gStepStart', 'Start work', function (b) { send(b, 'work_started', [], photoDone()); }));
+      } else if (step === 'ready') {
+        hint = 'Work done. Take a photo, then mark ready.';
+        kids.push(photoPicker());
+        kids.push(big('gStepReady', 'Ready for return', function (b) { send(b, 'ready', S.photos.slice()); }, !S.photos.length));
+      } else if (step === 'handed') {
+        hint = 'Marked ready. The Mechanix Pro team hands the vehicle back and closes the job.';
+        kids.push(big('gStepHanded', 'Waiting for handover', function () {}, true));
+      }
+      return section('Next step', [stepStrip(step), el('p', { class: 'g-step-hint', id: 'gStepHint', text: hint })].concat(kids, [msg]), 'g-next g-step');
     }
+    function stepStrip(step) {
+      var at = stripIndex(step);
+      return el('ol', { class: 'g-strip', 'aria-label': 'Job progress' }, STEPS.map(function (s, i) { return el('li', { class: i < at ? 'is-done' : i === at ? 'is-now' : '', 'aria-current': i === at ? 'step' : null, text: s[1] }); }));
+    }
+    /* four big numeric boxes: one hidden number input holds the digits (numeric keypad), the boxes only show them */
+    function codeBoxes(onDone) {
+      var inp = el('input', { class: 'g-code-in', id: 'gCodeIn', type: 'text', inputmode: 'numeric', pattern: '[0-9]*', maxlength: 4, autocomplete: 'one-time-code', 'aria-label': 'Customer 4-digit code' });
+      var boxes = [0, 1, 2, 3].map(function () { return el('span', { class: 'g-code-box', 'aria-hidden': 'true' }); });
+      var row = el('label', { class: 'g-code', for: 'gCodeIn' }, boxes.concat([inp]));
+      function paint() { var v = inp.value; boxes.forEach(function (b, i) { b.textContent = v.charAt(i) ? '\u2022' : ''; b.className = 'g-code-box' + (i === v.length ? ' is-cur' : ''); }); }
+      inp.oninput = function () { inp.value = cleanCode(inp.value); paint(); go.disabled = !isCode(inp.value); };
+      var go = el('button', { class: 'g-btn g-btn-primary g-wide g-step-btn', type: 'button', id: 'gStepCode', disabled: true, text: 'Confirm code', onclick: function () {
+        if (!isCode(inp.value)) return; go.disabled = true; go.textContent = 'Checking';
+        onDone(inp.value, function () { inp.value = ''; paint(); go.textContent = 'Confirm code'; inp.focus(); });
+      } });
+      paint();
+      return el('div', {}, [row, go]);
+    }
+
 
     /* ---------- estimate ---------- */
     function estStatusText(e) { return { draft: 'Draft', submitted: 'With the Mechanix Pro team for review', converted: 'Accepted. Mechanix Pro will send the quote to the customer', approved: 'Accepted', rejected: 'Not accepted' }[e.status] || e.status; }
@@ -419,5 +494,5 @@
     if (ses && savedLink(win)) { S.session = ses.t; S.name = ses.name || ''; loadTeam(); openHome(true); } else { go('pin'); }
     d.addEventListener('visibilitychange', function () { if (!d.hidden && S.session && Date.now() - S.jobsAt > 60000) { if (S.screen === 'jobs') fetchJobs(); else if (S.screen === 'home') fetchHome(); } });
   }
-  return { start: start, locText: locText, locAsked: locAsked, markLocAsked: markLocAsked, LOC_KEY: LOC_KEY, money: money, totals: totals, whenText: whenText, telHref: telHref, navigateUrl: navigateUrl, availabilityText: availabilityText, phoneShow: phoneShow, teamLinks: teamLinks, saveLink: saveLink, savedLink: savedLink, linkFromUrl: linkFromUrl, saveSession: saveSession, savedSession: savedSession, clearSession: clearSession, LINK_KEY: LINK_KEY, SESSION_KEY: SESSION_KEY };
+  return { jobStep: jobStep, stripIndex: stripIndex, cleanCode: cleanCode, isCode: isCode, STEP_EVENT: STEP_EVENT, STEPS: STEPS, start: start, locText: locText, locAsked: locAsked, markLocAsked: markLocAsked, LOC_KEY: LOC_KEY, money: money, totals: totals, whenText: whenText, telHref: telHref, navigateUrl: navigateUrl, availabilityText: availabilityText, phoneShow: phoneShow, teamLinks: teamLinks, saveLink: saveLink, savedLink: savedLink, linkFromUrl: linkFromUrl, saveSession: saveSession, savedSession: savedSession, clearSession: clearSession, LINK_KEY: LINK_KEY, SESSION_KEY: SESSION_KEY };
 });

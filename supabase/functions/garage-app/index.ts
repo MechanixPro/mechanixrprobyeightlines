@@ -14,9 +14,10 @@
 // Every response is built in _shared/garage.ts from a whitelist. Customer address and email are never selected from the database at all.
 import { adminDb, env, json, corsHeaders, sha256Hex } from '../_shared/util.ts';
 import { notifyTeamGarage } from '../_shared/after-payment.ts';
+import { isCode, handoverHash, sameHash, afterWrongTry, doorState, MAX_ATTEMPTS, DOOR_KIND } from '../_shared/handover.ts';
 import { signSession, verifySession, garageJobListItem, garageJobDetail, garageStatement, garageDashboard, cleanLocation, cleanUpload, cleanEstimate, photoPath, photoPathOk, LINK_RE, PIN_RE, UUID_RE, EVENTS, LOGIN_MESSAGE, isOpen, type RawJob } from '../_shared/garage.ts';
 
-const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set'];
+const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'verify_code'];
 const BAD = 'Could not save. Please try again.', SESSION_OVER = 'Your session has ended. Enter your PIN again.';
 const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
 
@@ -149,6 +150,10 @@ Deno.serve(async (req) => {
     raw.pickup = { note: (ho.data as any)?.note ?? null, photos: await sign('handover', ((ho.data as any)?.photo_paths ?? []) as string[]) };
     raw.progress = await Promise.all((pr.data ?? []).map(async (p: any) => ({ event: p.event, at: p.at, note: p.note, photos: await sign('garage-updates', p.photos ?? []) })));
     raw.estimates = es.data ?? [];
+    // The customer's one-time code: only its state is sent (never the code or the hash). Needed when the booking was paid-confirmed or a code was made.
+    const { data: dr } = await db.from('handovers').select('kind,verified_at,locked_at,code_expires_at,attempts').eq('lead_id', a.lead_id).eq('kind', DOOR_KIND).order('created_at', { ascending: false });
+    const { data: cf } = await db.from('leads').select('confirm_fee').eq('id', a.lead_id).maybeSingle();
+    const code = doorState(dr ?? []), codeNeeded = code !== 'none' || (cf as any)?.confirm_fee != null;
     // The number: only for an open assignment, and only after the view is logged (the database also refuses a closed lead, a switched-off access and more than 40 views in 10 minutes).
     let contact = false, limited = false;
     if (isOpen(a.status)) {
@@ -159,7 +164,7 @@ Deno.serve(async (req) => {
       raw.place = (pl as any) ?? null;
       if (contact) { const { data: ph } = await db.from('leads').select('phone').eq('id', a.lead_id).maybeSingle(); (raw.lead as any).phone = (ph as any)?.phone ?? null; }
     }
-    return json(req, { ok: true, job: { ...garageJobDetail(raw, contact), contact_limited: limited } });
+    return json(req, { ok: true, job: { ...garageJobDetail(raw, contact), contact_limited: limited, code, code_needed: codeNeeded } });
   }
 
   if (action === 'photo_upload_url') {
@@ -178,6 +183,41 @@ Deno.serve(async (req) => {
       uploads.push({ path, url: data.signedUrl });
     }
     return json(req, { ok: true, uploads });
+  }
+
+  if (action === 'verify_code') {
+    // Same check as the mechanic's visit_start (tech-job): salted hash, the try is counted before the compare, 5 wrong tries lock it, 24-hour expiry. A wrong code never shows the right one.
+    if (!isCode(b?.code)) return json(req, { error: 'Enter the 4-digit code.' }, 400);
+    const { data: a } = await mine(jobId).maybeSingle();
+    if (!a || !['received', 'in_work'].includes(a.status)) return json(req, { error: a ? 'Accept the job first.' : 'This job is not available.' }, a ? 409 : 404);
+    const { data: lead } = await db.from('leads').select('id,ref').eq('id', a.lead_id).maybeSingle();
+    if (!lead) return json(req, { error: 'This job is not available.' }, 404);
+    const { data: rows } = await db.from('handovers').select('id,kind,code_hash,code_expires_at,attempts,locked_at,verified_at,created_at').eq('lead_id', a.lead_id).eq('kind', DOOR_KIND).order('created_at', { ascending: false });
+    const door = doorState(rows ?? []);
+    if (door === 'verified') return json(req, { ok: true, already: true });
+    if (door === 'none') return json(req, { error: 'The customer has no code yet. Ask the team to send one.' }, 409);
+    if (door === 'locked') return json(req, { error: 'Too many wrong codes. The team will send a new code.', locked: true }, 423);
+    if (door === 'expired') return json(req, { error: 'The code has expired. Ask the team for a new one.' }, 410);
+    const row = (rows ?? [])[0] as any;
+    const { data: tried } = await db.from('handovers').update({ attempts: row.attempts + 1 }).eq('id', row.id).eq('attempts', row.attempts).is('verified_at', null).is('locked_at', null).select('id').maybeSingle();
+    if (!tried) return json(req, { error: 'Please try again.' }, 409);
+    if (!sameHash(await handoverHash(row.id, String(b.code)), row.code_hash)) {
+      const w = afterWrongTry(row.attempts);
+      if (w.locked) {
+        await db.from('handovers').update({ locked_at: new Date().toISOString() }).eq('id', row.id);
+        await db.from('crm_activities').insert({ lead_id: lead.id, actor: null, kind: 'note', body: `The door code was entered wrong ${MAX_ATTEMPTS} times by garage ${garageName} and is locked. Send a new code.` }).then(() => {}, () => {});
+        await db.from('audit_log').insert({ action: 'handover_locked', details: { lead: (lead as any).ref, kind: DOOR_KIND, garage: garageId } });
+        return json(req, { error: 'Too many wrong codes. The team will send a new code.', locked: true }, 423);
+      }
+      return json(req, { error: `That code is not right. ${w.left} ${w.left === 1 ? 'try' : 'tries'} left.`, left: w.left }, 400);
+    }
+    const now = new Date().toISOString();
+    const { data: done, error } = await db.from('handovers').update({ verified_at: now }).eq('id', row.id).is('verified_at', null).select('id').maybeSingle();
+    if (error || !done) { console.error('garage-app verify_code', error?.code); return json(req, { error: error ? BAD : 'Please try again.' }, error ? 500 : 409); }
+    await db.from('booking_secrets').update({ door_code: null }).eq('lead_id', lead.id);   // the code is spent: it is no longer shown anywhere
+    await db.from('crm_activities').insert({ lead_id: lead.id, actor: null, kind: 'note', body: `Customer code confirmed by garage ${garageName}.` }).then(() => {}, () => {});
+    await db.from('audit_log').insert({ action: 'door_code_verified', details: { lead: (lead as any).ref, garage: garageId, access: accessId, via: 'garage' } });
+    return json(req, { ok: true });
   }
 
   if (action === 'progress') {

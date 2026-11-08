@@ -19,3 +19,14 @@ export function garageSeenChip(r, now = new Date()) {
   const today = ymd(now), tomorrow = ymd(new Date(now.getTime() + 864e5));
   return r.preferred_date === today || r.preferred_date === tomorrow ? { text: 'Garage has not seen it', tone: 'bad' } : { text: 'Not opened by the garage yet', tone: 'warn' };
 }
+
+const STEP_TEXT = { sent: 'Sent, waiting for the garage', received: 'Accepted, customer code next', in_work: 'Work started', ready: 'Ready for return' };
+/** The garage's current step, and a red chip when a job sent to the garage has not been accepted in 15 minutes (garage_assigned_at, garage_seen_at and garage_status already come with each Dispatch row). */
+export function garageStepChips(r, now = new Date()) {
+  if (!hasGarage(r)) return [];
+  const out = [], st = r.garage_status;
+  if (STEP_TEXT[st]) out.push({ text: STEP_TEXT[st], tone: st === 'sent' ? 'warn' : 'good' });
+  const at = r.garage_assigned_at ? new Date(r.garage_assigned_at).getTime() : NaN;
+  if (st === 'sent' && Number.isFinite(at) && new Date(now).getTime() - at > 15 * 60e3) out.push({ text: 'Garage has not accepted in 15 minutes', tone: 'bad' });
+  return out;
+}

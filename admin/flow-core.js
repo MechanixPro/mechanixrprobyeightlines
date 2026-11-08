@@ -4,7 +4,7 @@
 import { chip, emptyState, errorState, NOTICE_TONE, ISSUE_TONE } from './ds.js';
 import { paidBadge, visitSub, callScript, quoteTotals, quoteCheck, QUOTE_KINDS, NOTICE_LABEL, resendable, dispatchOrder, confirmPending, confirmPaid, ISSUE_TYPES, seenLine, mapsUrl, issueOrder } from './flow-rules.js';
 import { quoteStatus, validityLabel } from './quote-doc.js';
-import { garageLabel, garageSeenChip, isHandled } from './garage-assign.js';
+import { garageLabel, garageSeenChip, garageStepChips, isHandled } from './garage-assign.js';
 import { tellMessage, tellUrl, toldInfo, toldLabel, notToldYet, toldNoteBody, mechanicWaPhone } from './tell-mechanic.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -211,7 +211,7 @@ export function createFlow(deps) {
   }
 
   /* ----- Dispatch ----- */
-  const garageRow = (r) => { const l = garageLabel(r); if (!l) return ''; const c = garageSeenChip(r, deps.now ? deps.now() : new Date()); return `<div data-garage><b>${esc(l)}</b> ${c ? chip(c.text, c.tone) : ''}</div>`; };
+  const garageRow = (r) => { const l = garageLabel(r); if (!l) return ''; const c = garageSeenChip(r, deps.now ? deps.now() : new Date()); const st = garageStepChips(r, deps.now ? deps.now() : new Date()).map((x) => chip(x.text, x.tone)).join(' '); return `<div data-garage><b>${esc(l)}</b> ${c ? chip(c.text, c.tone) : ''} ${st}</div>`; };
   const seenRow = (s) => (s ? `<div class="flow-muted" data-seen>${esc(seenLine(s.age_s) || '')}${mapsUrl(s.lat, s.lng) ? ` · <a href="${esc(mapsUrl(s.lat, s.lng))}" target="_blank" rel="noopener">Open in Maps</a>` : ''}</div>` : '');
   // Per assigned booking: the mechanic's phone and the "Mechanic told" note, read once from crm_lead (the Dispatch list does not carry them). One failed read leaves that card without the chip, never blanks the list.
   async function loadTell(rows) {
