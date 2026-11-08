@@ -938,6 +938,7 @@ GARAGE_PAGE = '''<!doctype html>
 <link rel="manifest" href="/garage.webmanifest">
 <link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32"><link rel="icon" href="/assets/img/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/css/garage.css">
+<link rel="stylesheet" href="/assets/css/collect-pay.css">
 <script src="/assets/js/config.js" defer></script>
 <script src="/assets/js/install.js" defer></script>
 <script src="/assets/js/qr.js" defer></script>
