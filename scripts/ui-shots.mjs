@@ -118,7 +118,7 @@ for (const s of SHOTS) {
     await send('Emulation.setDeviceMetricsOverride', { width: z.w, height: z.h, deviceScaleFactor: z.dpr, mobile: z.mobile });
     await send('Emulation.setEmulatedMedia', { media: 'screen', features: [{ name: 'prefers-reduced-motion', value: 'reduce' }, { name: 'prefers-color-scheme', value: 'light' }] });
     await send('Page.navigate', { url: 'about:blank' }); await sleep(50);
-    const { identifier } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__UI=${JSON.stringify({ scenario: s.scenario || 'ok', fail: s.fail || [], hang: s.hang || [], money: !!s.money })};try{sessionStorage.clear();localStorage.clear()}catch(e){}` });
+    const { identifier } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__UI=${JSON.stringify({ scenario: s.scenario || 'ok', fail: s.fail || [], hang: s.hang || [], money: !!s.money, missed: !!s.missed })};try{sessionStorage.clear();localStorage.clear()}catch(e){}` });
     await send('Page.navigate', { url: BASE + s.url });
     let ok = false;
     for (let i = 0; i < 60 && !ok; i++) { await sleep(150); ok = await ev(`!!document.querySelector(${JSON.stringify(s.wait)})`).catch(() => false); }
