@@ -1,9 +1,23 @@
-import { rpc, esc, head, empty, when, toast, clean } from '../ui.js';
+import { rpc, esc, head, empty, when, toast, clean, supabase } from '../ui.js';
 import { ago } from '../crm-rules.js';
+import { mountWaInbox } from '../wa-inbox.js';
+
+// Two inboxes: the WhatsApp Cloud number (live, this screen's default) and the older AiSensy desk number list.
+let mode = 'cloud', cloud = null;
+export async function render(root, ctx) {
+  if (cloud) { cloud.destroy(); cloud = null; }
+  const sw = `<div class="wa-switch" role="group" aria-label="Which WhatsApp number"><button type="button" class="btn sm ${mode === 'cloud' ? 'primary' : 'ghost'}" data-wa-mode="cloud">Website number</button><button type="button" class="btn sm ${mode === 'legacy' ? 'primary' : 'ghost'}" data-wa-mode="legacy">Desk number (AiSensy)</button></div>`;
+  root.innerHTML = `${sw}<div id="inboxBody"></div>`;
+  root.querySelectorAll('[data-wa-mode]').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.waMode; ctx.reload(); }));
+  const body = root.querySelector('#inboxBody');
+  if (mode === 'legacy') return renderLegacy(body, ctx);
+  const C = window.MXP || {};
+  cloud = mountWaInbox(body, { sb: supabase(), url: C.supabaseUrl, anonKey: C.supabaseAnonKey, rpc, toast, openLead: (id) => ctx.openLead(id, 'whatsapp') });
+}
 
 // Customers who wrote on the desk's WhatsApp number and have not had an answer yet.
 // There is no webhook, so the desk learns this by asking AiSensy every few minutes about each open lead (see desk-poll-replies).
-export async function render(root, ctx) {
+async function renderLegacy(root, ctx) {
   const [list, links] = await Promise.all([rpc('crm_replies_waiting'), rpc('crm_wa_links').catch(() => ({}))]);
   const live = links?.live_chat;
   root.innerHTML = `${head('Inbox', 'Customers who wrote on WhatsApp and are waiting for an answer. Oldest first. This list updates every few minutes.',

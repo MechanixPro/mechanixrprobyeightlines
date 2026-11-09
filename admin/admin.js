@@ -25,6 +25,7 @@ import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST
 import { createFlow } from './flow-core.js';
 import { createGarageDesk } from './garage-desk.js';
 import { watchList, watchCard, redCount } from "./watch.js";
+import { createWaDesk } from './wa-desk.js';   // WhatsApp supervision
 import { createFunnelDesk, createRouting } from "./funnel.js";   // Conversion screen
 import { createSpeedPanel } from "./speed-panel.js";
 import { createDupesPanel } from "./dupes-panel.js";
@@ -287,7 +288,7 @@ function syncNav() {
 }
 function render() { try { renderPage(); } catch (e) { console.error('render', S.tab, e); $('#view').innerHTML = errorHtml('This page could not be shown.', e, 'render'); } }
 const failBanner = () => ((S.failed || []).length ? `<div class="alert" role="alert"><b>Some data could not be loaded:</b> ${esc(S.failed.join(', '))}. What you see may be incomplete. <button class="btn btn-ghost btn-sm" type="button" data-retry="boot">Retry</button></div>` : '');
-function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, watch: watchView, dispatch, board, leads, customers, mechanics, garageapp, kyc, coupons, issues, pins, waitlist, offers, conversion, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'conversion') funnelDesk.mount($('#fnRoot')); if (S.tab === "sales") { speedPanel.mount($("#spRoot")); targetsPanel.mount($("#tgRoot")); importPanel.mount($("#ipRoot")); } if (S.tab === 'dispatch') loadDispatch(); if (S.tab === "watch") loadWatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'kyc') kycView.mount($('#kycRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); if (S.tab === 'customers') bindDupes(); if (S.tab === 'activity') loadActivity(); }
+function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, watch: watchView, whatsapp, dispatch, board, leads, customers, mechanics, garageapp, kyc, coupons, issues, pins, waitlist, offers, conversion, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'whatsapp') waDesk.mount($('#waRoot')); else waDesk.unmount(); if (S.tab === 'conversion') funnelDesk.mount($('#fnRoot')); if (S.tab === "sales") { speedPanel.mount($("#spRoot")); targetsPanel.mount($("#tgRoot")); importPanel.mount($("#ipRoot")); } if (S.tab === 'dispatch') loadDispatch(); if (S.tab === "watch") loadWatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'kyc') kycView.mount($('#kycRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); if (S.tab === 'customers') bindDupes(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -405,6 +406,8 @@ function openCustomer(id) {
 /* ---------- garage app (partner garages): the shared desk fills #gdRoot ---------- */
 function garageapp() { return '<div id="gdRoot"></div>'; }
 function kyc() { return '<div class="view-head"><h2>Partner KYC</h2><p class="muted">Check the documents of garages and mechanics who are applying, approve them, then take them live.</p></div><div id="kycRoot"></div>'; }
+function whatsapp() { return '<div id="waRoot"></div>'; }
+const waDesk = createWaDesk({ sb, url: C.supabaseUrl, anonKey: C.supabaseAnonKey, toast: (m, bad) => toast(m, bad ? 6000 : 2600) });
 
 /* ---------- mechanics ---------- */
 function mechanics() {
