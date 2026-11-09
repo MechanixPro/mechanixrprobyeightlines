@@ -30,7 +30,7 @@ test('the hero media: a muted looping garage video with a poster (bike view) and
   assert.ok(existsSync(new URL('../assets/img/hero/hero-garage-poster.webp', import.meta.url)));
   // Changed on purpose (hero carousel): the pictures are now carousel slides (data-src, car set is the second carousel). See tests/hero-slider.test.mjs.
   assert.equal(imgs.length, 6); const t = imgs.find((i) => /hero-car-1200/.test(i));
-  assert.match(art, /<div class="hs car-only"/); assert.match(t, /\balt="[^"]{20,}"/); assert.match(t, /\balt="[^"]{20,}"/); assert.match(t, /width="2752"/); assert.match(t, /height="1361"/);
+  assert.match(art, /<div class="hs car-only"/); assert.match(t, /\balt="[^"]{20,}"/); assert.match(t, /\balt="[^"]{20,}"/); assert.match(t, /width="800"/); assert.match(t, /height="619"/);   // changed on purpose: the car picture is cropped to the photo (no dark pad)
   for (const m of t.matchAll(/\/assets\/img\/hero\/[\w-]+\.webp/g)) assert.ok(existsSync(new URL('..' + m[0], import.meta.url)), m[0]);
   assert.doesNotMatch(art, /Illustration|hm-ill/, 'owner: do not show the word Illustration on the hero');
   assert.doesNotMatch(hero, /\/assets\/img\/workshop\//, 'the real workshop photos are not in the hero');
