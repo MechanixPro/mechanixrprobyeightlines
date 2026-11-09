@@ -75,7 +75,7 @@ test('4. llms.txt: structure, fee flow, prices from site.json, true PIN count, a
 test('4. the llms.txt agent link parameters are the ones the booking page accepts', () => {
   const bp = read('assets/js/book-pay.js');
   for (const p of ['vehicle', 'brand', 'model', 'service', 'area', 'pincode']) assert.ok(bp.includes(`q.get('${p}')`), p);
-  assert.match(bp, /\['basic', 'general', 'full', 'repair'\]\.indexOf\(q\.get\('service'\)\)/);
+  assert.match(bp, /\['basic', 'general', 'full', 'repair', 'puncture'\]\.indexOf\(q\.get\('service'\)\)/); // changed on purpose 2026-11-10: puncture added
 });
 test('4. every link in llms.txt points to a page that exists', () => {
   const t = read('llms.txt'); const links = [...new Set([...t.matchAll(/\]\((https:\/\/mechanixpro\.in[^)]*)\)/g)].map((m) => m[1]))];

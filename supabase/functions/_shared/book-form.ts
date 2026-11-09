@@ -3,7 +3,7 @@ import { cleanEmail } from './email-address.ts';
 import { cleanEngine } from './confirm-fee.ts';
 import { todaySlots, istToday } from './today-slots.ts';
 const SLOTS = ['morning', 'afternoon', 'evening', 'asap'];
-const BIKE_SERVICES = ['basic', 'general', 'full', 'repair'];
+const BIKE_SERVICES = ['basic', 'general', 'full', 'repair', 'puncture'];
 const strip = (v: unknown, max: number) => String(v ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, max);
 const num = (v: unknown) => (typeof v === 'number' || (typeof v === 'string' && v.trim() !== '') ? Number(v) : NaN);
 export type Booking = {

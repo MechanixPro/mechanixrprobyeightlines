@@ -32,13 +32,13 @@
 
   /* The live "Your service" summary. Pure: the numbers come from the site's own price rows (build-time defaults from src/site.json in a hidden list,
      replaced by the live rows when they load) and from feeFor above. Nothing here is typed in as a price. */
-  var SVC_NAME = { basic: 'Basic service', general: 'Standard service', full: 'Full service', repair: 'Repair or problem check' };
+  var SVC_NAME = { basic: 'Basic service', general: 'Standard service', full: 'Full service', repair: 'Repair or problem check', puncture: 'Puncture repair' };
   var TIER_TXT = { std: 'Up to 149cc', mid: '150 to 250cc', big: '251cc and above' };
   var GST_NOTE = 'Excluding GST. GST at 18% is added on your final invoice.';
   var rupees = function (n) { return '₹' + String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
   function priceFor(serviceId, tier, prices) {
     if (!SVC_NAME[serviceId]) return null;
-    var id = serviceId === 'repair' ? 'repair' : serviceId + (tier === 'mid' ? '250' : tier === 'big' ? '500' : '');
+    var id = (serviceId === 'repair' || serviceId === 'puncture') ? serviceId : serviceId + (tier === 'mid' ? '250' : tier === 'big' ? '500' : '');
     var n = Number(prices && prices[id]); return isFinite(n) && n > 0 ? Math.round(n) : null;
   }
   function summary(v, prices, rows) {
@@ -49,8 +49,8 @@
     var priceNum = car ? null : priceFor(v.service_id, tier, prices), priceText = '', note = '';
     if (car) { priceText = 'Quoted before any work starts'; note = 'GST at 18% is added on your final invoice.'; }
     else if (priceNum) {
-      priceText = (!tier && v.service_id !== 'repair' ? 'From ' : '') + rupees(priceNum);
-      note = v.service_id === 'repair' ? 'Checkup and quote visit. Any repair is quoted before work starts. ' + GST_NOTE : GST_NOTE;
+      priceText = (!tier && v.service_id !== 'repair' && v.service_id !== 'puncture' ? 'From ' : '') + rupees(priceNum);
+      note = v.service_id === 'repair' ? 'Checkup and quote visit. Any repair is quoted before work starts. ' + GST_NOTE : v.service_id === 'puncture' ? 'A mechanic comes to you and sorts the puncture. A tube or tyre, if needed, is quoted first. ' + GST_NOTE : GST_NOTE;
     }
     var engine = car ? '' : tier ? TIER_TXT[tier] : 'Not sure, we will check';
     return { vehicle: vehicle, engine: engine, service: service, priceNum: priceNum, priceText: priceText, gstNote: note, fee: f.amount, unknown: f.unknown,
@@ -71,7 +71,7 @@
     var e = {}, car = v.vehicle === 'car';
     if (!step || step === 1) {
       if (car) { if (String(v.car_model || '').trim().length < 2) e.car_model = ERR.car_model; }
-      else { if (String(v.model || '').trim().length < 2) e.model = ERR.model; if (['basic', 'general', 'full', 'repair'].indexOf(v.service_id) < 0) e.service_id = ERR.service_id; }
+      else { if (String(v.model || '').trim().length < 2) e.model = ERR.model; if (['basic', 'general', 'full', 'repair', 'puncture'].indexOf(v.service_id) < 0) e.service_id = ERR.service_id; }
     }
     if (!step || step === 2) {
       if (String(v.house || '').trim().length < 2) e.house = ERR.house;
@@ -232,7 +232,7 @@
     SAVE.forEach(function (n) { set(n, saved[n]); });
     if (q.get('vehicle') === 'car' || q.get('vehicle') === 'bike') set('vehicle', q.get('vehicle'));   // a link wins over a saved draft
     if (q.get('brand') && BIKES[q.get('brand')]) set('brand', q.get('brand')); fillModels();
-    if (q.get('model')) set('model', q.get('model')); if (['basic', 'general', 'full', 'repair'].indexOf(q.get('service')) > -1) set('service_id', q.get('service')); (function () { var sid = q.get('service'), sel = win.document.getElementById('bk-service'), msg = win.document.getElementById('bk-chosen'); if (!sel || !msg || ['basic', 'general', 'full', 'repair'].indexOf(sid) < 0) return; var o = sel.querySelector('option[value="' + sid + '"]'); if (!o) return; msg.textContent = 'You chose ' + o.textContent + '. Change it below if you want a different one.'; msg.hidden = false; })(); if (q.get('area')) set('area', q.get('area'));
+    if (q.get('model')) set('model', q.get('model')); if (['basic', 'general', 'full', 'repair', 'puncture'].indexOf(q.get('service')) > -1) set('service_id', q.get('service')); (function () { var sid = q.get('service'), sel = win.document.getElementById('bk-service'), msg = win.document.getElementById('bk-chosen'); if (!sel || !msg || ['basic', 'general', 'full', 'repair'].indexOf(sid) < 0) return; var o = sel.querySelector('option[value="' + sid + '"]'); if (!o) return; msg.textContent = 'You chose ' + o.textContent + '. Change it below if you want a different one.'; msg.hidden = false; })(); if (q.get('area')) set('area', q.get('area'));
     var linkPin = pinFromQuery(q.get('pincode')), linked = !!(linkPin || q.get('vehicle') === 'car' || q.get('vehicle') === 'bike'); if (linkPin) set('pincode', linkPin);   // the home card: a link wins over a saved draft
     if (q.get('vehicle') === 'car') {   // a car link (from Mechu or an ad): the model goes to the car field, and service or problem to what the car needs
       set('car_model', String(q.get('model') || '').slice(0, 60));
@@ -243,7 +243,7 @@
 
     /* live fee rows (public, active prices); the defaults above are used if this fails */
     if (C.supabaseUrl && C.supabaseAnonKey && win.fetch) {
-      win.fetch(C.supabaseUrl.replace(/\/$/, '') + '/rest/v1/services?select=id,price&active=eq.true&id=in.(confirm_std,confirm_mid,confirm_big,confirm_car,basic,general,full,repair,basic250,general250,full250,basic500,general500,full500)', { headers: { apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey } })
+      win.fetch(C.supabaseUrl.replace(/\/$/, '') + '/rest/v1/services?select=id,price&active=eq.true&id=in.(confirm_std,confirm_mid,confirm_big,confirm_car,basic,general,full,repair,puncture,basic250,general250,full250,basic500,general500,full500)', { headers: { apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey } })
         .then(function (r) { return r.ok ? r.json() : []; }).then(function (list) { (list || []).forEach(function (x) { rows[x.id] = x.price; if (/^confirm_/.test(x.id)) return; if (Number(x.price) > 0) prices[x.id] = Number(x.price); }); showFee(); }).catch(function () {});
     }
 

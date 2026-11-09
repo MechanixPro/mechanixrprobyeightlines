@@ -116,7 +116,7 @@
     },
     "repair": {
       "name": "Repair or problem check",
-      "price": 599,
+      "price": 499,
       "includes": [
         "AT YOUR DOOR STEP",
         "• Diagnose the bike problem",
@@ -131,7 +131,7 @@
     },
     "puncture": {
       "name": "Puncture sorted at your doorstep or anywhere",
-      "price": 599,
+      "price": 499,
       "includes": [
         "At your doorstep or anywhere in our service area",
         "• Puncture found and sorted on the spot",

@@ -44,7 +44,7 @@
     <noscript><p class="card bk-card">Please turn on JavaScript to book online, or message us on WhatsApp and we will book it for you.</p></noscript>
     <p class="bk-prog" id="bk-prog">Step 1 of 3: Vehicle and service</p>
     <ol class="bk-steps" aria-label="Steps"><li data-s="1" class="on" aria-current="step"><b>1</b> Vehicle</li><li data-s="2"><b>2</b> Address and slot</li><li data-s="3"><b>3</b> Contact and pay</li></ol>
-    <ul id="bk-prices" hidden><li data-id="basic">499</li><li data-id="general">799</li><li data-id="full">1299</li><li data-id="repair">599</li><li data-id="basic250">799</li><li data-id="general250">999</li><li data-id="full250">1799</li><li data-id="basic500">999</li><li data-id="general500">1499</li><li data-id="full500">2199</li></ul>
+    <ul id="bk-prices" hidden><li data-id="basic">499</li><li data-id="general">799</li><li data-id="full">1299</li><li data-id="repair">499</li><li data-id="basic250">799</li><li data-id="general250">999</li><li data-id="full250">1799</li><li data-id="basic500">999</li><li data-id="general500">1499</li><li data-id="full500">2199</li></ul>
     <div class="bk-grid">
     <form id="bkForm" class="bk-form" novalidate autocomplete="on" data-veh="bike">
       <input type="hidden" id="bk-lat" name="lat"><input type="hidden" id="bk-lng" name="lng">
@@ -69,7 +69,7 @@
           <p class="bk-chosen" id="bk-chosen" role="status" hidden></p>
           <label class="label" for="bk-service">What does it need?</label>
           <select id="bk-service" name="service_id">
-            <option value="">Choose</option><option value="basic">Basic service</option><option value="general">Standard service</option><option value="full">Full service</option><option value="repair">Repair or problem check</option>
+            <option value="">Choose</option><option value="basic">Basic service</option><option value="general">Standard service</option><option value="full">Full service</option><option value="repair">Repair or problem check</option><option value="puncture">Puncture repair</option>
           </select>
           <p class="err" data-err="service_id" role="alert"></p>
         </div>

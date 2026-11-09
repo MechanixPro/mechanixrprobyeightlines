@@ -50,3 +50,8 @@ test('Admin KYC screen shows plan, deposit and full partner history, and the pay
   assert.doesNotMatch(read('admin/commission.js'), /partner_plan|\.plan\b/);
   assert.doesNotMatch(read('crm/crm.js') + read('crm/garage-desk.js'), /partner_plan|deposit_status/);
 });
+test('the booking form offers Puncture repair, and the server accepts it', () => {
+  assert.match(read('src/book-pay.html'), /<option value="puncture">Puncture repair<\/option>/);
+  assert.match(read('assets/js/book-pay.js'), /puncture: 'Puncture repair'/);
+  assert.match(read('supabase/functions/_shared/book-form.ts'), /BIKE_SERVICES = \['basic', 'general', 'full', 'repair', 'puncture'\]/);
+});

@@ -132,7 +132,7 @@ test('the booking link carries only vehicle, brand, model, service and area, nev
   assert.match(bp, /set\('vehicle', q\.get\('vehicle'\)\)/, 'a bike or car link wins over a saved draft');
   assert.match(bp, /set\('car_model'/); assert.match(bp, /set\('car_need'/);
   // every service id Mechu can send is one /book/ accepts
-  assert.match(bp, /\['basic', 'general', 'full', 'repair'\]/);
+  assert.match(bp, /\['basic', 'general', 'full', 'repair', 'puncture'\]/); // changed on purpose 2026-11-10: /book/ also takes Puncture repair
 });
 
 test('the keyword matcher answers each FAQ question, and falls back politely otherwise', () => {
