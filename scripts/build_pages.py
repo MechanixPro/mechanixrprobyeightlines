@@ -966,6 +966,7 @@ GARAGE_PAGE = '''<!doctype html>
 <script src="/assets/js/qr.js" defer></script>
 <script src="/assets/js/collect-pay.js" defer></script>
 <script src="/assets/js/partner-flow.js" defer></script>
+<script src="/assets/js/pro-check-data.js" defer></script>
 <script src="/assets/js/garage.js" defer></script>
 </head>
 <body class="garage">
