@@ -42,3 +42,6 @@
 .reel-cap{position:absolute;z-index:2;left:12px;right:12px;bottom:14px;display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:16px;line-height:1.2;text-shadow:0 1px 6px rgba(0,0,0,.5)}.reel-av{flex:none;width:30px;height:30px;border-radius:50%;background:#14295A url(/assets/img/favicon-32.png) center/18px no-repeat;border:2px solid #F2801F}
 @media(min-width:900px){.reel{flex-basis:260px}.reels{padding-bottom:20px}}
 @media(prefers-reduced-motion:no-preference){.reel{transition:transform .25s ease}.reel:hover{transform:translateY(-4px)}}
+
+/* Brand wave behind the dark bands (owner-supplied background) */
+.pcteaser,.proof{background-image:url(/assets/img/bg/brand-wave-800.webp);background-size:cover;background-position:center}@media(min-width:700px){.pcteaser,.proof{background-image:url(/assets/img/bg/brand-wave-1600.webp)}}

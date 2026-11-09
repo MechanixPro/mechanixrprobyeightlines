@@ -17,10 +17,10 @@ test('/about/ images exist and carry alt text', () => {
   const full = read('about/index.html'), h = full.slice(full.indexOf('<div class="ab">'), full.indexOf('</main>'));
   for (const m of h.matchAll(/<img[^>]*\bsrc="(\/assets\/[^"?]+)[^>]*>/g)) { assert.ok(existsSync(new URL('..' + m[1], import.meta.url)), m[1]); assert.match(m[0], /\balt="[^"]{20,}"/); }
 });
-test('home: eight vertical story cards, lazy, 9:16, alt text, real files, no old caption', () => {
+test('home: twelve vertical story cards (owner pictures, changed on purpose from eight), lazy, 9:16, alt text, real files, no old caption', () => {
   const h = read('index.html');
   const cards = [...h.matchAll(/<li class="reel"><img src="(\/assets\/img\/reels\/[a-z]+\.webp)[^"]*" width="540" height="960" loading="lazy"[^>]*alt="([^"]{20,})"/g)];
-  assert.equal(cards.length, 8);
+  assert.equal(cards.length, 12);
   for (const c of cards) assert.ok(existsSync(new URL('..' + c[1], import.meta.url)), c[1]);
   assert.match(h, /id="pictures"/); assert.doesNotMatch(h, /Example photos of each model, not customers/);
   assert.match(h, /href="\/terms\/#credits"/, 'credits link stays in the footer');

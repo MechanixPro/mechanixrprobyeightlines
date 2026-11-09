@@ -1210,12 +1210,16 @@ def city_hub_parts():
 # ---- Home: "On the job, in pictures": vertical story cards (9:16, swipe sideways). Pictures are in assets/img/reels. ----
 REELS = [('collage', 'A booking, start to finish', 'A collage: booking on the phone, the mechanic waving at the gate, a roadside check, a handshake and the Mechanix Pro shield'),
          ('quote', 'Quote first, you approve', 'A customer points at an itemised quote on the mechanic\'s tablet'),
+         ('team', 'Meet the mechanics', 'A smiling Mechanix Pro mechanic in a navy polo with his arms crossed in front of a partner garage'),
          ('selfie', 'Photos at delivery', 'A mechanic takes a photo of the finished motorcycle while the customer gives a thumbs up'),
          ('code', 'Your one-time code', 'A customer shows the one-time code on her phone while the mechanic holds a tablet ready to enter it'),
          ('car', 'Cars too', 'A Mechanix Pro mechanic checks a car with the bonnet open and a tablet in hand'),
+         ('hood', 'Checked on a tablet', 'A mechanic holds a tablet while checking a car engine as the owner watches'),
+         ('ev', 'Scooters and EVs', 'A mechanic connects a scanner to a scooter while its owner looks on'),
          ('rating', 'Rate your service', 'A customer rates her service on her phone at her gate while the mechanic waves goodbye'),
          ('society', 'Society service days', 'A Mechanix Pro mechanic services a motorcycle in an apartment parking area'),
-         ('owner', 'Partner garages', 'A garage owner in a navy apron stands proudly in front of his partner garage')]
+         ('owner', 'Partner garages', 'A garage owner in a navy apron stands proudly in front of his partner garage'),
+         ('namaste', 'Namaste from the team', 'Five Mechanix Pro team members greeting with namaste')]
 def home_reels_html():
     cards = ''.join(f'<li class="reel"><img src="/assets/img/reels/{n}.webp" width="540" height="960" loading="lazy" decoding="async" alt="{html.escape(a)}"><span class="reel-bars" aria-hidden="true"><i></i><i></i><i></i></span><span class="reel-cap"><b class="reel-av" aria-hidden="true"></b>{html.escape(c)}</span></li>' for n, c, a in REELS)
     return ('<section id="pictures" class="bike-only" aria-labelledby="pictures-h"><div class="wrap"><div class="sec-head"><h2 id="pictures-h">On the job, in pictures.</h2><p>Swipe through a booking, from the first tap to the thumbs up.</p></div>'
