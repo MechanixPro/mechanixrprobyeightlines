@@ -29,3 +29,9 @@ test('track-booking returns pro_check only for a finished check on a bike, via c
   const t = read('assets/js/track.js');
   assert.match(t, /put\('trCheck', proCheckCard\(v\.pro_check\)/); assert.match(t, /Pro Check 20/);
 });
+
+test('the tracking page has a placeholder for every section it fills (a missing one would overwrite the whole page)', () => {
+  const t = readFileSync(new URL('../assets/js/track.js', import.meta.url), 'utf8');
+  const list = t.match(/var SECTIONS = \[([^\]]*)\]/)[1];
+  for (const m of t.matchAll(/put\('(tr[A-Za-z]+)'/g)) assert.ok(list.includes("'" + m[1] + "'"), m[1] + ' must be in SECTIONS');
+});

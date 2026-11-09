@@ -103,7 +103,7 @@
       return win.fetch(C.supabaseUrl + '/functions/v1/' + fn, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey }, body: JSON.stringify(body) })
         .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); });
     };
-    var SECTIONS = ['trThanks', 'trMain', 'trLive', 'trCode', 'trQuote', 'trDetails', 'trRate', 'trDocs', 'trHist', 'trInstall'];
+    var SECTIONS = ['trThanks', 'trMain', 'trLive', 'trCode', 'trQuote', 'trCheck', 'trRedo', 'trDetails', 'trRate', 'trDocs', 'trHist', 'trInstall'];
     var sigs = {}, state = { msg: '', issueMsg: '', rated: 0, fetchedAt: 0, startKm: 0, last: null, rateMsg: '' };
     if (tok) { out.innerHTML = SECTIONS.map(function (id) { return '<div id="' + id + '"></div>'; }).join(''); }
     // A part of the page is redrawn only when its data changed and the person is not typing in it.
@@ -128,6 +128,18 @@
         return '<h4>' + esc(grp.title) + '</h4><ul class="pc-list">' + grp.items.map(function (i) { return '<li class="pc-' + esc(i.r) + '">' + (mark[i.r] || '') + ' <span>' + esc(i.label) + '</span>' + (i.n ? '<small>' + esc(i.n) + '</small>' : '') + '</li>'; }).join('') + '</ul>';
       }).join('');
       return '<div class="card track-card"><h3>Pro Check 20</h3><p class="pc-sum"><b>' + s.ok + ' OK</b>' + (s.attention ? ', <b>' + s.attention + ' need' + (s.attention === 1 ? 's' : '') + ' attention</b>' : '') + (s.skipped ? ', ' + s.skipped + ' skipped' : '') + '. Your mechanic checked these before the quote.</p>' + g + (pc.test_ride ? '<p class="pc-ride"><b>' + esc(pc.test_ride) + '</b></p>' : '') + '</div>';
+    }
+    /* Redo Promise card: if the same repair work fails within 30 days of the service, a free redo. Shows the form while eligible, then the state of the request. Pure: redo in, html out. */
+    function redoCard(r) {
+      if (!r) return '';
+      var rq = r.request, until = r.until ? new Date(r.until).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '';
+      var line = '<p class="jy-meta">If the same repair work fails within 30 days of the service, we redo it free. Parts follow the maker&#39;s warranty.</p>';
+      if (rq && (rq.status === 'open' || rq.status === 'approved')) return '<div class="card track-card"><h3>Redo Promise <small>' + (rq.status === 'open' ? 'Request received' : 'Approved') + '</small></h3><p>' + (rq.status === 'open' ? 'We have your request and will call you to arrange the redo.' : 'Your redo is approved. We will confirm the time with you.') + (rq.note ? ' ' + esc(rq.note) : '') + '</p></div>';
+      if (r.eligible) return '<div class="card track-card"><h3>Redo Promise</h3>' + line + '<p class="jy-meta">You can ask until ' + esc(until) + '.</p><label class="label" for="rd-why">What is not right?</label><textarea id="rd-why" maxlength="500" rows="3" autocomplete="off" placeholder="For example: the noise is back after two weeks"></textarea><button class="btn btn-ghost wide" type="button" data-redo="1">Ask for a redo</button><p class="tq-msg" id="rdMsg" role="status" aria-live="polite"></p></div>'
+        + '';
+      if (rq && rq.status === 'declined') return '<div class="card track-card"><h3>Redo Promise <small>Not approved</small></h3><p>' + esc(rq.note || 'We could not approve this redo. Message us and we will look at it again.') + '</p></div>';
+      if (rq && rq.status === 'done') return '<div class="card track-card"><h3>Redo Promise <small>Done</small></h3><p>Your redo was completed.</p></div>';
+      return '';
     }
     function quoteCard(v) {
       var z = v.quote; if (!z || !z.lines) return z ? '<div class="card track-card"><h3>Quote</h3><p>Status: <b>' + esc(z.status) + '</b>. Open the link in your email to review it.</p></div>' : '';
@@ -163,6 +175,7 @@
       put('trCode', code, code);
       put('trQuote', quoteCard(v), JSON.stringify(v.quote || null));
       put('trCheck', proCheckCard(v.pro_check), JSON.stringify(v.pro_check || null));
+      put('trRedo', redoCard(v.redo), JSON.stringify(v.redo || null));
       if (J) {
         put('trDetails', detailsHtml(J.updates, state.msg), JSON.stringify([J.updates, state.msg]));
         put('trRate', rateHtml(J.rating, state.rated, C.googleReviewUrl), JSON.stringify([J.rating, state.rated]));
@@ -235,6 +248,16 @@
     });
     out.addEventListener('change', function (e) { if (e.target && e.target.id === 'jyFile') { var fl = Array.prototype.slice.call(e.target.files || []); e.target.value = ''; addPhotos(fl); } });
     out.addEventListener('click', function (e) {
+      var rb = e.target.closest('[data-redo]');
+      if (rb && tok) {
+        var rm = doc.getElementById('rdMsg'), rw = doc.getElementById('rd-why');
+        if (!(rw && rw.value.trim().length >= 5)) { rm.textContent = 'Tell us what is not right, in a few words.'; return; }
+        rb.disabled = true; rm.textContent = 'Sending…';
+        post('redo-request', { t: tok, reason: rw.value }).then(function (x) {
+          if (x.ok) load(true); else { rm.textContent = (x.d && x.d.error) || 'Could not send. Please try again.'; rb.disabled = false; }
+        }).catch(function () { rm.textContent = 'No connection. Please try again.'; rb.disabled = false; });
+        return;
+      }
       var b = e.target.closest('[data-q]');
       if (b && tok) {
         var m = doc.getElementById('tqMsg'), why = doc.getElementById(b.getAttribute('data-q') === 'changes' ? 'tq-chg' : 'tq-why');

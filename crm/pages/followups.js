@@ -6,7 +6,7 @@ import { followUpQueue, bucketCounts, snoozeAt, missedCallQueue, fmtMinutes, quo
 // Follow-ups: open leads whose next follow-up is due, overdue first, then today, then later. One tap to call, WhatsApp, snooze or mark lost.
 // Mine for an agent, everyone's for a supervisor. Money shows only to the admin (supervisors never see it).
 const st = { bucket: null };
-const BUCKETS = [['quotes', 'Quotes waiting'], ['unpaid', 'Not paid yet'], ['missed', 'Missed calls'], ['due', 'Overdue and today'], ['overdue', 'Overdue'], ['today', 'Today'], ['later', 'Later'], ['nodate', 'No date set']];
+const BUCKETS = [['redo', 'Redo requests'], ['quotes', 'Quotes waiting'], ['unpaid', 'Not paid yet'], ['missed', 'Missed calls'], ['due', 'Overdue and today'], ['overdue', 'Overdue'], ['today', 'Today'], ['later', 'Later'], ['nodate', 'No date set']];
 const money = (ctx) => !!(ctx.me && ctx.me.is_admin);
 const rupee = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 
@@ -28,16 +28,20 @@ async function draw(root, ctx) {
   let uraw = [], uOff = false;
   try { uraw = await rpc('crm_unpaid_bookings'); } catch (e) { uOff = true; }
   const unpaid = unpaidBookings(uraw, Date.now(), money(ctx));
-  if (!st.bucket) st.bucket = missed.length ? 'missed' : 'due';
+  let rraw = [], rOff = false;
+  try { rraw = await rpc('crm_redo_list'); } catch (e) { rOff = true; }   // Redo Promise requests
+  const redoRows = Array.isArray(rraw) ? rraw : [], redoOpen = redoRows.filter((r) => r.status === 'open' || r.status === 'approved');
+  if (!st.bucket) st.bucket = redoOpen.length ? 'redo' : missed.length ? 'missed' : 'due';
   const queue = followUpQueue(raw), counts = bucketCounts(queue), showMoney = money(ctx);
   const pick = (b) => queue.filter((l) => (b === 'due' ? l.bucket === 'overdue' || l.bucket === 'today' : l.bucket === b));
-  const isMissed = st.bucket === 'missed', isQuotes = st.bucket === 'quotes', isUnpaid = st.bucket === 'unpaid', rows = isUnpaid ? unpaid : isQuotes ? quotes : isMissed ? missed : pick(st.bucket), me = ctx.me;
-  const tabs = BUCKETS.map(([k, t]) => { const n = k === 'unpaid' ? unpaid.length : k === 'quotes' ? quotes.length : k === 'missed' ? missed.length : k === 'due' ? counts.overdue + counts.today : counts[k]; return `<button type="button" class="chip pick${k === st.bucket ? ' on' : ''}" data-fu-tab="${k}" aria-pressed="${k === st.bucket}">${esc(k === 'missed' ? 'Missed calls (' + n + ')' : k === 'quotes' ? 'Quotes waiting (' + n + ')' : k === 'unpaid' ? 'Not paid yet (' + n + ')' : t)}${k === 'missed' || k === 'quotes' || k === 'unpaid' ? '' : ' <b>' + n + '</b>'}</button>`; }).join('');
+  const isRedo = st.bucket === 'redo', isMissed = st.bucket === 'missed', isQuotes = st.bucket === 'quotes', isUnpaid = st.bucket === 'unpaid', rows = isRedo ? redoRows : isUnpaid ? unpaid : isQuotes ? quotes : isMissed ? missed : pick(st.bucket), me = ctx.me;
+  const tabs = BUCKETS.map(([k, t]) => { const n = k === 'redo' ? redoOpen.length : k === 'unpaid' ? unpaid.length : k === 'quotes' ? quotes.length : k === 'missed' ? missed.length : k === 'due' ? counts.overdue + counts.today : counts[k]; return `<button type="button" class="chip pick${k === st.bucket ? ' on' : ''}" data-fu-tab="${k}" aria-pressed="${k === st.bucket}">${esc(k === 'redo' ? 'Redo requests (' + n + ')' : k === 'missed' ? 'Missed calls (' + n + ')' : k === 'quotes' ? 'Quotes waiting (' + n + ')' : k === 'unpaid' ? 'Not paid yet (' + n + ')' : t)}${k === 'redo' || k === 'missed' || k === 'quotes' || k === 'unpaid' ? '' : ' <b>' + n + '</b>'}</button>`; }).join('');
   const summary = `<p class="small muted">${counts.overdue} overdue · ${counts.today} due today · ${counts.later} later${counts.nodate ? ' · ' + counts.nodate + ' with no date' : ''}</p>`;
   root.innerHTML = head('Follow-ups', 'Overdue first, then due today. Call, message, snooze or close each one.') + summary + `<div class="filters fu-tabs" role="group">${tabs}</div>` +
-    (isUnpaid && uOff ? emptyState({ title: 'Not paid yet is not available yet.', text: 'The other tabs still work.' }) : isUnpaid && !rows.length ? emptyState({ title: 'No unpaid bookings.', text: 'Everyone who started a booking in the last 3 days has paid, or started under 15 minutes ago.' }) : isQuotes && qOff ? emptyState({ title: 'Quotes waiting is not available yet.', text: 'The other tabs still work.' }) : rows.length ? rows.map((l) => (isUnpaid ? unpaidCard(l, me, showMoney) : isQuotes ? quoteCard(l, me, showMoney) : isMissed ? missedCard(l, me) : card(l, me, ctx, showMoney))).join('') : isQuotes ? emptyState({ title: 'No quotes waiting.', text: 'Every sent quote has an answer, or is under 2 hours old.' }) : emptyState({ title: isMissed ? 'No missed calls waiting.' : st.bucket === 'due' ? 'Nothing due. You are on top of it.' : 'Nothing here.', text: isMissed ? 'Every IVR call has been picked up or called back.' : st.bucket === 'due' ? 'Check Later for what is coming up.' : '' }));
+    (isRedo && rOff ? emptyState({ title: 'Redo requests are not available yet.', text: 'The other tabs still work.' }) : isRedo && !rows.length ? emptyState({ title: 'No redo requests.', text: 'Customers can ask from their tracking page within 30 days of a service.' }) : isUnpaid && uOff ? emptyState({ title: 'Not paid yet is not available yet.', text: 'The other tabs still work.' }) : isUnpaid && !rows.length ? emptyState({ title: 'No unpaid bookings.', text: 'Everyone who started a booking in the last 3 days has paid, or started under 15 minutes ago.' }) : isQuotes && qOff ? emptyState({ title: 'Quotes waiting is not available yet.', text: 'The other tabs still work.' }) : rows.length ? rows.map((l) => (isRedo ? redoCard(l, me) : isUnpaid ? unpaidCard(l, me, showMoney) : isQuotes ? quoteCard(l, me, showMoney) : isMissed ? missedCard(l, me) : card(l, me, ctx, showMoney))).join('') : isQuotes ? emptyState({ title: 'No quotes waiting.', text: 'Every sent quote has an answer, or is under 2 hours old.' }) : emptyState({ title: isMissed ? 'No missed calls waiting.' : st.bucket === 'due' ? 'Nothing due. You are on top of it.' : 'Nothing here.', text: isMissed ? 'Every IVR call has been picked up or called back.' : st.bucket === 'due' ? 'Check Later for what is coming up.' : '' }));
   root.onclick = async (e) => {
     const t = e.target.closest('[data-fu-tab]'); if (t) { st.bucket = t.dataset.fuTab; return draw(root, ctx).catch((x) => toast(clean(x), true)); }
+    const rd = e.target.closest('[data-redo]'); if (rd) return redoAct(rd.dataset.redo, rd.dataset.id, redoRows.find((x) => x.id === rd.dataset.id), ctx, () => draw(root, ctx));
     const b = e.target.closest('[data-fu]'); if (!b) return;
     const id = b.dataset.id, lead = queue.find((x) => x.id === id) || quotes.find((x) => x.id === id) || unpaid.find((x) => x.id === id), act = b.dataset.fu;
     if (act === 'call' || act === 'wa') return;   // plain links; the lead sheet logs the outcome
@@ -49,6 +53,36 @@ async function draw(root, ctx) {
       catch (err) { b.disabled = false; toast(clean(err), true); }
     }
   };
+}
+
+const REDO_TONE = { open: 'warn', approved: 'warn', declined: 'bad', done: '' };
+function redoCard(r, me) {
+  const live = r.status === 'open' || r.status === 'approved', when = r.created_at ? new Date(r.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : '';
+  return `<article class="fu-card fu-redo${r.status === 'open' ? ' fu-late' : ''}" data-id="${esc(r.lead_id)}">
+    <div class="fu-main"><b>${esc(r.name || 'Customer')}</b> <small class="muted">${esc(r.ref || '')}</small>
+      <p class="small">${chip(r.status === 'open' ? 'Redo asked ' + when : r.status === 'approved' ? 'Approved, to be done' : r.status === 'done' ? 'Done' : 'Declined', REDO_TONE[r.status] || '')} <span class="muted">${esc(r.area || '')}</span></p>
+      <p class="small">“${esc(r.reason)}”${r.decision_note ? ` <span class="muted">Note: ${esc(r.decision_note)}</span>` : ''}</p></div>
+    <div class="fu-act">
+      <a class="btn call fu-bigcall" href="${telUrl(r.phone)}" data-fu="call" data-id="${esc(r.lead_id)}">Call</a>
+      <a class="btn wa" href="${waUrl(r.phone, firstMessage({ name: r.name }, me && me.name))}" target="_blank" rel="noopener" data-fu="wa" data-id="${esc(r.lead_id)}">WhatsApp</a>
+      ${r.status === 'open' ? `<button class="btn" type="button" data-redo="approved" data-id="${esc(r.id)}">Approve</button><button class="btn ghost" type="button" data-redo="declined" data-id="${esc(r.id)}">Decline</button>` : ''}
+      ${r.status === 'approved' ? `<button class="btn" type="button" data-redo="done" data-id="${esc(r.id)}">Mark done</button>` : ''}
+      <button class="btn ghost" type="button" data-fu="open" data-id="${esc(r.lead_id)}">Open</button>
+    </div></article>`;
+}
+
+function redoAct(decision, id, r, ctx, done) {
+  if (!r) return;
+  const label = { approved: 'Approve the redo', declined: 'Decline the redo', done: 'Mark the redo done' }[decision];
+  modal({
+    title: label + ' for ' + (r.name || 'customer'), intro: decision === 'declined' ? 'The customer sees your reason on their tracking page.' : 'The customer sees your note on their tracking page. Optional.', submit: label, danger: decision === 'declined',
+    body: field(decision === 'declined' ? 'Reason' : 'Note', 'note', { type: 'textarea', rows: 2, max: 300, required: decision === 'declined', hint: 'No Aadhaar, PAN or bank numbers.' }),
+    onSubmit: async (f, v, close) => {
+      if (decision === 'declined' && !String(v.note || '').trim()) throw new Error('Say why, so the customer knows.');
+      await rpc('crm_redo_decide', { p_id: id, p_decision: decision, p_note: String(v.note || '').trim() || null });
+      close(); toast('Saved.'); await done();
+    },
+  });
 }
 
 function unpaidCard(l, me, showMoney) {
