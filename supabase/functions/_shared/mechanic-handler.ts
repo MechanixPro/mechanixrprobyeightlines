@@ -116,6 +116,8 @@ export async function handleMechanic(req: Request, d: Deps): Promise<Response> {
     return json(req, { ok: true, kyc: { decision: k.decision, submitted: !!k.submitted, skipped: !!k.skipped, reason: k.reason ?? null } });
   }
   if (action === 'kyc_link') {
+    const st = await rpc('mechanic_kyc_state', { p_id: mechId });
+    if (st && st.decision === 'approved') return json(req, { error: 'Your KYC is already approved.' }, 409);
     const { count } = await db.from('audit_log').select('id', { count: 'exact', head: true }).eq('action', 'mechanic_kyc_link').eq('details->>access', who.access_id).gte('created_at', ago(60));
     if ((count ?? 0) >= 10) return json(req, { error: 'Too many tries. Wait a while.' }, 429);
     await db.from('audit_log').insert({ action: 'mechanic_kyc_link', details: { access: who.access_id } });

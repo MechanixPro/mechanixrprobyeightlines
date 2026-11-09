@@ -249,7 +249,7 @@ Deno.serve(async (req) => {
     const code = doorState(dr ?? []), codeNeeded = code !== 'none' || (cf as any)?.confirm_fee != null;
     // The number: only for an open assignment, and only after the view is logged (the database also refuses a closed lead, a switched-off access and more than 40 views in 10 minutes).
     let contact = false, limited = false;
-    if (isOpen(a.status)) {
+    if (isOpen(a.status) && !who.suspended) {   // a suspended garage sees past work only: no customer address or phone, even on a job it still holds
       contact = (await rpc('garage_contact_view', { p_access: accessId, p_assignment: a.id })) === true;
       limited = !contact;
       // 2026-11-09 owner decision: the address of THIS garage's own open job (the assignment was matched on garage_id above). Read in this one place; never in lists.
@@ -292,6 +292,8 @@ Deno.serve(async (req) => {
     // Pro Check 20 for a job assigned to THIS garage (mine() filters the assignment by the garage in the session).
     const { data: a } = await mine(jobId).maybeSingle();
     if (!a || !['received', 'in_work'].includes(a.status)) return json(req, { error: a ? 'Accept the job first.' : 'This job is not available.' }, a ? 409 : 404);
+    const rec = (await rpc('garage_receiving_get', { p_assignment: a.id })) ?? { done: false };
+    if (!rec.done && !(a.received_at && Date.parse(a.received_at) < RECEIVING_FROM)) return json(req, { error: 'Fill in the receiving checklist first.', blocked: 'receiving' }, 409);
     const { data: lead } = await db.from('leads').select('id,vehicle').eq('id', a.lead_id).maybeSingle();
     if (!lead) return json(req, { error: 'This job is not available.' }, 404);
     if (lead.vehicle === 'car') return json(req, { error: 'Pro Check 20 is for bikes.' }, 400);

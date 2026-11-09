@@ -62,3 +62,14 @@ test('the Book your slot pop-up is a dismissible card that stays off one-task pa
   assert.match(read('index.html'), /slot-popup\.js/); assert.doesNotMatch(read('pay/index.html'), /slot-popup/);
   assert.match(read('assets/css/slot-popup.css'), /prefers-reduced-motion/);
 });
+test('review fixes: suspended garages get no customer contact, the accept window and checklist are enforced on the server, requests keep waiting ones first', () => {
+  const g = read('supabase/functions/garage-app/index.ts');
+  assert.match(g, /isOpen\(a\.status\) && !who\.suspended/);
+  assert.match(g, /blocked: 'receiving'/);
+  const m = read('supabase/migrations/20270132000000_garage_server_gates.sql');
+  assert.match(m, /a\.offer_expires_at < now\(\)/); assert.match(m, /'blocked', 'receiving'/);
+  assert.match(m, /order by \(u\.status = 'pending'\) desc, u\.created_at desc limit 60/);
+  assert.match(m, /where id = p_id and kyc_skipped_at is null/);
+  assert.match(read('supabase/functions/_shared/mechanic-handler.ts'), /Your KYC is already approved/);
+  assert.match(read('crm/crm.js'), /'assignPick'/);
+});
