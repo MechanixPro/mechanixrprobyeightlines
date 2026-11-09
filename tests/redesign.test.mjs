@@ -56,9 +56,9 @@ test('prices come from the price source, say "from", and keep GST apart; no pric
 test('the trust line is exactly the two owner-confirmed numbers, and only on bike pages', () => {
   const t = main.slice(main.indexOf('id="trust"'), main.indexOf('id="pro-check"'));   // ends at the next section (Our promises added after it, changed on purpose)
   assert.match(t, /class="bike-only"/);
-  assert.deepEqual([...t.matchAll(/<b>([^<]+)<\/b>/g)].map((m) => m[1]), ['10,000+ services done', '1,300+ gated communities trust us']);
+  assert.deepEqual([...t.matchAll(/<b>([^<]+)<\/b>/g)].map((m) => m[1]), ['106 PIN codes served', '30-day service warranty']);   // changed on purpose 2026-11-09: the owner said the service-count and community figures were assumed, so they are not published; the chips are two plain facts
   const chips = main.match(/<ul class="hero-chips bike-only"[^>]*>[\s\S]*?<\/ul>/)[0];   // changed on purpose (hero v3): the owner approved the same two claims as small chips in the hero, bike view only
-  assert.deepEqual([...chips.matchAll(/<li>([^<]+)<\/li>/g)].map((m) => m[1]), ['10,000+ services done', '1,300+ gated communities trust us']);
+  assert.deepEqual([...chips.matchAll(/<li>([^<]+)<\/li>/g)].map((m) => m[1]), ['106 PIN codes served', 'Mechanix Shield: up to ₹5,000', '30-day Redo Promise']);
   assert.doesNotMatch(main.replace(t, '').replace(chips, ''), /10,000\+|1,300\+/, 'the numbers appear nowhere else on the home page');
   assert.doesNotMatch(home, /rated|\bstars?\b|testimonial|\breviews?\b/i);
   for (const f of ['car-service-bangalore/index.html', 'partners/axlio/index.html', 'roadside/index.html']) assert.doesNotMatch(read(f), /10,000\+|1,300\+/, f);

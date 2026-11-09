@@ -83,8 +83,8 @@ test('every part photo file is listed in the credits data', () => {
   assert.deepEqual(files, Object.keys(JSON.parse(fs.readFileSync(path.join(root, 'src/part-photos.json'), 'utf8'))).sort());
 });
 
-test('the home page shows both owner-confirmed numbers: services done and gated communities', () => {
+test('the home page states only facts we can back, not the old assumed service and community counts', () => {   // changed on purpose 2026-11-09: the owner said those figures were assumed
   const h = read('index.html');
-  assert.match(h, /10,000\+ services done/); assert.match(h, /1,300\+ gated communities trust us/);
-  assert.match(read('societies/index.html'), /1,300\+ gated communities/);
+  assert.match(h, /106 PIN codes served/); assert.match(h, /30-day service warranty/);
+  assert.doesNotMatch(h, /10,000\+|1,300\+/); assert.doesNotMatch(read('societies/index.html'), /10,000\+|1,300\+/);
 });

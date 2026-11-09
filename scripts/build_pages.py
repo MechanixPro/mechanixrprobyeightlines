@@ -177,20 +177,22 @@ def _write_confirm_rule_into_app_js():
     t2 = re.sub(r"(/\* confirm-rule:start[^\n]*\*/\n  var CONFIRM_RULE = )[^\n]*;(\n  /\* confirm-rule:end \*/)", lambda m: m.group(1) + json.dumps(CONFIRM_RULE, ensure_ascii=False) + ';' + m.group(2), t)
     if t2 != t: open(f, 'w', encoding='utf-8').write(t2)
 _write_confirm_rule_into_app_js()
+_PIN_N = len(json.load(open(os.path.join(ROOT, 'src', 'pincodes.json'), encoding='utf-8'))['pins'])
 def tok(s):
     """Fills {{price:id}} (a span the browser can refresh), {{text:id}}, {{fee:bigbike}}, {{confirmrule}}, {{confirmrange}}, {{confirmtiers}}, {{days}} and {{includes_li:id}} from src/site.json."""
     def rep(m):
         kind, key = m.group(1), m.group(2)
         if kind == 'price': return f'<span data-price="{key}">{_inr(_price(key))}</span>'
         if kind == 'text': return _inr(_price(key))
+        if kind == 'carprice': return _inr(SITE_DATA['carPrices'][key])
         if kind == 'num': return str(int(_price(key)))
         fee = SITE_DATA['advance'] if key == 'advance' else SITE_DATA['newCustomerFee'] if key == 'newfee' else SITE_DATA['bigBike']
         if kind == 'fee': return f'<span data-fee="{key}">{_inr(fee)}</span>'
         if kind == 'feetext': return _inr(fee)
         if kind == 'includes_li': return ''.join(f'<li>{html.escape(x)}</li>' for x in SITE_DATA['services'][key]['includes'])
         return m.group(0)
-    s = re.sub(r'\{\{(price|text|num|fee|feetext|includes_li):([a-z0-9]+)\}\}', rep, s)
-    return s.replace('{{confirmrule}}', CONFIRM_RULE).replace('{{confirmrange}}', CONFIRM_RANGE).replace('{{confirmtiers}}', CONFIRM_TIERS_TEXT).replace('{{days}}', str(SITE_DATA['warrantyDays'])).replace('{{vidcode}}', VID_CODE)
+    s = re.sub(r'\{\{(price|text|num|fee|feetext|includes_li|carprice):([a-z0-9]+)\}\}', rep, s)
+    return s.replace('{{confirmrule}}', CONFIRM_RULE).replace('{{confirmrange}}', CONFIRM_RANGE).replace('{{confirmtiers}}', CONFIRM_TIERS_TEXT).replace('{{days}}', str(SITE_DATA['warrantyDays'])).replace('{{pincount}}', str(_PIN_N)).replace('{{vidcode}}', VID_CODE)
 def faq_from_html(src):
     """(question, answer) pairs read from the visible <details><summary>Q</summary><p>A</p></details> blocks of a source page, as plain text with price tokens turned into text tokens. The FAQPage JSON-LD of / and /help/ is built from this, so it always equals the visible FAQ."""
     plain = lambda s: re.sub(r'\{\{price:(\w+)\}\}', r'{{text:\1}}', re.sub(r'\{\{fee:(\w+)\}\}', r'{{feetext:\1}}', re.sub(r'<[^>]+>', '', s))).strip()
@@ -391,7 +393,7 @@ SAFE_ANSWER = ('Yes. Every visit is done by a Mechanix Pro-certified mechanic: b
                'You get an itemised quote on WhatsApp before any work, the bike leaves only after you share a one-time code, and every job has a GST invoice and a {{days}}-day service warranty.')
 ROAD_ANSWER = ('Yes. A roadside emergency visit ({{text:sos}}, excluding GST) covers breakdown diagnosis, puncture help, battery jump-start, starting problems, fuel-related help, minor on-the-spot repairs and emergency towing support if required. '
                'A puncture at your doorstep is {{text:puncture}}. Send your live location on WhatsApp and we send the nearest available mechanic; no major repair starts without your approval.')
-TRUST_LIST = ('<ul class="tick" style="margin:18px 0"><li>10,000+ services done</li><li>1,300+ gated communities trust us</li><li>Quote first, work after your OK</li>'
+TRUST_LIST = ('<ul class="tick" style="margin:18px 0"><li>{{pincount}} Bengaluru PIN codes served</li><li>Quote first, work after your OK</li>'
               '<li>{{days}}-day service warranty and a GST invoice</li><li>OTP-safe bike handover</li></ul>')
 _ADDON_NAMES = {'wash': 'Foam wash', 'chain': 'Chain clean and lube', 'brake': 'Brake tuning', 'tyre': 'Tyre and puncture check', 'battery': 'Battery health test'}
 FIX_LIST = ('<ul>' + ''.join(f'<li><b>{html.escape(SITE_DATA["services"][k]["name"])}</b> from {{{{text:{k}}}}}</li>' for k in ('basic', 'general', 'full', 'repair', 'puncture', 'sos') if k in SITE_DATA['services'])
@@ -650,7 +652,7 @@ GROUP = {
    ['One quote for all bikes, shown before any work starts', 'Servicing at your parking or hub, so riders lose less time', 'A service record for every bike, kept by registration number', 'Mechanix Pro certified mechanics and OEM and aftermarket parts', '{{days}}-day warranty on the work'],
    'Hi Mechanix Pro, I run a bike fleet and need a fleet service quote. Number of bikes: __. Area: __.', 'Get a fleet quote on WhatsApp'),
  'societies': ('Bike Service for Apartments and Offices in Bengaluru | Mechanix Pro', 'Doorstep bike service days for apartment societies and office parking in Bengaluru. Many bikes in one visit, a group quote on WhatsApp, work starts only after approval.', 'Service days for apartments and offices.',
-   'Trusted by 1,300+ gated communities. Gather a few bikes and we come to your society or office parking. Residents and staff book on the same day, so it is easier for everyone.',
+   'Made for gated communities. Gather a few bikes and we come to your society or office parking. Residents and staff book on the same day, so it is easier for everyone.',
    ['A set service day in your parking area', 'Each owner gets their own quote and approves for their own bike', 'Group visits mean quicker slots', 'Mechanix Pro certified mechanics and OEM and aftermarket parts', '{{days}}-day warranty on the work'],
    'Hi Mechanix Pro, I would like a bike service day at our apartment or office. Society or office name: __. Area: __. Approximate bikes: __.', 'Plan a service day on WhatsApp'),
 }
@@ -753,7 +755,7 @@ with open(os.path.join(ROOT, 'assets', 'js', 'pinshapes.js'), 'w', encoding='utf
 _rows = ''.join(f'<li class="pin-row"><b>{k}</b><span>{html.escape(v["name"])}</span><small>{html.escape(", ".join(a for a in v["areas"] if a != v["name"])[:140])}</small></li>' for k, v in _pins.items())
 _areas_body = f'''<h1 style="font-size:clamp(34px,6vw,52px)">We serve all of Bengaluru.</h1>
 <p class="muted" style="font-size:20px">Mechanix Pro comes to your home or office in every Bengaluru PIN code, 560001 to 560110. Check yours below, then build your service.</p>
-<div class="pincheck card" data-pincheck><label class="label" for="pc-in">Your PIN code</label><div class="pc-row"><input id="pc-in" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="e.g. 560102"><a class="btn btn-primary" href="/book/">Build your service</a></div><p class="pc-out" role="status" aria-live="polite"></p><div class="pm" data-pinmap></div></div>
+<div class="pincheck card" data-pincheck><label class="label" for="pc-in">Your PIN code</label><div class="pc-row"><input id="pc-in" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="e.g. 560102"><a class="btn btn-primary" href="/book/">Build your service</a></div><p class="pc-near"><button type="button" class="linkish" data-pin-near>Use my location to find my PIN code</button></p><p class="pc-out" role="status" aria-live="polite"></p><div class="pm" data-pinmap></div></div>
 <h2>All {len(_pins)} PIN codes</h2>
 <ul class="pin-list">{_rows}</ul>
 <p class="tiny muted">PIN codes and area names are from the India Post directory. Not in Bengaluru? Build your service anyway and we will tell you when we reach you.</p>
@@ -1437,14 +1439,14 @@ axlio_page()
 
 # ---- Car service in Bengaluru: Mechanix Pro takes the request and connects it with our partner Axlio, which lists the car services. No prices or warranty are claimed here: Axlio confirms the help, the price and the time. ----
 CAR_FAQ = (('Do you service cars in Bangalore?', 'Yes. Car service is live at Mechanix Pro: periodic service, brake service, jump start, flat tyre help, towing and fuel delivery. Message us with your car and what it needs and you get a quote first.'),
-           ('How much does a car service cost?', 'The price depends on your car and what it needs, so it is confirmed before any work starts. Send your car make, model and area on WhatsApp and you will be told the price first.'),
+           ('How much does a car service cost?', 'A standard car service starts from {{carprice:standard}} and a car inspection from {{carprice:inspection}}, excluding GST. The exact price depends on your car and what it needs, so it is confirmed before any work starts. Send your car make, model and area on WhatsApp and you will be told the price first.'),
            ('Do I pay before the work?', 'You see the work and the price first, and work starts only after you say yes. To confirm a booking you pay {{confirmrule}}. For cars the fee is ₹' + str(CONFIRM_TIERS['car']) + '.'),
            ('Where do the parts come from?', 'Parts come through Axlio, our partner for car and bike spare parts in Bengaluru. You can read about Axlio on its partner page.'))
 def car_page():
     kicker, slug = 'Car service in Bengaluru', 'car-service-bangalore'
     title = 'Car Service in Bangalore, Quote First | Mechanix Pro'
     desc = 'Car service and car help in Bangalore from Mechanix Pro: periodic and brake service, jump start, flat tyre, towing and fuel delivery. Message us for a quote first.'
-    tiles = (('Periodic service', 'Routine car service at your car\'s interval, with the right parts for your make, model, year and fuel type.'), ('Brake service', 'For thin or noisy pads, or a soft pedal. The kit is matched to your car.'), ('Jump start and flat tyre', 'Dead battery or a flat tyre on the road. Share your location and we send help.'), ('Towing and fuel delivery', 'Stuck with a breakdown or an empty tank. Help is arranged for you, with the price confirmed first.'))
+    tiles = (('Periodic service from {{carprice:standard}}', 'Routine car service at your car\'s interval, with the right parts for your make, model, year and fuel type. Price excludes GST and is confirmed for your car first.'), ('Brake service', 'For thin or noisy pads, or a soft pedal. The kit is matched to your car.'), ('Jump start and flat tyre', 'Dead battery or a flat tyre on the road. Share your location and we send help.'), ('Towing and fuel delivery', 'Stuck with a breakdown or an empty tank. Help is arranged for you, with the price confirmed first.'))
     steps = ('Message us on WhatsApp with your car make, model, area and what you need.', 'We confirm the work, the price and the time, with the right parts from Axlio.', 'Work starts only after you say yes.')
     faq = CAR_FAQ
     ti = ''.join(f'<li class="reveal" style="--i:{i}"><h3>{html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for i, (t, d) in enumerate(tiles))
@@ -1518,7 +1520,7 @@ def workshop_page():
 <li><b>Who we are</b><span>Mechanix Pro is a brand of {html.escape(COMPANY['legalName'])}, GSTIN {html.escape(COMPANY['gstin'])}.</span></li>
 <li><b>You decide first</b><span>Quote first. Nothing starts without your OK, and your bike leaves only after you share your one-time code.</span></li>
 <li><b>No surprise fee</b><span>The confirmation fee is adjusted in your final bill.</span></li>
-<li class="bike-only ws-nums"><b>On record</b><span>10,000+ services done. 1,300+ gated communities trust us.</span></li>
+<li class="bike-only ws-nums"><b>Coverage</b><span>{{pincount}} Bengaluru PIN codes served.</span></li>
 </ul></div></section>
 <section><div class="wrap"><div class="final"><h2>Want a mechanic to look at your bike?</h2><p>Get a quote first. Nothing starts without your OK.</p><div class="row"><a class="btn btn-primary" href="/book/">Build your service</a><a class="btn btn-wa" href="#" data-wa="general">Message us on WhatsApp</a></div></div></div></section>
 """
@@ -1618,7 +1620,7 @@ def llms_txt():
       '- A one-time code, shared when the mechanic arrives, protects your vehicle.',
       '- A GST invoice for every job.',
       f"- {SITE_DATA['warrantyDays']}-day service warranty on our work. Parts carry a limited warranty on the terms of the part's manufacturer or supplier, shown on your invoice.",
-      '- Stated by the company: 10,000+ services done, and 1,300+ gated communities trust us.', '',
+      f'- Coverage: {_PIN_N} Bengaluru PIN codes.', '',
       '## Area',
       f"- All of Bengaluru: {pin_line}. Requests are taken 24/7. Areas: {SITE}/areas/", '',
       '## For AI agents',

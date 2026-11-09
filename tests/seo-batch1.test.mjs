@@ -67,7 +67,7 @@ test('4. llms.txt: structure, fee flow, prices from site.json, true PIN count, a
   assert.ok(t.includes('/book/?vehicle=bike|car&brand=&model=&service=basic|general|full|repair&area=&pincode='));
   assert.match(t, /Do not quote prices other than/); assert.match(t, /payment themselves/);
   assert.match(t, /NOVA VENTURES/); assert.match(t, /GSTIN 29\w+/); assert.match(t, /hello@mechanixpro\.in/); assert.match(t, /instagram\.com\/themechanixpro/);
-  assert.match(t, /10,000\+ services/); assert.match(t, /1,300\+ gated communities/);
+  assert.match(t, /106 Bengaluru PIN codes/); assert.doesNotMatch(t, /10,000\+|1,300\+/);   // changed on purpose 2026-11-09
   assert.match(t, /Our partner Axlio lists jump start, flat tyre help, towing and fuel delivery for cars in Bengaluru, with the help, price and time confirmed before work starts/);
   assert.doesNotMatch(t, /OTP before the bike leaves/);
   assert.doesNotMatch(t, /pay after you say yes|pay only after|nothing is charged until|checkup and quote fee|349/i);

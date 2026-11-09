@@ -16,7 +16,7 @@ test('one business entity: the home page defines it, area and roadside pages poi
 
 test('area pages answer the questions riders ask, with only the allowed claims', () => {
   const t = read('bike-service-hsr-layout/index.html');
-  for (const s of ['How much is a bike service in HSR Layout?', 'What is included in a Standard service?', 'Is doorstep bike service safe?', 'Do you help with breakdowns in HSR Layout?', '10,000+ services done', '1,300+ gated communities trust us', 'Prices checked on', 'doorstep-service-p.webp']) assert.ok(t.includes(s), s);
+  for (const s of ['How much is a bike service in HSR Layout?', 'What is included in a Standard service?', 'Is doorstep bike service safe?', 'Do you help with breakdowns in HSR Layout?', '106 Bengaluru PIN codes served', '30-day service warranty and a GST invoice', 'Prices checked on', 'doorstep-service-p.webp']) assert.ok(t.includes(s), s);
   assert.doesNotMatch(t, /★|rating|reviews? from/i);
 });
 
@@ -25,7 +25,7 @@ test('no GST or phone contradictions in the built pages, and llms.txt carries th
     const t = read(p); assert.doesNotMatch(t, /Prices include GST|prices include GST|up to 180cc/, p); assert.doesNotMatch(t, /XXXXX XXXXX/, p);
   }
   const l = read('llms.txt');
-  for (const s of ['10,000+ services done', '1,300+ gated communities', 'roadside emergency visit ₹1,299', 'a small confirmation fee, ₹49 to ₹99 depending on your vehicle', '106 PIN codes between 560001 and 560110', '+91 79652 95649']) assert.ok(l.includes(s), s);
+  for (const s of ['Coverage: 106 Bengaluru PIN codes', 'roadside emergency visit ₹1,299', 'a small confirmation fee, ₹49 to ₹99 depending on your vehicle', '106 PIN codes between 560001 and 560110', '+91 79652 95649']) assert.ok(l.includes(s), s);
   assert.match(read('robots.txt'), /Content-Signal: search=yes, ai-input=yes, ai-train=no/);
 });
 

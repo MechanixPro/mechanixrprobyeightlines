@@ -22,6 +22,20 @@
       if (map && (shown || v.length === 6)) drawMap(v, r.cls === 'ok' && !!(window.MXP_PIN_GEO || {})[v]);
       if (r.link) { var a = document.createElement('a'); a.href = '/book/?pin=' + r.link; a.textContent = ' Build your service'; out.appendChild(a); }
     }
+    /* Use my location: the nearest PIN code centre in Bengaluru. The position stays on this phone; nothing is sent anywhere. */
+    var near = box.querySelector('[data-pin-near]');
+    if (near) {
+      if (!navigator.geolocation) near.hidden = true;
+      else near.addEventListener('click', function () {
+        out.className = 'pc-out'; out.textContent = 'Finding your location\u2026';
+        navigator.geolocation.getCurrentPosition(function (p) {
+          var g = window.MXP_PIN_GEO || {}, best = null, bd = 1e9, la = p.coords.latitude, lo = p.coords.longitude;
+          Object.keys(g).forEach(function (k) { var dy = (g[k][0] - la) * 111.2, dx = (g[k][1] - lo) * 108.4, d = Math.sqrt(dx * dx + dy * dy); if (d < bd) { bd = d; best = k; } });
+          if (best && bd <= 15) { input.value = best; update(); }
+          else { out.className = 'pc-out no'; out.textContent = 'You seem to be outside Bengaluru. Type your PIN code instead.'; }
+        }, function () { out.className = 'pc-out no'; out.textContent = 'Location was not shared. Type your PIN code instead.'; }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+      });
+    }
     input.addEventListener('input', update);
     box.querySelectorAll('[data-pin]').forEach(function (b) { b.addEventListener('click', function () { input.value = b.getAttribute('data-pin'); update(); input.focus({ preventScroll: true }); }); });
     document.addEventListener('mxp:pins', update);

@@ -3,6 +3,10 @@
   "advance": 349,
   "newCustomerFee": 99,
   "bigBike": 300,
+  "carPrices": {
+    "standard": 2535,
+    "inspection": 474
+  },
   "services": {
     "basic": {
       "name": "Basic service",

@@ -26,7 +26,7 @@ test('the facts are generated from the source files, not typed into the script',
   assert.ok(D.faq.length >= 10);
   const home = read('src/home.html');
   for (const f of D.faq) assert.ok(home.includes(f.q), 'FAQ question is from src/home.html: ' + f.q);
-  assert.equal(JSON.stringify(D.trust), JSON.stringify(['10,000+ services done', '1,300+ gated communities trust us']));
+  assert.equal(JSON.stringify(D.trust), JSON.stringify(['106 PIN codes served', '30-day service warranty']));
   assert.ok(!/\b(10,000|1,300|₹\d)/.test(chatSrc.replace(/'₹'/g, '')), 'no price or claim number typed into mechu-chat.js');
   // the build script writes the file and a rebuild changes nothing
   assert.match(read('scripts/build_pages.py'), /mechu-data\.js/);
@@ -156,7 +156,7 @@ test('the bike-only claims are absent in a car context', () => {
   assert.equal(chat.isCar(D, {}, '/car-service-bangalore/', null), true);
   assert.equal(chat.isCar(D, { vehicle: 'car' }, '/', null), true); assert.equal(chat.isCar(D, { vehicle: 'bike' }, '/car-service-bangalore/', null), false);
   assert.equal(chat.isCar(D, {}, '/', { getElementById: () => ({ checked: true }) }), true);
-  const carFaq = chat.faqList(D, true), carText = (JSON.stringify(carFaq) + chat.COPY.carPrice + chat.COPY.carArea).replace(/To confirm a booking you pay [^.]*\.( For cars the fee is ₹\d+\.)?/g, ''); // changed on purpose: the car FAQ states the confirmation fee
+  const carFaq = chat.faqList(D, true), carText = (JSON.stringify(carFaq) + chat.COPY.carPrice + chat.COPY.carArea).replace(/To confirm a booking you pay [^.]*\.( For cars the fee is ₹\d+\.)?/g, '').replace(/A standard car service starts from[^.]*\.[^.]*\./g, '');   // changed on purpose 2026-11-09: the car price answer states the owner-set starting prices // changed on purpose: the car FAQ states the confirmation fee
   assert.ok(carFaq.length >= 4);
   assert.ok(!/10,000|1,300|gated|warranty|₹|\bGST\b|up to 149cc/.test(carText), 'no bike claim, price, GST line or warranty in the car answers');
   // a car question never gets a bike FAQ answer

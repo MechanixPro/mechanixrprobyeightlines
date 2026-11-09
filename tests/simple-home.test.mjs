@@ -15,7 +15,7 @@ test('the old Instagram strip is gone; the only Instagram link or handle is the 
   assert.doesNotMatch(rest, /instagram\.com|@themechanixpro/i);
 });
 test('the two owner-confirmed numbers stay, in one short line', () => {
-  assert.match(body, /10,000\+ services done/); assert.match(body, /1,300\+ gated communities trust us/);
+  assert.match(body, /106 PIN codes served/); assert.match(body, /Mechanix Shield: up to ₹5,000/);   // changed on purpose 2026-11-09 (assumed figures removed)
 });
 test('no helper character is loaded on any page', () => {
   for (const f of ['index.html', 'book/index.html', 'services/index.html', 'offers/bike-service/index.html']) {

@@ -51,10 +51,10 @@ test('headline, accent price line, trust line and the two allowed chips; no othe
   assert.match(hero, /<h1 id="hero-h">Bike and car service at your door in Bengaluru\.<\/h1>/);
   assert.match(hero, /<p class="hero-offer bike-only">Bike service from <span data-price="basic">₹\d+<\/span> <small>excluding GST<\/small><\/p>/);
   assert.match(hero, /<p class="lead">Quote first\. You approve before we start\.<\/p>/);
-  assert.match(hero, /<ul class="hero-chips bike-only"[^>]*><li>10,000\+ services done<\/li><li>1,300\+ gated communities trust us<\/li><\/ul>/);
+  assert.match(hero, /<ul class="hero-chips bike-only"[^>]*><li>106 PIN codes served<\/li><li>Mechanix Shield: up to ₹5,000<\/li><li>30-day Redo Promise<\/li><\/ul>/);   // changed on purpose 2026-11-09: the owner said the service-count and community figures were assumed, so they are not published; the chips are two plain facts
   const text = hero.replace(/<[^>]+>/g, ' ');
   assert.doesNotMatch(text, /certified|rating|stars?\b|minutes|within \d|arrive in|★/i);
-  assert.deepEqual([...new Set((text.match(/\d[\d,]*\+?/g) || []).filter((n) => !/^(560102|499|6|0)$/.test(n)))].sort(), ['1,300+', '10,000+', '24'].filter((n) => text.includes(n)).sort());
+  assert.deepEqual([...new Set((text.match(/\d[\d,]*\+?/g) || []).filter((n) => !/^(560102|499|6|0|106|30|5,000)$/.test(n)))].sort(), ['24'].filter((n) => text.includes(n)).sort());
 });
 // Changed on purpose (owner: "remove the pincode"): the hero card no longer asks for a PIN code. It sends only the vehicle (Bike or Car) to /book/, where the address step asks for the PIN code.
 test('booking card: plain GET form to /book/ that sends only the vehicle; no PIN, name or phone field', () => {

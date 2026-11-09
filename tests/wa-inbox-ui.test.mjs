@@ -7,6 +7,7 @@ import { inboxShell } from '../crm/wa-inbox.js';
 import { cardsHtml, agentsHtml, filtersHtml, tableHtml, defaultFilters, rangeArgs, shell } from '../admin/wa-desk.js';
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const NOW = Date.parse('2026-11-07T10:00:00Z');
+Date.now = () => NOW;   // the thread and composer read the clock for the 24 hour window; freeze it so this test does not age (fixed on purpose)
 const iso = (msAgo) => new Date(NOW - msAgo).toISOString();
 
 const convo = (o = {}) => ({ phone: '9800000001', name: 'Test Customer', status: 'open', assigned_to: null, assigned_name: null, last_inbound_at: iso(3600e3), me: 'USER_ME', ai_auto: null, ai_global: true, opted_out: false, ...o });

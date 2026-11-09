@@ -9,7 +9,7 @@ test('/about/ has seven chapters in order, a chapter nav, real figures and no in
   for (const id of ['question', 'worries', 'built', 'people', 'honest', 'city', 'partners']) { assert.match(h, new RegExp('<section class="ab-ch" id="' + id + '"')); assert.match(h, new RegExp('href="#' + id + '"')); }
   const pins = Object.keys(JSON.parse(read('src/pincodes.json')).pins).length;
   assert.ok(h.includes(`<b>${pins}</b><span>Bengaluru PIN codes we serve`));
-  assert.doesNotMatch(h, /guarantee|100%|insured|since 20\d\d|founded|years of experience|\d{2,},?\d{3}\+/i);
+  assert.doesNotMatch(h, /guarantee|100%|insured|since 20\d\d|founded(?! by <b>Mohammed Ruwaid)|years of experience|\d{2,},?\d{3}\+/i);   // changed on purpose 2026-11-09: only the owner-given founder line is allowed
   assert.match(h, /illustrations created for Mechanix Pro/);
   assert.match(read('sitemap.xml'), /\/about\//); assert.match(read('index.html'), /href="\/about\/"/);
 });

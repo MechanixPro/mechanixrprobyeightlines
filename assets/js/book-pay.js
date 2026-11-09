@@ -169,8 +169,8 @@
       var car = val('vehicle') === 'car'; form.setAttribute('data-veh', car ? 'car' : 'bike');
       all('[data-only]').forEach(function (el) { el.hidden = el.getAttribute('data-only') !== (car ? 'car' : 'bike'); });
       var extra = trust.querySelector('[data-bike-proof]'); if (extra) extra.remove();
-      /* The two owner-confirmed claims are for bikes only. */
-      if (!car) trust.insertAdjacentHTML('beforeend', '<li data-bike-proof>10,000+ services done. 1,300+ gated communities trust us.</li>');
+      /* Two plain facts, for bikes only (the old service-count figures were assumed, so they are gone). */
+      if (!car) trust.insertAdjacentHTML('beforeend', '<li data-bike-proof>Quote first. Nothing starts until you say yes.</li>');
       showFee();
     };
 
