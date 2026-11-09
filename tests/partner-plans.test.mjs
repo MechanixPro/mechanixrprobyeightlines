@@ -118,10 +118,10 @@ test('the client\'s volume bands are in the plan table, and the agreement fills 
   assert.match(m, /orders_min = 30, orders_max = 80 where plan = 'silver'/); assert.match(m, /orders_min = 50, orders_max = 100 where plan = 'gold'/);
   const g = { code: 'G-0007', name: 'Test Garage', legal_name: 'Test Auto Works', owner_name: '[Host Name]', address: '12 Test Road', pincode: '560001', mobile: '9000000000', trade_id: '[Licence]', deposit_status: 'held', deposit_received_at: '2026-11-09T10:00:00Z' };
   const gold = agreementHtml({ tier: 'gold', garage: g, plan: { commission_pct: 25, deposit_amount: 20000, orders_min: 50, orders_max: 100 }, rate: 25, signer: { name: 'A', designation: 'B' }, now: new Date('2026-11-10T05:00:00Z') });
-  for (const t of ['MXP-GD-G-0007', 'Test Auto Works', '[Host Name]', '12 Test Road', '9000000000', '[Licence]', '₹20,000', '25% of the Base Price', '50 to 100 orders', '10/11/2026']) assert.ok(gold.includes(t), t);
+  for (const t of ['MXP-GD-G-0007', 'Test Auto Works', '[Host Name]', '12 Test Road', '9000000000', '[Licence]', 'Rs 20,000', '25% of the overall bill base price', '50 to 100 orders', '10/11/2026']) assert.ok(gold.includes(t), t);
   assert.ok(!/undefined|NaN/.test(gold)); assert.equal(PART_A.length, 18);
   const sil = agreementHtml({ tier: 'silver', garage: g, plan: { commission_pct: 30, deposit_amount: 10000, orders_min: 30, orders_max: 80 }, rate: 30 }); assert.match(sil, /30 to 80 orders/); assert.match(sil, /at least 70% of the Jobs/);
-  assert.match(agreementHtml({ tier: 'bronze', garage: g, plan: {}, rate: 35 }), /35 % of the Base Price/);
+  assert.match(agreementHtml({ tier: 'bronze', garage: g, plan: {}, rate: 35 }), /Agreed rate at signing\.<\/b> 35 %/);
   const x = agreementHtml({ tier: 'bronze', garage: { name: '<img src=x onerror=1>' }, plan: {}, rate: 35 }); assert.ok(!x.includes('<img src=x'));
   assert.match(read('admin/garages-view.js'), /data-agree/);
 });
@@ -135,7 +135,7 @@ test('the client can edit the agreement terms himself: saved text and numbers ar
   const t = resolveTerms({ part_a: [{ title: 'Own clause', text: 'Penalty {{pen_noshow}}' }], vars: { pen_noshow: 450 } });
   assert.equal(t.part_a.length, 1); assert.equal(t.part_b.gold.length, PART_B.gold.length); assert.equal(t.vars.pen_cap, 10);
   const html = agreementHtml({ tier: 'gold', garage: { code: 'G-1' }, plan: { commission_pct: 22, deposit_amount: 25000, orders_min: 40, orders_max: 90 }, rate: 22, terms: { part_a: [{ title: 'Own clause', text: 'Penalty {{pen_noshow}}' }], vars: { pen_noshow: 450 } } });
-  assert.match(html, /1\. Own clause\.<\/b> Penalty ₹450/); assert.match(html, /22% of the Base Price/); assert.match(html, /₹25,000/); assert.match(html, /40 to 90 orders/);
+  assert.match(html, /1\. Own clause\.<\/b> Penalty Rs 450/); assert.match(html, /22% of the overall bill base price/); assert.match(html, /Rs 25,000/); assert.match(html, /40 to 90 orders/);
   assert.deepEqual(unknownTokens('a {{rate}} b {{bogus}}'), ['bogus']);
   const body = termsBody(null, [{ plan: 'silver', commission_pct: 30, deposit_amount: 10000, deposit_months: 3, orders_min: 30, orders_max: 80 }]);
   assert.match(body, /data-sec="part_a"/); assert.match(body, /data-sec="gold"/); assert.match(body, /name="c_silver" [^>]*value="30"/); assert.match(body, /Go back to the original text/);
