@@ -41,3 +41,11 @@ test('hosts: the job page and the garage page load the module, css and data', ()
   const j = read('job/index.html'); assert.match(j, /pro-check-data\.js/); assert.match(j, /pro-check-ui\.js/); assert.match(j, /pro-check\.css/);
   assert.match(read('assets/js/job.js'), /check_open/);
 });
+test('the public /pro-check/ page lists exactly the 20 points and the test ride, and is in the sitemap', () => {
+  const h = read('pro-check/index.html');
+  for (const g of G) for (const p of g.points) assert.ok(h.includes('<li>' + p.label + '</li>'), p.label);
+  assert.equal((h.match(/<div class="pc-g">/g) || []).length, 7);
+  assert.match(h, /Then a test ride/); assert.match(h, /valid licence/);
+  assert.doesNotMatch(h, /guarantee|100%|insured/i);
+  assert.match(read('sitemap.xml'), /\/pro-check\//);
+});

@@ -34,7 +34,7 @@ FOOTER = '''<footer class="foot">
     </div>
     <div class="foot-cols">
       <div><b>Areas</b>{area_links}<a href="/areas/">All Bengaluru PIN codes</a></div>
-      <div><b>Company</b><a href="/services/">Services and prices</a><a href="/rate-card/">Rate card</a><a href="/help/">How it works</a><a href="/our-process/">How we keep your bike safe</a><a href="/app/">Mechanix Pro on your phone</a><a href="/roadside/">Roadside help</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
+      <div><b>Company</b><a href="/services/">Services and prices</a><a href="/rate-card/">Rate card</a><a href="/help/">How it works</a><a href="/our-process/">How we keep your bike safe</a><a href="/pro-check/">Pro Check 20</a><a href="/app/">Mechanix Pro on your phone</a><a href="/roadside/">Roadside help</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
     </div>
     <p class="tiny">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Mechanix Pro is a brand of {company_name}, {company_addr}. GSTIN {company_gstin}</p><p class="tiny">Website developed by <a href="https://ziyam.me" target="_blank" rel="noopener" class="inl">ziyam.me</a></p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p>
   </div>
@@ -695,6 +695,17 @@ def _build_app_page():
     write('app/index.html', HEAD.format(title=html.escape(_t), desc=html.escape(_d), url=_url, site=SITE, schema=_ld, scripts=LEGAL_JS + '<script src="/assets/js/app-page.js" defer></script>', body='', nav=NAV, main='page') + _body + foot())
     urls.append(('/app/', '0.5'))
 _build_app_page()
+
+# ---- /pro-check/: the public 20-point list and the test ride, generated from the same list the apps use (src/pro-check.html is written from supabase/functions/_shared/pro-check.ts) ----
+def _build_pro_check_page():
+    _t = 'Pro Check 20: the 20-point check and test ride | Mechanix Pro'
+    _d = 'The 20 points your mechanic checks on your bike before the quote, and the test ride that follows. See every result on your tracking page.'
+    _url = f'{SITE}/pro-check/'
+    _body = tok(open(os.path.join(ROOT, 'src', 'pro-check.html'), encoding='utf-8').read())
+    _ld = crumbs(('Pro Check 20', '/pro-check/')) + page_ld({"@type": "WebPage", "@id": _url + '#webpage', "url": _url, "name": _t, "isPartOf": {"@id": SITE + '/#website'}})
+    write('pro-check/index.html', HEAD.format(title=html.escape(_t), desc=html.escape(_d), url=_url, site=SITE, schema=_ld, scripts=LEGAL_JS, body='', nav=NAV, main='page') + _body + foot())
+    urls.append(('/pro-check/', '0.6'))
+_build_pro_check_page()
 
 # ---- Every Bengaluru PIN code: a small script for the PIN check, and a page that lists them all ----
 _pins = json.load(open(os.path.join(ROOT, 'src', 'pincodes.json'), encoding='utf-8'))['pins']
