@@ -126,3 +126,5 @@ main>section{position:relative}
 .rsa-in{box-shadow:0 30px 80px rgba(20,41,90,.36),0 0 0 1px rgba(255,255,255,.1) inset}
 
 @media(prefers-reduced-motion:reduce){.promo,.need-tile,.price-cards li,.steps3 li,.btn-primary{transition:none}.promo:hover,.need-tile:hover,.price-cards li:hover,.steps3 li:hover,.btn-primary:hover{transform:none}}
+
+.car-ask{display:inline-block;margin-top:10px;font-weight:700;color:var(--brand,#0f6b3a);text-decoration:underline;text-underline-offset:3px;min-height:44px;line-height:44px}

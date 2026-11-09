@@ -1438,18 +1438,27 @@ def axlio_page():
 axlio_page()
 
 # ---- Car service in Bengaluru: Mechanix Pro takes the request and connects it with our partner Axlio, which lists the car services. No prices or warranty are claimed here: Axlio confirms the help, the price and the time. ----
-CAR_FAQ = (('Do you service cars in Bangalore?', 'Yes. Car service is live at Mechanix Pro: periodic service, brake service, jump start, flat tyre help, towing and fuel delivery. Message us with your car and what it needs and you get a quote first.'),
+CAR_FAQ = (('Do you service cars in Bangalore?', 'Yes. Periodic service, inspection, brakes, AC, battery, tyres, repairs, cleaning, jump start, towing and fuel delivery. Message us with your car and what it needs and you get a quote first.'),
            ('How much does a car service cost?', 'A standard car service starts from {{carprice:standard}} and a car inspection from {{carprice:inspection}}, excluding GST. The exact price depends on your car and what it needs, so it is confirmed before any work starts. Send your car make, model and area on WhatsApp and you will be told the price first.'),
            ('Do I pay before the work?', 'You see the work and the price first, and work starts only after you say yes. To confirm a booking you pay {{confirmrule}}. For cars the fee is ₹' + str(CONFIRM_TIERS['car']) + '.'),
            ('Where do the parts come from?', 'Parts come through Axlio, our partner for car and bike spare parts in Bengaluru. You can read about Axlio on its partner page.'))
 def car_page():
     kicker, slug = 'Car service in Bengaluru', 'car-service-bangalore'
     title = 'Car Service in Bangalore, Quote First | Mechanix Pro'
-    desc = 'Car service and car help in Bangalore from Mechanix Pro: periodic and brake service, jump start, flat tyre, towing and fuel delivery. Message us for a quote first.'
-    tiles = (('Periodic service from {{carprice:standard}}', 'Routine car service at your car\'s interval, with the right parts for your make, model, year and fuel type. Price excludes GST and is confirmed for your car first.'), ('Brake service', 'For thin or noisy pads, or a soft pedal. The kit is matched to your car.'), ('Jump start and flat tyre', 'Dead battery or a flat tyre on the road. Share your location and we send help.'), ('Towing and fuel delivery', 'Stuck with a breakdown or an empty tank. Help is arranged for you, with the price confirmed first.'))
+    desc = 'Car service and car help in Bangalore from Mechanix Pro: periodic service, inspection, brakes, AC, battery, tyres, repairs, jump start, towing and fuel delivery. Message us for a quote first.'
+    tiles = (('Periodic service from {{carprice:standard}}', 'Routine car service at your car\'s interval, with the right parts for your make, model, year and fuel type. Price excludes GST and is confirmed for your car first.'),
+             ('Car inspection from {{carprice:inspection}}', 'A checkup before a long trip, or before you buy a used car. You get what we find, in writing, before any work. Price excludes GST.'),
+             ('Brake service', 'For thin or noisy pads, or a soft pedal. The kit is matched to your car.'),
+             ('AC service and gas top-up', 'Weak cooling, a smell from the vents or a noisy blower. We check the AC and tell you what it needs and what it costs before we start.'),
+             ('Battery check and replacement', 'Slow start or a dead battery. We test it first and replace it only if it needs it.'),
+             ('Tyres, wheel alignment and balancing', 'Pulling to one side, a shaking steering wheel or uneven tyre wear. We check and tell you what is needed.'),
+             ('Clutch, suspension and other repairs', 'Hard clutch, knocking over bumps or a warning light. Tell us the symptom and we quote the repair after a check.'),
+             ('Cleaning and detailing', 'Interior and exterior cleaning for your car. Scope and price confirmed first.'),
+             ('Jump start and flat tyre', 'Dead battery or a flat tyre on the road. Share your location and we send help.'),
+             ('Towing and fuel delivery', 'Stuck with a breakdown or an empty tank. Help is arranged for you, with the price confirmed first.'))
     steps = ('Message us on WhatsApp with your car make, model, area and what you need.', 'We confirm the work, the price and the time, with the right parts from Axlio.', 'Work starts only after you say yes.')
     faq = CAR_FAQ
-    ti = ''.join(f'<li class="reveal" style="--i:{i}"><h3>{html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for i, (t, d) in enumerate(tiles))
+    ti = ''.join(f'<li class="reveal" style="--i:{i}"><h3>{html.escape(t)}</h3><p>{html.escape(d)}</p><a class="car-ask" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I need: {html.escape(t.split(" from ")[0], quote=True)}.&#10;Car make and model: &#10;Fuel (petrol, diesel, EV): &#10;Area: ">Get a quote</a></li>' for i, (t, d) in enumerate(tiles))
     st = ''.join(f'<li class="soon-step reveal" style="--i:{i}"><span class="soon-n">{i + 1}</span><span>{html.escape(t)}</span></li>' for i, t in enumerate(steps))
     fq = ''.join(f'<details><summary>{html.escape(q)}</summary><p>{html.escape(a)}</p></details>' for q, a in faq)
     ld = crumbs((kicker, f'/{slug}/')) + ld_tag({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]}) + ld_tag({"@context": "https://schema.org", "@type": "Service", "name": "Car service in Bengaluru", "serviceType": "Car service and roadside help", "areaServed": {"@type": "City", "name": "Bengaluru"}, "provider": PROVIDER, "description": desc})
