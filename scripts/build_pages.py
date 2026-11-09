@@ -119,7 +119,7 @@ TABBAR = ('<nav class="tabbar" aria-label="App menu">'
   '<a class="tb-book" href="/book/" data-tab="book"><span class="tb-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>Book</a>'
   '<a href="/track/" data-tab="track"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Track</a>'
   '<a href="#" data-wa="general" data-tab="chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.8 7L4 20l1.1-4.6A8 8 0 1 1 21 12z"/></svg>Chat</a>'
-  '</nav><link rel="stylesheet" href="/assets/css/tabbar.css"><script src="/assets/js/tabbar.js" defer></script>\n')
+  '</nav><link rel="stylesheet" href="/assets/css/tabbar.css"><link rel="stylesheet" href="/assets/css/slot-popup.css"><script src="/assets/js/tabbar.js" defer></script><script src="/assets/js/slot-popup.js" defer></script>\n')
 DOCK = '<nav class="dock" aria-label="Message or call Mechanix Pro"><a class="btn btn-wa" href="#" data-wa="general"{wa_text}>' + _WA_I + 'WhatsApp</a><a class="btn btn-call" href="#" data-call>' + _PH_I + 'Call</a></nav>\n'
 # Home: the Bike / Car switch also decides which WhatsApp message the bar sends (the other button is hidden by CSS).
 BIKE_WA = 'Hi Mechanix Pro, I need a service for my bike in Bengaluru.\nBike model: \nArea: '

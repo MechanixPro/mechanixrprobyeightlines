@@ -55,3 +55,10 @@ test('the booking form offers Puncture repair, and the server accepts it', () =>
   assert.match(read('assets/js/book-pay.js'), /puncture: 'Puncture repair'/);
   assert.match(read('supabase/functions/_shared/book-form.ts'), /BIKE_SERVICES = \['basic', 'general', 'full', 'repair', 'puncture'\]/);
 });
+test('the Book your slot pop-up is a dismissible card that stays off one-task pages and links to /book/', () => {
+  const js = read('assets/js/slot-popup.js');
+  assert.match(js, /\(book\|track\|pay\|rate\|warranty/); assert.match(js, /Book your slot/); assert.match(js, /href: '\/book\/'/); assert.match(js, /vehicle=car/);
+  assert.match(js, /Escape/); assert.match(js, /snooze\(3\)|close\(3\)/); assert.match(js, /setTimeout\(show, 20000\)/);
+  assert.match(read('index.html'), /slot-popup\.js/); assert.doesNotMatch(read('pay/index.html'), /slot-popup/);
+  assert.match(read('assets/css/slot-popup.css'), /prefers-reduced-motion/);
+});
