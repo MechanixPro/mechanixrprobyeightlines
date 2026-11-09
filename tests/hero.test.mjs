@@ -4,7 +4,7 @@ import { readFileSync, existsSync, statSync } from 'node:fs';
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const home = read('index.html');
 const css = read('assets/css/hero.css');
-const hero = home.slice(home.indexOf('<section id="hero"'), home.indexOf('id="brief"'));
+const hero = home.slice(home.indexOf('<section id="hero"'), home.indexOf('id="how-hub"'));   // changed on purpose 2026-11-09: the animated booking journey now follows the hero
 const art = hero.slice(hero.indexOf('<figure class="hero-media"'), hero.indexOf('</figure>') + 9);
 const imgs = [...art.matchAll(/<img\b[^>]*>/g)].map((m) => m[0]);
 const scene = read('assets/img/hero-garage-scene.svg');
@@ -17,7 +17,7 @@ test('hero.css is linked from the home page only and stays small', () => {
   // Raised once more to 14,000 bytes for the garages gallery on the home page (2026-11-08).
   assert.ok(statSync(new URL('../assets/css/hero.css', import.meta.url)).size < 14000, 'hero.css budget 14,000 bytes');
   assert.ok(Buffer.byteLength(read('assets/css/site.css')) < 32000);
-  assert.ok(Buffer.byteLength(home) < 54000, 'home HTML ' + Buffer.byteLength(home));
+  assert.ok(Buffer.byteLength(home) < 66000, 'home HTML ' + Buffer.byteLength(home));   // raised on purpose to 66,000 (2026-11-09): journey, Pro Check, comparison, partner, helpline and app sections
 });
 // Changed on purpose (owner's own garage render and video): the hero shows the owner's illustrated Mechanix Pro garage as a short muted loop (bike view) and a still (car view), beside the headline.
 test('the hero media: a muted looping garage video with a poster (bike view) and a car still (car view); sized, alt text, no audio, files exist', () => {
