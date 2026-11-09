@@ -198,7 +198,7 @@ test('Crew sees the amount read only: no Enter amount button, and the action ref
 /* ---------- the list ---------- */
 test('the garages list shows status, access, last opened and open jobs, and the right buttons for each access state', async () => {
   const d = desk(); const root = fakeRoot(); await d.gd.mount(root);
-  assert.deepEqual(d.names().sort(), ['crm_garage_access_list', 'crm_garage_assignments_list', 'crm_garage_estimates_inbox', 'crm_garage_picker']);
+  assert.deepEqual(d.names().sort(), ['crm_announcement_list', 'crm_garage_access_list', 'crm_garage_assignments_list', 'crm_garage_estimates_inbox', 'crm_garage_picker', 'crm_garage_requests_list']);   // changed on purpose (client BRD): requests and announcements load with the screen
   const h = root.innerHTML; assert.match(h, /\[Garage One\][\s\S]*Active[\s\S]*Access on[\s\S]*2 open jobs/); assert.match(h, /Last opened the app/); assert.match(h, /\[Garage Two\][\s\S]*Applied[\s\S]*No access yet[\s\S]*No open jobs/);
   assert.match(h, /data-gd="onboard" data-id="g-2"/); for (const a of ['pinReset', 'newLink', 'revoke', 'assignTo']) assert.match(h, new RegExp(`data-gd="${a}" data-id="g-1"`));
   assert.doesNotMatch(h, /data-gd="onboard" data-id="g-1"/);

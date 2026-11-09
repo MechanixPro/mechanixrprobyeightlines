@@ -26,8 +26,12 @@ import { cleanResults } from '../_shared/pro-check.ts';
 import { liveUploadUrls, liveAdd } from '../_shared/live.ts';
 import { signSession, verifySession, garageJobListItem, garageJobDetail, garageStatement, garageDashboard, cleanLocation, cleanUpload, cleanEstimate, photoPath, photoPathOk, LINK_RE, PIN_RE, UUID_RE, EVENTS, LOGIN_MESSAGE, isOpen, type RawJob } from '../_shared/garage.ts';
 
-const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_get', 'check_save', 'leads', 'claim', 'live_upload_url', 'live_add'];
+const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_get', 'check_save', 'leads', 'claim', 'live_upload_url', 'live_add', 'decline', 'cancel_request', 'change_request', 'receiving_save', 'announcements', 'announcement_read', 'profile', 'performance', 'requests'];
+// A suspended garage can sign in and look at old jobs, payments and reports, but every change is refused (client BRD).
+const WRITE_ACTIONS = ['progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'location_set', 'open_set', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_save', 'claim', 'live_upload_url', 'live_add', 'decline', 'cancel_request', 'change_request', 'receiving_save', 'selfie_upload_url', 'selfie_record'];
 const BAD = 'Could not save. Please try again.', SESSION_OVER = 'Your session has ended. Enter your PIN again.';
+// Jobs accepted before the receiving checklist existed are not sent back to it.
+const RECEIVING_FROM = Date.parse('2026-11-10T00:00:00+05:30');
 const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
 
 Deno.serve(async (req) => {
@@ -73,11 +77,12 @@ Deno.serve(async (req) => {
   if (!who.ok || who.garage_id !== claims.g) return json(req, { error: SESSION_OVER, code: 'session' }, 401);
   const garageId: string = who.garage_id, accessId: string = who.access_id, garageName: string = who.garage_name;
   const jobId = String(b?.id ?? '');
+  if (who.suspended && WRITE_ACTIONS.includes(action)) return json(req, { error: 'Your account is suspended. You can view past jobs and payments but not make changes. Contact Mechanix Pro.', code: 'suspended' }, 403);
 
   const selfieAt = async (): Promise<string | null> => (await rpc('partner_selfie_latest', { p_kind: 'garage', p_id: garageId })) ?? null;
   if (action === 'me') {
     const terms = (await rpc('partner_terms_status', { p_kind: 'garage', p_id: garageId, p_version: TERMS_VERSION })) ?? { accepted: false, tour_done: false };
-    return json(req, { ok: true, garage: { name: garageName, label: who.label }, terms: { version: TERMS_VERSION, accepted: !!terms.accepted, tour_done: !!terms.tour_done }, selfie_at: await selfieAt() });
+    return json(req, { ok: true, suspended: !!who.suspended, garage: { name: garageName, label: who.label }, terms: { version: TERMS_VERSION, accepted: !!terms.accepted, tour_done: !!terms.tour_done }, selfie_at: await selfieAt() });
   }
   if (action === 'terms_accept') {
     const r = await rpc('partner_terms_accept', { p_kind: 'garage', p_id: garageId, p_version: TERMS_VERSION, p_tour: b?.tour === true });
@@ -125,7 +130,7 @@ Deno.serve(async (req) => {
   }
 
   /* ---------- reading jobs: only this garage's own assignments ---------- */
-  const mine = (id?: string) => { let q = db.from('garage_assignments').select('id,lead_id,status,eta,notes,assigned_at,received_at,started_at,ready_at,returned_at').eq('garage_id', garageId).neq('status', 'cancelled'); if (id) q = q.eq('id', id); return q; };
+  const mine = (id?: string) => { let q = db.from('garage_assignments').select('id,lead_id,status,eta,notes,assigned_at,received_at,started_at,ready_at,returned_at,offer_expires_at').eq('garage_id', garageId).neq('status', 'cancelled'); if (id) q = q.eq('id', id); return q; };
   // Lead columns: never address, email or phone here (the address of an open job is fetched separately in 'job'). The phone is fetched separately, only after the contact view is allowed.
   const LEAD_COLS = 'id,name,booking_id,vehicle,service_id,bike_id,status';
   async function context(rows: any[]) {
@@ -184,6 +189,40 @@ Deno.serve(async (req) => {
     return json(req, { ok: true, statement: garageStatement((rows ?? []).map((a: any) => { const r = rawOf(a, c); return { assignment: a, lead: r.lead, vehicle: r.vehicle, settlement: S.get(a.id) ?? null }; })) });
   }
 
+  /* ---------- BRD additions: decline, cancel request, change requests, announcements, profile, performance ---------- */
+  if (action === 'announcements') {
+    const data = await rpc('garage_announcements_list', { p_garage: garageId });
+    const list = Array.isArray(data) ? data : [];
+    return json(req, { ok: true, announcements: list, unread: list.filter((x: any) => !x.read).length });
+  }
+  if (action === 'announcement_read') {
+    if (!UUID_RE.test(String(b?.announcement ?? ''))) return json(req, { error: 'Choose an announcement.' }, 400);
+    await rpc('garage_announcement_read', { p_garage: garageId, p_id: String(b.announcement) });
+    return json(req, { ok: true });
+  }
+  if (action === 'profile') {
+    const [p, r] = await Promise.all([rpc('garage_profile', { p_garage: garageId }), rpc('garage_requests_mine', { p_garage: garageId })]);
+    return json(req, { ok: true, profile: p ?? null, requests: Array.isArray(r) ? r : [] });
+  }
+  if (action === 'performance') {
+    const p = await rpc('garage_performance', { p_garage: garageId });
+    if (!p) return json(req, { error: 'Could not load your performance. Please try again.' }, 500);
+    return json(req, { ok: true, performance: p });
+  }
+  if (action === 'requests') {
+    const r = await rpc('garage_requests_mine', { p_garage: garageId });
+    return json(req, { ok: true, requests: Array.isArray(r) ? r : [] });
+  }
+  if (action === 'change_request') {
+    const kind = String(b?.kind ?? '');
+    if (!['bank', 'hours'].includes(kind)) return json(req, { error: 'Choose bank details or working hours.' }, 400);
+    const d = b?.details && typeof b.details === 'object' ? b.details : {};
+    const r = await rpc('garage_change_request', { p_access: accessId, p_kind: kind, p_details: { open_days: String(d.open_days ?? '').slice(0, 40), open_time: String(d.open_time ?? '').slice(0, 5), close_time: String(d.close_time ?? '').slice(0, 5) }, p_reason: String(b?.reason ?? '').slice(0, 200) });
+    if (!r) return json(req, { error: BAD }, 500);
+    if (!r.ok) return json(req, { error: r.error }, 400);
+    return json(req, { ok: true });
+  }
+
   // Everything below is about one job.
   if (!UUID_RE.test(jobId)) return json(req, { error: 'This job is not available.' }, 404);
 
@@ -218,7 +257,8 @@ Deno.serve(async (req) => {
       raw.place = (pl as any) ?? null;
       if (contact) { const { data: ph } = await db.from('leads').select('phone').eq('id', a.lead_id).maybeSingle(); (raw.lead as any).phone = (ph as any)?.phone ?? null; }
     }
-    return json(req, { ok: true, job: { ...garageJobDetail(raw, contact), contact_limited: limited, code, code_needed: codeNeeded,
+    const receiving = (await rpc('garage_receiving_get', { p_assignment: a.id })) ?? { done: false };
+    return json(req, { ok: true, job: { ...garageJobDetail(raw, contact), contact_limited: limited, code, code_needed: codeNeeded, receiving: { done: !!receiving.done || (!!a.received_at && Date.parse(a.received_at) < RECEIVING_FROM), odometer_km: receiving.odometer_km ?? null, damage: receiving.damage ? String(receiving.damage).slice(0, 300) : null },
       pay: { inspect_first: (cf as any)?.inspect_first === true, paid: !!(cf as any)?.final_paid_at, method: (cf as any)?.final_paid_method ?? null, amount: (cf as any)?.final_paid_amount ?? null, arrived: isArrived(null, a.status), cash_available: cashAllowed({ arrived: isArrived(null, a.status), inspectFirst: (cf as any)?.inspect_first === true }) } } });
   }
 
@@ -314,6 +354,24 @@ Deno.serve(async (req) => {
     };
     const r = await collectAction(db, { createLink: createPaymentLink, razorpayReady }, action, lead, { kind: 'garage', name: garageName, mechanicId: (m as any)?.id ?? null }, isArrived(null, a.status), b, build);
     return json(req, r.body, r.status);
+  }
+
+  if (action === 'decline' || action === 'cancel_request') {
+    const reason = String(b?.reason ?? '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 200);
+    const r = await rpc(action === 'decline' ? 'garage_decline' : 'garage_cancel_request', { p_access: accessId, p_assignment: jobId, p_reason: reason });
+    if (!r) return json(req, { error: BAD }, 500);
+    if (!r.ok) return json(req, { error: r.error }, 400);
+    return json(req, action === 'decline' ? { ok: true, declined_this_week: r.declined_this_week, free_used: !!r.free_used } : { ok: true });
+  }
+  if (action === 'receiving_save') {
+    const odo = Math.round(Number(b?.odometer_km)), photos = Array.isArray(b?.photos) ? b.photos.map((p: unknown) => String(p)) : [];
+    if (!Number.isFinite(odo) || odo < 0 || odo > 999999) return json(req, { error: 'Enter the odometer reading in kilometres.' }, 400);
+    if (!photos.every((p: string) => photoPathOk(p, garageId, jobId))) return json(req, { error: 'A photo is not valid. Take it again.' }, 400);
+    const checks = b?.checks && typeof b.checks === 'object' ? b.checks : {};
+    const r = await rpc('garage_receiving_save', { p_access: accessId, p_assignment: jobId, p_odometer: odo, p_checks: checks, p_damage: b?.damage ? String(b.damage).slice(0, 300) : null, p_photos: photos });
+    if (!r) return json(req, { error: BAD }, 500);
+    if (!r.ok) return json(req, { error: r.error }, 400);
+    return json(req, { ok: true });
   }
 
   if (action === 'progress') {

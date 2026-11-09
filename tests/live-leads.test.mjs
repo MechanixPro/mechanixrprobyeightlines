@@ -28,7 +28,7 @@ test('both functions are service role only', () => {
 });
 test('garage-app has the leads and claim actions', () => {
   const s = read('supabase/functions/garage-app/index.ts');
-  assert.match(s, /'leads', 'claim'(, 'live_upload_url', 'live_add')?\]/);   // Mechanix Live added two actions after these assert.match(s, /rpc\('garage_live_leads', \{ p_garage: garageId \}\)/); assert.match(s, /rpc\('garage_claim_lead'/);
+  assert.match(s, /'leads', 'claim'(, 'live_upload_url', 'live_add')?(, 'decline', 'cancel_request', 'change_request', 'receiving_save', 'announcements', 'announcement_read', 'profile', 'performance', 'requests')?\]/);   // Mechanix Live added two actions after these assert.match(s, /rpc\('garage_live_leads', \{ p_garage: garageId \}\)/); assert.match(s, /rpc\('garage_claim_lead'/);
   assert.match(s, /Someone else got this one\./);
 });
 test('the app polls every 20 seconds only on the Live leads screen and only while the page is visible', () => {

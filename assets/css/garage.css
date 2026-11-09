@@ -279,3 +279,7 @@ body.g-dark-bg{background:var(--navy)}
 .pf-num{align-self:center;display:grid;place-items:center;width:96px;height:96px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:24px;font-weight:800}
 .pf-dots{display:flex;gap:8px;justify-content:center}.pf-dots span{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.35)}.pf-dots span.on{background:var(--accent)}
 .pf-tag{font-size:14px;color:var(--text3)}
+/* Client BRD screens: receiving checklist, unread announcements, ask to cancel */
+.g-rc{align-items:center;justify-content:space-between;gap:8px;margin:6px 0}.g-rc-l{flex:1 1 55%;font-weight:600}.g-rc-b{flex:0 0 auto;min-width:76px;padding:10px 14px}
+.g-unread{border-left:4px solid #F2801F}
+.g-cancel-ask{display:block;margin:18px auto 0;color:inherit;opacity:.75;text-decoration:underline}

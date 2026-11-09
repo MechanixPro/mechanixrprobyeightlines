@@ -100,6 +100,7 @@ function base(raw: RawJob) {
     vehicle: model || (l.vehicle === 'car' ? 'Car' : 'Bike'), vehicle_type: l.vehicle === 'car' ? 'car' : 'bike', reg_no: v.reg_no ? String(v.reg_no).toUpperCase().slice(0, 13) : null,
     work: raw.service ? String(raw.service).slice(0, 120) : l.vehicle === 'car' ? 'Car service or problem check' : 'Bike service',
     return_by: a.eta ?? null, assigned_at: a.assigned_at ?? null,
+    offer_expires_at: status === 'sent' && typeof a.offer_expires_at === 'string' ? a.offer_expires_at : null,
     quote: { status: QUOTE_LABEL[qs] ? qs : 'none', label: QUOTE_LABEL[qs] ?? QUOTE_LABEL.none },
     next: NEXT_EVENT[status] ?? null,
   };

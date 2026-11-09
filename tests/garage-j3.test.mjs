@@ -25,7 +25,7 @@ test('jobPage: offer, navigate, phone, code, inspect (or estimate), ready, done;
 });
 test('every page event is one the database accepts; pages are in the owner order', () => {
   for (const e of Object.values(G.STEP_EVENT)) assert.ok(e === null || EVENTS.includes(e));
-  assert.deepEqual(G.PAGES, ['offer', 'navigate', 'phone', 'code', 'inspect', 'ready', 'pay', 'done']);
+  assert.deepEqual(G.PAGES, ['offer', 'navigate', 'phone', 'receive', 'code', 'inspect', 'ready', 'pay', 'done']);   // changed on purpose (client BRD): the receiving checklist comes after the vehicle is found and before the code
 });
 test('code boxes: digits only, four at most', () => {
   assert.equal(G.cleanCode('12a-345'), '1234'); assert.equal(G.cleanCode(null), '');

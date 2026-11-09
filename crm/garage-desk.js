@@ -156,6 +156,20 @@ export function createGarageDesk(deps) {
         body: '<label class="flow-label" for="gd-rn">Reason (required)</label><input id="gd-rn" name="note" maxlength="300" autocomplete="off">', submit: 'Reject estimate',
         onSubmit: async (f, d) => { const bad = reasonError(f.note.value); if (bad) throw new Error(bad); await rpc('crm_garage_estimate_review', { p_id: e.id, p_approve: false, p_note: f.note.value.trim() }); d.close(); toast('Estimate rejected.'); await after(); } });
     },
+    requestDecide(type, id, approve) {
+      need();
+      return deps.dialog({ title: approve ? 'Approve this request' : 'Decline this request', intro: approve ? (type === 'cancel' ? 'The job goes back to Dispatch.' : type === 'hours' ? 'The garage\'s working hours are updated.' : 'Only approve after you have checked the bank documents on WhatsApp.') : 'The garage sees your reason.',
+        body: `<label class="flow-label" for="gd-rq">${approve ? 'Note (optional)' : 'Reason (required)'}</label><input id="gd-rq" name="note" maxlength="200" autocomplete="off">`, submit: approve ? 'Approve' : 'Decline',
+        onSubmit: async (f, d) => { if (!approve) { const bad = reasonError(f.note.value); if (bad) throw new Error(bad); } await rpc('crm_garage_request_decide', { p_type: type, p_id: id, p_decision: approve ? 'approved' : 'declined', p_note: f.note.value.trim() || null }); d.close(); toast('Saved.'); await after(approve && type === 'cancel'); } });
+    },
+    announce() {
+      need();
+      return deps.dialog({ title: 'New announcement', intro: 'Every partner garage sees this in the app. No ID, bank or card numbers.',
+        body: `<label class="flow-label" for="gd-at">Title</label><input id="gd-at" name="title" maxlength="80" autocomplete="off"><label class="flow-label" for="gd-ab">Message</label><textarea id="gd-ab" name="body" rows="4" maxlength="600"></textarea>
+          <label class="flow-label" for="gd-ak">Kind</label><select id="gd-ak" name="kind"><option value="info">Update</option><option value="policy">Policy</option><option value="alert">Service alert</option></select>
+          <label class="flow-label" for="gd-ad">Show for (days)</label><input id="gd-ad" name="days" inputmode="numeric" value="30" maxlength="3" autocomplete="off">`, submit: 'Publish',
+        onSubmit: async (f, d) => { await rpc('crm_announcement_save', { p_title: f.title.value.trim(), p_body: f.body.value.trim(), p_kind: f.kind.value, p_days: Number(f.days.value) || 30 }); d.close(); toast('Published.'); await after(); } });
+    },
     settle(a) {
       need(); if (!mayEnter()) throw new Error('Only the owner can enter settlement amounts.');
       const s = a.settlement || {};
@@ -192,7 +206,9 @@ export function createGarageDesk(deps) {
     const failed = [], safe = (name, p) => p.then((x) => x, (e) => { failed.push({ name, why: cleanErr(e) }); return null; });
     const [garages, access, assignments, estimates] = await Promise.all([safe('garages', rpc('crm_garage_picker')), safe('app access', rpc('crm_garage_access_list', { p_garage: null })),
       safe('jobs sent to garages', rpc('crm_garage_assignments_list', { p_status: null, p_lead: null })), safe('estimates', rpc('crm_garage_estimates_inbox', { p_status: S.est || null }))]);
-    return { garages: garages || [], access: access || [], assignments: assignments || [], estimates: estimates || [], failed };
+    // Client BRD: requests from garages (cancel, bank details, working hours) and announcements. A part that fails shows in the list of what could not load.
+    const [requests, announcements] = await Promise.all([safe('requests', rpc('crm_garage_requests_list')), safe('announcements', rpc('crm_announcement_list'))]);
+    return { garages: garages || [], access: access || [], assignments: assignments || [], estimates: estimates || [], requests: requests || [], announcements: announcements || [], failed };
   }
   const cards = (d) => {
     const q = S.q.trim().toLowerCase();
@@ -232,14 +248,37 @@ export function createGarageDesk(deps) {
         ${e.status === 'converted' && deps.openLead ? `<div class="flow-row"><button class="flow-btn flow-ghost" type="button" data-gd="openLead" data-id="${esc(e.lead_id)}">Open booking</button></div>` : ''}</li>`;
     }).join('')}</ul>`;
   };
+  /* ----- requests from garages: cancel a job, change bank details, change working hours ----- */
+  const REQ = { cancel: 'Cancel a job', bank: 'Bank detail change', hours: 'Working hours change' };
+  const requestsHtml = (d) => {
+    const rows = d.requests || [];
+    if (!rows.length) return emptyState({ title: 'No requests from garages', text: 'When a garage asks to cancel a job, or to change its bank details or working hours, it appears here for you to approve or decline.' });
+    return `<ul class="flow-dispatch">${rows.map((r) => {
+      const tone = r.status === 'pending' ? 'warn' : r.status === 'approved' ? 'good' : 'bad', det = r.type === 'hours' && r.details ? `${esc(r.details.open_days)} · ${esc(r.details.open_time)} to ${esc(r.details.close_time)}` : '';
+      return `<li class="flow-d ${r.status === 'pending' ? 'flow-d-open' : ''}" data-id="${esc(r.id)}"><div><b>${esc(r.garage)}</b> · ${esc(REQ[r.type] || r.type)}${r.ref ? ' · ' + esc(r.ref) : ''} ${chip(r.status === 'pending' ? 'Waiting' : r.status === 'approved' ? 'Approved' : 'Declined', tone)}</div>
+        ${det ? `<div>${det}</div>` : ''}<div class="flow-muted">“${esc(r.reason)}” · ${esc(when(r.created_at))}</div>
+        ${r.type === 'bank' && r.status === 'pending' ? '<div class="flow-muted">Take the bank documents on WhatsApp, check them, then approve. No account number is stored here.</div>' : ''}
+        ${r.status === 'pending' ? `<div class="flow-row"><button class="flow-btn flow-primary" type="button" data-gd="reqApprove" data-id="${esc(r.id)}" data-type="${esc(r.type)}">Approve</button><button class="flow-btn flow-ghost" type="button" data-gd="reqDecline" data-id="${esc(r.id)}" data-type="${esc(r.type)}">Decline</button></div>` : ''}</li>`;
+    }).join('')}</ul>`;
+  };
+  /* ----- announcements to every partner garage ----- */
+  const ANN = { info: 'Update', policy: 'Policy', alert: 'Service alert' };
+  const announcementsHtml = (d) => {
+    const rows = d.announcements || [];
+    const add = '<div class="flow-row"><button class="flow-btn flow-primary" type="button" data-gd="annNew">New announcement</button></div>';
+    if (!rows.length) return add + emptyState({ title: 'No announcements yet', text: 'Write one and every partner garage sees it in the app.' });
+    return add + `<ul class="flow-dispatch">${rows.map((a) => `<li class="flow-d" data-id="${esc(a.id)}"><div><b>${esc(a.title)}</b> ${chip(ANN[a.kind] || 'Update', a.kind === 'alert' ? 'warn' : '')} ${chip(a.active ? 'Showing' : 'Archived', a.active ? 'good' : '')}</div>
+      <div>${esc(a.body)}</div><div class="flow-muted">${esc(when(a.created_at))} · read by ${esc(a.read)} ${Number(a.read) === 1 ? 'garage' : 'garages'}</div>${a.active ? `<div class="flow-row"><button class="flow-btn flow-ghost" type="button" data-gd="annArchive" data-id="${esc(a.id)}">Archive</button></div>` : ''}</li>`).join('')}</ul>`;
+  };
   function paint() {
     const d = S.data, root = S.root; if (!d || !root) return;
     const toReview = S.est === 'submitted' ? d.estimates.length : null;
-    const tabs = [['garages', 'Garages'], ['estimates', 'Estimates' + (toReview ? ` (${toReview})` : '')], ['jobs', 'Jobs sent']];
+    const waiting = (d.requests || []).filter((r) => r.status === 'pending').length;
+    const tabs = [['garages', 'Garages'], ['estimates', 'Estimates' + (toReview ? ` (${toReview})` : '')], ['requests', 'Requests' + (waiting ? ` (${waiting})` : '')], ['announcements', 'Announcements'], ['jobs', 'Jobs sent']];
     const fail = d.failed.length ? errorState({ title: 'Could not load: ' + d.failed.map((f) => f.name).join(', '), detail: d.failed[0].why + '. What you see may be incomplete.', retry: { label: 'Retry', attr: 'data-gd="retry"' } }) : '';
     root.innerHTML = `<section class="gd" aria-label="Garage app"><h2>Garage app</h2><p class="flow-muted">Give partner garages their private link and PIN, send them bookings, and review their estimates.${mayEnter() ? '' : ' Settlement amounts are entered by the owner.'}</p>${fail}
       <div class="flow-seg" role="group" aria-label="Garage app sections">${tabs.map(([k, t]) => `<button class="flow-btn flow-sm" type="button" data-gd="tab" data-id="${k}" aria-pressed="${S.tab === k}">${esc(t)}</button>`).join('')}</div>
-      ${S.tab === 'garages' ? `<input class="gd-q" data-gd-q type="search" placeholder="Search garage name or code" aria-label="Search garages" value="${esc(S.q)}"><div data-gd-list>${cards(d)}</div>` : S.tab === 'estimates' ? estimatesHtml(d) : jobsHtml(d)}</section>`;
+      ${S.tab === 'garages' ? `<input class="gd-q" data-gd-q type="search" placeholder="Search garage name or code" aria-label="Search garages" value="${esc(S.q)}"><div data-gd-list>${cards(d)}</div>` : S.tab === 'estimates' ? estimatesHtml(d) : S.tab === 'requests' ? requestsHtml(d) : S.tab === 'announcements' ? announcementsHtml(d) : jobsHtml(d)}</section>`;
   }
   const bound = new WeakSet();
   function bind(root) {
@@ -261,6 +300,9 @@ export function createGarageDesk(deps) {
           case 'assignTo': await actions.assign({ garageId: id }); break;
           case 'move': { const a = (d.assignments || []).find((x) => x.id === id); await actions.assign({ lead: { id: a.lead_id, booking_id: a.booking_id }, moveFrom: a.garage_id, screen: true }); break; }
           case 'approve': case 'reject': await actions.review((d.estimates || []).find((x) => x.id === id), b.dataset.gd === 'approve'); break;
+          case 'reqApprove': case 'reqDecline': await actions.requestDecide(b.dataset.type, id, b.dataset.gd === 'reqApprove'); break;
+          case 'annNew': await actions.announce(); break;
+          case 'annArchive': await rpc('crm_announcement_archive', { p_id: id }); toast('Archived.'); await mount(root); break;
           case 'settle': await actions.settle((d.assignments || []).find((x) => x.id === id)); break;
           case 'openLead': if (deps.openLead) deps.openLead(id); break;
           default: break;

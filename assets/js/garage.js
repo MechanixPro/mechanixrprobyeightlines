@@ -8,7 +8,7 @@
   if (typeof module === 'object' && module.exports) module.exports = api; else { root.MXP_GARAGE = api; if (root.document) api.start(root); }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
-  var PAGES = ['offer', 'navigate', 'phone', 'code', 'inspect', 'ready', 'pay', 'done'];
+  var PAGES = ['offer', 'navigate', 'phone', 'receive', 'code', 'inspect', 'ready', 'pay', 'done'];
   /** 75 seconds becomes 01:15. */
   function waitText(sec) { sec = Math.max(0, Math.floor(Number(sec) || 0)); var m = Math.floor(sec / 60), r = sec % 60; return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r; }
   /** The 4-digit code: digits only, at most four. */
@@ -20,7 +20,11 @@
     var nat;
     if (!j) nat = 'offer';
     else if (j.status === 'sent') nat = 'offer';
-    else if (j.status === 'received') nat = j.code_needed && j.code !== 'verified' ? (flow.found ? 'code' : flow.arrived ? 'phone' : 'navigate') : 'inspect';
+    else if (j.status === 'received') {
+      // Receiving checklist (client BRD): odometer, condition, damage and photos before the code and the inspection. A job detail without it (older data) counts as done.
+      var needCode = j.code_needed && j.code !== 'verified', rec = !j.receiving || j.receiving.done;
+      nat = needCode ? (flow.found ? (rec ? 'code' : 'receive') : flow.arrived ? 'phone' : 'navigate') : (rec ? 'inspect' : 'receive');
+    }
     else if (j.status === 'in_work') nat = 'ready';
     else if (j.status === 'ready' && j.pay && j.pay.paid === false && !flow.skipPay) nat = 'pay';
     else nat = 'done';
@@ -29,7 +33,7 @@
     return nat;
   }
   /** Event each page sends (null: no event; the page moves on locally or calls verify_code / the estimate). */
-  var STEP_EVENT = { offer: 'received', navigate: null, phone: null, code: null, inspect: 'work_started', ready: 'ready', pay: null, done: null };
+  var STEP_EVENT = { offer: 'received', navigate: null, phone: null, receive: null, code: null, inspect: 'work_started', ready: 'ready', pay: null, done: null };
   var LINK_KEY = 'mxp_garage_link', SESSION_KEY = 'mxp_garage_session', LOC_KEY = 'mxp_garage_loc_asked', LINK_RE = /^[0-9a-f]{48}$/, MAX_PHOTOS = 4;
 
   /* ---------- pure helpers ---------- */
@@ -171,11 +175,11 @@
       api('me').then(function (r) {
         if (ended(r)) return;
         if (!r.ok || !F()) return openHome(true);
-        S.selfieAt = r.data.selfie_at || null;
+        S.selfieAt = r.data.selfie_at || null; S.suspended = !!r.data.suspended;
         F().runGate(win, app, { me: r.data, kind: 'garage', api: api, done: function () { openHome(true); } });
       });
     }
-    function openHome(first) { S.screen = 'home'; S.dash = null; render(); fetchJobs(); return fetchHome(first); }
+    function openHome(first) { S.screen = 'home'; S.dash = null; render(); fetchJobs(); fetchUnread(); return fetchHome(first); }
     function fetchHome(first) {
       return api('dashboard').then(function (r) {
         if (ended(r)) return;
@@ -230,6 +234,9 @@
       });
       body.push(el('details', { class: 'd-fold', id: 'dUnsettled' }, [el('summary', { text: 'Previous unsettled (' + dsh.unsettled.length + ')' }), el('div', { class: 'd-fold-body' }, lines.length ? lines.concat([el('p', { class: 'g-hint', text: 'Total ' + money(dsh.unsettled_total) + '. Amounts are entered by Mechanix Pro for each finished job.' })]) : [el('p', { class: 'g-muted', text: 'Nothing is waiting. Settled jobs are on the Statement tab.' })])]));
       body.push(el('section', { class: 'd-card g-leads-card', 'aria-label': 'Live leads' }, [el('p', { class: 'd-label', text: 'Live leads' }), el('p', { text: 'Open bookings near you. The first garage to tap Claim gets the job.' }), el('button', { class: 'g-btn g-btn-primary g-wide', type: 'button', id: 'dLeads', onclick: function () { openLeads(); }, text: 'See live leads' })]));
+      if (S.suspended) body.push(notice('err', 'Your account is suspended. You can see past jobs, payments and your profile, but you cannot take new jobs or make changes. Contact Mechanix Pro.'));
+      body.push(el('section', { class: 'd-card', 'aria-label': 'Announcements' }, [el('p', { class: 'd-label', text: 'Announcements' }), el('p', { text: 'Updates and policies from Mechanix Pro.' }), el('button', { class: 'g-btn g-btn-ghost g-wide', type: 'button', id: 'dAnn', onclick: function () { openAnnouncements(); }, text: 'Open announcements' + (S.annUnread ? ' (' + S.annUnread + ' new)' : '') })]));
+      body.push(el('section', { class: 'd-card', 'aria-label': 'Profile and performance' }, [el('p', { class: 'd-label', text: 'Profile and performance' }), el('p', { text: 'Your details, ratings, and requests to change bank details or working hours.' }), el('button', { class: 'g-btn g-btn-ghost g-wide', type: 'button', id: 'dAcct', onclick: function () { openAccount(); }, text: 'Open profile and performance' })]));
       body.push(el('section', { class: 'd-card', 'aria-label': 'Shop location' }, [el('p', { class: 'd-label', text: 'Shop location' }), el('p', { id: 'dLocText', text: locText(dsh.location) }),
         el('p', { class: 'g-hint', text: 'Helps Mechanix Pro send you jobs nearby. Your phone asks first, and the app works the same if you say no.' }),
         S.locMsg ? notice('info', S.locMsg.text) : null,
@@ -285,6 +292,7 @@
     function renderJobs() {
       var body = [], jobs = S.jobs;
       body.push(el('div', { class: 'g-h' }, [el('h1', { text: 'Your jobs' }), el('button', { class: 'g-link', type: 'button', onclick: function () { S.jobs = null; render(); fetchJobs(); }, text: 'Refresh' })]));
+      if (S.flash) { body.push(notice('info', S.flash)); S.flash = null; }
       if (jobs === null) { body.push(loading('Loading your jobs')); shell(body, 'jobs'); return; }
       if (jobs === 'error') { body.push(retryCard(S.jobsErr || ERR.gen, function () { S.jobs = null; render(); fetchJobs(); })); shell(body, 'jobs'); return; }
       var by = { open: [], ready: [], done: [] }; jobs.forEach(function (j) { by[j.tab].push(j); });
@@ -405,18 +413,22 @@
     function svgTick() { var n = 'http://www.w3.org/2000/svg', v = d.createElementNS(n, 'svg'), c = d.createElementNS(n, 'circle'), p = d.createElementNS(n, 'path'); v.setAttribute('viewBox', '0 0 80 80'); v.setAttribute('width', '96'); v.setAttribute('height', '96'); c.setAttribute('cx', '40'); c.setAttribute('cy', '40'); c.setAttribute('r', '36'); p.setAttribute('d', 'M24 41l11 11 21-24'); v.appendChild(c); v.appendChild(p); return v; }
     /* how long the offer has waited (not an auto-expire): a ring that fills over 15 minutes and mm:ss in the middle */
     function waitRing(j) {
-      var t0 = j.timeline && j.timeline[0] && j.timeline[0].at ? Date.parse(j.timeline[0].at) : Date.now(), n = 'http://www.w3.org/2000/svg', R = 54, C = 2 * Math.PI * R;
+      var t0 = j.timeline && j.timeline[0] && j.timeline[0].at ? Date.parse(j.timeline[0].at) : Date.now(), exp = j.offer_expires_at ? Date.parse(j.offer_expires_at) : null, n = 'http://www.w3.org/2000/svg', R = 54, C = 2 * Math.PI * R;
       var svg = d.createElementNS(n, 'svg'), bg = d.createElementNS(n, 'circle'), fg = d.createElementNS(n, 'circle'); svg.setAttribute('viewBox', '0 0 128 128'); svg.setAttribute('class', 'g-ring-svg'); svg.setAttribute('aria-hidden', 'true');
       [bg, fg].forEach(function (c, i) { c.setAttribute('cx', '64'); c.setAttribute('cy', '64'); c.setAttribute('r', String(R)); c.setAttribute('class', i ? 'g-ring-fg' : 'g-ring-bg'); svg.appendChild(c); });
       fg.setAttribute('stroke-dasharray', String(C));
-      var txt = el('b', { class: 'g-ring-t', id: 'gWait' }), cap = el('span', { class: 'g-ring-c', text: 'waiting' }), box = el('div', { class: 'g-ring', role: 'timer', 'aria-label': 'Time this offer has waited' }, [svg, el('div', { class: 'g-ring-in' }, [txt, cap])]);
-      function tickR() { var sec = Math.max(0, Math.floor((Date.now() - t0) / 1000)); txt.textContent = waitText(sec); fg.setAttribute('stroke-dashoffset', String(C * (1 - Math.min(1, sec / 900)))); }
+      var txt = el('b', { class: 'g-ring-t', id: 'gWait' }), cap = el('span', { class: 'g-ring-c', text: exp ? 'left to accept' : 'waiting' }), box = el('div', { class: 'g-ring', role: 'timer', 'aria-label': 'Time this offer has waited' }, [svg, el('div', { class: 'g-ring-in' }, [txt, cap])]);
+      function tickR() {
+        var sec = Math.max(0, Math.floor((Date.now() - t0) / 1000));
+        if (exp) { var left = Math.max(0, Math.floor((exp - Date.now()) / 1000)); txt.textContent = waitText(left); fg.setAttribute('stroke-dashoffset', String(C * (1 - Math.min(1, left / 900)))); if (left <= 0) { stopRing(); stopAlert(); S.jobs = null; S.job = null; win.setTimeout(function () { if (S.screen === 'job') { S.flash = 'This offer was not accepted in time and went back to the team.'; toJobs(); } }, 1500); } return; }
+        txt.textContent = waitText(sec); fg.setAttribute('stroke-dashoffset', String(C * (1 - Math.min(1, sec / 900))));
+      }
       tickR(); if (j.status === 'sent') { stopRing(); ringTimer = win.setInterval(tickR, 1000); }
       return box;
     }
     function wizTop(j, page) {
       var idx = PAGES.indexOf(page), f = flowOf(j.id);
-      var back = el('button', { class: 'g-back', type: 'button', id: 'gBack', text: '← Back', onclick: function () { if (page === 'estimate') { f.view = 'inspect'; render(); } else if (page === 'phone' || page === 'code') { f.view = PAGES[idx - 1]; render(); } else toJobs(); } });
+      var back = el('button', { class: 'g-back', type: 'button', id: 'gBack', text: '← Back', onclick: function () { if (page === 'estimate') { f.view = 'inspect'; render(); } else if (page === 'phone' || page === 'receive' || page === 'code') { f.view = PAGES[idx - 1]; render(); } else toJobs(); } });
       return el('div', { class: 'g-wiz-top' }, [back, el('ol', { class: 'g-dots', 'aria-label': 'Step ' + (Math.max(0, idx) + 1) + ' of ' + PAGES.length }, PAGES.map(function (x, i) { return el('li', { class: i < idx ? 'is-done' : i === idx ? 'is-now' : '', 'aria-current': i === idx ? 'step' : null }); }))]);
     }
     function wizPage(j, page) {
@@ -437,7 +449,21 @@
         kids.push(waitRing(j));
         if (j.status === 'sent') startAlert();
         kids.push(el('button', { class: 'g-btn g-btn-primary g-wide g-step-btn g-accept', type: 'button', id: 'gStepAccept', text: 'Accept job', onclick: function () { stopAlert(); buzz(15); send(this, 'received', []); } }));
-        var cant = el('button', { class: 'g-btn g-btn-ghost g-cant', type: 'button', id: 'gCantTake', text: 'Can’t take it' }); cant.onclick = function () { stopAlert(); cant.replaceWith(el('div', {}, [notice('info', 'Tell the team now so they can send this job elsewhere.'), teamButtons()])); };
+        var cant = el('button', { class: 'g-btn g-btn-ghost g-cant', type: 'button', id: 'gCantTake', text: 'Decline this job' });
+        cant.onclick = function () {
+          stopAlert();
+          var why = el('textarea', { class: 'g-input', id: 'gDeclineWhy', rows: 3, maxlength: 200, placeholder: 'Why can you not take it? For example: no free bay today', 'aria-label': 'Reason for declining' }), dmsg = el('div', { 'aria-live': 'polite' });
+          var go = el('button', { class: 'g-btn g-btn-primary g-wide', type: 'button', id: 'gDeclineGo', text: 'Send decline', onclick: function () {
+            clear(dmsg); var r0 = why.value.trim(); if (r0.length < 5) { dmsg.appendChild(notice('err', 'Tell us why, in a few words.')); return; }
+            go.disabled = true; go.textContent = 'Sending';
+            api('decline', { id: j.id, reason: r0 }).then(function (r) {
+              if (ended(r)) return; go.disabled = false; go.textContent = 'Send decline';
+              if (!r.ok) { dmsg.appendChild(notice('err', r.data && r.data.error || ERR.gen)); return; }
+              stopRing(); S.job = null; S.jobs = null; S.flash = r.data.free_used ? 'Declined. You have declined more than one job this week, and the team can see it.' : 'Declined. The job went back to the team. Your first decline each week is free.'; toJobs();
+            });
+          } });
+          cant.replaceWith(el('div', { class: 'g-card' }, [el('label', { class: 'g-label', for: 'gDeclineWhy', text: 'Reason (required)' }), why, dmsg, go]));
+        };
         kids.push(cant);
       } else if (page === 'navigate') {
         title = 'Go to the customer'; lines = [pl.address || area || 'Address not shown'];
@@ -447,6 +473,28 @@
         title = j.customer_first_name; lines = [j.customer_phone ? 'Call the customer if you cannot find them.' : 'The number is not shown now.'];
         if (j.customer_phone) kids.push(el('a', { class: 'g-btn g-btn-navy g-wide g-step-nav', id: 'gCallCustomer', href: telHref(j.customer_phone), text: 'Call ' + phoneShow(j.customer_phone) }));
         kids.push(big('gStepFound', 'Vehicle found', function () { f.found = true; advance(); }));
+      } else if (page === 'receive') {
+        title = 'Vehicle received'; lines = ['Record how it arrived: odometer, condition, damage and photos.'];
+        var rc = flowOf(j.id).rc || (flowOf(j.id).rc = { odo: '', checks: {}, damage: '' }), POINTS = [['body', 'Body and panels'], ['lights', 'Lights and indicators'], ['tyres', 'Tyres'], ['fuel', 'Fuel level'], ['accessories', 'Accessories (mirrors, seat, bags)']];
+        var odo = el('input', { class: 'g-input', id: 'gOdo', type: 'text', inputmode: 'numeric', maxlength: 6, placeholder: 'Odometer (km)', 'aria-label': 'Odometer reading in kilometres', value: rc.odo, oninput: function (e) { rc.odo = e.target.value.replace(/\D/g, '').slice(0, 6); e.target.value = rc.odo; fin(); } });
+        var go2 = null;
+        function fin() { if (go2) go2.disabled = !(rc.odo !== '' && POINTS.every(function (p) { return rc.checks[p[0]]; }) && S.photos.length); }
+        kids.push(odo);
+        POINTS.forEach(function (p) {
+          var row = el('div', { class: 'g-row g-rc' }, [el('span', { class: 'g-rc-l', text: p[1] })]);
+          [['ok', 'OK'], ['issue', 'Issue']].forEach(function (o) { var b = el('button', { type: 'button', class: 'g-btn ' + (rc.checks[p[0]] === o[0] ? (o[0] === 'ok' ? 'g-btn-primary' : 'g-btn-navy') : 'g-btn-ghost') + ' g-rc-b', 'aria-pressed': rc.checks[p[0]] === o[0] ? 'true' : 'false', text: o[1], onclick: function () { rc.checks[p[0]] = o[0]; render(); } }); row.appendChild(b); });
+          kids.push(row);
+        });
+        kids.push(el('textarea', { class: 'g-input', id: 'gDamage', rows: 2, maxlength: 300, placeholder: 'Any damage already on the vehicle? (optional)', 'aria-label': 'Damage noted', oninput: function (e) { rc.damage = e.target.value; } }, [rc.damage]));
+        kids.push(photoPicker(fin, true, true));
+        go2 = big('gStepReceived', 'Save the checklist', function (b) {
+          b.disabled = true; var old2 = b.textContent; b.textContent = 'Saving'; clear(msg);
+          uploadPhotos(j.id, S.photos.slice()).then(function (paths) { return api('receiving_save', { id: j.id, odometer_km: Number(rc.odo), checks: rc.checks, damage: rc.damage.trim() || null, photos: paths }); }).then(function (r) {
+            if (ended(r)) return; b.disabled = false; b.textContent = old2;
+            if (!r.ok) { msg.appendChild(notice('err', r.data && r.data.error || ERR.gen)); return; }
+            S.photos = []; flowOf(j.id).rc = null; S.job = null; S.tick = true; render(); fetchJob();
+          }).catch(function (e) { b.disabled = false; b.textContent = old2; msg.appendChild(notice('err', e && e.message || ERR.gen)); });
+        }, true); kids.push(go2); fin();
       } else if (page === 'code') {
         title = 'Customer code'; lines = ['Ask the customer for their 4-digit code.'];
         if (j.code === 'locked' || j.code === 'expired' || j.code === 'none') { lines = [j.code === 'locked' ? 'Too many wrong codes. The team will send a new code.' : j.code === 'expired' ? 'The code has expired. Ask the team for a new one.' : 'The customer has no code yet. Ask the team to send one.']; kids.push(teamButtons()); }
@@ -472,7 +520,19 @@
         title = 'Ready for return'; lines = ['Mechanix Pro has been told.', 'The team hands the vehicle back and closes the job.'];
         kids.push(big('gStepDone', 'All jobs', toJobs));
       }
-      if ((page === 'inspect' || page === 'work') && win.MXP_LIVE) kids.push(big('gStepLive', 'Share an update with the customer', function () { openLive(j); }));
+      if (['navigate', 'phone', 'receive', 'code', 'inspect', 'ready'].indexOf(page) >= 0 && (j.status === 'received' || j.status === 'in_work') && !S.suspended) {
+        var ask = el('button', { class: 'g-link g-cancel-ask', type: 'button', id: 'gCancelAsk', text: 'Ask to cancel this job' });
+        ask.onclick = function () {
+          var cw = el('textarea', { class: 'g-input', id: 'gCancelWhy', rows: 2, maxlength: 200, placeholder: 'Why can you not do this job?', 'aria-label': 'Reason for cancelling' }), cm = el('div', { 'aria-live': 'polite' });
+          var cg = el('button', { class: 'g-btn g-btn-primary g-wide', type: 'button', id: 'gCancelGo', text: 'Send to the team', onclick: function () {
+            clear(cm); var r0 = cw.value.trim(); if (r0.length < 5) { cm.appendChild(notice('err', 'Tell us why, in a few words.')); return; }
+            cg.disabled = true; api('cancel_request', { id: j.id, reason: r0 }).then(function (r) { if (ended(r)) return; cg.disabled = false; if (!r.ok) { cm.appendChild(notice('err', r.data && r.data.error || ERR.gen)); return; } clear(cm); cm.appendChild(notice('ok', 'Sent. The team will reply. Until they approve, the job stays yours.')); cg.hidden = true; cw.hidden = true; });
+          } });
+          ask.replaceWith(el('div', { class: 'g-card' }, [el('p', { class: 'g-hint', text: 'A cancel request needs the team to approve it.' }), cw, cm, cg]));
+        };
+        kids.push(ask);
+      }
+      if ((page === 'inspect' || page === 'ready') && win.MXP_LIVE) kids.push(big('gStepLive', 'Share an update with the customer', function () { openLive(j); }));
       if (page !== 'offer') stopAlert();
       var tick = S.tick ? el('div', { class: 'g-tick', 'aria-hidden': 'true' }, [svgTick()]) : null; S.tick = false;
       return el('div', { class: 'g-wiz-page' + (page === 'offer' && j.status === 'sent' ? ' g-offer' : '') }, [tick, wizTop(j, page), el('h1', { class: 'g-wiz-h g-key', text: title })].concat(lines.map(function (t, i) { return el('p', { class: 'g-wiz-l', id: i === 0 ? 'gStepHint' : null, text: t }); }), [el('div', { class: 'g-wiz-btns' }, kids), msg]));
@@ -568,6 +628,50 @@
     }
 
     /* ---------- help ---------- */
+    /* ---------- announcements (from the Mechanix Pro team) ---------- */
+    var KIND_LABEL = { info: 'Update', policy: 'Policy', alert: 'Service alert' };
+    function fetchUnread() { api('announcements').then(function (r) { if (ended(r) || !r.ok) return; S.annUnread = r.data.unread || 0; if (S.screen === 'home') render(); }); }
+    function openAnnouncements() { S.screen = 'announcements'; S.ann = null; render(); api('announcements').then(function (r) { if (ended(r)) return; S.ann = r.ok ? r.data.announcements : 'error'; if (S.screen === 'announcements') render(); }); }
+    function renderAnnouncements() {
+      var body = [el('div', { class: 'g-h' }, [el('button', { class: 'g-link', type: 'button', onclick: function () { openHome(); }, text: '← Home' }), el('h1', { text: 'Announcements' })])], a = S.ann;
+      if (a === null || a === undefined) body.push(loading('Loading'));
+      else if (a === 'error') body.push(retryCard(ERR.gen, openAnnouncements));
+      else if (!a.length) body.push(el('div', { class: 'g-card g-center' }, [el('p', { text: 'No announcements right now.' })]));
+      else a.forEach(function (x) {
+        body.push(el('article', { class: 'g-card' + (x.read ? '' : ' g-unread') }, [el('p', { class: 'g-hint', text: (KIND_LABEL[x.kind] || 'Update') + ' · ' + (whenText(x.at) || '') }), el('h2', { text: x.title }), el('p', { text: x.body }),
+          x.read ? null : el('button', { class: 'g-btn g-btn-ghost', type: 'button', text: 'Mark as read', onclick: function () { api('announcement_read', { announcement: x.id }).then(function () { x.read = true; S.annUnread = Math.max(0, (S.annUnread || 1) - 1); render(); }); } })]));
+      });
+      shell(body, 'home', true);
+    }
+    /* ---------- profile (view only), performance, and requests the team approves ---------- */
+    var REQ_LABEL = { bank: 'Bank details', hours: 'Working hours', cancel: 'Cancel a job' }, REQ_STATE = { pending: 'Waiting for the team', approved: 'Approved', declined: 'Declined' };
+    function openAccount() { S.screen = 'account'; S.acct = null; S.reqForm = null; render(); Promise.all([api('profile'), api('performance')]).then(function (rs) { if (ended(rs[0]) || ended(rs[1])) return; S.acct = rs[0].ok && rs[1].ok ? { profile: rs[0].data.profile, requests: rs[0].data.requests, perf: rs[1].data.performance } : 'error'; if (S.screen === 'account') render(); }); }
+    function reqForm(kind) {
+      var why = el('textarea', { class: 'g-input', id: 'gReqWhy', rows: 2, maxlength: 200, placeholder: kind === 'bank' ? 'What needs to change? Do not type account numbers. The team will ask for the documents on WhatsApp.' : 'Why are the hours changing?', 'aria-label': 'Reason' }), m = el('div', { 'aria-live': 'polite' });
+      var days = el('input', { class: 'g-input', id: 'gReqDays', type: 'text', maxlength: 40, placeholder: 'Open days, for example Mon to Sat', 'aria-label': 'Open days' }), op = el('input', { class: 'g-input', id: 'gReqOpen', type: 'time', 'aria-label': 'Opens at' }), cl = el('input', { class: 'g-input', id: 'gReqClose', type: 'time', 'aria-label': 'Closes at' });
+      var go = el('button', { class: 'g-btn g-btn-primary g-wide', type: 'button', id: 'gReqGo', text: 'Send request', onclick: function () {
+        clear(m); var body = { kind: kind, reason: why.value.trim() };
+        if (body.reason.length < 5) { m.appendChild(notice('err', 'Tell us why, in a few words.')); return; }
+        if (kind === 'hours') { body.details = { open_days: days.value.trim(), open_time: op.value, close_time: cl.value }; if (!body.details.open_days || !op.value || !cl.value) { m.appendChild(notice('err', 'Give the days, the opening time and the closing time.')); return; } }
+        go.disabled = true; go.textContent = 'Sending';
+        api('change_request', body).then(function (r) { if (ended(r)) return; go.disabled = false; go.textContent = 'Send request'; if (!r.ok) { m.appendChild(notice('err', r.data && r.data.error || ERR.gen)); return; } S.reqForm = null; openAccount(); });
+      } });
+      return el('div', { class: 'g-card' }, [el('h2', { text: kind === 'bank' ? 'Request a bank detail change' : 'Request a working hours change' })].concat(kind === 'hours' ? [days, el('div', { class: 'g-row' }, [op, cl])] : []).concat([why, m, go, el('button', { class: 'g-link', type: 'button', onclick: function () { S.reqForm = null; render(); }, text: 'Cancel' })]));
+    }
+    function renderAccount() {
+      var body = [el('div', { class: 'g-h' }, [el('button', { class: 'g-link', type: 'button', onclick: function () { openHome(); }, text: '← Home' }), el('h1', { text: 'Profile and performance' })])], a = S.acct;
+      if (a === null || a === undefined) { body.push(loading('Loading')); shell(body, 'home', true); return; }
+      if (a === 'error') { body.push(retryCard(ERR.gen, openAccount)); shell(body, 'home', true); return; }
+      var pf = a.perf, rows = [['Ratings', pf.rating_count ? pf.rating_avg + ' out of 5 (' + pf.rating_count + (pf.rating_count === 1 ? ' rating' : ' ratings') + ')' : 'No ratings yet'], ['Completed this month', pf.completed_month], ['Declined this week', pf.declined_week], ['Declined this month', pf.declined_month], ['Offers not accepted this month', pf.expired_month], ['Cancelled after accepting this month', pf.cancelled_month], ['Complaints open', pf.complaints_open], ['Complaints this month', pf.complaints_month]];
+      body.push(el('section', { class: 'd-card', 'aria-label': 'Performance' }, [el('p', { class: 'd-label', text: 'Your performance' }), el('dl', { class: 'd-fig' }, rows.reduce(function (acc, r) { return acc.concat([el('dt', { text: r[0] }), el('dd', { text: String(r[1]) })]); }, []))]));
+      var p = a.profile || {}, prow = [['Garage', p.name], ['Code', p.code], ['Contact person', p.owner_name], ['Address', [p.address, p.landmark, p.pincode, p.city].filter(Boolean).join(', ')], ['Works on', (p.categories || []).join(', ')], ['Bays', p.bays], ['Working days', p.open_days], ['Hours', p.open_time && p.close_time ? p.open_time + ' to ' + p.close_time : null], ['Bank details', 'Held by Mechanix Pro']].filter(function (r) { return r[1]; });
+      body.push(el('section', { class: 'd-card', 'aria-label': 'Profile' }, [el('p', { class: 'd-label', text: 'Your profile' }), el('dl', { class: 'd-fig' }, prow.reduce(function (acc, r) { return acc.concat([el('dt', { text: r[0] }), el('dd', { text: String(r[1]) })]); }, [])), el('p', { class: 'g-hint', text: 'You cannot change these yourself. Send a request and the team approves it.' })]));
+      if (S.reqForm) body.push(reqForm(S.reqForm));
+      else if (!S.suspended) body.push(el('div', { class: 'g-row' }, [el('button', { class: 'g-btn g-btn-ghost', type: 'button', id: 'gReqBank', onclick: function () { S.reqForm = 'bank'; render(); }, text: 'Request a bank detail change' }), el('button', { class: 'g-btn g-btn-ghost', type: 'button', id: 'gReqHours', onclick: function () { S.reqForm = 'hours'; render(); }, text: 'Request a working hours change' })]));
+      if (a.requests && a.requests.length) body.push(el('section', { class: 'd-card', 'aria-label': 'Your requests' }, [el('p', { class: 'd-label', text: 'Your requests' })].concat(a.requests.map(function (r) { return el('p', {}, [el('b', { text: (REQ_LABEL[r.kind] || r.kind) + ': ' }), el('span', { text: (REQ_STATE[r.status] || r.status) + (r.note ? '. ' + r.note : '') })]); }))));
+      shell(body, 'home', true);
+    }
+
     function renderHelp() {
       shell([el('div', { class: 'g-h' }, [el('h1', { text: 'Help' })]),
         section('Call or WhatsApp our team', [el('p', { text: 'Questions about a job, a payment or this app? Reach the Mechanix Pro team here.' }), teamButtons()]),
@@ -579,7 +683,7 @@
     function render() {
       stopRing(); if (S.screen !== 'job') stopAlert();
       if (S.screen === 'pin') return renderPin(); if (S.screen === 'home') return renderHome(); if (S.screen === 'jobs') return renderJobs(); if (S.screen === 'leads') return renderLeads(); if (S.screen === 'job') return renderJob();
-      if (S.screen === 'statement') return renderStatement(); if (S.screen === 'help') return renderHelp();
+      if (S.screen === 'announcements') return renderAnnouncements(); if (S.screen === 'account') return renderAccount(); if (S.screen === 'statement') return renderStatement(); if (S.screen === 'help') return renderHelp();
       shell([loading('Opening')], null);
     }
 

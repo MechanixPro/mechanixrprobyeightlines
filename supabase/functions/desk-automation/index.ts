@@ -260,6 +260,8 @@ Deno.serve(async (req) => {
   } catch (e) { result.warranty = { error: String((e as Error).message) }; await log('warranty', false, { error: String((e as Error).message) }); }
 
   /* 6b. auto garage: only when Admin switched it on; paid bookings nobody has picked up go to the best partner garage (Crew can still assign by hand) */
+  // Garage offers nobody accepted within 15 minutes go back to Dispatch (client BRD).
+  try { const { data: n } = await db.rpc('garage_offers_expire'); result.offers_expired = n ?? 0; if (n) await log('garage_offers_expired', true, { n }); } catch (e) { console.error('desk-automation offers_expire', e); }
   try { const r = await autoAssignGarages(db); result.auto_garage = r; if (r.assigned) await log('auto_garage', true, r); }
   catch (e) { result.auto_garage = { error: String((e as Error).message) }; await log('auto_garage', false, { error: String((e as Error).message) }); }
 
