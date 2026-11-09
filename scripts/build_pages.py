@@ -952,10 +952,14 @@ def rate_card_page():
         if rows: body += f'<h3>{label}</h3><div class="scroll"><table class="rate-table">{head}<tbody>{rows}</tbody></table></div>'
     other = ''.join(row(sv[k]['name'], sv[k]['price'], note) for k, note in (('puncture', 'At your doorstep or anywhere in our service area'), ('repair', 'Inspection and a clear repair estimate before any work'), ('sos', 'Mechanic dispatched to your location now')) if k in sv)
     adds = ''.join(row(n, ad[k]) for k, n in (('wash', 'Foam wash'), ('chain', 'Chain clean and lube'), ('brake', 'Brake tuning'), ('tyre', 'Tyre and puncture check'), ('battery', 'Battery health test')) if k in ad and ad[k])
+    rep = [('Brake shoe replacement, labour', 189), ('Brake pad replacement, labour', 236)]
+    rep_q = ('Chain and sprocket set replacement', 'Clutch plate or cable work', 'Battery replacement', 'Tyre or tube change', 'Coolant, fork oil and suspension service', 'Headlight, indicator and wiring fixes')
+    reps = ''.join(row(n, v) for n, v in rep) + ''.join(f'<tr><td><b>{n}</b></td><td class="num" colspan="3">Quote after a check</td></tr>' for n in rep_q)
+    reps = f'<h3>Repairs and replacements</h3><p class="tiny muted">Labour from the price shown. Spare parts are extra, at the price on your approved quote.</p><div class="scroll"><table class="rate-table">{head}<tbody>{reps}</tbody></table></div>'
     page = HEAD.format(title='Bangalore Bike Service Rate Card | Mechanix Pro', desc='Mechanix Pro bike service rate card, Bangalore. Prices before and with 18% GST. Confirm with a small fee adjusted in your bill; approve the quote before work.', url=f'{SITE}/rate-card/', site=SITE, schema='', scripts=LEGAL_JS, body='page-rate-card', nav=NAV, main='')
     write('rate-card/index.html', page + f'''<section class="page-head"><div class="wrap"><p class="breadcrumb"><a href="/">Home</a> &rsaquo; Rate card</p><h1>Bangalore bike rate card.</h1><p class="lead">Every price is shown <b>excluding GST</b>. GST at 18% is added on your final invoice, and your mechanic or our team will tell you the total before any work starts.</p></div></section>
 <section><div class="wrap">{body}<h3>Other services</h3><div class="scroll"><table class="rate-table">{head}<tbody>{other}</tbody></table></div>
-<h3>Add-ons</h3><div class="scroll"><table class="rate-table">{head}<tbody>{adds}</tbody></table></div>
+<h3>Add-ons</h3><div class="scroll"><table class="rate-table">{head}<tbody>{adds}</tbody></table></div>{reps}
 <p class="tiny muted" style="margin-top:14px">Parts and consumables are charged separately after you approve them, and are OEM or aftermarket as labelled in your quote. Pickup and drop is free in our serviceable area. The confirmation fee ({{{{confirmrange}}}}, by engine size) is adjusted in your final bill if you go ahead.</p>
 <div class="row" style="margin-top:14px"><a class="btn btn-primary" href="/book/">Build your service</a><a class="btn btn-wa" href="#" data-wa="general">Get a quote on WhatsApp</a></div></div></section>''' + foot())
     urls.append(('/rate-card/', '0.8'))
