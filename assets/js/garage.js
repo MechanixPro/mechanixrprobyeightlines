@@ -229,6 +229,7 @@
           el('dl', { class: 'd-fig' }, [el('dt', { text: u.label }), el('dd', { class: 'd-ok', text: money(u.amount) })])]);
       });
       body.push(el('details', { class: 'd-fold', id: 'dUnsettled' }, [el('summary', { text: 'Previous unsettled (' + dsh.unsettled.length + ')' }), el('div', { class: 'd-fold-body' }, lines.length ? lines.concat([el('p', { class: 'g-hint', text: 'Total ' + money(dsh.unsettled_total) + '. Amounts are entered by Mechanix Pro for each finished job.' })]) : [el('p', { class: 'g-muted', text: 'Nothing is waiting. Settled jobs are on the Statement tab.' })])]));
+      body.push(el('section', { class: 'd-card g-leads-card', 'aria-label': 'Live leads' }, [el('p', { class: 'd-label', text: 'Live leads' }), el('p', { text: 'Open bookings near you. The first garage to tap Claim gets the job.' }), el('button', { class: 'g-btn g-btn-primary g-wide', type: 'button', id: 'dLeads', onclick: function () { openLeads(); }, text: 'See live leads' })]));
       body.push(el('section', { class: 'd-card', 'aria-label': 'Shop location' }, [el('p', { class: 'd-label', text: 'Shop location' }), el('p', { id: 'dLocText', text: locText(dsh.location) }),
         el('p', { class: 'g-hint', text: 'Helps Mechanix Pro send you jobs nearby. Your phone asks first, and the app works the same if you say no.' }),
         S.locMsg ? notice('info', S.locMsg.text) : null,
@@ -238,6 +239,42 @@
 
     /* ---------- jobs list ---------- */
     function loadTeam() { api('team_contact').then(function (r) { if (r.ok) S.team = { whatsapp: r.data.whatsapp, call: r.data.call }; }); }
+    /* Live leads: open paid bookings near this garage, first to claim wins. The list carries no name, phone or street address. Refreshes every 20 seconds while the screen is open and the page is visible. */
+    var leadsTimer = null;
+    function stopLeads() { if (leadsTimer) { win.clearInterval(leadsTimer); leadsTimer = null; } }
+    function fetchLeads() {
+      return api('leads').then(function (r) {
+        if (ended(r)) return;
+        if (!r.ok) { S.leads = 'error'; S.leadsErr = r.data && r.data.error || ERR.gen; } else { S.leads = r.data; }
+        if (S.screen === 'leads') render();
+      });
+    }
+    function openLeads() { S.screen = 'leads'; S.leads = null; S.leadsMsg = null; render(); fetchLeads(); stopLeads(); leadsTimer = win.setInterval(function () { if (S.screen !== 'leads') { stopLeads(); return; } if (!d.hidden) fetchLeads(); }, 20000); }
+    function claimLead(id, btn) {
+      if (btn) btn.disabled = true;
+      api('claim', { lead: id }).then(function (r) {
+        if (ended(r)) return;
+        if (r.ok) { stopLeads(); S.jobs = null; fetchJobs().then(function () { var mine = (S.jobs && S.jobs !== 'error' ? S.jobs : []).filter(function (j) { return j.id === r.data.id; })[0]; if (mine) openJob(mine.id); else openJobs(); }); return; }
+        S.leadsMsg = (r.data && r.data.error) || ERR.gen; fetchLeads();
+      });
+    }
+    function renderLeads() {
+      var body = [], L = S.leads;
+      body.push(el('div', { class: 'g-h' }, [el('h1', { text: 'Live leads' }), el('button', { class: 'g-link', type: 'button', onclick: function () { S.leads = null; render(); fetchLeads(); }, text: 'Refresh' })]));
+      body.push(el('button', { class: 'g-back', type: 'button', onclick: function () { stopLeads(); S.screen = 'home'; render(); }, text: '← Back to Home' }));
+      if (S.leadsMsg) body.push(notice('info', S.leadsMsg));
+      if (L === null) { body.push(loading('Looking for jobs near you')); shell(body, 'jobs'); return; }
+      if (L === 'error') { body.push(retryCard(S.leadsErr || ERR.gen, function () { S.leads = null; render(); fetchLeads(); })); shell(body, 'jobs'); return; }
+      if (!L.available) body.push(el('div', { class: 'g-card g-center' }, [el('p', { text: 'Switch Available on to see live leads.' })]));
+      else if (L.full) body.push(el('div', { class: 'g-card g-center' }, [el('p', { text: 'You have as many open jobs as you can take. Finish one to see more.' })]));
+      else if (!L.leads.length) body.push(el('div', { class: 'g-card g-center' }, [el('p', { text: 'No open jobs near you right now. This list refreshes by itself.' })]));
+      else body.push(el('ul', { class: 'g-list g-leads' }, L.leads.map(function (x) {
+        var when = (x.slot_date ? x.slot_date : 'Date to confirm') + (x.slot_part ? ' · ' + x.slot_part : ''), where = (x.area || 'Area to confirm') + (x.pin ? ' · ' + x.pin : '') + (x.distance_km != null ? ' · ' + x.distance_km + ' km' : '');
+        var btn = el('button', { class: 'g-btn g-btn-primary g-wide', type: 'button', text: 'Claim this job' }); btn.onclick = function () { claimLead(x.id, btn); };
+        return el('li', {}, [el('article', { class: 'd-job g-lead' }, [el('div', { class: 'd-job-top' }, [el('b', { text: (x.model || (x.vehicle_type === 'car' ? 'Car' : 'Bike')) }), el('span', { class: 'g-muted', text: x.ref || '' })]), el('p', { class: 'g-wiz-l', text: x.service }), el('p', { class: 'g-muted', text: where }), el('p', { class: 'g-muted', text: when }), btn])]);
+      })));
+      shell(body, 'jobs');
+    }
     function openJobs() { S.screen = 'jobs'; S.jobs = null; render(); fetchJobs(); }
     function fetchJobs() {
       return api('jobs').then(function (r) {
@@ -530,7 +567,7 @@
 
     function render() {
       stopRing(); if (S.screen !== 'job') stopAlert();
-      if (S.screen === 'pin') return renderPin(); if (S.screen === 'home') return renderHome(); if (S.screen === 'jobs') return renderJobs(); if (S.screen === 'job') return renderJob();
+      if (S.screen === 'pin') return renderPin(); if (S.screen === 'home') return renderHome(); if (S.screen === 'jobs') return renderJobs(); if (S.screen === 'leads') return renderLeads(); if (S.screen === 'job') return renderJob();
       if (S.screen === 'statement') return renderStatement(); if (S.screen === 'help') return renderHelp();
       shell([loading('Opening')], null);
     }

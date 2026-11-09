@@ -13,7 +13,7 @@ test('tech-job: check actions are registered, run behind the job link check, bik
 });
 test('garage-app: check actions only for a job assigned to this garage, garage kind', () => {
   const s = read('supabase/functions/garage-app/index.ts');
-  assert.match(s, /'check_get', 'check_save'\]/);
+  assert.match(s, /'check_get', 'check_save'(, 'leads', 'claim')?\]/);
   const i = s.indexOf("action === 'check_get' || action === 'check_save'"); assert.ok(i > 0);
   const block = s.slice(i, i + 1500);
   assert.match(block, /mine\(jobId\)/); assert.match(block, /p_kind: 'garage', p_by: garageId/); assert.match(block, /Accept the job first/);

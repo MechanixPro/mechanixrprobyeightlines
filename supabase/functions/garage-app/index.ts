@@ -25,7 +25,7 @@ import { isCode, handoverHash, sameHash, afterWrongTry, doorState, MAX_ATTEMPTS,
 import { cleanResults } from '../_shared/pro-check.ts';
 import { signSession, verifySession, garageJobListItem, garageJobDetail, garageStatement, garageDashboard, cleanLocation, cleanUpload, cleanEstimate, photoPath, photoPathOk, LINK_RE, PIN_RE, UUID_RE, EVENTS, LOGIN_MESSAGE, isOpen, type RawJob } from '../_shared/garage.ts';
 
-const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_get', 'check_save'];
+const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_get', 'check_save', 'leads', 'claim'];
 const BAD = 'Could not save. Please try again.', SESSION_OVER = 'Your session has ended. Enter your PIN again.';
 const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
 
@@ -140,6 +140,24 @@ Deno.serve(async (req) => {
   const rawOf = (a: any, c: Awaited<ReturnType<typeof context>>): RawJob => { const l: any = c.L.get(a.lead_id) ?? {}; return { assignment: a, lead: l, service: c.S.get(l.service_id) ?? null, vehicle: c.K.get(l.bike_id) ?? null, quote: c.Q.get(a.lead_id) ?? null }; };
   const sign = async (bucket: string, paths: string[]) => { const out: string[] = []; for (const p of paths.slice(0, 12)) { const { data } = await db.storage.from(bucket).createSignedUrl(p, 600); if (data?.signedUrl) out.push(data.signedUrl); } return out; };
 
+  if (action === 'leads') {
+    // Live leads: open paid bookings near this garage. The database function never returns a name, phone, email or street address.
+    const { data, error } = await db.rpc('garage_live_leads', { p_garage: garageId });
+    if (error) { console.error('garage-app leads', error.code); return json(req, { error: 'Could not load live leads. Please try again.' }, 500); }
+    return json(req, { ok: true, available: !!data?.available, full: !!data?.full, leads: Array.isArray(data?.leads) ? data.leads : [] });
+  }
+  if (action === 'claim') {
+    // First garage to claim wins; the database re-checks everything inside one transaction.
+    const lead = String(b?.lead ?? '');
+    if (!UUID_RE.test(lead)) return json(req, { error: 'Choose a job.' }, 400);
+    const { data, error } = await db.rpc('garage_claim_lead', { p_garage: garageId, p_lead: lead });
+    if (error) { console.error('garage-app claim', error.code); return json(req, { error: 'Could not claim. Please try again.' }, 500); }
+    if (!data?.ok) {
+      const msg: Record<string, string> = { taken: 'Someone else got this one.', full: 'You have as many open jobs as you can take. Finish one first.', unavailable: 'Switch Available on to claim jobs.' };
+      return json(req, { ok: false, error: msg[String(data?.error)] ?? 'Could not claim this job.', code: String(data?.error ?? '') }, 409);
+    }
+    return json(req, { ok: true, id: data.assignment_id });
+  }
   if (action === 'dashboard') {
     const [{ data: rows, error }, { data: g }] = await Promise.all([mine().order('assigned_at', { ascending: false }).limit(500), db.from('garages').select('name,city,is_open,shop_loc_at').eq('id', garageId).maybeSingle()]);
     if (error) { console.error('garage-app dashboard', error.code); return json(req, { error: 'Could not load your dashboard. Please try again.' }, 500); }
