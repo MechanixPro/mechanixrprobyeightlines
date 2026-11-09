@@ -111,3 +111,16 @@ test('a garage estimate can be approved even though no doorstep mechanic ever se
   assert.match(m, /waiting for the confirmation fee/);   // the paid-confirmation rule is untouched
   assert.match(m, /create or replace function public\.crm_quote_save\(p_lead uuid, p_lines jsonb, p_eta jsonb\)/);
 });
+import { agreementHtml, partB, PART_A } from '../admin/agreement.js';
+test('the client\'s volume bands are in the plan table, and the agreement fills from the garage record without identity or bank data', () => {
+  const m = read('supabase/migrations/20270136000000_agreement_autofill.sql');
+  assert.match(m, /orders_min = 30, orders_max = 80 where plan = 'silver'/); assert.match(m, /orders_min = 50, orders_max = 100 where plan = 'gold'/);
+  const g = { code: 'G-0007', name: 'Test Garage', legal_name: 'Test Auto Works', owner_name: '[Host Name]', address: '12 Test Road', pincode: '560001', mobile: '9000000000', trade_id: '[Licence]', deposit_status: 'held', deposit_received_at: '2026-11-09T10:00:00Z' };
+  const gold = agreementHtml({ tier: 'gold', garage: g, plan: { commission_pct: 25, deposit_amount: 20000, orders_min: 50, orders_max: 100 }, rate: 25, signer: { name: 'A', designation: 'B' }, now: new Date('2026-11-10T05:00:00Z') });
+  for (const t of ['MXP-GD-G-0007', 'Test Auto Works', '[Host Name]', '12 Test Road', '9000000000', '[Licence]', '₹20,000', '25% of the Base Price', '50 to 100 orders', '10/11/2026']) assert.ok(gold.includes(t), t);
+  assert.ok(!/undefined|NaN/.test(gold)); assert.equal(PART_A.length, 18);
+  assert.match(partB('silver', { rate: 30, deposit: 10000, min: 30, max: 80 }).flat().join(' '), /30 to 80 orders/);
+  assert.match(partB('bronze', { rate: 35 }).flat().join(' '), /35 % of the Base Price/);
+  const x = agreementHtml({ tier: 'bronze', garage: { name: '<img src=x onerror=1>' }, plan: {}, rate: 35 }); assert.ok(!x.includes('<img src=x'));
+  assert.match(read('admin/garages-view.js'), /data-agree/);
+});
