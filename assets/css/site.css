@@ -394,3 +394,20 @@ input,select,textarea{font-family:var(--font)}
 .ws-tz{display:grid;gap:8px;grid-template-columns:repeat(3,1fr);margin:14px 0 18px;border-radius:var(--r-m);overflow:hidden}
 .ws-tz img{display:block;width:100%;height:100%;aspect-ratio:3/4;object-fit:cover;border-radius:0}
 @media (min-width:600px){.ws-tz img{aspect-ratio:4/3}}
+
+/* ===== Brand wave: one dark surface for the whole site (owner-supplied background) =====
+   Dark surfaces (header, hero and page heads, closing bands, the proof band, the Pro Check band, the sidebar card, the footer) share the wave.
+   Everything between them stays plain white. The header is the wave's own navy and the page head fades from it, so there is no seam. */
+.top{background:#031947!important}
+.stage,#hero.stage{background:linear-gradient(180deg,#031947 0,rgba(3,25,71,0) 120px),url(/assets/img/bg/brand-wave-800.webp) right bottom/cover no-repeat,#031947!important}
+.stage::before{display:none!important}
+.final,.proof,.pcteaser,.ab-cta,.aside .card{background:url(/assets/img/bg/brand-wave-800.webp) right bottom/cover no-repeat,#031947!important}
+.foot{background:linear-gradient(rgba(3,12,36,.78),rgba(3,12,36,.9)),url(/assets/img/bg/brand-wave-800.webp) right bottom/cover no-repeat,#020c24!important}
+@media(min-width:700px){
+  .stage,#hero.stage{background:linear-gradient(180deg,#031947 0,rgba(3,25,71,0) 120px),url(/assets/img/bg/brand-wave-1600.webp) right bottom/cover no-repeat,#031947!important}
+  .final,.proof,.pcteaser,.ab-cta,.aside .card{background:url(/assets/img/bg/brand-wave-1600.webp) right bottom/cover no-repeat,#031947!important}
+  .foot{background:linear-gradient(rgba(3,12,36,.78),rgba(3,12,36,.9)),url(/assets/img/bg/brand-wave-1600.webp) right bottom/cover no-repeat,#020c24!important}
+}
+/* The tall home hero shows the top of the wave so the orange glow never sits under white text */
+#hero.stage{background-position:0 0,center top,0 0!important}
+#hero.stage::after{display:block!important;content:"";position:absolute;inset:auto 0 0 0;height:42%;background:linear-gradient(180deg,rgba(3,25,71,0),rgba(3,25,71,.82));pointer-events:none;z-index:-1}

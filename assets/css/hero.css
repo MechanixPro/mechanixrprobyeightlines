@@ -1,5 +1,5 @@
 /* Home hero: full-bleed designed garage scene (one <img>, assets/img/hero-garage-scene.svg, its own gentle motion stops for reduced motion), navy overlay, offer headline and an inline booking card. No script, no inline style. */
-#hero.stage{padding:0;background:radial-gradient(760px 460px at 16% 46%,rgba(43,74,138,.38),transparent 72%),linear-gradient(135deg,#070d1c,#0d1a38 60%,#14295a)}
+#hero.stage{padding:0}
 #hero .hero-copy{animation:none}
 #hero h1{font-size:clamp(24px,7vw,34px);line-height:1.04;letter-spacing:-.035em;text-transform:uppercase;font-weight:800;margin:0 0 10px;max-width:14em;text-wrap:balance}
 .hero-offer{margin:0 0 6px;font-size:clamp(22px,6.6vw,32px);font-weight:800;line-height:1.05;letter-spacing:-.03em;color:var(--acc)!important;text-transform:uppercase}

@@ -84,9 +84,9 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
 const over = (fg, a, under) => fg.map((c, i) => c * a + under[i] * (1 - a));
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 test('contrast: light text and the orange accent pass on every colour of the solid navy stage gradient, and the card text passes on its glass', () => {
-  const stage = css.match(/#hero\.stage\{[^}]*linear-gradient\(135deg,(#[0-9a-f]{6}),(#[0-9a-f]{6}) 60%,(#[0-9a-f]{6})\)/i);
-  assert.ok(stage, 'stage gradient found');
-  const bgs = [hex(stage[1]), hex(stage[2]), hex(stage[3])];
+  // Changed on purpose: the hero now sits on the brand wave image (assets/img/bg), not a gradient. These are the wave's own navy tones where the text sits (left and middle of the image, sampled), plus the header navy.
+  const bgs = [hex('#031947'), hex('#041a47'), hex('#0a1a44')];
+  assert.match(read('assets/css/site.css'), /#hero\.stage\{background:linear-gradient\(180deg,#031947 0,rgba\(3,25,71,0\) 120px\),url\(\/assets\/img\/bg\/brand-wave-800\.webp\)/);
   const TXT = [0xF4, 0xF6, 0xFA], ORANGE = [0xF2, 0x80, 0x1F];
   // The headline, price line and chips sit on this plain navy (the video lives in its own panel to the right and fades into it).
   for (const b of bgs) { assert.ok(ratio(TXT, b) >= 7, 'light text ' + ratio(TXT, b).toFixed(2)); assert.ok(ratio(ORANGE, b) >= 4.5, 'orange ' + ratio(ORANGE, b).toFixed(2)); }
