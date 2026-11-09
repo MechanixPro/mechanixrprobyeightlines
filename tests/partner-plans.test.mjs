@@ -105,3 +105,9 @@ test('admins who are not the owner can pick a partner garage and use the Garages
   const v = read('admin/garages-view.js'); assert.match(v, /admin_garage_list/); assert.match(v, /admin_garage_save/); assert.match(v, /admin_garage_get/); assert.doesNotMatch(v, /crm_garage_(list|save|get)/);
   assert.match(read('admin/admin.js'), /can: \(\) => \['owner', 'admin'\]\.includes\(S\.me\?\.role\)/);
 });
+test('a garage estimate can be approved even though no doorstep mechanic ever set a visit stage', () => {
+  const m = read('supabase/migrations/20270135000000_garage_quote_gate.sql');
+  assert.match(m, /not exists \(select 1 from public\.garage_assignments ga where ga\.lead_id = l\.id and ga\.status in \('received','in_work','ready'\)\)/);
+  assert.match(m, /waiting for the confirmation fee/);   // the paid-confirmation rule is untouched
+  assert.match(m, /create or replace function public\.crm_quote_save\(p_lead uuid, p_lines jsonb, p_eta jsonb\)/);
+});
