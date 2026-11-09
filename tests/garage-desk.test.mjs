@@ -249,8 +249,8 @@ test('Crew hides the tab without Manage garages (not even for a login that can o
   assert.match(crm, /\(!s\.need \|\| can\(s\.need\)\)/, 'a strict check: can(assign_leads) does not open it');
   assert.match(crm, /createGarageDesk\(\{ rpc, toast, can, canSettle: \(\) => false/, 'Crew never enters settlement amounts');
   const adm = read('admin/admin.js');
-  assert.match(adm, /createGarageDesk\(\{ rpc: adminRpc, toast, can: \(\) => isOwner\(\), canSettle: \(\) => isOwner\(\)/);
-  assert.match(adm, /data-tab=garageapp\]'\); if \(ga\) ga\.hidden = !isOwner\(\)/); assert.match(read('admin/index.html'), /data-tab="garageapp" hidden>Garage app/);
+  assert.match(adm, /createGarageDesk\(\{ rpc: adminRpc, toast, can: \(\) => \['owner', 'admin'\]\.includes\(S\.me\?\.role\), canSettle: \(\) => isOwner\(\)/);
+  assert.match(adm, /data-tab=garageapp\]'\); if \(ga\) ga\.hidden = !\['owner', 'admin'\]\.includes\(S\.me\?\.role\)/); // changed on purpose 2026-11-10: admins can open the Garage app tab; assert.match(read('admin/index.html'), /data-tab="garageapp" hidden>Garage app/);
   assert.match(adm, /if \(S\.tab === 'garageapp'\) garageDesk\.mount\(\$\('#gdRoot'\)\)/);
 });
 test('Crew and the Admin share one copy, and the card wiring is in both flow-core copies', () => {

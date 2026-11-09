@@ -26,9 +26,9 @@ import { cleanResults } from '../_shared/pro-check.ts';
 import { liveUploadUrls, liveAdd } from '../_shared/live.ts';
 import { signSession, verifySession, garageJobListItem, garageJobDetail, garageStatement, garageDashboard, cleanLocation, cleanUpload, cleanEstimate, photoPath, photoPathOk, LINK_RE, PIN_RE, UUID_RE, EVENTS, LOGIN_MESSAGE, isOpen, type RawJob } from '../_shared/garage.ts';
 
-const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_get', 'check_save', 'leads', 'claim', 'live_upload_url', 'live_add', 'decline', 'cancel_request', 'change_request', 'receiving_save', 'announcements', 'announcement_read', 'profile', 'performance', 'requests'];
+const ACTIONS = ['code_issue', 'login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_get', 'check_save', 'leads', 'claim', 'live_upload_url', 'live_add', 'decline', 'cancel_request', 'change_request', 'receiving_save', 'announcements', 'announcement_read', 'profile', 'performance', 'requests'];
 // A suspended garage can sign in and look at old jobs, payments and reports, but every change is refused (client BRD).
-const WRITE_ACTIONS = ['progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'location_set', 'open_set', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_save', 'claim', 'live_upload_url', 'live_add', 'decline', 'cancel_request', 'change_request', 'receiving_save', 'selfie_upload_url', 'selfie_record'];
+const WRITE_ACTIONS = ['code_issue', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'location_set', 'open_set', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_save', 'claim', 'live_upload_url', 'live_add', 'decline', 'cancel_request', 'change_request', 'receiving_save', 'selfie_upload_url', 'selfie_record'];
 const BAD = 'Could not save. Please try again.', SESSION_OVER = 'Your session has ended. Enter your PIN again.';
 // Jobs accepted before the receiving checklist existed are not sent back to it.
 const RECEIVING_FROM = Date.parse('2026-11-10T00:00:00+05:30');
@@ -306,6 +306,19 @@ Deno.serve(async (req) => {
     const { data, error } = await db.rpc('job_check_save', { p_lead: a.lead_id, p_kind: 'garage', p_by: garageId, p_results: c.value });
     if (error) { console.error('garage-app check_save', error.code); return json(req, { error: 'Could not save the check. Try again.' }, 500); }
     return json(req, { ok: true, complete: !!data?.complete });
+  }
+
+  if (action === 'code_issue') {
+    // "Vehicle picked up": the customer's one-time code is made when none exists yet. It is shown only on the customer's tracking page, never sent to the garage.
+    const { data: a } = await mine(jobId).maybeSingle();
+    if (!a || !['received', 'in_work'].includes(a.status)) return json(req, { error: a ? 'Accept the job first.' : 'This job is not available.' }, a ? 409 : 404);
+    const { count } = await db.from('audit_log').select('id', { count: 'exact', head: true }).eq('action', 'garage_code_try').eq('details->>access', accessId).gte('created_at', ago(60));
+    if ((count ?? 0) >= 10) return json(req, { error: 'Too many tries. Wait a while.' }, 429);
+    await db.from('audit_log').insert({ action: 'garage_code_try', details: { access: accessId } });
+    const r = await rpc('garage_code_issue', { p_access: accessId, p_assignment: a.id });
+    if (!r) return json(req, { error: BAD }, 500);
+    if (!r.ok) return json(req, { error: r.error }, 409);
+    return json(req, { ok: true, already: !!r.already });
   }
 
   if (action === 'verify_code') {

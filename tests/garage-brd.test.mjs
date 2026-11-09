@@ -16,8 +16,10 @@ test('the receiving checklist comes after the vehicle is found and before the co
   assert.equal(G.jobPage(j({ receiving: { done: false } }), { arrived: true, found: true }), 'receive');
   assert.equal(G.jobPage(j({ receiving: { done: true } }), { arrived: true, found: true }), 'code');
   assert.equal(G.jobPage(j(), { arrived: true, found: true }), 'code');   // no receiving field: treated as done
-  assert.equal(G.jobPage(j({ code_needed: false, receiving: { done: false } }), {}), 'receive');
-  assert.equal(G.jobPage(j({ code_needed: false, receiving: { done: true } }), {}), 'inspect');
+  // changed on purpose 2026-11-10: the customer-code step is offered on every accepted job; only "No code for this job, continue" (flow.noCode) skips it
+  assert.equal(G.jobPage(j({ code_needed: false, receiving: { done: false } }), { noCode: true }), 'receive');
+  assert.equal(G.jobPage(j({ code_needed: false, receiving: { done: true } }), { noCode: true }), 'inspect');
+  assert.equal(G.jobPage(j({ code_needed: false, receiving: { done: true } }), { arrived: true, found: true }), 'code');
   assert.ok(G.PAGES.indexOf('receive') > G.PAGES.indexOf('phone') && G.PAGES.indexOf('receive') < G.PAGES.indexOf('code'));
 });
 test('declining needs a reason, only works on an unaccepted offer, and counts the week (first one free); nothing is charged', () => {

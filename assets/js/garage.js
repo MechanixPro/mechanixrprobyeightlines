@@ -22,7 +22,7 @@
     else if (j.status === 'sent') nat = 'offer';
     else if (j.status === 'received') {
       // Receiving checklist (client BRD): odometer, condition, damage and photos before the code and the inspection. A job detail without it (older data) counts as done.
-      var needCode = j.code_needed && j.code !== 'verified', rec = !j.receiving || j.receiving.done;
+      var needCode = (j.code_needed || !flow.noCode) && j.code !== 'verified', rec = !j.receiving || j.receiving.done;
       nat = needCode ? (flow.found ? (rec ? 'code' : 'receive') : flow.arrived ? 'phone' : 'navigate') : (rec ? 'inspect' : 'receive');
     }
     else if (j.status === 'in_work') nat = 'ready';
@@ -497,7 +497,15 @@
         }, true); kids.push(go2); fin();
       } else if (page === 'code') {
         title = 'Customer code'; lines = ['Ask the customer for their 4-digit code.'];
-        if (j.code === 'locked' || j.code === 'expired' || j.code === 'none') { lines = [j.code === 'locked' ? 'Too many wrong codes. The team will send a new code.' : j.code === 'expired' ? 'The code has expired. Ask the team for a new one.' : 'The customer has no code yet. Ask the team to send one.']; kids.push(teamButtons()); }
+        if (j.code === 'none' || j.code === 'expired') {
+          lines = [j.code === 'expired' ? 'The code has expired. Make a new one.' : 'The vehicle is with you. Make the customer’s code now.', 'The code shows on the customer’s tracking page. Ask them to open their booking link and read it out.'];
+          kids.push(big('gStepCode', j.code === 'expired' ? 'Make a new code' : 'Vehicle picked up: make the customer’s code', function (b) {
+            b.disabled = true; clear(msg);
+            api('code_issue', { id: j.id }).then(function (r) { if (ended(r)) return; if (r.ok) { S.job = null; render(); fetchJob(); return; } b.disabled = false; msg.appendChild(notice('err', r.data && r.data.error || ERR.gen)); });
+          }));
+          if (!j.code_needed) kids.push(el('button', { class: 'g-link', type: 'button', id: 'gSkipCode', text: 'No code for this job, continue', onclick: function () { f.noCode = true; f.view = null; render(); } }));
+          kids.push(teamButtons());
+        } else if (j.code === 'locked') { lines = ['Too many wrong codes. The team will send a new code.']; kids.push(teamButtons()); }
         else kids.push(codeBoxes(function (code, done) {
           clear(msg);
           api('verify_code', { id: j.id, code: code }).then(function (r) {

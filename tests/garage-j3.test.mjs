@@ -19,7 +19,8 @@ test('jobPage: offer, navigate, phone, code, inspect (or estimate), ready, done;
   assert.equal(G.jobPage(j(), { view: 'done' }), 'navigate');                            // a view never skips ahead
   assert.equal(G.jobPage(j({ code: 'verified' }), {}), 'inspect');
   assert.equal(G.jobPage(j({ code: 'verified', can_start: false }), { view: 'estimate' }), 'estimate');
-  assert.equal(G.jobPage(j({ code_needed: false }), {}), 'inspect');
+  assert.equal(G.jobPage(j({ code_needed: false }), { noCode: true }), 'inspect'); // changed on purpose 2026-11-10: skipping the code is the garage's explicit choice
+  assert.equal(G.jobPage(j({ code_needed: false, code: 'none' }), { arrived: true, found: true }), 'code');
   assert.equal(G.jobPage(j({ status: 'in_work' }), {}), 'ready');
   assert.equal(G.jobPage(j({ status: 'ready' }), {}), 'done');
 });

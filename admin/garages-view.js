@@ -1,5 +1,5 @@
 // Admin > Garages: add a garage by hand, edit it, delete it (soft delete, can be brought back). Owner and admin only.
-// The save uses the same database function and checks as Crew (crm_garage_save): name, owner mobile, address, a PIN code in the service area,
+// The save uses the same checks as Crew (crm_garage_errors): name, owner mobile, address, a PIN code in the service area,
 // GPS near Bengaluru, at least one category, working days and hours, repair bays. Delete is admin_garage_delete (refused while the garage has an open job).
 import { parseLatLng, COORD_HELP } from './geo-parse.js';
 import { esc } from './kyc-rules.js';
@@ -8,7 +8,7 @@ import { skeleton, errorState, emptyState } from './ds.js';
 export const CATS = [['2-wheeler', 'Two-wheeler'], ['4-wheeler', 'Four-wheeler'], ['heavy', 'Heavy vehicles'], ['ev', 'Electric'], ['bodywork', 'Bodywork']];
 const STAGE = { applied: 'Applied', visited: 'Visited', kyc_done: 'KYC done', trained: 'Trained', pilot: 'Pilot', live: 'Live', paused: 'Paused' };
 
-/** The form values to the object crm_garage_save wants, or { error }. Pure so it can be tested. */
+/** The form values to the object the save function wants, or { error }. Pure so it can be tested. */
 export function garageFromForm(v, id) {
   const geo = parseLatLng(v.lat, v.lng);
   if (!geo) return { error: COORD_HELP };
@@ -46,17 +46,17 @@ export function createGaragesView({ rpc, dialog, toast }) {
   const msg = (e) => String((e && e.message) || e || 'Something went wrong. Try again.');
   async function load() {
     root.innerHTML = skeleton(3, 'Loading garages');
-    try { const [rows, gone] = await Promise.all([rpc('crm_garage_list', { p_status: null, p_search: null, p_hub: null }), rpc('admin_garage_deleted_list').catch(() => [])]); root.innerHTML = listHtml(rows || [], gone || []); }
+    try { const [rows, gone] = await Promise.all([rpc('admin_garage_list'), rpc('admin_garage_deleted_list').catch(() => [])]); root.innerHTML = listHtml(rows || [], gone || []); }
     catch (e) { root.innerHTML = errorState({ title: 'Garages could not load.', detail: msg(e) }); root.querySelector('[data-retry]')?.addEventListener('click', load); }
   }
   async function save(f, id, close) {
     const r = garageFromForm(readForm(f), id); if (r.error) throw new Error(r.error);
-    const res = await rpc('crm_garage_save', { p: r.value, p_commit: true });
+    const res = await rpc('admin_garage_save', { p: r.value, p_commit: true });
     if (!res || res.ok === false) throw new Error(((res && res.errors) || ['Could not save.']).join('. '));
     close(); toast(id ? 'Garage saved.' : 'Garage added. Send the onboarding link from Partner KYC.'); load();
   }
   function form(g) { dialog({ title: g && g.id ? 'Edit garage' : 'Add garage', intro: 'Enter what you know. A garage added here can be sent the onboarding link from Partner KYC.', body: formBody(g || {}), submit: 'Save', onSubmit: async (f, d) => { await save(f, g && g.id, d.close); } }); }
-  async function edit(id) { try { const r = await rpc('crm_garage_get', { p_id: id }); form(r.garage); } catch (e) { toast(msg(e), true); } }
+  async function edit(id) { try { const r = await rpc('admin_garage_get', { p_id: id }); form(r.garage); } catch (e) { toast(msg(e), true); } }
   function del(id, name) {
     dialog({ title: 'Delete ' + name + '?', intro: 'The garage disappears from every list and its app access is switched off. Its past jobs and records are kept, and you can bring it back. A garage with an open job cannot be deleted.', submit: 'Delete garage',
       onSubmit: async (f, d) => { await rpc('admin_garage_delete', { p_id: id }); d.close(); toast('Garage deleted.'); load(); } });

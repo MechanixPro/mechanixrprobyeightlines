@@ -91,3 +91,17 @@ test('Admin can add, edit and delete a garage by hand', () => {
   assert.match(read('admin/nav.js'), /\['garages', 'Garages'\]/); assert.match(read('admin/index.html'), /data-tab="garages"/); assert.match(read('admin/admin.js'), /garagesView\.mount/);
   assert.equal(read('crm/geo-parse.js'), read('admin/geo-parse.js'));
 });
+test('the garage app offers the customer code on every accepted job, and the garage can make it without ever seeing it', () => {
+  const js = read('assets/js/garage.js'), e = read('supabase/functions/garage-app/index.ts'), m = read('supabase/migrations/20270134000000_admin_garages_code_issue.sql');
+  assert.match(js, /api\('code_issue'/); assert.match(js, /Vehicle picked up: make the customer/); assert.match(js, /No code for this job, continue/);
+  assert.match(e, /action === 'code_issue'/); assert.match(e, /WRITE_ACTIONS = \['code_issue'/);
+  assert.match(e.slice(e.indexOf("action === 'code_issue'"), e.indexOf("action === 'verify_code'")), /return json\(req, \{ ok: true, already: !!r\.already \}\)/);
+  assert.doesNotMatch(m.slice(m.indexOf('create or replace function public.garage_code_issue')), /return jsonb_build_object\('ok', true, 'code'/);
+  assert.match(m, /grant execute on function public\.garage_code_issue\(uuid, uuid\) to service_role/);
+});
+test('admins who are not the owner can pick a partner garage and use the Garages screen', () => {
+  const m = read('supabase/migrations/20270134000000_admin_garages_code_issue.sql');
+  assert.match(m, /crm_garage_picker[\s\S]*perform public\.flow_need\(\)/); assert.match(m, /admin_garage_save[\s\S]*kyc_need_admin\(\)/);
+  const v = read('admin/garages-view.js'); assert.match(v, /admin_garage_list/); assert.match(v, /admin_garage_save/); assert.match(v, /admin_garage_get/); assert.doesNotMatch(v, /crm_garage_(list|save|get)/);
+  assert.match(read('admin/admin.js'), /can: \(\) => \['owner', 'admin'\]\.includes\(S\.me\?\.role\)/);
+});
