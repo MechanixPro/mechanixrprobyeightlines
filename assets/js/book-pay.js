@@ -130,6 +130,20 @@
       days.insertAdjacentHTML('beforeend', '<label class="bk-pick"><input type="radio" name="preferred_date" value="' + iso + '"><span>' + esc(lab) + '<small>' + esc(sub) + '</small></span></label>');
     }
 
+    /* Today Slots: Today and each window show only while they are still ahead (the server checks the same rule). */
+    var applyToday = function () {
+      var T = win.MXP_TODAY; if (!T) return; var open = T.todaySlots(Date.now()), todayIso = T.istToday(Date.now());
+      var dayIn = days.querySelector('input[value="' + todayIso + '"]'), todayLab = dayIn && dayIn.closest('label');
+      if (dayIn && !open.any) { if (dayIn.checked) dayIn.checked = false; todayLab.hidden = true; } else if (todayLab) todayLab.hidden = false;
+      var sel = doc.querySelector('input[name="preferred_date"]:checked'), isToday = sel && sel.value === todayIso;
+      ['morning', 'afternoon', 'evening', 'asap'].forEach(function (k) {
+        var r = doc.querySelector('input[name="preferred_slot"][value="' + k + '"]'), lab = r && r.closest('label'); if (!r) return;
+        var off = k === 'asap' ? !isToday : (isToday && !open[k]);
+        r.disabled = off; if (lab) lab.classList.toggle('bk-off', off); if (off && r.checked) r.checked = false;
+      });
+    };
+    days.addEventListener('change', applyToday); applyToday();
+
     /* live "Your service" summary */
     var liveT = null, lastLive = '';
     var pickText = function (n) { var c = all('[name="' + n + '"]:checked')[0], sp = c && c.parentNode.querySelector('span'); return sp ? Array.prototype.slice.call(sp.childNodes).map(function (x) { return x.textContent.replace(/\s+/g, ' ').trim(); }).filter(Boolean).join(', ') : ''; };

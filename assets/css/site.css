@@ -411,3 +411,7 @@ input,select,textarea{font-family:var(--font)}
 /* The tall home hero shows the top of the wave so the orange glow never sits under white text */
 #hero.stage{background-position:0 0,center top,0 0!important}
 #hero.stage::after{display:block!important;content:"";position:absolute;inset:auto 0 0 0;height:42%;background:linear-gradient(180deg,rgba(3,25,71,0),rgba(3,25,71,.82));pointer-events:none;z-index:-1}
+/* Readability on the wave: a navy veil on the text side of the bands, and light ghost buttons on every dark band */
+.final,.proof,.pcteaser,.ab-cta{background-image:linear-gradient(90deg,rgba(3,25,71,.72),rgba(3,25,71,0) 78%),url(/assets/img/bg/brand-wave-800.webp)!important}
+@media(min-width:700px){.final,.proof,.pcteaser,.ab-cta{background-image:linear-gradient(90deg,rgba(3,25,71,.72),rgba(3,25,71,0) 78%),url(/assets/img/bg/brand-wave-1600.webp)!important}}
+.pcteaser .btn-ghost,.final .btn-ghost,.ab-cta .btn-ghost,.stage .btn-ghost{color:#fff!important;border-color:rgba(255,255,255,.55)!important;background:transparent!important}

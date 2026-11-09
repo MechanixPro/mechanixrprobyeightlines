@@ -9,7 +9,7 @@ const SAMPLE = ['index.html', 'bike-service-hsr-layout/index.html', 'bike-servic
 
 test('the home page has six sections, in the order a visitor decides', () => {
   const ids = [...main.matchAll(/<section[^>]*id="([a-z-]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(ids, ['hero', 'how-hub', 'brief', 'work', 'pictures', 'prices', 'team', 'garages', 'trust', 'pro-check', 'compare', 'own-a-workshop', 'helpline', 'phone-app', 'areas', 'faq', 'tools']);   // changed on purpose 2026-11-09: journey after the hero (the old brief stays for cars), then Pro Check, comparison, partner, helpline and app sections
+  assert.deepEqual(ids, ['hero', 'how-hub', 'brief', 'work', 'pictures', 'prices', 'team', 'garages', 'trust', 'pro-check', 'promises', 'compare', 'own-a-workshop', 'helpline', 'phone-app', 'areas', 'faq', 'tools']);   // changed on purpose 2026-11-09: journey after the hero (the old brief stays for cars), then Pro Check, comparison, partner, helpline and app sections
   assert.ok(main.indexOf('class="stage"') < main.indexOf('class="sheet"'), 'a navy stage first, then the light sheet');
   assert.equal((main.match(/<h1[ >]/g) || []).length, 1);
 });
@@ -54,7 +54,7 @@ test('prices come from the price source, say "from", and keep GST apart; no pric
   assert.match(p, /Prices exclude GST\. GST at 18% is added on your final invoice/);
 });
 test('the trust line is exactly the two owner-confirmed numbers, and only on bike pages', () => {
-  const t = main.slice(main.indexOf('id="trust"'), main.indexOf('id="areas"'));
+  const t = main.slice(main.indexOf('id="trust"'), main.indexOf('id="pro-check"'));   // ends at the next section (Our promises added after it, changed on purpose)
   assert.match(t, /class="bike-only"/);
   assert.deepEqual([...t.matchAll(/<b>([^<]+)<\/b>/g)].map((m) => m[1]), ['10,000+ services done', '1,300+ gated communities trust us']);
   const chips = main.match(/<ul class="hero-chips bike-only"[^>]*>[\s\S]*?<\/ul>/)[0];   // changed on purpose (hero v3): the owner approved the same two claims as small chips in the hero, bike view only

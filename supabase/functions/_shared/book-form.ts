@@ -1,6 +1,7 @@
 // Validation of the /book/ form on the server. No Deno APIs, so Node can test it. Nothing here sets the fee; confirm-fee.ts does that from vehicle and model.
 import { cleanEmail } from './email-address.ts';
 import { cleanEngine } from './confirm-fee.ts';
+import { todaySlots, istToday } from './today-slots.ts';
 const SLOTS = ['morning', 'afternoon', 'evening', 'asap'];
 const BIKE_SERVICES = ['basic', 'general', 'full', 'repair'];
 const strip = (v: unknown, max: number) => String(v ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, max);
@@ -34,6 +35,9 @@ export function cleanBooking(b: Record<string, unknown>, now: number): Out {
   const day = new Date(preferred_date + 'T00:00:00+05:30').getTime();
   if (!(day >= now - 36 * 3600_000) || day > now + 30 * 24 * 3600_000) return no('preferred_date', 'Pick a day within the next 30 days.');
   if (!SLOTS.includes(preferred_slot)) return no('preferred_slot', 'Pick a time slot.');
+  // Today Slots: for today, the window must still be ahead (starts 2 hours from now or later); as soon as possible is for today only.
+  if (preferred_slot === 'asap' && preferred_date !== istToday(now)) return no('preferred_slot', 'As soon as possible is for today. Pick a time window for another day.');
+  if (preferred_date === istToday(now) && !(todaySlots(now) as Record<string, boolean>)[preferred_slot]) return no('preferred_slot', 'That time has passed for today. Pick a later time or another day.');
   const name = strip(b.name, 60), phone = String(b.phone ?? '').replace(/\D/g, '').slice(-10), email = cleanEmail(b.email);
   if (name.length < 2) return no('name', 'Enter your name.');
   if (!/^[6-9]\d{9}$/.test(phone)) return no('phone', 'Enter a valid 10-digit mobile number.');

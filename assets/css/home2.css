@@ -42,3 +42,11 @@
 .reel-cap{position:absolute;z-index:2;left:12px;right:12px;bottom:14px;display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:16px;line-height:1.2;text-shadow:0 1px 6px rgba(0,0,0,.5)}.reel-av{flex:none;width:30px;height:30px;border-radius:50%;background:#14295A url(/assets/img/favicon-32.png) center/18px no-repeat;border:2px solid #F2801F}
 @media(min-width:900px){.reel{flex-basis:260px}.reels{padding-bottom:20px}}
 @media(prefers-reduced-motion:no-preference){.reel{transition:transform .25s ease}.reel:hover{transform:translateY(-4px)}}
+
+/* Our promises: six plain cards */
+.promises{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:620px){.promises{grid-template-columns:repeat(2,1fr)}}@media(min-width:980px){.promises{grid-template-columns:repeat(3,1fr)}}
+.promises a{display:block;height:100%;padding:18px 20px;border-radius:18px;background:#fff;border:1px solid var(--hair,#e3e6ec);text-decoration:none;color:inherit;transition:transform .2s ease,border-color .2s ease}
+.promises a:hover{transform:translateY(-3px);border-color:#F2801F}
+.promises b{display:block;font-size:19px;letter-spacing:-.02em;margin-bottom:6px}.promises b::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;background:#F2801F;margin-right:10px}
+.promises span{color:var(--tx2,#5b6577);font-size:15px;line-height:1.5}

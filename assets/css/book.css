@@ -75,3 +75,4 @@ legend.bk-h{float:left;width:100%}legend.bk-h+*{clear:both}
 @media(prefers-reduced-motion:no-preference){.bk-built{animation:bkBuilt .4s ease-out}@keyframes bkBuilt{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}}
 .tq h3 small{font-weight:400;color:var(--muted)}.tq-no,.tq-terms{margin:0 0 8px}
 .bk-chosen{margin:6px 0 10px;padding:10px 12px;border-radius:10px;background:#eaf3f0;color:#17604f;font-weight:600;font-size:15px}
+.bk-pick.bk-off{opacity:.38}.bk-pick.bk-off input{cursor:not-allowed}

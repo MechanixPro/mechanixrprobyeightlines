@@ -1234,9 +1234,17 @@ def home_trust_html():
            '<p>Before your quote, your mechanic checks 20 points on your bike and finishes with a test ride. You see every result on your tracking page.</p>'
            '<p><a class="btn btn-wa" href="/pro-check/">See the 20 points</a> <a class="btn btn-ghost" href="/our-process/">How we keep your bike safe</a></p></div>'
            f'<ul class="pcchips">{chips}</ul></div></div></section>')
+    promises = [('Pro Check 20', 'A 20-point check and a test ride before your quote. You see every result.', '/pro-check/'),
+                ('Mechanix Live', 'Photos and short clips from your service, and a video call on request.', '/help/'),
+                ('Mechanix Shield', 'Up to \u20b95,000 from us if your vehicle is damaged in our care.', '/terms/'),
+                ('Genuine Parts Promise', 'Every part on your quote is marked Genuine or Equivalent.', '/terms/'),
+                ('Redo Promise', 'The same repair fails within 30 days? We redo it free.', '/terms/'),
+                ('Today Slots', 'Book a time today when a window is still ahead.', '/book/')]
+    prom = ('<section id="promises" class="band" aria-labelledby="promises-h"><div class="wrap"><div class="sec-head"><h2 id="promises-h">Our promises.</h2><p>Six things we do on every job, written down in plain words.</p></div><ul class="promises">'
+            + ''.join(f'<li><a href="{u}"><b>{html.escape(n)}</b><span>{html.escape(d)}</span></a></li>' for n, d, u in promises) + '</ul></div></section>')
     app = ('<section id="phone-app"><div class="wrap"><div class="appband"><div><h2>Mechanix Pro on your phone.</h2><p>Add it to your home screen in two taps to book, track your job and see your photos and bill. Garages and mechanics get their own app link.</p></div>'
            '<a class="btn btn-ghost" href="/app/">Add to your phone</a></div></div></section>')
-    return '<div class="bike-only">' + pro + P['cmp'] + P['partner'] + P['helpline'] + app + '</div>'
+    return '<div class="bike-only">' + pro + prom + P['cmp'] + P['partner'] + P['helpline'] + app + '</div>'
 
 # ---- /help/: "What happens at your doorstep" becomes the same animated picture journey as the home page. The five steps stay in src/help.html (one source of truth); this turns them into cards. ----
 HELP_PICS = [('book-phone', 'A customer books a service on her phone in her apartment complex'), ('team-1000', 'The Mechanix Pro team in navy polo shirts with the shield badge, in front of a garage and a service van'),
@@ -1261,7 +1269,7 @@ def help_journey(content):
 
 HERO_CSS = '<link rel="stylesheet" href="/assets/css/hero.css">\n<link rel="stylesheet" href="/assets/css/home2.css">\n'
 HERO_PRELOAD = '<link rel="preload" as="image" href="/assets/img/hero/hero-quote-1200.webp" fetchpriority="high">\n'   # the bike hero's first picture (the quote scene, eager); home only. The car picture is lazy and is not preloaded.
-BOOK_JS = '<link rel="stylesheet" href="/assets/css/book.css"><link rel="stylesheet" href="/assets/css/journey.css">\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/thanks.js" defer></script>\n<script src="/assets/js/book-pay.js" defer></script>'
+BOOK_JS = '<link rel="stylesheet" href="/assets/css/book.css"><link rel="stylesheet" href="/assets/css/journey.css">\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/thanks.js" defer></script>\n<script src="/assets/js/today-slots.js" defer></script>\n<script src="/assets/js/book-pay.js" defer></script>'
 def services_catalog():
     """OfferCatalog (the @id the home page's business node points to): every service in src/site.json with its price before GST. The three packages have one Offer per engine-size tier."""
     sv = SITE_DATA['services']; items = []
