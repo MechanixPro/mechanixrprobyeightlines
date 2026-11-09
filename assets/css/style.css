@@ -1220,3 +1220,4 @@ html{-webkit-tap-highlight-color:transparent}
 .how-demo video{display:block;width:100%;height:auto;aspect-ratio:9/16;border-radius:24px;background:#0F2250}
 .how-demo figcaption{margin-top:10px;color:var(--ink-2);font-size:15px;line-height:1.45}
 .how-demo figcaption b{color:var(--ember)}
+.bill .pkg-book{grid-column:2/-1;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:6px}.bill .pkg-book small{color:var(--muted);font-size:13px}.bill .pkg-book .btn{min-height:44px}
