@@ -81,7 +81,7 @@ export type RawJob = {
 };
 const gst = (sub: number) => Math.round(sub * 18) / 100;
 export function estimateView(e: Record<string, any>) {
-  const lines = (Array.isArray(e.lines) ? e.lines : []).slice(0, 20).map((l: any) => ({ kind: ['parts', 'labour', 'other'].includes(l?.kind) ? l.kind : 'other', name: String(l?.name ?? '').slice(0, 80), amount: Number(l?.amount) || 0 }));
+  const lines = (Array.isArray(e.lines) ? e.lines : []).slice(0, 20).map((l: any) => ({ kind: ['parts', 'labour', 'other'].includes(l?.kind) ? l.kind : 'other', name: String(l?.name ?? '').slice(0, 80), amount: Number(l?.amount) || 0, ...(l?.kind === 'parts' && ['genuine', 'equivalent'].includes(l?.part_type) ? { part_type: l.part_type } : {}) }));
   const sub = Math.round(lines.reduce((t: number, l: any) => t + l.amount, 0) * 100) / 100;
   return {
     id: String(e.id), status: ['draft', 'submitted', 'approved', 'rejected', 'converted'].includes(e.status) ? e.status : 'draft', lines, subtotal: sub, gst: gst(sub), total: Math.round((sub + gst(sub)) * 100) / 100,
@@ -167,17 +167,19 @@ export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 export const EVENTS = ['received', 'work_started', 'ready'];
 
 /** The estimate form: checked here for a quick plain-words answer; the database checks again. */
-export function cleanEstimate(b: any): { ok: true; value: { lines: { kind: string; name: string; amount: number }[]; notes: string | null; hours: number | null; day: string | null } } | { ok: false; error: string } {
+export function cleanEstimate(b: any): { ok: true; value: { lines: { kind: string; name: string; amount: number; part_type?: string }[]; notes: string | null; hours: number | null; day: string | null } } | { ok: false; error: string } {
   const raw = Array.isArray(b?.lines) ? b.lines : [];
   if (!raw.length) return { ok: false, error: 'Add at least one line.' };
   if (raw.length > 20) return { ok: false, error: 'At most 20 lines.' };
-  const lines: { kind: string; name: string; amount: number }[] = [];
+  const lines: { kind: string; name: string; amount: number; part_type?: string }[] = [];
   for (const l of raw) {
     const kind = String(l?.kind ?? ''), name = String(l?.name ?? '').trim(), amount = Number(l?.amount);
     if (!['parts', 'labour', 'other'].includes(kind)) return { ok: false, error: 'Each line is parts, labour or other.' };
     if (name.length < 2 || name.length > 80) return { ok: false, error: 'Each line needs a name (2 to 80 characters).' };
     if (!Number.isFinite(amount) || amount < 0 || amount > 100000) return { ok: false, error: 'Each amount must be from 0 to 1,00,000.' };
-    lines.push({ kind, name, amount: Math.round(amount * 100) / 100 });
+    const pt = String(l?.part_type ?? '').toLowerCase();
+    if (kind === 'parts' && !['genuine', 'equivalent'].includes(pt)) return { ok: false, error: 'Mark each part as Genuine or Equivalent.' };
+    lines.push(kind === 'parts' ? { kind, name, amount: Math.round(amount * 100) / 100, part_type: pt } : { kind, name, amount: Math.round(amount * 100) / 100 });
   }
   const hours = b?.hours === '' || b?.hours == null ? null : Number(b.hours), day = b?.day ? String(b.day) : null;
   if (hours != null && (!Number.isInteger(hours) || hours < 1 || hours > 72)) return { ok: false, error: 'Estimated hours must be from 1 to 72.' };

@@ -7,6 +7,9 @@ const inr = (n) => '₹' + (Number(n) || 0).toLocaleString('en-IN', { minimumFra
 const paise = (n) => { const v = Number(n); return Number.isFinite(v) ? Math.round(v * 100) : 0; };
 const rupees = (p) => p / 100;
 const KIND = { parts: 'Parts', labour: 'Labour', service: 'Service', other: 'Other' };
+/** Genuine Parts Promise: a part line says Genuine or Equivalent. */
+export const PART_TYPE = { genuine: 'Genuine', equivalent: 'Equivalent' };
+const kindLabel = (l) => KIND[l.kind] + (l.kind === 'parts' && PART_TYPE[l.part_type] ? ', ' + PART_TYPE[l.part_type] : '');
 export const QUOTE_STATUS = { draft: ['Draft', ''], sent: ['Sent', 'info'], approved: ['Approved', 'good'], declined: ['Declined', 'bad'], expired: ['Expired', 'warn'], changes_requested: ['Changes requested', 'warn'], superseded: ['Replaced by a newer quote', ''] };
 export const DEFAULT_TERMS = 'Valid for 3 days. Work starts only after you approve. GST is included in the total.';
 
@@ -20,7 +23,7 @@ export function quoteMaths(lines, { rate = 18, feeCredit = 0 } = {}) {
   const ok = (Array.isArray(lines) ? lines : []).filter((l) => l && typeof l === 'object' && String(l.name ?? '').trim());
   const sub = ok.reduce((s, l) => s + Math.max(0, paise(l.amount)), 0), r = [0, 5, 12, 18].includes(Number(rate)) ? Number(rate) : 18;
   const gst = Math.round(sub * r / 100), cgst = Math.round(gst / 2), sgst = gst - cgst, total = sub + gst, credit = Math.min(total, Math.max(0, paise(feeCredit)));
-  return { lines: ok.map((l) => ({ kind: KIND[l.kind] ? l.kind : 'other', name: String(l.name).trim().slice(0, 80), amount: rupees(Math.max(0, paise(l.amount))) })), rate: r, subtotal: rupees(sub), gst: rupees(gst), cgst: rupees(cgst), sgst: rupees(sgst), total: rupees(total), feeCredit: rupees(credit), balance: rupees(total - credit) };
+  return { lines: ok.map((l) => ({ kind: KIND[l.kind] ? l.kind : 'other', name: String(l.name).trim().slice(0, 80), amount: rupees(Math.max(0, paise(l.amount))), ...(l.kind === 'parts' && PART_TYPE[l.part_type] ? { part_type: l.part_type } : {}) })), rate: r, subtotal: rupees(sub), gst: rupees(gst), cgst: rupees(cgst), sgst: rupees(sgst), total: rupees(total), feeCredit: rupees(credit), balance: rupees(total - credit) };
 }
 /** Status as the desk and customer read it: a sent quote past its date is Expired. `q` is a crm_quote_get row (status, expired, valid_until). */
 export function quoteStatus(q, now = Date.now()) {
@@ -39,7 +42,7 @@ export function quoteDocHtml(q, { co = {}, ref = '', bookingId = '', now = Date.
   const z = q && typeof q === 'object' ? q : {}, st = quoteStatus(z, now), m = quoteMaths(z.lines, { rate: z.gst_rate || 18, feeCredit: z.fee_credit });
   const num = z.quote_no || quoteNumber(bookingId || ref, z.version), addr = [...(co.addressLines || []), [co.city, co.state, co.pincode].filter(Boolean).join(' ')].filter(Boolean).map(esc).join('<br>');
   const date = z.sent_at ? new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date(z.sent_at)) : 'Draft';
-  const rows = m.lines.length ? m.lines.map((l) => `<tr class="inv-line"><td>${esc(l.name)} <small class="muted">${esc(KIND[l.kind])}</small></td><td class="num">${inr(l.amount)}</td></tr>`).join('') : '<tr><td colspan="2" class="muted">No items yet.</td></tr>';
+  const rows = m.lines.length ? m.lines.map((l) => `<tr class="inv-line"><td>${esc(l.name)} <small class="muted">${esc(kindLabel(l))}</small></td><td class="num">${inr(l.amount)}</td></tr>`).join('') : '<tr><td colspan="2" class="muted">No items yet.</td></tr>';
   return `<div class="inv-paper in qd">
     <div class="inv-head"><div><b class="inv-co">${esc(co.brand || 'Mechanix Pro')}</b>${co.legalName ? `<span class="inv-sub">${esc(co.legalName)}</span>` : ''}${addr ? `<span class="inv-addr tiny">${addr}</span>` : ''}${co.gstin ? `<span class="tiny" style="display:block">GSTIN ${esc(co.gstin)}</span>` : ''}</div>
       <div class="inv-meta"><h2>QUOTE</h2><span>${esc(num)}</span><span>${esc(date)}</span><span class="tiny"><b class="qd-status qd-${esc(st.key)}">${esc(st.label)}</b>${validityLabel(z, now) ? ' · ' + esc(validityLabel(z, now)) : ''}</span></div></div>

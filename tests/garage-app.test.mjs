@@ -91,7 +91,7 @@ test('sessions: signed, 12 hours, tamper-proof', async () => {
   assert.equal(safeEqual('abc', 'abc'), true); assert.equal(safeEqual('abc', 'abd'), false); assert.equal(safeEqual('abc', 'ab'), false);
 });
 test('estimates: lines, amounts, hours or a day, never both; totals show GST apart', () => {
-  const ok = cleanEstimate({ lines: [{ kind: 'parts', name: 'Pads', amount: '850' }, { kind: 'labour', name: 'Fit', amount: 400 }], hours: '6', notes: 'x' });
+  const ok = cleanEstimate({ lines: [{ kind: 'parts', name: 'Pads', amount: '850', part_type: 'genuine' }, { kind: 'labour', name: 'Fit', amount: 400 }], hours: '6', notes: 'x' });
   assert.equal(ok.ok, true); assert.equal(ok.value.hours, 6); assert.equal(ok.value.lines[0].amount, 850);
   for (const b of [{ lines: [] }, { lines: [{ kind: 'gold', name: 'xx', amount: 1 }] }, { lines: [{ kind: 'parts', name: 'x', amount: 1 }] }, { lines: [{ kind: 'parts', name: 'xx', amount: -1 }] },
     { lines: [{ kind: 'parts', name: 'xx', amount: 100001 }] }, { lines: [{ kind: 'parts', name: 'xx', amount: 1 }], hours: 99 }, { lines: [{ kind: 'parts', name: 'xx', amount: 1 }], hours: 2, day: '2026-11-09' },

@@ -141,9 +141,10 @@
       if (rq && rq.status === 'done') return '<div class="card track-card"><h3>Redo Promise <small>Done</small></h3><p>Your redo was completed.</p></div>';
       return '';
     }
+    var PTYPE = { genuine: 'Genuine', equivalent: 'Equivalent' };
     function quoteCard(v) {
       var z = v.quote; if (!z || !z.lines) return z ? '<div class="card track-card"><h3>Quote</h3><p>Status: <b>' + esc(z.status) + '</b>. Open the link in your email to review it.</p></div>' : '';
-      var items = z.lines.map(function (l) { return '<tr><td>' + esc(l.name) + ' <small>' + esc(KIND[l.kind] || l.kind) + '</small></td><td class="r">' + inr(l.amount) + '</td></tr>'; }).join('');
+      var items = z.lines.map(function (l) { return '<tr><td>' + esc(l.name) + ' <small>' + esc((KIND[l.kind] || l.kind) + (l.kind === 'parts' && PTYPE[l.part_type] ? ', ' + PTYPE[l.part_type] : '')) + '</small></td><td class="r">' + inr(l.amount) + '</td></tr>'; }).join('');
       var sum = '<tr><td>Subtotal (before GST)</td><td class="r">' + inr(z.subtotal) + '</td></tr><tr><td>GST @ 18%</td><td class="r">' + inr(z.gst) + '</td></tr><tr class="b"><td>Total</td><td class="r">' + inr(z.total) + '</td></tr>'
         + (Number(z.fee_credit) ? '<tr><td>Confirmation fee already paid</td><td class="r">− ' + inr(z.fee_credit) + '</td></tr>' : '') + '<tr class="b"><td>Balance to pay</td><td class="r">' + inr(z.balance) + '</td></tr>';
       var open = z.status === 'sent' && !z.expired, asked = z.status === 'changes_requested';

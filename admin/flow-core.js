@@ -2,7 +2,7 @@
 // phone approval, Ready and Delivered, the notification log with Resend, and the Dispatch list. ONE file: crm/flow-core.js is the source and admin/flow-core.js is a copy (a test checks they are identical).
 // It holds no business rules of its own. Every action calls the same database functions and Edge Functions, which check who may do what (admins pass, agents and technicians keep their limits).
 import { chip, emptyState, errorState, NOTICE_TONE, ISSUE_TONE } from './ds.js';
-import { paidBadge, visitSub, callScript, quoteTotals, quoteCheck, QUOTE_KINDS, NOTICE_LABEL, resendable, dispatchOrder, confirmPending, confirmPaid, ISSUE_TYPES, seenLine, mapsUrl, issueOrder } from './flow-rules.js';
+import { paidBadge, visitSub, callScript, quoteTotals, quoteCheck, QUOTE_KINDS, PART_TYPES, NOTICE_LABEL, resendable, dispatchOrder, confirmPending, confirmPaid, ISSUE_TYPES, seenLine, mapsUrl, issueOrder } from './flow-rules.js';
 import { quoteStatus, validityLabel } from './quote-doc.js';
 import { garageLabel, garageSeenChip, garageStepChips, isHandled } from './garage-assign.js';
 import { tellMessage, tellUrl, toldInfo, toldLabel, notToldYet, toldNoteBody, mechanicWaPhone } from './tell-mechanic.js';
@@ -179,23 +179,23 @@ export function createFlow(deps) {
     async quote(lead, flow) {
       const z = flow.quote && flow.quote.latest, fee = flow.conf && flow.conf.paid ? flow.conf.fee : 0;
       const seed = z && z.lines && z.lines.length ? z.lines : [{ kind: 'parts', name: '', amount: '' }, { kind: 'labour', name: '', amount: '' }];
-      const rowHtml = (x, i) => `<div class="flow-line" data-i="${i}"><select name="k" aria-label="Type">${QUOTE_KINDS.map(([k, t]) => `<option value="${k}"${x.kind === k ? ' selected' : ''}>${t}</option>`).join('')}</select><input name="n" maxlength="80" placeholder="Item" aria-label="Item" value="${esc(x.name)}"><input name="a" inputmode="decimal" placeholder="₹ before GST" aria-label="Amount before GST" value="${esc(x.amount)}"><button class="flow-btn flow-sm" type="button" data-rm aria-label="Remove line">×</button></div>`;
+      const rowHtml = (x, i) => `<div class="flow-line" data-i="${i}"><select name="k" aria-label="Type">${QUOTE_KINDS.map(([k, t]) => `<option value="${k}"${x.kind === k ? ' selected' : ''}>${t}</option>`).join('')}</select><select name="pt" aria-label="Genuine or Equivalent"${x.kind === 'parts' ? '' : ' hidden'}><option value="">Genuine or Equivalent?</option>${PART_TYPES.map(([k, t]) => `<option value="${k}"${x.part_type === k ? ' selected' : ''}>${t}</option>`).join('')}</select><input name="n" maxlength="80" placeholder="Item" aria-label="Item" value="${esc(x.name)}"><input name="a" inputmode="decimal" placeholder="₹ before GST" aria-label="Amount before GST" value="${esc(x.amount)}"><button class="flow-btn flow-sm" type="button" data-rm aria-label="Remove line">×</button></div>`;
       dialog({ title: z && z.status !== 'draft' ? 'Revised quote' : 'Build the quote', intro: 'Amounts are before GST. GST at 18% is added. The confirmation fee already paid is taken off. Nothing starts until the customer approves.',
         body: `<div id="fl-lines">${seed.map(rowHtml).join('')}</div><button class="flow-btn flow-sm" type="button" id="fl-add">Add a line</button><div class="flow-sum" id="fl-sum" aria-live="polite"></div>${etaFields(z || {})}`,
         submit: 'Save and send to the customer', onSubmit: async (f, d) => {
           const lines = readLines(f), eta = readEta(f), g = quoteCheck(lines, eta); if (!g.ok) throw new Error(g.error);
-          await rpc('crm_quote_save', { p_lead: lead.id, p_lines: lines.map((x) => ({ kind: x.kind, name: x.name.trim(), amount: Number(x.amount) })), p_eta: eta });
+          await rpc('crm_quote_save', { p_lead: lead.id, p_lines: lines.map((x) => (x.kind === 'parts' ? { kind: x.kind, name: x.name.trim(), amount: Number(x.amount), part_type: x.part_type } : { kind: x.kind, name: x.name.trim(), amount: Number(x.amount) })), p_eta: eta });
           const r = await call('booking-notify', { action: 'quote_send', lead_id: lead.id }); toast('Quote v' + r.version + ' sent.'); d.close(); deps.reload();
         },
         onOpen: (f) => {
           bindEta(f); const sum = () => { const t = quoteTotals(readLines(f).filter((x) => x.amount !== ''), fee); f.querySelector('#fl-sum').innerHTML = `Subtotal ${esc(inr(t.subtotal))} · GST 18% ${esc(inr(t.gst))} · <b>Total ${esc(inr(t.total))}</b>${fee ? ` · Fee paid −${esc(inr(t.feeCredit))} · <b>Balance ${esc(inr(t.balance))}</b>` : ''}`; };
-          f.addEventListener('input', sum); sum();
+          f.addEventListener('input', sum); f.addEventListener('change', (e) => { const r = e.target.closest('.flow-line'); if (r && e.target.name === 'k') r.querySelector('[name=pt]').hidden = e.target.value !== 'parts'; }); sum();
           f.querySelector('#fl-add').addEventListener('click', () => { f.querySelector('#fl-lines').insertAdjacentHTML('beforeend', rowHtml({ kind: 'parts', name: '', amount: '' }, 99)); });
           f.querySelector('#fl-lines').addEventListener('click', (e) => { const b = e.target.closest('[data-rm]'); if (b && f.querySelectorAll('.flow-line').length > 1) { b.closest('.flow-line').remove(); sum(); } });
         } });
     },
   };
-  const readLines = (f) => [...f.querySelectorAll('.flow-line')].map((r) => ({ kind: r.querySelector('[name=k]').value, name: r.querySelector('[name=n]').value, amount: r.querySelector('[name=a]').value.trim() }));
+  const readLines = (f) => [...f.querySelectorAll('.flow-line')].map((r) => ({ kind: r.querySelector('[name=k]').value, name: r.querySelector('[name=n]').value, amount: r.querySelector('[name=a]').value.trim(), part_type: r.querySelector('[name=k]').value === 'parts' ? r.querySelector('[name=pt]').value : undefined }));
   const etaFields = (z) => `<fieldset class="flow-eta"><legend>Estimated delivery (required)</legend><label class="flow-check"><input type="radio" name="ek" value="hours"${z.eta_kind !== 'date' ? ' checked' : ''}> Repair at the door: hours</label><input name="eh" inputmode="numeric" maxlength="2" placeholder="Hours, 1 to 72" value="${esc(z.eta_hours ?? '')}" aria-label="Hours">
     <label class="flow-check"><input type="radio" name="ek" value="date"${z.eta_kind === 'date' ? ' checked' : ''}> Pickup: expected return day</label><input name="ed" type="date" value="${esc(z.eta_date ?? '')}" aria-label="Return day"><input name="ew" maxlength="40" placeholder="Time window, like afternoon" value="${esc(z.eta_window ?? '')}" aria-label="Time window"></fieldset>`;
   const readEta = (f) => { const k = f.querySelector('[name=ek]:checked'); return k && k.value === 'date' ? { kind: 'date', date: f.ed.value, window: f.ew.value.trim() } : { kind: 'hours', hours: Number(f.eh.value) }; };

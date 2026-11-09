@@ -34,6 +34,8 @@ export const callScript = (amount) => `To confirm your slot, pay ₹${amount} on
 
 /* ---------- Quote builder rules (same checks as the crm_quote_save RPC, which still decides) ---------- */
 export const QUOTE_KINDS = [['parts', 'Parts'], ['labour', 'Labour'], ['other', 'Other']];
+/** Genuine Parts Promise: every part line says whether it is Genuine or Equivalent. */
+export const PART_TYPES = [['genuine', 'Genuine'], ['equivalent', 'Equivalent']];
 const r2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 /** Lines are before GST; 18% GST is added on top; the confirmation fee already paid is credited. */
 export function quoteTotals(lines, feePaid = 0, rate = 18) {
@@ -48,6 +50,7 @@ export function quoteCheck(lines, eta, today = new Date()) {
   if (list.length > 20) return no('At most 20 lines.');
   for (const l of list) {
     if (!QUOTE_KINDS.some(([k]) => k === l.kind)) return no('Each line is parts, labour or other.');
+    if (l.kind === 'parts' && !PART_TYPES.some(([k]) => k === l.part_type)) return no('Mark each part as Genuine or Equivalent.');
     const nm = String(l.name || '').trim();
     if (nm.length < 2 || nm.length > 80) return no('Each line needs a name (2 to 80 characters).');
     if (hasPii(nm)) return no('Remove ID, bank or card numbers from the line names.');

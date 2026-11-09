@@ -505,7 +505,8 @@
         clear(host);
         st.lines.forEach(function (l, i) {
           host.appendChild(el('div', { class: 'g-line' }, [
-            el('select', { class: 'g-input', 'aria-label': 'Line ' + (i + 1) + ' type', onchange: function (e) { l.kind = e.target.value; } }, [['parts', 'Parts'], ['labour', 'Labour'], ['other', 'Other']].map(function (o) { return el('option', { value: o[0], selected: l.kind === o[0] ? true : null, text: o[1] }); })),
+            el('select', { class: 'g-input', 'aria-label': 'Line ' + (i + 1) + ' type', onchange: function (e) { l.kind = e.target.value; draw(); } }, [['parts', 'Parts'], ['labour', 'Labour'], ['other', 'Other']].map(function (o) { return el('option', { value: o[0], selected: l.kind === o[0] ? true : null, text: o[1] }); })),
+            l.kind === 'parts' ? el('select', { class: 'g-input', 'aria-label': 'Line ' + (i + 1) + ' Genuine or Equivalent', onchange: function (e) { l.part_type = e.target.value; } }, [['', 'Genuine or Equivalent?'], ['genuine', 'Genuine'], ['equivalent', 'Equivalent']].map(function (o) { return el('option', { value: o[0], selected: (l.part_type || '') === o[0] ? true : null, text: o[1] }); })) : null,
             el('input', { class: 'g-input', type: 'text', maxlength: 80, placeholder: 'What (e.g. Front brake pads)', 'aria-label': 'Line ' + (i + 1) + ' name', value: l.name, oninput: function (e) { l.name = e.target.value; } }),
             el('input', { class: 'g-input g-amt', type: 'number', inputmode: 'decimal', min: 0, max: 100000, step: '0.01', placeholder: '₹ before GST', 'aria-label': 'Line ' + (i + 1) + ' amount in rupees before GST', value: l.amount, oninput: function (e) { l.amount = e.target.value; sums(); } }),
             st.lines.length > 1 ? el('button', { type: 'button', class: 'g-x2', 'aria-label': 'Remove line ' + (i + 1), onclick: function () { st.lines.splice(i, 1); draw(); }, text: '×' }) : null]));
@@ -525,8 +526,8 @@
       }
       host.addEventListener('submit', function (e) {
         e.preventDefault(); clear(msg); var btn = d.getElementById('gEstSend');
-        var body = { id: j.id, lines: st.lines.map(function (l) { return { kind: l.kind, name: String(l.name).trim(), amount: Number(l.amount) }; }), notes: st.notes.trim() || null, hours: st.mode === 'hours' && st.hours !== '' ? Number(st.hours) : null, day: st.mode === 'day' && st.day ? st.day : null };
-        for (var i = 0; i < body.lines.length; i++) { var l = body.lines[i]; if (l.name.length < 2) return msg.appendChild(notice('err', 'Line ' + (i + 1) + ' needs a name.')); if (!isFinite(l.amount) || l.amount < 0) return msg.appendChild(notice('err', 'Line ' + (i + 1) + ' needs an amount.')); }
+        var body = { id: j.id, lines: st.lines.map(function (l) { return l.kind === 'parts' ? { kind: l.kind, name: String(l.name).trim(), amount: Number(l.amount), part_type: l.part_type || '' } : { kind: l.kind, name: String(l.name).trim(), amount: Number(l.amount) }; }), notes: st.notes.trim() || null, hours: st.mode === 'hours' && st.hours !== '' ? Number(st.hours) : null, day: st.mode === 'day' && st.day ? st.day : null };
+        for (var i = 0; i < body.lines.length; i++) { var l = body.lines[i]; if (l.name.length < 2) return msg.appendChild(notice('err', 'Line ' + (i + 1) + ' needs a name.')); if (!isFinite(l.amount) || l.amount < 0) return msg.appendChild(notice('err', 'Line ' + (i + 1) + ' needs an amount.')); if (l.kind === 'parts' && !l.part_type) return msg.appendChild(notice('err', 'Line ' + (i + 1) + ': mark the part as Genuine or Equivalent.')); }
         if (body.hours == null && !body.day) return msg.appendChild(notice('err', 'Give the estimated hours or a return day.'));
         btn.disabled = true; btn.textContent = 'Sending';
         api('estimate_submit', body).then(function (r) {

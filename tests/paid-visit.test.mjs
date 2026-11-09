@@ -59,7 +59,7 @@ test('a revised quote needs a new approval: sending it supersedes the old one', 
   assert.match(sql, /order by q\.version desc limit 1;\s+if latest is distinct from 'approved'/);
 });
 test('the delivery estimate is required before a quote can be sent', () => {
-  const lines = [{ kind: 'parts', name: 'Brake pad set', amount: '400' }];
+  const lines = [{ kind: 'parts', name: 'Brake pad set', amount: '400', part_type: 'genuine' }];
   assert.equal(quoteCheck(lines, null).ok, false); assert.match(quoteCheck(lines, {}).error, /estimated delivery/i);
   assert.equal(quoteCheck(lines, { kind: 'hours', hours: 0 }).ok, false); assert.equal(quoteCheck(lines, { kind: 'hours', hours: 73 }).ok, false); assert.equal(quoteCheck(lines, { kind: 'hours', hours: 3 }).ok, true);
   const today = new Date('2026-11-05T05:00:00Z');
@@ -68,7 +68,7 @@ test('the delivery estimate is required before a quote can be sent', () => {
   const sql = read('supabase/migrations/20261228000000_paid_confirmation.sql'); assert.match(sql, /set the estimated delivery before sending the quote/); assert.match(sql, /if q\.eta_text is null or q\.eta_kind is null then raise/);
 });
 test('quote lines are checked: parts, labour or other, named, 0 to 1,00,000, no ID numbers; totals add GST apart and credit the fee', () => {
-  const ok = { kind: 'parts', name: 'Pad', amount: 1 }, eta = { kind: 'hours', hours: 2 };
+  const ok = { kind: 'parts', name: 'Pad', amount: 1, part_type: 'genuine' }, eta = { kind: 'hours', hours: 2 };   // part_type added on purpose: Genuine Parts Promise
   assert.equal(quoteCheck([], eta).ok, false); assert.equal(quoteCheck(Array(21).fill(ok), eta).ok, false);
   assert.equal(quoteCheck([{ ...ok, kind: 'gift' }], eta).ok, false); assert.equal(quoteCheck([{ ...ok, name: 'x' }], eta).ok, false); assert.equal(quoteCheck([{ ...ok, amount: -1 }], eta).ok, false); assert.equal(quoteCheck([{ ...ok, amount: 100001 }], eta).ok, false); assert.equal(quoteCheck([{ ...ok, amount: '' }], eta).ok, false);
   assert.equal(quoteCheck([{ ...ok, name: 'ABCDE1234F' }], eta).ok, false);

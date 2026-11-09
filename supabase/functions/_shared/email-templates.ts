@@ -250,12 +250,14 @@ ${button('Chat on WhatsApp', d.whatsappUrl, WA, '#063B1C')}`;
 }
 
 // The itemised quote the customer approves on the tracking page. GST shown separately, the confirmation fee shown as already paid, the balance, and the estimated delivery.
-export type QuoteMailData = Site & { name: string; ref?: string | null; version: number; lines: { kind: string; name: string; amount: number }[]; subtotal: number; gst: number; total: number; feeCredit: number; balance: number; etaText: string; trackUrl: string; revised?: boolean };
+/** Genuine Parts Promise: a part line says Genuine or Equivalent. */
+const partTypeSuffix = (l: { kind: string; part_type?: string }) => (l.kind === 'parts' && l.part_type === 'genuine' ? ', Genuine' : l.kind === 'parts' && l.part_type === 'equivalent' ? ', Equivalent' : '');
+export type QuoteMailData = Site & { name: string; ref?: string | null; version: number; lines: { kind: string; name: string; amount: number; part_type?: string }[]; subtotal: number; gst: number; total: number; feeCredit: number; balance: number; etaText: string; trackUrl: string; revised?: boolean };
 export function quoteMail(d: QuoteMailData): Mail {
   const inr = (n: number) => '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const subject = `${d.revised ? 'Revised quote' : 'Your quote'}${d.ref ? ' ' + d.ref : ''}: approve to start the work`;
   const KIND: Record<string, string> = { parts: 'Parts', labour: 'Labour', other: 'Other' };
-  const items = d.lines.map((l) => `<tr><td style="padding:10px 0;border-bottom:1px solid ${LINE};font:15px ${FONT};color:${INK}">${escapeHtml(l.name)} <span style="color:${MUTED};font-size:12px">${escapeHtml(KIND[l.kind] ?? l.kind)}</span></td><td align="right" style="padding:10px 0;border-bottom:1px solid ${LINE};font:600 15px ${FONT};color:${INK}">${inr(l.amount)}</td></tr>`).join('');
+  const items = d.lines.map((l) => `<tr><td style="padding:10px 0;border-bottom:1px solid ${LINE};font:15px ${FONT};color:${INK}">${escapeHtml(l.name)} <span style="color:${MUTED};font-size:12px">${escapeHtml((KIND[l.kind] ?? l.kind) + partTypeSuffix(l))}</span></td><td align="right" style="padding:10px 0;border-bottom:1px solid ${LINE};font:600 15px ${FONT};color:${INK}">${inr(l.amount)}</td></tr>`).join('');
   const sum = (k: string, v: string, bold = false) => `<tr><td style="padding:6px 0;font:${bold ? '700 16px' : '14px'} ${FONT};color:${bold ? INK : MUTED}">${escapeHtml(k)}</td><td align="right" style="padding:6px 0;font:${bold ? '700 16px' : '600 15px'} ${FONT};color:${INK}">${escapeHtml(v)}</td></tr>`;
   const body = `${h1(d.revised ? 'Your revised quote' : 'Your quote')}
 ${p(`Hi ${first(d.name)}, the mechanic has checked your vehicle. ${d.revised ? 'Extra work was found, so this quote replaces the earlier one.' : ''} Nothing starts until you approve.`)}
@@ -265,7 +267,7 @@ ${p(`Hi ${first(d.name)}, the mechanic has checked your vehicle. ${d.revised ? '
 ${p(`<b>Estimated delivery:</b> ${escapeHtml(d.etaText)}`)}
 ${button('Review and approve', d.trackUrl, EMBER, '#1F1206')}
 <p style="margin:14px 0 0;font:13px/1.5 ${FONT};color:${MUTED}">You can also decline on that page. This link is private to you.</p>`;
-  const text = `${d.revised ? 'Revised quote' : 'Your quote'}${d.ref ? ' ' + d.ref : ''}\n\n${d.lines.map((l) => `${l.name} (${KIND[l.kind] ?? l.kind}): ${inr(l.amount)}`).join('\n')}\n\nSubtotal (before GST): ${inr(d.subtotal)}\nGST @ 18%: ${inr(d.gst)}\nTotal: ${inr(d.total)}\n${d.feeCredit ? `Confirmation fee already paid: -${inr(d.feeCredit)}\n` : ''}Balance to pay: ${inr(d.balance)}\n\nEstimated delivery: ${d.etaText}\n\nReview and approve: ${d.trackUrl}\nNothing starts until you approve.`;
+  const text = `${d.revised ? 'Revised quote' : 'Your quote'}${d.ref ? ' ' + d.ref : ''}\n\n${d.lines.map((l) => `${l.name} (${(KIND[l.kind] ?? l.kind) + partTypeSuffix(l)}): ${inr(l.amount)}`).join('\n')}\n\nSubtotal (before GST): ${inr(d.subtotal)}\nGST @ 18%: ${inr(d.gst)}\nTotal: ${inr(d.total)}\n${d.feeCredit ? `Confirmation fee already paid: -${inr(d.feeCredit)}\n` : ''}Balance to pay: ${inr(d.balance)}\n\nEstimated delivery: ${d.etaText}\n\nReview and approve: ${d.trackUrl}\nNothing starts until you approve.`;
   return { subject, html: layout({ preheader: `Total ${inr(d.total)}. Estimated delivery: ${d.etaText}`, title: subject, body, site: d }), text };
 }
 // Short email when the delivery estimate changes.
