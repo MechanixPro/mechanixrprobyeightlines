@@ -1,0 +1,21 @@
+/* Pro Check 20 screens (mechanic job page and garage app). Same tokens and 56px primary buttons as the Collect payment screen. */
+.pc{display:flex;flex-direction:column;flex:1;min-height:0;font-family:var(--font,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif);color:var(--text,#0B1220)}
+.pc-in{display:flex;flex-direction:column;gap:10px;width:100%;max-width:460px;margin:0 auto;padding:8px 16px 16px;flex:1;min-height:0}
+.pc-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pc-dots{display:flex;gap:5px}.pc-dot{width:9px;height:9px;border-radius:50%;background:var(--border,#E3E6EC)}.pc-dot.done{background:var(--good,#157A3E)}.pc-dot.now{background:var(--accent,#F2801F);transform:scale(1.25)}
+.pc-list{display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;min-height:0;padding:2px 0}
+.pc-row{background:var(--surface,#fff);border:1px solid var(--border,#E3E6EC);border-radius:var(--radius,10px);padding:10px}
+.pc-q{margin:0 0 8px;font-size:17px;font-weight:600}
+.pc-seg{display:flex;gap:6px}
+.pc-b{flex:1;min-height:48px;font-weight:600;font-size:16px;line-height:1.1;font-family:inherit;border-radius:12px;border:2px solid var(--border2,#8892A6);background:var(--surface,#fff);color:var(--text,#0B1220);cursor:pointer;padding:4px}
+.pc-b.on.pc-ok{background:var(--good-bg,rgba(21,122,62,.14));border-color:var(--good,#157A3E)}
+.pc-b.on.pc-needs_attention{background:var(--warn-bg,rgba(196,106,10,.16));border-color:var(--warn,#C46A0A)}
+.pc-b.on.pc-not_applicable{background:var(--surface2,#F1F3F6);border-color:var(--text3,#556075)}
+.pc-note{display:block;width:100%;box-sizing:border-box;min-height:44px;margin-top:8px;font-size:16px;font-family:inherit;border:1px solid var(--border2,#8892A6);border-radius:10px;padding:8px 10px}
+.pc-big{min-height:56px;font-weight:600;font-size:18px;line-height:1.2;font-family:inherit;border-radius:16px;border:2px solid var(--border2,#8892A6);background:var(--surface,#fff);color:var(--text,#0B1220);cursor:pointer}
+.pc-big.on{border-color:var(--accent,#F2801F);background:var(--accent-bg,rgba(242,128,31,.14))}
+.pc-why{display:flex;flex-wrap:wrap;gap:8px}.pc-chip{min-height:44px;font-weight:600;font-size:16px;line-height:1.1;font-family:inherit;border-radius:999px;border:2px solid var(--border2,#8892A6);background:var(--surface,#fff);padding:6px 14px;cursor:pointer}.pc-chip.on{border-color:var(--accent,#F2801F);background:var(--accent-bg,rgba(242,128,31,.14))}
+.pc-err{margin:0;min-height:0;font-size:16px;color:var(--bad-text,#9A1F18)}.pc-err:empty{display:none}
+.pc-sg-h{margin:8px 0 0;font-weight:700}.pc-sg{margin:4px 0 12px;padding-left:20px;text-align:left}
+.pc .cp-h{font-size:24px;margin:0}.pc .cp-line{margin:0;color:var(--text2,#2B3445)}
+@media (prefers-reduced-motion:reduce){.pc-dot.now{transform:none}}

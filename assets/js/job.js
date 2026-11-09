@@ -188,6 +188,7 @@
       h += hold ? '<p class="muted">' + hold + '</p>' : '<p class="hint">Ask the customer for their 4-digit code. Do not start without it.</p><label class="label" for="jv-code">Code from the customer</label><input id="jv-code" class="job-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="4 digits"><p class="err" id="jv-msg" role="alert"></p>' + vbtn('visit_start', 'Verify code and start the job');
     } else if (st === 'started') {
       h += '<p class="job-ok">Code verified. Check the ' + what + ' and tell the desk what it needs.</p>'
+        + (d.vehicle === 'bike' && window.MXP_PCHK && window.MXP_PRO_CHECK ? '<p class="hint">Do the Pro Check 20 and the test ride before the quote.</p>' + vbtn('check_open', 'Pro Check 20', ' id="jv-check"') : '')
         + quotePanel(d.quote_view)
         + (d.can_start_work ? '' : '<p class="hint">Start work is blocked until the customer approves the quote. If they said yes on the phone, ask the desk to record it.</p>')
         + vbtn('visit_outcome', 'Start work: repair at the customer\'s place', ' data-outcome="repair_doorstep"' + (d.can_start_work ? '' : ' disabled aria-disabled="true"'))
@@ -213,6 +214,16 @@
       poll: function () { return call({ action: 'visit_state', t: t }).then(function (x) { return x.ok && x.d.pay ? Object.assign({}, x.d.pay) : null; }); } });
     payOverlay.appendChild(payUI.el); document.body.appendChild(payOverlay);
   };
+  /* Pro Check 20: a full-screen set of screens over the job (shared module assets/js/pro-check-ui.js). */
+  var chkOverlay = null;
+  var closeCheck = function () { if (chkOverlay) chkOverlay.remove(); chkOverlay = null; loadVisit(); };
+  var openCheck = function () {
+    if (!window.MXP_PCHK || !window.MXP_PRO_CHECK || chkOverlay) return;
+    chkOverlay = document.createElement('div'); chkOverlay.className = 'cp-overlay'; chkOverlay.id = 'jbCheckPage';
+    var ui = window.MXP_PCHK.create({ doc: document, win: window, onClose: closeCheck,
+      call: function (a, b) { return call(Object.assign({ action: a, t: t }, b || {})).then(function (x) { return { ok: x.ok && x.d.ok !== false, data: x.d }; }); } });
+    chkOverlay.appendChild(ui.el); document.body.appendChild(chkOverlay);
+  };
   var payState = null;
   var pollTimer = null;
   var loadVisit = function () {
@@ -225,6 +236,7 @@
   vis.addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b || vbusy) return; var act = b.dataset.v, msgEl = document.getElementById('jv-msg') || document.getElementById('jv-err'), body = { action: act, t: t };
     if (act === 'refresh') { loadVisit(); return; }
+    if (act === 'check_open') { openCheck(); return; }
     if (act === 'pay_open') { if (payState) openPay(Object.assign({}, payState.pay), payState.first); return; }
     if (act === 'share') { if (!sharer) return; if (sharer.active()) sharer.stop('stopped'); else sharer.start(); paintShare(); return; }
     if (act === 'visit_status') body.stage = b.dataset.stage;

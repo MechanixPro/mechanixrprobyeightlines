@@ -290,6 +290,16 @@
       body.push(wizPage(j, page));
       shell(body, 'jobs'); app.classList.add('g-wiz');
     }
+    /* Pro Check 20: a full-screen set of screens over the job (shared module assets/js/pro-check-ui.js). */
+    var chkOverlay = null;
+    function closeCheck() { if (chkOverlay && chkOverlay.parentNode) chkOverlay.parentNode.removeChild(chkOverlay); chkOverlay = null; render(); }
+    function openCheck(j) {
+      if (chkOverlay || !win.MXP_PCHK) return;
+      chkOverlay = d.createElement('div'); chkOverlay.className = 'cp-overlay'; chkOverlay.id = 'gCheckPage';
+      var ui = win.MXP_PCHK.create({ doc: d, win: win, onClose: closeCheck,
+        call: function (a, b) { return api(a, Object.assign({ id: j.id }, b || {})).then(function (r) { return { ok: r.ok, data: r.data }; }); } });
+      chkOverlay.appendChild(ui.el); d.body.appendChild(chkOverlay);
+    }
     /* Collect payment page: online first (amount, QR, WhatsApp link); cash/UPI behind 'Customer wants to inspect first'. Rules are enforced by the server. */
     var payUI = null;
     function payPage(j) {
@@ -405,6 +415,7 @@
         }));
       } else if (page === 'inspect') {
         title = 'Inspect and quote'; lines = [j.quote.label];
+        if (j.vehicle_type === 'bike' && win.MXP_PCHK && win.MXP_PRO_CHECK) kids.push(big('gStepCheck', 'Pro Check 20 and test ride', function () { openCheck(j); }));
         if (j.can_start) { lines.push('Code confirmed. Start the work.'); kids.push(big('gStepStart', 'Start work', function (b) { send(b, 'work_started', []); })); }
         else { lines.push(j.start_blocked_reason || 'The customer must approve the quote first.'); kids.push(big('gStepEstimate', 'Send estimate', function () { f.view = 'estimate'; render(); })); }
       } else if (page === 'ready') {
