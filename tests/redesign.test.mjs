@@ -9,7 +9,7 @@ const SAMPLE = ['index.html', 'bike-service-hsr-layout/index.html', 'bike-servic
 
 test('the home page has six sections, in the order a visitor decides', () => {
   const ids = [...main.matchAll(/<section[^>]*id="([a-z-]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(ids, ['hero', 'brief', 'work', 'prices', 'team', 'garages', 'trust', 'areas', 'faq', 'tools']);
+  assert.deepEqual(ids, ['hero', 'how-hub', 'brief', 'work', 'prices', 'team', 'garages', 'trust', 'pro-check', 'compare', 'own-a-workshop', 'helpline', 'phone-app', 'areas', 'faq', 'tools']);   // changed on purpose 2026-11-09: journey after the hero (the old brief stays for cars), then Pro Check, comparison, partner, helpline and app sections
   assert.ok(main.indexOf('class="stage"') < main.indexOf('class="sheet"'), 'a navy stage first, then the light sheet');
   assert.equal((main.match(/<h1[ >]/g) || []).length, 1);
 });
@@ -38,9 +38,12 @@ test('booking card, then WhatsApp us and Call as secondary links; the car set sw
 // Changed on purpose: how it works now follows the real flow (book and pay a small confirmation fee, mechanic comes with a one-time code, itemised quote you approve) and shows the gate illustration instead of the outdated demo video.
 test('how it works has three steps that match the real booking flow, with the gate illustration and no outdated video', () => {
   const from = main.indexOf('id="brief"'), b = main.slice(from, main.indexOf('</section>', from));
-  assert.equal((b.match(/<li><b>/g) || []).length, 6, 'three bike steps and three car steps');
-  assert.match(b, /Book and confirm your slot/); assert.match(b, /Your mechanic comes to your door/); assert.match(b, /Itemised quote, you approve/);
+  // changed on purpose 2026-11-09: the bike steps are the animated journey (#how-hub); #brief now holds the three car steps only
+  assert.equal((b.match(/<li><b>/g) || []).length, 3, 'three car steps');
+  assert.match(b, /Book and confirm your slot/); assert.match(b, /Your mechanic comes to your door/); assert.match(b, /Work and price, you approve/);
   assert.match(b, /confirmation fee, ₹\d+ to ₹\d+/); assert.match(b, /at-your-door-1200\.webp/);
+  const jf = main.indexOf('id="how-hub"'), j = main.slice(jf, main.indexOf('</section>', jf));
+  assert.equal((j.match(/class="jr-step reveal"/g) || []).length, 3, 'three journey steps'); assert.match(j, /confirmation fee, ₹\d+ to ₹\d+/); assert.match(j, /one-time code/i);
   assert.doesNotMatch(b, /<video/);
 });
 test('prices come from the price source, say "from", and keep GST apart; no price was changed', () => {
@@ -117,7 +120,7 @@ test('one font, one accent; tap targets, focus, reduced motion and contrast toke
 });
 test('the home page stays light: one eager hero photo (lazy extras), no chat script, no script slideshow', () => {
   assert.doesNotMatch(home, /hero-rain|chatstart\.js|hero\.js|showcase\.js|class="ticker"/);
-  assert.ok(Buffer.byteLength(home) < 54000, 'home HTML is ' + Buffer.byteLength(home) + ' bytes');   // raised on purpose from 44,000 then 48,000 (hero carousel slides, then the garages gallery and welcome video)
+  assert.ok(Buffer.byteLength(home) < 66000, 'home HTML is ' + Buffer.byteLength(home) + ' bytes');   // raised on purpose to 66,000 on 2026-11-09 (journey, Pro Check, comparison, partner, helpline and app sections)   // raised on purpose from 44,000 then 48,000 (hero carousel slides, then the garages gallery and welcome video)
   assert.ok(readdirSync(new URL('../assets/css/', import.meta.url)).includes('site.css'));
   assert.ok(Buffer.byteLength(css) < 32000, 'site.css is ' + Buffer.byteLength(css) + ' bytes');
 });
@@ -133,7 +136,8 @@ test('the money and service promises the old trust block made are still on the h
 });
 test('the home page still links to roadside help, fleets and apartments (header menu) and every WhatsApp message asks for model and area', () => {
   for (const h of ['/roadside/', '/fleet/', '/societies/', '/services/', '/help/']) assert.ok(home.includes(`href="${h}"`), h);
-  for (const m of main.matchAll(/data-wa-text="([^"]+)"/g)) { assert.match(m[1], /^Hi Mechanix Pro/); assert.match(m[1], /Area/); assert.match(m[1], /Bike model|Car make and model/); }
+  for (const m of main.matchAll(/data-wa-text="([^"]+)"/g)) { assert.match(m[1], /^Hi Mechanix Pro/); if (/join your network/.test(m[1])) continue;   // the partner message is for garages and mechanics, not customers
+    assert.match(m[1], /Area/); assert.match(m[1], /Bike model|Car make and model/); }
 });
 
 test('every inner page is a navy stage with the H1, then a light sheet; text, canonicals and JSON-LD are untouched', () => {

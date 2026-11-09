@@ -1128,7 +1128,106 @@ def workshop_teaser_html():
             f'<p class="note">Real photos, HSR Layout, Bengaluru. Edited for privacy.</p>'
             f'<a class="ws-tz" href="/workshop/">{imgs}</a><p><a class="btn btn-ghost" href="/workshop/">Visit the workshop page</a></p></div></section>\n')
 
-HERO_CSS = '<link rel="stylesheet" href="/assets/css/hero.css">\n'
+# ---- City hub sections for /two-wheeler-service-at-home-bangalore/ only: brands, services, how it works, comparison. Text-only brand chips (no logos); every claim already appears in terms or on the site. ----
+def _first_model(prefix):
+    d = os.path.join(ROOT, 'bike-service')
+    hits = sorted(x for x in os.listdir(d) if x.startswith(prefix) and os.path.isdir(os.path.join(d, x))) if os.path.isdir(d) else []
+    return f'/bike-service/{hits[0]}/' if hits else '/services/'
+HUB_PETROL = [('Honda', 'honda-'), ('Hero', 'hero-'), ('TVS', 'tvs-'), ('Bajaj', 'bajaj-'), ('Royal Enfield', 'royal-enfield-'), ('Yamaha', 'yamaha-'), ('Suzuki', 'suzuki-'), ('KTM', 'ktm-'), ('Kawasaki', 'kawasaki-'), ('Jawa and Yezdi', 'jawa-yezdi-'), ('Harley-Davidson', 'harley-davidson-'), ('Triumph', 'triumph-')]
+HUB_EV = [('Ola Electric', 'ola-electric-'), ('Pure EV', 'pure-ev-')]
+HUB_CARDS = [
+    ('Periodic general service', 'Basic, Standard or Full, by engine size.', ['Engine oil, air filter and spark plug checks', 'Brake cleaning and adjustment', 'Chain cleaning and lubrication', 'Basic from {{price:basic}}, before GST'], '/services/#included', 'periodic', False),
+    ('Doorstep bike service at home', 'The mechanic comes to your home, office parking or society.', ['No pickup, no garage queue', 'Standard service from {{price:general}}, before GST', 'Quote first, work after your OK', 'Photos and your bill after the work'], '/services/#prices', 'doorstep', True),
+    ('Brakes and safety check', 'Brake and safety points checked on every service.', ['Front and rear brake cleaning and adjustment', 'Brake cable check and lubrication', 'Nuts and bolts tightened', 'Side and centre stand check'], '/services/#included', 'brakes', False),
+    ('Electrical and battery check', 'Starting trouble, weak lights or a tired battery.', ['Battery checkup', 'Headlight and indicator checkup', 'Battery health test as an add-on', 'Extra work quoted first'], '/services/#addons', 'electrical', False),
+    ('Engine and clutch work', 'Engine idling, noise, clutch and drive checks.', ['Engine idling check and adjustment', 'Clutch inspection and adjustment', 'Throttle cable and exhaust inspection', 'Repair estimate before work'], '/services/#included', 'engine', False),
+    ('Suspension, fork and tyres', 'Ride comfort and grip, checked by eye and by hand.', ['Front and rear tyre condition check', 'Front fork inspection', 'Suspension inspection in the Full service', 'Puncture help and a tyre check as add-ons'], '/services/#addons', 'tyres', False),
+]
+HUB_STEPS = [
+    ('at-your-door', 'A Mechanix Pro mechanic servicing a motorcycle in an apartment car park', 'Tell us your bike and book', 'Pay the small confirmation fee, {{confirmrange}} by engine size. It is adjusted in your final bill.'),
+    ('quote-approval', 'A customer points at an itemised quote on the mechanic\'s tablet and smiles', 'The mechanic inspects and quotes', 'You give the one-time code at the door. The mechanic inspects and sends an itemised quote. Work starts only after you say yes.'),
+    ('delivery-photo', 'A mechanic takes a photo of the finished motorcycle with the customer giving a thumbs up', 'Pay after the work', 'Pay online by QR or link, then get your photos and your bill.'),
+]
+HUB_ROWS = [
+    ('Partners checked', 'Documents checked and garage visited before going live', 'Usually not checked'),
+    ('Quote before work', 'Itemised quote, nothing starts without your OK', 'Usually a verbal estimate'),
+    ('One-time code at handover', 'Yes', 'Usually no'),
+    ('Photos at pickup, ready and delivery', 'Yes', 'Rarely'),
+    ('Online payment with a bill', 'QR or link, with a bill', 'Often cash only'),
+    ('Repair warranty', '{{days}}-day service warranty on our work', 'Usually none or verbal'),
+    ('Doorstep service', 'Yes, in our service area', 'You usually take the bike in'),
+    ('Track your job', 'Private tracking link', 'Usually call to ask'),
+]
+def city_hub_parts():
+    chips = lambda rows: '<ul class="hub-chips">' + ''.join(f'<li><a href="{_first_model(pre)}">{html.escape(n)}</a></li>' for n, pre in rows) + '</ul>'
+    brands = ('<section id="brands"><div class="wrap"><div class="sec-head"><h2>Brands we service in Bengaluru.</h2><p>We service all major two-wheeler brands. Tell us your model when you book and we confirm it.</p></div>'
+              '<h3 class="hub-lab">Petrol motorcycles and scooters</h3>' + chips(HUB_PETROL) + '<h3 class="hub-lab">Electric two-wheelers</h3>' + chips(HUB_EV) +
+              '<p class="tiny muted">Brand names belong to their owners and are used only to show which bikes we service.</p></div></section>')
+    POP = '<span class="hub-pop">Popular in Bengaluru</span>'
+    cards = ''.join('<li class="hub-card">' + (POP if pop else '') + f'<h3>{html.escape(t)}</h3><p>{html.escape(d)}</p><ul>' + ''.join(f'<li>{html.escape(b)}</li>' for b in bl) + f'</ul><a href="{href}">See what is included</a></li>' for t, d, bl, href, _k, pop in HUB_CARDS)
+    services = f'<section class="band" id="services-hub"><div class="wrap"><div class="sec-head"><h2>Services we provide in Bengaluru.</h2></div><ul class="hub-cards">{cards}</ul></div></section>'
+    steps = ''.join(f'<li class="hub-step"><img src="/assets/img/hero/{im}-700.webp" width="700" height="347" loading="lazy" decoding="async" alt="{html.escape(alt)}"><h3><span class="soon-n">{i + 1}</span> {html.escape(t)}</h3><p>{html.escape(d)}</p></li>' if im == 'at-your-door' else f'<li class="hub-step"><img src="/assets/img/hero/{im}-{"600" if im.startswith("garage") else "700"}.webp" width="600" height="400" loading="lazy" decoding="async" alt="{html.escape(alt)}"><h3><span class="soon-n">{i + 1}</span> {html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for i, (im, alt, t, d) in enumerate(HUB_STEPS))
+    JR = [('book-phone', 'A customer in an apartment complex books a service on her phone, her scooter parked beside her', 'Book in minutes', 'Pick your bike and a slot, then pay the small fee.', 'Choose your bike, your PIN code and a time, including today if there is room. You pay a small confirmation fee, {{confirmrange}} by engine size, adjusted in your final bill.', ('Home, office or society', 'Fee adjusted in your bill')),
+          ('quote-approval', 'A customer points at an itemised quote on the mechanic\'s tablet and smiles', 'A checked mechanic arrives', 'A checked mechanic arrives with a full toolkit.', 'Follow them on your tracking page. At the door you give your one-time code, the mechanic inspects the bike and sends an itemised quote, and nothing starts until you say yes.', ('One-time code', 'Quote before work')),
+          ('delivery-photo', 'A mechanic takes a photo of the finished motorcycle with the customer giving a thumbs up', 'Keys back, with proof', 'You get your bike back with photos and a bill.', 'See photos of the work and the replaced parts, pay online by QR or link, and get an itemised bill. Our repair work is covered for {{days}} days: if the same work fails in that time, we redo it free.', ('Photos at delivery', '{{days}}-day warranty'))]
+    arrow = lambda flip: ('<div class="jr-conn' + (' flip' if flip else '') + '" aria-hidden="true">'
+                          '<svg class="jr-d" viewBox="0 0 1000 128" focusable="false"><circle class="jr-dot" cx="256" cy="6" r="6"/><path class="jr-cp" d="M256 12C256 78 330 92 500 92S744 80 744 108"/><path class="jr-ch" d="M730 104h28L744 126z"/></svg>'
+                          '<svg class="jr-v" viewBox="0 0 34 84" focusable="false"><circle class="jr-dot" cx="17" cy="6" r="6"/><path class="jr-cp" d="M17 12V64"/><path class="jr-ch" d="M5 62h24L17 82z"/></svg></div>')
+    jr = ''
+    for n, (im, alt, chip, h3, p, pills) in enumerate(JR):
+        jr += (f'<article class="jr-step reveal"><figure class="jr-fig"><img src="/assets/img/hero/{im}-700.webp" width="700" height="467" loading="lazy" decoding="async" alt="{html.escape(alt)}"><span class="jr-badge">Step {n + 1}</span></figure>'
+               f'<div class="jr-text"><span class="jr-chip">{html.escape(chip)}</span><h3>{html.escape(h3)}</h3><p>{html.escape(p)}</p><ul class="jr-pills">' + ''.join(f'<li>{html.escape(x)}</li>' for x in pills) + '</ul></div></article>')
+        if n < len(JR) - 1: jr += arrow(n % 2 == 1)
+    how = f'<section id="how-hub" class="journey"><div class="wrap"><div class="sec-head"><h2>How a booking works.</h2><p>From your sofa to your keys, in three steps.</p></div><div class="jr-steps">{jr}</div></div></section>'
+    rows = ''.join(f'<tr><th scope="row">{html.escape(a)}</th><td>{html.escape(b)}</td><td>{html.escape(c)}</td></tr>' for a, b, c in HUB_ROWS)
+    cmp_ = ('<section class="band" id="compare"><div class="wrap"><div class="sec-head"><h2>Mechanix Pro vs an unverified roadside workshop.</h2></div><div class="hub-table" role="region" aria-label="Comparison table" tabindex="0"><table><thead><tr><th scope="col">What you get</th><th scope="col">Mechanix Pro</th><th scope="col">An unverified roadside workshop</th></tr></thead><tbody>'
+            + rows + '</tbody></table></div><p class="tiny muted">Based on how most unbranded roadside workshops work. Your experience may differ.</p></div></section>')
+    helpline = ('<section class="band" id="helpline"><div class="wrap"><div class="final"><h2>Bike broken down in Bengaluru?</h2><p>Share your live location on WhatsApp. A Mechanix Pro mechanic comes to you, and you approve any extra work before it starts.</p>'
+                '<div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, my bike has broken down in Bengaluru.&#10;Bike model: &#10;Area: &#10;What happened: &#10;I will share my live location.">WhatsApp for help</a><a class="btn btn-ghost" href="#" data-call>Call us</a></div></div></div></section>')
+    partner = ('<section id="own-a-workshop"><div class="wrap"><div class="sec-head"><h2>Own a workshop or work as a mechanic?</h2><p>Join the Mechanix Pro network in Bengaluru and get doorstep and garage jobs sent to your phone.</p></div><ul class="hub-cards">'
+               '<li class="hub-card hp"><h3>Jobs on your phone</h3><p>New jobs arrive in the Mechanix Pro garage and mechanic app, with an alert, address and a Navigate button.</p></li>'
+               '<li class="hub-card hp"><h3>Quote first, fewer disputes</h3><p>Customers approve your itemised quote before work starts, and every job has photos and a one-time code.</p></li>'
+               '<li class="hub-card hp"><h3>Paid every week</h3><p>Finished, paid jobs are settled weekly, with a clear statement in the app.</p></li>'
+               '<li class="hub-card hp"><h3>Join from your phone</h3><p>Upload your documents and the signed agreement on your phone. We check them and tell you when you are approved.</p></li>'
+               '</ul><p class="hub-cta"><a class="btn btn-wa" href="/join/">Apply to join</a> <a class="btn btn-ghost" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I run a garage or I am a mechanic and I want to join your network.">Ask on WhatsApp</a></p></div></section>')
+    return {'brands': brands, 'services': services, 'how': how, 'cmp': cmp_, 'helpline': helpline, 'partner': partner}
+
+# ---- Home page sections (bike view): the animated booking journey, then Pro Check 20, the comparison, the partner call and the helpline. Built from the same parts as the city page. ----
+def home_journey_html():
+    return '<div class="bike-only">' + city_hub_parts()['how'] + '</div>'
+def home_trust_html():
+    P = city_hub_parts()
+    chips = ''.join(f'<li>{html.escape(n)}</li>' for n in ('Brakes', 'Tyres and wheels', 'Engine', 'Electrical', 'Drive', 'Frame', 'Leaks and noise', 'Test ride'))
+    pro = ('<section id="pro-check" class="band"><div class="wrap"><div class="pcteaser"><div><span class="jr-chip">New</span><h2>Pro Check 20 and a test ride.</h2>'
+           '<p>Before your quote, your mechanic checks 20 points on your bike and finishes with a test ride. You see every result on your tracking page.</p>'
+           '<p><a class="btn btn-wa" href="/pro-check/">See the 20 points</a> <a class="btn btn-ghost" href="/our-process/">How we keep your bike safe</a></p></div>'
+           f'<ul class="pcchips">{chips}</ul></div></div></section>')
+    app = ('<section id="phone-app"><div class="wrap"><div class="appband"><div><h2>Mechanix Pro on your phone.</h2><p>Add it to your home screen in two taps to book, track your job and see your photos and bill. Garages and mechanics get their own app link.</p></div>'
+           '<a class="btn btn-ghost" href="/app/">Add to your phone</a></div></div></section>')
+    return '<div class="bike-only">' + pro + P['cmp'] + P['partner'] + P['helpline'] + app + '</div>'
+
+# ---- /help/: "What happens at your doorstep" becomes the same animated picture journey as the home page. The five steps stay in src/help.html (one source of truth); this turns them into cards. ----
+HELP_PICS = [('book-phone', 'A customer books a service on her phone in her apartment complex'), ('team-1000', 'The Mechanix Pro team in navy polo shirts with the shield badge, in front of a garage and a service van'),
+             ('code-at-door', 'A customer points at the one-time code on her phone while the mechanic holds a tablet ready to enter it'), ('quote-approval', 'A customer points at an itemised quote on the mechanic\'s tablet and smiles'),
+             ('delivery-photo', 'A mechanic takes a photo of the finished motorcycle with the customer giving a thumbs up')]
+def help_journey(content):
+    m = re.search(r'<ol class="timeline">(.*?)</ol>', content, re.S)
+    if not m: return content
+    items = re.findall(r'<li><span class="dot">(\d)</span><h3>(.*?)</h3><p>(.*?)</p>((?:(?!<li>).)*?)</li>', m.group(1), re.S)   # group 4: extras after the text (the code video on step 3)
+    if len(items) != 5: return content
+    arrow = lambda flip: ('<div class="jr-conn' + (' flip' if flip else '') + '" aria-hidden="true">'
+                          '<svg class="jr-d" viewBox="0 0 1000 128" focusable="false"><circle class="jr-dot" cx="256" cy="6" r="6"/><path class="jr-cp" d="M256 12C256 78 330 92 500 92S744 80 744 108"/><path class="jr-ch" d="M730 104h28L744 126z"/></svg>'
+                          '<svg class="jr-v" viewBox="0 0 34 84" focusable="false"><circle class="jr-dot" cx="17" cy="6" r="6"/><path class="jr-cp" d="M17 12V64"/><path class="jr-ch" d="M5 62h24L17 82z"/></svg></div>')
+    out = ''
+    for i, ((n, h3, p, extra), (im, alt)) in enumerate(zip(items, HELP_PICS)):
+        stem = im if im.startswith('team') else im
+        src_ = f'/assets/img/hero/{stem}.webp' if im == 'team-1000' else f'/assets/img/hero/{im}-700.webp'
+        out += (f'<article class="jr-step reveal"><figure class="jr-fig"><img src="{src_}" width="700" height="467" loading="lazy" decoding="async" alt="{html.escape(alt)}"><span class="jr-badge">Step {n}</span></figure>'
+                f'<div class="jr-text"><h3>{h3}</h3><p>{p}</p>{extra.strip()}</div></article>')
+        if i < len(items) - 1: out += arrow(i % 2 == 1)
+    return content[:m.start()] + '<div class="jr-steps">' + out + '</div>' + content[m.end():]
+
+HERO_CSS = '<link rel="stylesheet" href="/assets/css/hero.css">\n<link rel="stylesheet" href="/assets/css/home2.css">\n'
 HERO_PRELOAD = '<link rel="preload" as="image" href="/assets/img/hero/hero-quote-1200.webp" fetchpriority="high">\n'   # the bike hero's first picture (the quote scene, eager); home only. The car picture is lazy and is not preloaded.
 BOOK_JS = '<link rel="stylesheet" href="/assets/css/book.css"><link rel="stylesheet" href="/assets/css/journey.css">\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/thanks.js" defer></script>\n<script src="/assets/js/book-pay.js" defer></script>'
 def services_catalog():
@@ -1168,7 +1267,8 @@ for slug, src, title, desc, ld, body, scripts, prio in MAIN:
         _src = open(os.path.join(ROOT, 'src', 'home.html'), encoding='utf-8').read()
         _faq = faq_from_html(_src)
         if _faq: schema += ld_tag(faq_ld(_faq))
-    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--AREA_LINKS-->', AREA_LINKS).replace('<!--WORKSHOP_TEASER-->', workshop_teaser_html()).replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
+    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--AREA_LINKS-->', AREA_LINKS).replace('<!--WORKSHOP_TEASER-->', workshop_teaser_html()).replace('<!--HOME_JOURNEY-->', home_journey_html()).replace('<!--HOME_TRUST-->', home_trust_html()).replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
+    if src == 'help': content = help_journey(content)
     out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(dock=(src not in ('book', 'book-pay')), dock_home=(src == 'home'))
     if src in ('book', 'book-pay'):
         out = out.replace('</title>', '</title><meta name="robots" content="noindex,follow">', 1)   # transactional pages: kept out of search, still crawlable for links
@@ -1326,67 +1426,7 @@ car_page()
 # ---- Search landing pages (src/landing.json): the things riders actually search for, each with its own useful page, FAQ and structured data ----
 LANDING_PRICES = ''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES if k in ('basic', 'general', 'full', 'repair', 'puncture', 'sos'))
 LANDING = json.load(open(os.path.join(ROOT, 'src', 'landing.json'), encoding='utf-8'))
-# ---- City hub sections for /two-wheeler-service-at-home-bangalore/ only: brands, services, how it works, comparison. Text-only brand chips (no logos); every claim already appears in terms or on the site. ----
-def _first_model(prefix):
-    d = os.path.join(ROOT, 'bike-service')
-    hits = sorted(x for x in os.listdir(d) if x.startswith(prefix) and os.path.isdir(os.path.join(d, x))) if os.path.isdir(d) else []
-    return f'/bike-service/{hits[0]}/' if hits else '/services/'
-HUB_PETROL = [('Honda', 'honda-'), ('Hero', 'hero-'), ('TVS', 'tvs-'), ('Bajaj', 'bajaj-'), ('Royal Enfield', 'royal-enfield-'), ('Yamaha', 'yamaha-'), ('Suzuki', 'suzuki-'), ('KTM', 'ktm-'), ('Kawasaki', 'kawasaki-'), ('Jawa and Yezdi', 'jawa-yezdi-'), ('Harley-Davidson', 'harley-davidson-'), ('Triumph', 'triumph-')]
-HUB_EV = [('Ola Electric', 'ola-electric-'), ('Pure EV', 'pure-ev-')]
-HUB_CARDS = [
-    ('Periodic general service', 'Basic, Standard or Full, by engine size.', ['Engine oil, air filter and spark plug checks', 'Brake cleaning and adjustment', 'Chain cleaning and lubrication', 'Basic from {{price:basic}}, before GST'], '/services/#included', 'periodic', False),
-    ('Doorstep bike service at home', 'The mechanic comes to your home, office parking or society.', ['No pickup, no garage queue', 'Standard service from {{price:general}}, before GST', 'Quote first, work after your OK', 'Photos and your bill after the work'], '/services/#prices', 'doorstep', True),
-    ('Brakes and safety check', 'Brake and safety points checked on every service.', ['Front and rear brake cleaning and adjustment', 'Brake cable check and lubrication', 'Nuts and bolts tightened', 'Side and centre stand check'], '/services/#included', 'brakes', False),
-    ('Electrical and battery check', 'Starting trouble, weak lights or a tired battery.', ['Battery checkup', 'Headlight and indicator checkup', 'Battery health test as an add-on', 'Extra work quoted first'], '/services/#addons', 'electrical', False),
-    ('Engine and clutch work', 'Engine idling, noise, clutch and drive checks.', ['Engine idling check and adjustment', 'Clutch inspection and adjustment', 'Throttle cable and exhaust inspection', 'Repair estimate before work'], '/services/#included', 'engine', False),
-    ('Suspension, fork and tyres', 'Ride comfort and grip, checked by eye and by hand.', ['Front and rear tyre condition check', 'Front fork inspection', 'Suspension inspection in the Full service', 'Puncture help and a tyre check as add-ons'], '/services/#addons', 'tyres', False),
-]
-HUB_STEPS = [
-    ('at-your-door', 'A Mechanix Pro mechanic servicing a motorcycle in an apartment car park', 'Tell us your bike and book', 'Pay the small confirmation fee, {{confirmrange}} by engine size. It is adjusted in your final bill.'),
-    ('quote-approval', 'A customer points at an itemised quote on the mechanic\'s tablet and smiles', 'The mechanic inspects and quotes', 'You give the one-time code at the door. The mechanic inspects and sends an itemised quote. Work starts only after you say yes.'),
-    ('delivery-photo', 'A mechanic takes a photo of the finished motorcycle with the customer giving a thumbs up', 'Pay after the work', 'Pay online by QR or link, then get your photos and your bill.'),
-]
-HUB_ROWS = [
-    ('Partners checked', 'Documents checked and garage visited before going live', 'Usually not checked'),
-    ('Quote before work', 'Itemised quote, nothing starts without your OK', 'Usually a verbal estimate'),
-    ('One-time code at handover', 'Yes', 'Usually no'),
-    ('Photos at pickup, ready and delivery', 'Yes', 'Rarely'),
-    ('Online payment with a bill', 'QR or link, with a bill', 'Often cash only'),
-    ('Repair warranty', '{{days}}-day service warranty on our work', 'Usually none or verbal'),
-    ('Doorstep service', 'Yes, in our service area', 'You usually take the bike in'),
-    ('Track your job', 'Private tracking link', 'Usually call to ask'),
-]
-def city_hub_block():
-    chips = lambda rows: '<ul class="hub-chips">' + ''.join(f'<li><a href="{_first_model(pre)}">{html.escape(n)}</a></li>' for n, pre in rows) + '</ul>'
-    brands = ('<section id="brands"><div class="wrap"><div class="sec-head"><h2>Brands we service in Bengaluru.</h2><p>We service all major two-wheeler brands. Tell us your model when you book and we confirm it.</p></div>'
-              '<h3 class="hub-lab">Petrol motorcycles and scooters</h3>' + chips(HUB_PETROL) + '<h3 class="hub-lab">Electric two-wheelers</h3>' + chips(HUB_EV) +
-              '<p class="tiny muted">Brand names belong to their owners and are used only to show which bikes we service.</p></div></section>')
-    POP = '<span class="hub-pop">Popular in Bengaluru</span>'
-    cards = ''.join('<li class="hub-card">' + (POP if pop else '') + f'<h3>{html.escape(t)}</h3><p>{html.escape(d)}</p><ul>' + ''.join(f'<li>{html.escape(b)}</li>' for b in bl) + f'</ul><a href="{href}">See what is included</a></li>' for t, d, bl, href, _k, pop in HUB_CARDS)
-    services = f'<section class="band" id="services-hub"><div class="wrap"><div class="sec-head"><h2>Services we provide in Bengaluru.</h2></div><ul class="hub-cards">{cards}</ul></div></section>'
-    steps = ''.join(f'<li class="hub-step"><img src="/assets/img/hero/{im}-700.webp" width="700" height="347" loading="lazy" decoding="async" alt="{html.escape(alt)}"><h3><span class="soon-n">{i + 1}</span> {html.escape(t)}</h3><p>{html.escape(d)}</p></li>' if im == 'at-your-door' else f'<li class="hub-step"><img src="/assets/img/hero/{im}-{"600" if im.startswith("garage") else "700"}.webp" width="600" height="400" loading="lazy" decoding="async" alt="{html.escape(alt)}"><h3><span class="soon-n">{i + 1}</span> {html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for i, (im, alt, t, d) in enumerate(HUB_STEPS))
-    JR = [('book-phone', 'A customer in an apartment complex books a service on her phone, her scooter parked beside her', 'Book in minutes', 'Pick your bike and a slot, then pay the small fee.', 'Choose your bike, your PIN code and a time, including today if there is room. You pay a small confirmation fee, {{confirmrange}} by engine size, adjusted in your final bill.', ('Home, office or society', 'Fee adjusted in your bill')),
-          ('quote-approval', 'A customer points at an itemised quote on the mechanic\'s tablet and smiles', 'A checked mechanic arrives', 'A checked mechanic arrives with a full toolkit.', 'Follow them on your tracking page. At the door you give your one-time code, the mechanic inspects the bike and sends an itemised quote, and nothing starts until you say yes.', ('One-time code', 'Quote before work')),
-          ('delivery-photo', 'A mechanic takes a photo of the finished motorcycle with the customer giving a thumbs up', 'Keys back, with proof', 'You get your bike back with photos and a bill.', 'See photos of the work and the replaced parts, pay online by QR or link, and get an itemised bill. Our repair work is covered for {{days}} days: if the same work fails in that time, we redo it free.', ('Photos at delivery', '{{days}}-day warranty'))]
-    arrow = lambda flip: ('<svg class="jr-arrow' + (' flip' if flip else '') + '" viewBox="0 0 420 110" aria-hidden="true" focusable="false"><path class="jr-path" d="M14 12C110 112 190-18 270 58S378 96 404 66"/><path class="jr-head" d="M388 54l20 14-24 8z"/></svg>')
-    jr = ''
-    for n, (im, alt, chip, h3, p, pills) in enumerate(JR):
-        jr += (f'<article class="jr-step reveal"><figure class="jr-fig"><img src="/assets/img/hero/{im}-700.webp" width="700" height="467" loading="lazy" decoding="async" alt="{html.escape(alt)}"><span class="jr-badge">Step {n + 1}</span></figure>'
-               f'<div class="jr-text"><span class="jr-chip">{html.escape(chip)}</span><h3>{html.escape(h3)}</h3><p>{html.escape(p)}</p><ul class="jr-pills">' + ''.join(f'<li>{html.escape(x)}</li>' for x in pills) + '</ul></div></article>')
-        if n < len(JR) - 1: jr += arrow(n % 2 == 1)
-    how = f'<section id="how-hub" class="journey"><div class="wrap"><div class="sec-head"><h2>How a booking works.</h2><p>From your sofa to your keys, in three steps.</p></div><div class="jr-steps">{jr}</div></div></section>'
-    rows = ''.join(f'<tr><th scope="row">{html.escape(a)}</th><td>{html.escape(b)}</td><td>{html.escape(c)}</td></tr>' for a, b, c in HUB_ROWS)
-    cmp_ = ('<section class="band" id="compare"><div class="wrap"><div class="sec-head"><h2>Mechanix Pro vs an unverified roadside workshop.</h2></div><div class="hub-table" role="region" aria-label="Comparison table" tabindex="0"><table><thead><tr><th scope="col">What you get</th><th scope="col">Mechanix Pro</th><th scope="col">An unverified roadside workshop</th></tr></thead><tbody>'
-            + rows + '</tbody></table></div><p class="tiny muted">Based on how most unbranded roadside workshops work. Your experience may differ.</p></div></section>')
-    helpline = ('<section class="band" id="helpline"><div class="wrap"><div class="final"><h2>Bike broken down in Bengaluru?</h2><p>Share your live location on WhatsApp. A Mechanix Pro mechanic comes to you, and you approve any extra work before it starts.</p>'
-                '<div class="row"><a class="btn btn-wa" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, my bike has broken down in Bengaluru.&#10;Bike and model: &#10;What happened: &#10;I will share my live location.">WhatsApp for help</a><a class="btn btn-ghost" href="#" data-call>Call us</a></div></div></div></section>')
-    partner = ('<section id="own-a-workshop"><div class="wrap"><div class="sec-head"><h2>Own a workshop or work as a mechanic?</h2><p>Join the Mechanix Pro network in Bengaluru and get doorstep and garage jobs sent to your phone.</p></div><ul class="hub-cards">'
-               '<li class="hub-card hp"><h3>Jobs on your phone</h3><p>New jobs arrive in the Mechanix Pro garage and mechanic app, with an alert, address and a Navigate button.</p></li>'
-               '<li class="hub-card hp"><h3>Quote first, fewer disputes</h3><p>Customers approve your itemised quote before work starts, and every job has photos and a one-time code.</p></li>'
-               '<li class="hub-card hp"><h3>Paid every week</h3><p>Finished, paid jobs are settled weekly, with a clear statement in the app.</p></li>'
-               '<li class="hub-card hp"><h3>Join from your phone</h3><p>Upload your documents and the signed agreement on your phone. We check them and tell you when you are approved.</p></li>'
-               '</ul><p class="hub-cta"><a class="btn btn-wa" href="/join/">Apply to join</a> <a class="btn btn-ghost" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I run a garage or I am a mechanic and I want to join your network.">Ask on WhatsApp</a></p></div></section>')
-    return brands + services + how + cmp_ + helpline + partner
+
 def landing_pages():
     by = {x['slug']: x for x in LANDING}
     for x in LANDING:
@@ -1406,7 +1446,7 @@ def landing_pages():
 {(GARAGE_WHAT + GARAGE_VID) if is_garage else ''}<section><div class="wrap"><div class="sec-head"><h2>{html.escape(x.get("what_h2", "What you get."))}</h2></div>{tiles_block}</div></section>
 <section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Prices, up front.</h2><p>Starting prices for bikes and scooters up to 149cc, excluding GST. 150 to 250cc and 251 to 500cc bikes have their own prices on the <a href="/services/">services page</a>.</p></div><div class="card">{LANDING_PRICES}</div><p style="margin-top:12px">To confirm your slot you pay {{{{confirmrule}}}}.</p><p class="tiny muted" style="margin-top:8px">Prices checked on {TODAY_NICE}.</p></div></section>
 <section class="band"><div class="wrap"><div class="sec-head"><h2>How it works.</h2></div><ol class="soon-steps steps-2">{steps}</ol></div></section>
-{garage_band() if is_garage else ''}{city_hub_block() if x['slug'] == 'two-wheeler-service-at-home-bangalore' else ''}<section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Questions we get asked.</h2></div>{faq}<p class="tiny muted" style="margin-top:18px">Prices are before GST; 18% GST is added on your bill. Your exact quote comes on WhatsApp first.</p><div class="rel-row"><span class="tiny muted">Also see:</span>{rel}</div></div></section>
+{garage_band() if is_garage else ''}{(lambda p: p['brands'] + p['services'] + p['how'] + p['cmp'] + p['helpline'] + p['partner'])(city_hub_parts()) if x['slug'] == 'two-wheeler-service-at-home-bangalore' else ''}<section><div class="wrap" style="max-width:820px"><div class="sec-head"><h2>Questions we get asked.</h2></div>{faq}<p class="tiny muted" style="margin-top:18px">Prices are before GST; 18% GST is added on your bill. Your exact quote comes on WhatsApp first.</p><div class="rel-row"><span class="tiny muted">Also see:</span>{rel}</div></div></section>
 <section><div class="wrap"><div class="final"><h2>Ready when your bike is.</h2><p>Build your service in under a minute, or just message us.</p><div class="row"><a class="btn btn-primary" href="/book/">Build your service</a><a class="btn btn-ghost" href="#" data-wa="general">Get a quote on WhatsApp</a></div></div></div></section>'''
         write(f"{x['slug']}/index.html", HEAD.format(title=html.escape(x['title']), desc=html.escape(x['desc']), url=url, site=SITE, schema=ld, scripts=LEGAL_JS, body='', nav=NAV, main='') + body + foot())
         urls.append((f"/{x['slug']}/", '0.8'))
