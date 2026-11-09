@@ -103,7 +103,7 @@
       return win.fetch(C.supabaseUrl + '/functions/v1/' + fn, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey }, body: JSON.stringify(body) })
         .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); });
     };
-    var SECTIONS = ['trThanks', 'trMain', 'trLive', 'trCode', 'trQuote', 'trCheck', 'trRedo', 'trDetails', 'trRate', 'trDocs', 'trHist', 'trInstall'];
+    var SECTIONS = ['trThanks', 'trMain', 'trLive', 'trCode', 'trQuote', 'trCheck', 'trRedo', 'trShield', 'trDetails', 'trRate', 'trDocs', 'trHist', 'trInstall'];
     var sigs = {}, state = { msg: '', issueMsg: '', rated: 0, fetchedAt: 0, startKm: 0, last: null, rateMsg: '' };
     if (tok) { out.innerHTML = SECTIONS.map(function (id) { return '<div id="' + id + '"></div>'; }).join(''); }
     // A part of the page is redrawn only when its data changed and the person is not typing in it.
@@ -142,6 +142,20 @@
       return '';
     }
     var PTYPE = { genuine: 'Genuine', equivalent: 'Equivalent' };
+    /* Mechanix Shield card: up to Rs 5,000 if the vehicle is damaged in our care, reported within 48 hours of delivery. Pure: shield in, html out. */
+    function shieldCard(r) {
+      if (!r) return '';
+      var c = r.claim, until = r.until ? new Date(r.until).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : '';
+      var line = '<p class="jy-meta">If your vehicle is damaged while in our care, Mechanix Pro pays up to &#8377;5,000 for a valid claim reported within 48 hours of delivery. We check it against the photos taken at pickup and delivery.</p>';
+      if (c && (c.status === 'open' || c.status === 'approved' || c.status === 'paid')) {
+        var head = { open: 'Claim received', approved: 'Approved', paid: 'Paid' }[c.status];
+        var txt = c.status === 'open' ? 'We have your claim and will call you after we check the photos.' : c.status === 'approved' ? 'Your claim is approved' + (c.amount ? ' for &#8377;' + Number(c.amount).toLocaleString('en-IN') : '') + '. We will confirm how it is paid.' : 'Your claim is paid' + (c.amount ? ' (&#8377;' + Number(c.amount).toLocaleString('en-IN') + ')' : '') + '.';
+        return '<div class="card track-card"><h3>Mechanix Shield <small>' + head + '</small></h3><p>' + txt + (c.note ? ' ' + esc(c.note) : '') + '</p></div>';
+      }
+      if (r.eligible) return '<div class="card track-card"><h3>Mechanix Shield</h3>' + line + '<p class="jy-meta">You can report damage until ' + esc(until) + '.</p><label class="label" for="sh-why">What was damaged, and how?</label><textarea id="sh-why" maxlength="800" rows="3" autocomplete="off" placeholder="For example: a scratch on the left side panel that was not there at pickup"></textarea><button class="btn btn-ghost wide" type="button" data-shield="1">Report damage</button><p class="tq-msg" id="shMsg" role="status" aria-live="polite"></p></div>';
+      if (c && c.status === 'declined') return '<div class="card track-card"><h3>Mechanix Shield <small>Not approved</small></h3><p>' + esc(c.note || 'We could not approve this claim. Message us and we will look at it again.') + '</p></div>';
+      return '';
+    }
     function quoteCard(v) {
       var z = v.quote; if (!z || !z.lines) return z ? '<div class="card track-card"><h3>Quote</h3><p>Status: <b>' + esc(z.status) + '</b>. Open the link in your email to review it.</p></div>' : '';
       var items = z.lines.map(function (l) { return '<tr><td>' + esc(l.name) + ' <small>' + esc((KIND[l.kind] || l.kind) + (l.kind === 'parts' && PTYPE[l.part_type] ? ', ' + PTYPE[l.part_type] : '')) + '</small></td><td class="r">' + inr(l.amount) + '</td></tr>'; }).join('');
@@ -177,6 +191,7 @@
       put('trQuote', quoteCard(v), JSON.stringify(v.quote || null));
       put('trCheck', proCheckCard(v.pro_check), JSON.stringify(v.pro_check || null));
       put('trRedo', redoCard(v.redo), JSON.stringify(v.redo || null));
+      put('trShield', shieldCard(v.shield), JSON.stringify(v.shield || null));
       if (J) {
         put('trDetails', detailsHtml(J.updates, state.msg), JSON.stringify([J.updates, state.msg]));
         put('trRate', rateHtml(J.rating, state.rated, C.googleReviewUrl), JSON.stringify([J.rating, state.rated]));
@@ -249,6 +264,16 @@
     });
     out.addEventListener('change', function (e) { if (e.target && e.target.id === 'jyFile') { var fl = Array.prototype.slice.call(e.target.files || []); e.target.value = ''; addPhotos(fl); } });
     out.addEventListener('click', function (e) {
+      var sb = e.target.closest('[data-shield]');
+      if (sb && tok) {
+        var sm = doc.getElementById('shMsg'), sw = doc.getElementById('sh-why');
+        if (!(sw && sw.value.trim().length >= 10)) { sm.textContent = 'Tell us what was damaged and how, in a few words.'; return; }
+        sb.disabled = true; sm.textContent = 'Sending…';
+        post('shield-claim', { t: tok, description: sw.value }).then(function (x) {
+          if (x.ok) load(true); else { sm.textContent = (x.d && x.d.error) || 'Could not send. Please try again.'; sb.disabled = false; }
+        }).catch(function () { sm.textContent = 'No connection. Please try again.'; sb.disabled = false; });
+        return;
+      }
       var rb = e.target.closest('[data-redo]');
       if (rb && tok) {
         var rm = doc.getElementById('rdMsg'), rw = doc.getElementById('rd-why');

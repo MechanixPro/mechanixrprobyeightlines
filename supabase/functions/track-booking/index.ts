@@ -73,5 +73,6 @@ Deno.serve(async (req) => {
   const chk = lead.vehicle === 'car' ? null : await rpc('job_check_get', { p_lead: lead.id });
   if (chk && chk.complete && isComplete(chk.results)) pro_check = customerView(chk.results);
   const redo = await rpc('redo_status_get', { p_lead: lead.id });   // Redo Promise: can a redo be asked for, until when, and the latest request
-  return json(req, { ...out, token_mode: true, journey, pro_check, redo });
+  const shield = await rpc('shield_status_get', { p_lead: lead.id });   // Mechanix Shield: can a claim be made, until when, and the latest claim
+  return json(req, { ...out, token_mode: true, journey, pro_check, redo, shield });
 });
