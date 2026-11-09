@@ -120,6 +120,15 @@
         return '<li class="' + cls + '"' + (cls === 'now' ? ' aria-current="step"' : '') + '><i aria-hidden="true"></i><span>' + esc(s.label) + '</span></li>';
       }).join('') + '</ol>';
     }
+    /* Pro Check 20 card: the 20 points with their results, then the test ride. Pure: pro_check in, html out. Empty until the technician has finished the check. */
+    function proCheckCard(pc) {
+      if (!pc || !pc.summary) return '';
+      var s = pc.summary, mark = { ok: '<span class="pc-ok" aria-label="OK">&#10003;</span>', needs_attention: '<span class="pc-warn" aria-label="Needs attention">!</span>', not_applicable: '<span class="pc-skip" aria-label="Skipped">&ndash;</span>' };
+      var g = (pc.groups || []).map(function (grp) {
+        return '<h4>' + esc(grp.title) + '</h4><ul class="pc-list">' + grp.items.map(function (i) { return '<li class="pc-' + esc(i.r) + '">' + (mark[i.r] || '') + ' <span>' + esc(i.label) + '</span>' + (i.n ? '<small>' + esc(i.n) + '</small>' : '') + '</li>'; }).join('') + '</ul>';
+      }).join('');
+      return '<div class="card track-card"><h3>Pro Check 20</h3><p class="pc-sum"><b>' + s.ok + ' OK</b>' + (s.attention ? ', <b>' + s.attention + ' need' + (s.attention === 1 ? 's' : '') + ' attention</b>' : '') + (s.skipped ? ', ' + s.skipped + ' skipped' : '') + '. Your mechanic checked these before the quote.</p>' + g + (pc.test_ride ? '<p class="pc-ride"><b>' + esc(pc.test_ride) + '</b></p>' : '') + '</div>';
+    }
     function quoteCard(v) {
       var z = v.quote; if (!z || !z.lines) return z ? '<div class="card track-card"><h3>Quote</h3><p>Status: <b>' + esc(z.status) + '</b>. Open the link in your email to review it.</p></div>' : '';
       var items = z.lines.map(function (l) { return '<tr><td>' + esc(l.name) + ' <small>' + esc(KIND[l.kind] || l.kind) + '</small></td><td class="r">' + inr(l.amount) + '</td></tr>'; }).join('');
@@ -153,6 +162,7 @@
       put('trLive', liveHtml(J && J.live, st, 0, state.startKm), JSON.stringify([st, J && J.live && [J.live.eta_line, J.live.age_s, J.live.maps_url]]));
       put('trCode', code, code);
       put('trQuote', quoteCard(v), JSON.stringify(v.quote || null));
+      put('trCheck', proCheckCard(v.pro_check), JSON.stringify(v.pro_check || null));
       if (J) {
         put('trDetails', detailsHtml(J.updates, state.msg), JSON.stringify([J.updates, state.msg]));
         put('trRate', rateHtml(J.rating, state.rated, C.googleReviewUrl), JSON.stringify([J.rating, state.rated]));

@@ -21,3 +21,11 @@ test('garage-app: check actions only for a job assigned to this garage, garage k
 test('results are never logged', () => {
   for (const f of ['tech-job', 'garage-app']) assert.doesNotMatch(read(`supabase/functions/${f}/index.ts`), /console\.(log|error)\([^)]*results/);
 });
+test('track-booking returns pro_check only for a finished check on a bike, via customerView (no job details)', () => {
+  const s = read('supabase/functions/track-booking/index.ts');
+  assert.match(s, /lead\.vehicle === 'car' \? null : await rpc\('job_check_get'/);
+  assert.match(s, /isComplete\(chk\.results\)\) pro_check = customerView\(chk\.results\)/);
+  assert.match(s, /token_mode: true, journey, pro_check/);
+  const t = read('assets/js/track.js');
+  assert.match(t, /put\('trCheck', proCheckCard\(v\.pro_check\)/); assert.match(t, /Pro Check 20/);
+});

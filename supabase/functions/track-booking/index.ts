@@ -5,6 +5,7 @@
 // Both must match; the answer is the same for "no such booking" and "wrong number" so nobody can probe which references exist.
 import { adminDb, env, json, corsHeaders, sha256Hex } from '../_shared/util.ts';
 import { cleanLookup, trackView, journeyView } from '../_shared/track.ts';
+import { customerView, isComplete } from '../_shared/pro-check.ts';
 import { refFilter } from '../_shared/booking-id.ts';
 import { doorState } from '../_shared/handover.ts';
 
@@ -67,5 +68,9 @@ Deno.serve(async (req) => {
     lead.status === 'completed' ? db.from('lead_ratings').select('rating,comment').eq('lead_id', lead.id).maybeSingle().then((r: any) => r.data, () => null) : Promise.resolve(null),
   ]);
   const journey = journeyView({ lead, token, mechanicFirst: (mech.data as { name?: string } | null)?.name ? String((mech.data as { name?: string }).name).trim().split(/\s+/)[0] : null, details, live: loc, documents: docs, history: hist, vehicleName: b, rating: rate });
-  return json(req, { ...out, token_mode: true, journey });
+  // Pro Check 20: shown once the technician has finished all 20 points and the test ride. Labels and results only, nothing about the job or the people.
+  let pro_check: ReturnType<typeof customerView> | null = null;
+  const chk = lead.vehicle === 'car' ? null : await rpc('job_check_get', { p_lead: lead.id });
+  if (chk && chk.complete && isComplete(chk.results)) pro_check = customerView(chk.results);
+  return json(req, { ...out, token_mode: true, journey, pro_check });
 });
