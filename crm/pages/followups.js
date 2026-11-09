@@ -33,6 +33,7 @@ async function draw(root, ctx) {
   const redoRows = Array.isArray(rraw) ? rraw : [], redoOpen = redoRows.filter((r) => r.status === 'open' || r.status === 'approved');
   let sraw = [], sOff = false;
   try { sraw = await rpc('crm_shield_list'); } catch (e) { sOff = true; }   // Mechanix Shield claims
+  let smonth = null; try { smonth = await rpc('crm_shield_month'); } catch (e) { smonth = null; }   // admin only: the monthly cap and what is used
   const shieldRows = Array.isArray(sraw) ? sraw : [], shieldOpen = shieldRows.filter((r) => r.status === 'open' || r.status === 'approved');
   if (!st.bucket) st.bucket = shieldOpen.length ? 'shield' : redoOpen.length ? 'redo' : missed.length ? 'missed' : 'due';
   const queue = followUpQueue(raw), counts = bucketCounts(queue), showMoney = money(ctx);
@@ -41,9 +42,11 @@ async function draw(root, ctx) {
   const tabs = BUCKETS.map(([k, t]) => { const n = k === 'shield' ? shieldOpen.length : k === 'redo' ? redoOpen.length : k === 'unpaid' ? unpaid.length : k === 'quotes' ? quotes.length : k === 'missed' ? missed.length : k === 'due' ? counts.overdue + counts.today : counts[k]; return `<button type="button" class="chip pick${k === st.bucket ? ' on' : ''}" data-fu-tab="${k}" aria-pressed="${k === st.bucket}">${esc(k === 'shield' ? 'Shield claims (' + n + ')' : k === 'redo' ? 'Redo requests (' + n + ')' : k === 'missed' ? 'Missed calls (' + n + ')' : k === 'quotes' ? 'Quotes waiting (' + n + ')' : k === 'unpaid' ? 'Not paid yet (' + n + ')' : t)}${k === 'shield' || k === 'redo' || k === 'missed' || k === 'quotes' || k === 'unpaid' ? '' : ' <b>' + n + '</b>'}</button>`; }).join('');
   const summary = `<p class="small muted">${counts.overdue} overdue · ${counts.today} due today · ${counts.later} later${counts.nodate ? ' · ' + counts.nodate + ' with no date' : ''}</p>`;
   root.innerHTML = head('Follow-ups', 'Overdue first, then due today. Call, message, snooze or close each one.') + summary + `<div class="filters fu-tabs" role="group">${tabs}</div>` +
+    (isShield && smonth ? shieldMonthBar(smonth) : '') +
     (isShield && sOff ? emptyState({ title: 'Shield claims are not available yet.', text: 'The other tabs still work.' }) : isShield && !rows.length ? emptyState({ title: 'No Shield claims.', text: 'Customers can report damage from their tracking page within 48 hours of delivery.' }) : isRedo && rOff ? emptyState({ title: 'Redo requests are not available yet.', text: 'The other tabs still work.' }) : isRedo && !rows.length ? emptyState({ title: 'No redo requests.', text: 'Customers can ask from their tracking page within 30 days of a service.' }) : isUnpaid && uOff ? emptyState({ title: 'Not paid yet is not available yet.', text: 'The other tabs still work.' }) : isUnpaid && !rows.length ? emptyState({ title: 'No unpaid bookings.', text: 'Everyone who started a booking in the last 3 days has paid, or started under 15 minutes ago.' }) : isQuotes && qOff ? emptyState({ title: 'Quotes waiting is not available yet.', text: 'The other tabs still work.' }) : rows.length ? rows.map((l) => (isShield ? shieldCard(l, me, showMoney) : isRedo ? redoCard(l, me) : isUnpaid ? unpaidCard(l, me, showMoney) : isQuotes ? quoteCard(l, me, showMoney) : isMissed ? missedCard(l, me) : card(l, me, ctx, showMoney))).join('') : isQuotes ? emptyState({ title: 'No quotes waiting.', text: 'Every sent quote has an answer, or is under 2 hours old.' }) : emptyState({ title: isMissed ? 'No missed calls waiting.' : st.bucket === 'due' ? 'Nothing due. You are on top of it.' : 'Nothing here.', text: isMissed ? 'Every IVR call has been picked up or called back.' : st.bucket === 'due' ? 'Check Later for what is coming up.' : '' }));
   root.onclick = async (e) => {
     const t = e.target.closest('[data-fu-tab]'); if (t) { st.bucket = t.dataset.fuTab; return draw(root, ctx).catch((x) => toast(clean(x), true)); }
+    if (e.target.closest('[data-shield-cap]')) return shieldCapDialog(smonth, () => draw(root, ctx));
     const sd = e.target.closest('[data-shield]'); if (sd) return shieldAct(sd.dataset.shield, sd.dataset.id, shieldRows.find((x) => x.id === sd.dataset.id), () => draw(root, ctx));
     const rd = e.target.closest('[data-redo]'); if (rd) return redoAct(rd.dataset.redo, rd.dataset.id, redoRows.find((x) => x.id === rd.dataset.id), ctx, () => draw(root, ctx));
     const b = e.target.closest('[data-fu]'); if (!b) return;
@@ -59,6 +62,20 @@ async function draw(root, ctx) {
   };
 }
 
+function shieldMonthBar(m) {
+  const pct = m.cap > 0 ? Math.min(100, Math.round((Number(m.used) / Number(m.cap)) * 100)) : 0;
+  return `<p class="small fu-card">This month, approved: <b>${rupee(m.used)}</b> of the <b>${rupee(m.cap)}</b> Shield cap (${pct}%). <button class="btn ghost" type="button" data-shield-cap="1">Change the cap</button></p>`;
+}
+function shieldCapDialog(m, done) {
+  modal({
+    title: 'Monthly Shield cap', intro: 'The most the company pays out in approved Shield claims in one calendar month. Approvals past it are refused until you raise it.', submit: 'Save the cap',
+    body: field('Cap (₹ per month)', 'cap', { required: true, value: m ? String(m.cap) : '', hint: 'From 5,000 to 10,00,000.' }),
+    onSubmit: async (f, v, close) => {
+      const n = Number(v.cap); if (!(n >= 5000 && n <= 1000000)) throw new Error('The cap must be from 5,000 to 10,00,000.');
+      await rpc('crm_shield_cap_set', { p_amount: n }); close(); toast('Cap saved.'); await done();
+    },
+  });
+}
 const SHIELD_LABEL = { open: 'Claim made', approved: 'Approved, to be paid', paid: 'Paid', declined: 'Declined' };
 const RECOVER = [['none', 'Company bears it'], ['garage', 'Recover from the garage'], ['mechanic', 'Recover from the mechanic']];
 function shieldCard(r, me, showMoney) {

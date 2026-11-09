@@ -38,3 +38,13 @@ test('terms state the promise as a company promise, not insurance, with the excl
   assert.match(b, /Mechanix Shield:<\/b> if your vehicle is damaged while it is in our care, Mechanix Pro pays up to Rs 5,000 per job/);
   assert.match(b, /not an insurance policy/); assert.match(b, /48 hours of delivery/);
 });
+
+test('a monthly cap stops approvals past it, only the admin sees and changes it', () => {
+  const m = code(read('supabase/migrations/20270126000000_shield_cap.sql'));
+  assert.match(m, /insert into public\.settings \(key, value\) values \('shield_cap'/);
+  assert.match(m, /used \+ round\(p_amount, 2\) > cap then raise exception 'this would pass the monthly Shield cap/);
+  assert.match(m, /function public\.crm_shield_cap_set\(p_amount numeric\)[\s\S]*not public\.is_admin\(\) then raise exception 'only the admin changes the cap'/);
+  assert.match(m, /function public\.crm_shield_month\(\)[\s\S]*not public\.is_admin\(\) then return null/);
+  assert.match(m, /p_decision <> 'declined' and not public\.is_admin\(\)/);   // the decide function keeps the admin-only rule
+  const c = read('crm/pages/followups.js'); assert.match(c, /crm_shield_month/); assert.match(c, /crm_shield_cap_set/);
+});
