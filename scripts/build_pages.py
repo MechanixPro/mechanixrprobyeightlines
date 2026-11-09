@@ -685,6 +685,17 @@ def _build_our_process():
     urls.append(('/our-process/', '0.6'))
 _build_our_process()
 
+# ---- /app/: how to add Mechanix Pro to a phone (no store app exists, so this only says what is true). Source in src/app.html ----
+def _build_app_page():
+    _t = 'Mechanix Pro on your phone | Add to home screen'
+    _d = 'Book, track your job and see your photos and bill from your phone. Add Mechanix Pro to your home screen in two taps. Partner garages and mechanics get their own app link.'
+    _url = f'{SITE}/app/'
+    _body = tok(open(os.path.join(ROOT, 'src', 'app.html'), encoding='utf-8').read())
+    _ld = crumbs(('Mechanix Pro on your phone', '/app/')) + page_ld({"@type": "WebPage", "@id": _url + '#webpage', "url": _url, "name": _t, "isPartOf": {"@id": SITE + '/#website'}})
+    write('app/index.html', HEAD.format(title=html.escape(_t), desc=html.escape(_d), url=_url, site=SITE, schema=_ld, scripts=LEGAL_JS + '<script src="/assets/js/app-page.js" defer></script>', body='', nav=NAV, main='page') + _body + foot())
+    urls.append(('/app/', '0.5'))
+_build_app_page()
+
 # ---- Every Bengaluru PIN code: a small script for the PIN check, and a page that lists them all ----
 _pins = json.load(open(os.path.join(ROOT, 'src', 'pincodes.json'), encoding='utf-8'))['pins']
 with open(os.path.join(ROOT, 'assets', 'js', 'pincodes.js'), 'w', encoding='utf-8') as _f:
@@ -1340,7 +1351,16 @@ def city_hub_block():
     cards = ''.join('<li class="hub-card">' + (POP if pop else '') + f'<h3>{html.escape(t)}</h3><p>{html.escape(d)}</p><ul>' + ''.join(f'<li>{html.escape(b)}</li>' for b in bl) + f'</ul><a href="{href}">See what is included</a></li>' for t, d, bl, href, _k, pop in HUB_CARDS)
     services = f'<section class="band" id="services-hub"><div class="wrap"><div class="sec-head"><h2>Services we provide in Bengaluru.</h2></div><ul class="hub-cards">{cards}</ul></div></section>'
     steps = ''.join(f'<li class="hub-step"><img src="/assets/img/hero/{im}-700.webp" width="700" height="347" loading="lazy" decoding="async" alt="{html.escape(alt)}"><h3><span class="soon-n">{i + 1}</span> {html.escape(t)}</h3><p>{html.escape(d)}</p></li>' if im == 'at-your-door' else f'<li class="hub-step"><img src="/assets/img/hero/{im}-{"600" if im.startswith("garage") else "700"}.webp" width="600" height="400" loading="lazy" decoding="async" alt="{html.escape(alt)}"><h3><span class="soon-n">{i + 1}</span> {html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for i, (im, alt, t, d) in enumerate(HUB_STEPS))
-    how = f'<section id="how-hub"><div class="wrap"><div class="sec-head"><h2>How a booking works.</h2></div><ol class="hub-steps">{steps}</ol></div></section>'
+    JR = [('book-phone', 'A customer in an apartment complex books a service on her phone, her scooter parked beside her', 'Book in minutes', 'Pick your bike and a slot, then pay the small fee.', 'Choose your bike, your PIN code and a time, including today if there is room. You pay a small confirmation fee, {{confirmrange}} by engine size, adjusted in your final bill.', ('Home, office or society', 'Fee adjusted in your bill')),
+          ('quote-approval', 'A customer points at an itemised quote on the mechanic\'s tablet and smiles', 'A checked mechanic arrives', 'A checked mechanic arrives with a full toolkit.', 'Follow them on your tracking page. At the door you give your one-time code, the mechanic inspects the bike and sends an itemised quote, and nothing starts until you say yes.', ('One-time code', 'Quote before work')),
+          ('delivery-photo', 'A mechanic takes a photo of the finished motorcycle with the customer giving a thumbs up', 'Keys back, with proof', 'You get your bike back with photos and a bill.', 'See photos of the work and the replaced parts, pay online by QR or link, and get an itemised bill. Our repair work is covered for {{days}} days: if the same work fails in that time, we redo it free.', ('Photos at delivery', '{{days}}-day warranty'))]
+    arrow = lambda flip: ('<svg class="jr-arrow' + (' flip' if flip else '') + '" viewBox="0 0 420 110" aria-hidden="true" focusable="false"><path class="jr-path" d="M14 12C110 112 190-18 270 58S378 96 404 66"/><path class="jr-head" d="M388 54l20 14-24 8z"/></svg>')
+    jr = ''
+    for n, (im, alt, chip, h3, p, pills) in enumerate(JR):
+        jr += (f'<article class="jr-step reveal"><figure class="jr-fig"><img src="/assets/img/hero/{im}-700.webp" width="700" height="467" loading="lazy" decoding="async" alt="{html.escape(alt)}"><span class="jr-badge">Step {n + 1}</span></figure>'
+               f'<div class="jr-text"><span class="jr-chip">{html.escape(chip)}</span><h3>{html.escape(h3)}</h3><p>{html.escape(p)}</p><ul class="jr-pills">' + ''.join(f'<li>{html.escape(x)}</li>' for x in pills) + '</ul></div></article>')
+        if n < len(JR) - 1: jr += arrow(n % 2 == 1)
+    how = f'<section id="how-hub" class="journey"><div class="wrap"><div class="sec-head"><h2>How a booking works.</h2><p>From your sofa to your keys, in three steps.</p></div><div class="jr-steps">{jr}</div></div></section>'
     rows = ''.join(f'<tr><th scope="row">{html.escape(a)}</th><td>{html.escape(b)}</td><td>{html.escape(c)}</td></tr>' for a, b, c in HUB_ROWS)
     cmp_ = ('<section class="band" id="compare"><div class="wrap"><div class="sec-head"><h2>Mechanix Pro vs an unverified roadside workshop.</h2></div><div class="hub-table" role="region" aria-label="Comparison table" tabindex="0"><table><thead><tr><th scope="col">What you get</th><th scope="col">Mechanix Pro</th><th scope="col">An unverified roadside workshop</th></tr></thead><tbody>'
             + rows + '</tbody></table></div><p class="tiny muted">Based on how most unbranded roadside workshops work. Your experience may differ.</p></div></section>')
@@ -1516,7 +1536,7 @@ def llms_txt():
       f"- {COMPANY['legalName']}, operating as Mechanix Pro. {_ADDR}. GSTIN {COMPANY['gstin']}.",
       '- Phone: +91 79652 95649. Email: hello@mechanixpro.in. WhatsApp from the website. Instagram: https://www.instagram.com/themechanixpro/', '',
       '## Pages']
-    for t, u in (('Services and prices', '/services/'), ('Rate card', '/rate-card/'), ('How it works', '/help/'), ('How we keep your bike safe', '/our-process/'), ('Book a service', '/book/'), ('Track a booking', '/track/'), ('Roadside help', '/roadside/'), ('Car service', '/car-service-bangalore/'), ('Major repairs with pickup and drop', '/major-bike-repair-pickup-and-drop-bangalore/'), ('Verified garages', '/verified-bike-garages-bangalore/'), ('Partner your garage', '/garage-partners/'), ('Join as a garage or mechanic', '/join/'), ('Areas we serve', '/areas/'), ('Guides', '/guides/how-often-to-service-your-bike/'), ('Blog', '/blog/'), ('Refund policy', '/refund-policy/'), ('Terms', '/terms/'), ('Contact', '/contact/')):
+    for t, u in (('Services and prices', '/services/'), ('Rate card', '/rate-card/'), ('How it works', '/help/'), ('How we keep your bike safe', '/our-process/'), ('Mechanix Pro on your phone', '/app/'), ('Book a service', '/book/'), ('Track a booking', '/track/'), ('Roadside help', '/roadside/'), ('Car service', '/car-service-bangalore/'), ('Major repairs with pickup and drop', '/major-bike-repair-pickup-and-drop-bangalore/'), ('Verified garages', '/verified-bike-garages-bangalore/'), ('Partner your garage', '/garage-partners/'), ('Join as a garage or mechanic', '/join/'), ('Areas we serve', '/areas/'), ('Guides', '/guides/how-often-to-service-your-bike/'), ('Blog', '/blog/'), ('Refund policy', '/refund-policy/'), ('Terms', '/terms/'), ('Contact', '/contact/')):
         lines.append(f"- [{t}]({SITE}{u})")
     lines.append('')
     open(os.path.join(ROOT, 'llms.txt'), 'w', encoding='utf-8').write('\n'.join(lines))
