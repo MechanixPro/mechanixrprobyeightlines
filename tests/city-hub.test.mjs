@@ -26,7 +26,7 @@ test('brand chips are a list of text links to existing paths', () => {
 test('comparison table has the exact eight rows with th scope', () => {
   const rows = [...hub.matchAll(/<tr><th scope="row">([^<]+)<\/th>/g)].map((m) => m[1]);
   assert.deepEqual(rows, ['Partners checked', 'Quote before work', 'One-time code at handover', 'Photos at pickup, ready and delivery', 'Online payment with a bill', 'Repair warranty', 'Doorstep service', 'Track your job']);
-  assert.equal((hub.match(/<th scope="col">/g) || []).length, 3);
+  assert.equal((hub.match(/<th scope="col"( class="[^"]*")?>/g) || []).length, 3);   // the Mechanix Pro column header carries a class since the 2026-11-09 comparison redesign
   assert.ok(text.includes('Based on how most unbranded roadside workshops work. Your experience may differ.'));
 });
 test('six service cards, fee text filled, brand cards only on this page', () => {
