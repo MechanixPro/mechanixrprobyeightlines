@@ -1170,7 +1170,9 @@ def city_hub_parts():
     JR = [('book-phone', 'A customer in an apartment complex books a service on her phone, her scooter parked beside her', 'Book in minutes', 'Pick your bike and a slot, then pay the small fee.', 'Choose your bike, your PIN code and a time, including today if there is room. You pay a small confirmation fee, {{confirmrange}} by engine size, adjusted in your final bill.', ('Home, office or society', 'Fee adjusted in your bill')),
           ('quote-approval', 'A customer points at an itemised quote on the mechanic\'s tablet and smiles', 'A checked mechanic arrives', 'A checked mechanic arrives with a full toolkit.', 'Follow them on your tracking page. At the door you give your one-time code, the mechanic inspects the bike and sends an itemised quote, and nothing starts until you say yes.', ('One-time code', 'Quote before work')),
           ('delivery-photo', 'A mechanic takes a photo of the finished motorcycle with the customer giving a thumbs up', 'Keys back, with proof', 'You get your bike back with photos and a bill.', 'See photos of the work and the replaced parts, pay online by QR or link, and get an itemised bill. Our repair work is covered for {{days}} days: if the same work fails in that time, we redo it free.', ('Photos at delivery', '{{days}}-day warranty'))]
-    arrow = lambda flip: ('<svg class="jr-arrow' + (' flip' if flip else '') + '" viewBox="0 0 420 110" aria-hidden="true" focusable="false"><path class="jr-path" d="M14 12C110 112 190-18 270 58S378 96 404 66"/><path class="jr-head" d="M388 54l20 14-24 8z"/></svg>')
+    arrow = lambda flip: ('<div class="jr-conn' + (' flip' if flip else '') + '" aria-hidden="true">'
+                          '<svg class="jr-d" viewBox="0 0 1000 128" focusable="false"><circle class="jr-dot" cx="256" cy="6" r="6"/><path class="jr-cp" d="M256 12C256 78 330 92 500 92S744 80 744 108"/><path class="jr-ch" d="M730 104h28L744 126z"/></svg>'
+                          '<svg class="jr-v" viewBox="0 0 34 84" focusable="false"><circle class="jr-dot" cx="17" cy="6" r="6"/><path class="jr-cp" d="M17 12V64"/><path class="jr-ch" d="M5 62h24L17 82z"/></svg></div>')
     jr = ''
     for n, (im, alt, chip, h3, p, pills) in enumerate(JR):
         jr += (f'<article class="jr-step reveal"><figure class="jr-fig"><img src="/assets/img/hero/{im}-700.webp" width="700" height="467" loading="lazy" decoding="async" alt="{html.escape(alt)}"><span class="jr-badge">Step {n + 1}</span></figure>'
@@ -1203,6 +1205,27 @@ def home_trust_html():
     app = ('<section id="phone-app"><div class="wrap"><div class="appband"><div><h2>Mechanix Pro on your phone.</h2><p>Add it to your home screen in two taps to book, track your job and see your photos and bill. Garages and mechanics get their own app link.</p></div>'
            '<a class="btn btn-ghost" href="/app/">Add to your phone</a></div></div></section>')
     return '<div class="bike-only">' + pro + P['cmp'] + P['partner'] + P['helpline'] + app + '</div>'
+
+# ---- /help/: "What happens at your doorstep" becomes the same animated picture journey as the home page. The five steps stay in src/help.html (one source of truth); this turns them into cards. ----
+HELP_PICS = [('book-phone', 'A customer books a service on her phone in her apartment complex'), ('team-1000', 'The Mechanix Pro team in navy polo shirts with the shield badge, in front of a garage and a service van'),
+             ('code-at-door', 'A customer points at the one-time code on her phone while the mechanic holds a tablet ready to enter it'), ('quote-approval', 'A customer points at an itemised quote on the mechanic\'s tablet and smiles'),
+             ('delivery-photo', 'A mechanic takes a photo of the finished motorcycle with the customer giving a thumbs up')]
+def help_journey(content):
+    m = re.search(r'<ol class="timeline">(.*?)</ol>', content, re.S)
+    if not m: return content
+    items = re.findall(r'<li><span class="dot">(\d)</span><h3>(.*?)</h3><p>(.*?)</p>((?:(?!<li>).)*?)</li>', m.group(1), re.S)   # group 4: extras after the text (the code video on step 3)
+    if len(items) != 5: return content
+    arrow = lambda flip: ('<div class="jr-conn' + (' flip' if flip else '') + '" aria-hidden="true">'
+                          '<svg class="jr-d" viewBox="0 0 1000 128" focusable="false"><circle class="jr-dot" cx="256" cy="6" r="6"/><path class="jr-cp" d="M256 12C256 78 330 92 500 92S744 80 744 108"/><path class="jr-ch" d="M730 104h28L744 126z"/></svg>'
+                          '<svg class="jr-v" viewBox="0 0 34 84" focusable="false"><circle class="jr-dot" cx="17" cy="6" r="6"/><path class="jr-cp" d="M17 12V64"/><path class="jr-ch" d="M5 62h24L17 82z"/></svg></div>')
+    out = ''
+    for i, ((n, h3, p, extra), (im, alt)) in enumerate(zip(items, HELP_PICS)):
+        stem = im if im.startswith('team') else im
+        src_ = f'/assets/img/hero/{stem}.webp' if im == 'team-1000' else f'/assets/img/hero/{im}-700.webp'
+        out += (f'<article class="jr-step reveal"><figure class="jr-fig"><img src="{src_}" width="700" height="467" loading="lazy" decoding="async" alt="{html.escape(alt)}"><span class="jr-badge">Step {n}</span></figure>'
+                f'<div class="jr-text"><h3>{h3}</h3><p>{p}</p>{extra.strip()}</div></article>')
+        if i < len(items) - 1: out += arrow(i % 2 == 1)
+    return content[:m.start()] + '<div class="jr-steps">' + out + '</div>' + content[m.end():]
 
 HERO_CSS = '<link rel="stylesheet" href="/assets/css/hero.css">\n<link rel="stylesheet" href="/assets/css/home2.css">\n'
 HERO_PRELOAD = '<link rel="preload" as="image" href="/assets/img/hero/hero-quote-1200.webp" fetchpriority="high">\n'   # the bike hero's first picture (the quote scene, eager); home only. The car picture is lazy and is not preloaded.
@@ -1245,6 +1268,7 @@ for slug, src, title, desc, ld, body, scripts, prio in MAIN:
         _faq = faq_from_html(_src)
         if _faq: schema += ld_tag(faq_ld(_faq))
     content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--AREA_LINKS-->', AREA_LINKS).replace('<!--WORKSHOP_TEASER-->', workshop_teaser_html()).replace('<!--HOME_JOURNEY-->', home_journey_html()).replace('<!--HOME_TRUST-->', home_trust_html()).replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
+    if src == 'help': content = help_journey(content)
     out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(dock=(src not in ('book', 'book-pay')), dock_home=(src == 'home'))
     if src in ('book', 'book-pay'):
         out = out.replace('</title>', '</title><meta name="robots" content="noindex,follow">', 1)   # transactional pages: kept out of search, still crawlable for links
@@ -1402,6 +1426,7 @@ car_page()
 # ---- Search landing pages (src/landing.json): the things riders actually search for, each with its own useful page, FAQ and structured data ----
 LANDING_PRICES = ''.join(f'<div class="price-row"><span>{n}</span><b>{{{{price:{k}}}}}</b></div>' for k, n in PRICES if k in ('basic', 'general', 'full', 'repair', 'puncture', 'sos'))
 LANDING = json.load(open(os.path.join(ROOT, 'src', 'landing.json'), encoding='utf-8'))
+
 def landing_pages():
     by = {x['slug']: x for x in LANDING}
     for x in LANDING:
