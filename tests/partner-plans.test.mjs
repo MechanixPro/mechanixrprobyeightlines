@@ -111,7 +111,8 @@ test('a garage estimate can be approved even though no doorstep mechanic ever se
   assert.match(m, /waiting for the confirmation fee/);   // the paid-confirmation rule is untouched
   assert.match(m, /create or replace function public\.crm_quote_save\(p_lead uuid, p_lines jsonb, p_eta jsonb\)/);
 });
-import { agreementHtml, partB, PART_A } from '../admin/agreement.js';
+import { agreementHtml, PART_A, PART_B, resolveTerms, unknownTokens } from '../admin/agreement.js';
+import { termsBody } from '../admin/agreement-terms.js';
 test('the client\'s volume bands are in the plan table, and the agreement fills from the garage record without identity or bank data', () => {
   const m = read('supabase/migrations/20270136000000_agreement_autofill.sql');
   assert.match(m, /orders_min = 30, orders_max = 80 where plan = 'silver'/); assert.match(m, /orders_min = 50, orders_max = 100 where plan = 'gold'/);
@@ -119,8 +120,25 @@ test('the client\'s volume bands are in the plan table, and the agreement fills 
   const gold = agreementHtml({ tier: 'gold', garage: g, plan: { commission_pct: 25, deposit_amount: 20000, orders_min: 50, orders_max: 100 }, rate: 25, signer: { name: 'A', designation: 'B' }, now: new Date('2026-11-10T05:00:00Z') });
   for (const t of ['MXP-GD-G-0007', 'Test Auto Works', '[Host Name]', '12 Test Road', '9000000000', '[Licence]', '₹20,000', '25% of the Base Price', '50 to 100 orders', '10/11/2026']) assert.ok(gold.includes(t), t);
   assert.ok(!/undefined|NaN/.test(gold)); assert.equal(PART_A.length, 18);
-  assert.match(partB('silver', { rate: 30, deposit: 10000, min: 30, max: 80 }).flat().join(' '), /30 to 80 orders/);
-  assert.match(partB('bronze', { rate: 35 }).flat().join(' '), /35 % of the Base Price/);
+  const sil = agreementHtml({ tier: 'silver', garage: g, plan: { commission_pct: 30, deposit_amount: 10000, orders_min: 30, orders_max: 80 }, rate: 30 }); assert.match(sil, /30 to 80 orders/); assert.match(sil, /at least 70% of the Jobs/);
+  assert.match(agreementHtml({ tier: 'bronze', garage: g, plan: {}, rate: 35 }), /35 % of the Base Price/);
   const x = agreementHtml({ tier: 'bronze', garage: { name: '<img src=x onerror=1>' }, plan: {}, rate: 35 }); assert.ok(!x.includes('<img src=x'));
   assert.match(read('admin/garages-view.js'), /data-agree/);
+});
+
+test('the client can edit the agreement terms himself: saved text and numbers are what gets printed, and the editor is owner/admin only', () => {
+  const m = read('supabase/migrations/20270137000000_agreement_terms_editor.sql');
+  for (const f of ['agreement_terms_get', 'agreement_terms_save', 'agreement_terms_reset', 'partner_plan_values_set', 'agreement_issued']) assert.match(m, new RegExp('create or replace function public\\.' + f));
+  assert.equal((m.match(/perform public\.kyc_need_admin\(\)/g) || []).length, 5);
+  assert.match(m, /enable row level security/); assert.match(m, /crm_has_pii/); assert.match(m, /unknown placeholder/); assert.match(m, /agreement_terms_log/);
+  assert.match(m, /revoke all on function public\.agreement_terms_get\(\)[\s\S]*from public, anon/);
+  const t = resolveTerms({ part_a: [{ title: 'Own clause', text: 'Penalty {{pen_noshow}}' }], vars: { pen_noshow: 450 } });
+  assert.equal(t.part_a.length, 1); assert.equal(t.part_b.gold.length, PART_B.gold.length); assert.equal(t.vars.pen_cap, 10);
+  const html = agreementHtml({ tier: 'gold', garage: { code: 'G-1' }, plan: { commission_pct: 22, deposit_amount: 25000, orders_min: 40, orders_max: 90 }, rate: 22, terms: { part_a: [{ title: 'Own clause', text: 'Penalty {{pen_noshow}}' }], vars: { pen_noshow: 450 } } });
+  assert.match(html, /1\. Own clause\.<\/b> Penalty ₹450/); assert.match(html, /22% of the Base Price/); assert.match(html, /₹25,000/); assert.match(html, /40 to 90 orders/);
+  assert.deepEqual(unknownTokens('a {{rate}} b {{bogus}}'), ['bogus']);
+  const body = termsBody(null, [{ plan: 'silver', commission_pct: 30, deposit_amount: 10000, deposit_months: 3, orders_min: 30, orders_max: 80 }]);
+  assert.match(body, /data-sec="part_a"/); assert.match(body, /data-sec="gold"/); assert.match(body, /name="c_silver" [^>]*value="30"/); assert.match(body, /Go back to the original text/);
+  assert.equal((body.match(/class="at-clause"/g) || []).length, PART_A.length + PART_B.bronze.length + PART_B.silver.length + PART_B.gold.length);
+  assert.match(read('admin/garages-view.js'), /data-terms/); assert.match(read('admin/garages-view.js'), /agreement_issued/);
 });

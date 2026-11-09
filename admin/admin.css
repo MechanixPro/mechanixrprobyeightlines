@@ -323,3 +323,5 @@ tr.is-paid td:first-child{box-shadow:inset 4px 0 0 var(--good)}
 .kv-plan h4,.kv-history h4{margin:0 0 var(--s2)}
 .kv-hist{list-style:none;margin:0 0 var(--s3);padding:0}.kv-hist li{padding:6px 0;border-bottom:1px solid var(--hair,#eee)}
 .kv-bk{width:100%;border-collapse:collapse;font-size:14px}.kv-bk th,.kv-bk td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--hair,#eee)}
+
+.at-sec{border:1px solid var(--line,#d9dee7);border-radius:8px;padding:8px 10px;margin:8px 0}.at-sec summary{cursor:pointer;font-weight:700}.at-clause{margin:10px 0;display:grid;gap:6px}.at-clause input,.at-clause textarea{width:100%;font:inherit;padding:8px;border:1px solid var(--line,#c8cfda);border-radius:6px}.at-plan{display:flex;flex-wrap:wrap;gap:8px}.flow-box:has(.at-sec){max-height:88vh;overflow:auto}

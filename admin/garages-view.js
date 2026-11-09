@@ -5,6 +5,7 @@ import { parseLatLng, COORD_HELP } from './geo-parse.js';
 import { esc } from './kyc-rules.js';
 import { skeleton, errorState, emptyState } from './ds.js';
 import { agreementHtml, TIERS } from './agreement.js';
+import { createAgreementTerms } from './agreement-terms.js';
 
 export const CATS = [['2-wheeler', 'Two-wheeler'], ['4-wheeler', 'Four-wheeler'], ['heavy', 'Heavy vehicles'], ['ev', 'Electric'], ['bodywork', 'Bodywork']];
 const STAGE = { applied: 'Applied', visited: 'Visited', kyc_done: 'KYC done', trained: 'Trained', pilot: 'Pilot', live: 'Live', paused: 'Paused' };
@@ -26,7 +27,7 @@ export function listHtml(rows, gone) {
       <div class="kv-big-row"><button type="button" class="btn btn-ghost" data-edit="${esc(g.id)}">Edit</button><button type="button" class="btn btn-ghost" data-agree="${esc(g.id)}">Agreement</button><button type="button" class="btn danger" data-del="${esc(g.id)}" data-name="${esc(g.name)}">Delete</button></div></li>`).join('')}</ul>`
     : emptyState({ title: 'No garages yet.', text: 'Tap Add garage to enter one by hand.' });
   const back = (gone || []).length ? `<details class="gv-gone"><summary>Deleted garages (${gone.length})</summary><ul class="kv-list">${gone.map((g) => `<li class="kv-row"><div class="kv-open"><span class="kv-name">${esc(g.name)}</span><span class="kv-sub">${esc(g.code || '')} · ${esc(g.mobile || '')}</span></div><button type="button" class="btn btn-ghost" data-restore="${esc(g.id)}">Bring back</button></li>`).join('')}</ul></details>` : '';
-  return `<div class="kv-tabs"><button type="button" class="btn primary" data-add>Add garage</button></div>${body}${back}`;
+  return `<div class="kv-tabs"><button type="button" class="btn primary" data-add>Add garage</button><button type="button" class="btn btn-ghost" data-terms>Agreement terms</button></div>${body}${back}`;
 }
 
 const formBody = (g = {}) => {
@@ -44,6 +45,7 @@ const readForm = (f) => ({ ...Object.fromEntries(['name', 'owner_name', 'mobile'
 
 export function createGaragesView({ rpc, dialog, toast }) {
   let root = null;
+  const terms = createAgreementTerms({ rpc, dialog, toast });
   const msg = (e) => String((e && e.message) || e || 'Something went wrong. Try again.');
   async function load() {
     root.innerHTML = skeleton(3, 'Loading garages');
@@ -60,19 +62,20 @@ export function createGaragesView({ rpc, dialog, toast }) {
   async function edit(id) { try { const r = await rpc('admin_garage_get', { p_id: id }); form(r.garage); } catch (e) { toast(msg(e), true); } }
   // The printable agreement, filled from the garage record. Asks only for what is not stored: the plan to print, the Bronze rate, and who signs for the Company.
   async function agreement(id) {
-    let garage, plans;
-    try { const [r, p] = await Promise.all([rpc('admin_garage_get', { p_id: id }), rpc('partner_plans_list')]); garage = r.garage; plans = p || []; } catch (e) { return toast(msg(e), true); }
+    let garage, plans, tdoc;
+    try { const [r, p, t] = await Promise.all([rpc('admin_garage_get', { p_id: id }), rpc('partner_plans_list'), rpc('agreement_terms_get')]); garage = r.garage; plans = p || []; tdoc = t || {}; } catch (e) { return toast(msg(e), true); }
     const opts = Object.entries(TIERS).map(([k, t]) => `<option value="${k}"${k === (garage.plan || 'bronze') ? ' selected' : ''}>${t.name}</option>`).join('');
     dialog({ title: 'Agreement for ' + (garage.name || 'this garage'), intro: 'Opens a printable agreement filled with this garage’s details. Check it, then print or save as PDF.',
-      body: `<label class="flow-f"><span>Plan</span><select name="tier">${opts}</select></label><label class="flow-f"><span>Agreed commission % (Bronze only)</span><input name="rate" inputmode="decimal" maxlength="5" placeholder="e.g. 35"></label>
+      body: `<label class="flow-f"><span>Plan</span><select name="tier">${opts}</select></label><label class="flow-f"><span>Agreed commission % (Bronze; blank uses the plan rate)</span><input name="rate" inputmode="decimal" maxlength="5" placeholder="e.g. 35"></label>
         <label class="flow-f"><span>Signing for the Company: name</span><input name="sname" value="Mohammed Ruwaid" maxlength="80"></label><label class="flow-f"><span>Designation</span><input name="sdes" value="Founder" maxlength="60"></label>`,
       submit: 'Open agreement',
       onSubmit: async (f, d) => {
         const tier = f.querySelector('[name=tier]').value, plan = plans.find((x) => x.plan === tier) || {};
-        const rate = tier === 'bronze' ? Number(f.querySelector('[name=rate]').value) : plan.commission_pct;
+        const rate = tier === 'bronze' ? Number(f.querySelector('[name=rate]').value || plan.commission_pct) : plan.commission_pct;
         if (!(rate > 0 && rate <= 100)) throw new Error('Enter the agreed commission, between 1 and 100.');
         const w = window.open('', '_blank'); if (!w) throw new Error('Allow pop-ups for this site, then try again.');
-        w.document.open(); w.document.write(agreementHtml({ tier, garage, plan, rate, signer: { name: f.querySelector('[name=sname]').value, designation: f.querySelector('[name=sdes]').value }, now: new Date() })); w.document.close();
+        w.document.open(); w.document.write(agreementHtml({ tier, garage, plan, rate, terms: tdoc.doc, signer: { name: f.querySelector('[name=sname]').value, designation: f.querySelector('[name=sdes]').value }, now: new Date() })); w.document.close();
+        rpc('agreement_issued', { p_garage: id, p_tier: tier, p_rate: rate, p_version: tdoc.version || 0 }).catch(() => {});
         d.close();
       } });
   }
@@ -86,6 +89,7 @@ export function createGaragesView({ rpc, dialog, toast }) {
       if (t.hasAttribute('data-add')) return form(null);
       if (t.dataset.edit) return edit(t.dataset.edit);
       if (t.dataset.agree) return agreement(t.dataset.agree);
+      if (t.hasAttribute('data-terms')) return terms.open();
       if (t.dataset.del) return del(t.dataset.del, t.dataset.name || 'this garage');
       if (t.dataset.restore) { try { await rpc('admin_garage_restore', { p_id: t.dataset.restore }); toast('Garage is back.'); load(); } catch (e) { toast(msg(e), true); } }
     });
