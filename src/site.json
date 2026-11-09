@@ -5,7 +5,10 @@
   "bigBike": 300,
   "carPrices": {
     "standard": 2535,
-    "inspection": 474
+    "inspection": 474,
+    "basic": 1994,
+    "brakefront": 1234,
+    "brakerear": 1519
   },
   "services": {
     "basic": {

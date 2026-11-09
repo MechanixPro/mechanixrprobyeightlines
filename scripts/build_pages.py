@@ -1446,9 +1446,10 @@ def car_page():
     kicker, slug = 'Car service in Bengaluru', 'car-service-bangalore'
     title = 'Car Service in Bangalore, Quote First | Mechanix Pro'
     desc = 'Car service and car help in Bangalore from Mechanix Pro: periodic service, inspection, brakes, AC, battery, tyres, repairs, jump start, towing and fuel delivery. Message us for a quote first.'
-    tiles = (('Periodic service from {{carprice:standard}}', 'Routine car service at your car\'s interval, with the right parts for your make, model, year and fuel type. Price excludes GST and is confirmed for your car first.'),
+    tiles = (('Basic service from {{carprice:basic}}', 'Engine oil and filter change, fluid top-ups and a full checkup. Price excludes GST and is confirmed for your car first.'),
+             ('Periodic service from {{carprice:standard}}', 'Routine car service at your car\'s interval, with the right parts for your make, model, year and fuel type. Price excludes GST and is confirmed for your car first.'),
              ('Car inspection from {{carprice:inspection}}', 'A checkup before a long trip, or before you buy a used car. You get what we find, in writing, before any work. Price excludes GST.'),
-             ('Brake service', 'For thin or noisy pads, or a soft pedal. The kit is matched to your car.'),
+             ('Brake service from {{carprice:brakefront}}', 'Front brake pads from {{carprice:brakefront}}, rear brake shoes from {{carprice:brakerear}}, excluding GST. For thin or noisy pads or a soft pedal. The kit is matched to your car.'),
              ('AC service and gas top-up', 'Weak cooling, a smell from the vents or a noisy blower. We check the AC and tell you what it needs and what it costs before we start.'),
              ('Battery check and replacement', 'Slow start or a dead battery. We test it first and replace it only if it needs it.'),
              ('Tyres, wheel alignment and balancing', 'Pulling to one side, a shaking steering wheel or uneven tyre wear. We check and tell you what is needed.'),
