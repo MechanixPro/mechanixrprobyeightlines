@@ -22,9 +22,10 @@ import { collectAction, cashAllowed, isArrived } from '../_shared/collect-paymen
 import { buildInvoice } from '../_shared/invoice.ts';
 import { selfieFresh, checkSelfie, selfiePath, selfiePathOk, TERMS_VERSION, SELFIE_NEEDED } from '../_shared/partner-avail.ts';
 import { isCode, handoverHash, sameHash, afterWrongTry, doorState, MAX_ATTEMPTS, DOOR_KIND } from '../_shared/handover.ts';
+import { cleanResults } from '../_shared/pro-check.ts';
 import { signSession, verifySession, garageJobListItem, garageJobDetail, garageStatement, garageDashboard, cleanLocation, cleanUpload, cleanEstimate, photoPath, photoPathOk, LINK_RE, PIN_RE, UUID_RE, EVENTS, LOGIN_MESSAGE, isOpen, type RawJob } from '../_shared/garage.ts';
 
-const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set'];
+const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_get', 'check_save'];
 const BAD = 'Could not save. Please try again.', SESSION_OVER = 'Your session has ended. Enter your PIN again.';
 const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
 
@@ -218,6 +219,24 @@ Deno.serve(async (req) => {
       uploads.push({ path, url: data.signedUrl });
     }
     return json(req, { ok: true, uploads });
+  }
+
+  if (action === 'check_get' || action === 'check_save') {
+    // Pro Check 20 for a job assigned to THIS garage (mine() filters the assignment by the garage in the session).
+    const { data: a } = await mine(jobId).maybeSingle();
+    if (!a || !['received', 'in_work'].includes(a.status)) return json(req, { error: a ? 'Accept the job first.' : 'This job is not available.' }, a ? 409 : 404);
+    const { data: lead } = await db.from('leads').select('id,vehicle').eq('id', a.lead_id).maybeSingle();
+    if (!lead) return json(req, { error: 'This job is not available.' }, 404);
+    if (lead.vehicle === 'car') return json(req, { error: 'Pro Check 20 is for bikes.' }, 400);
+    if (action === 'check_get') {
+      const { data } = await db.rpc('job_check_get', { p_lead: a.lead_id });
+      return json(req, { ok: true, results: data?.results ?? {}, complete: !!data?.complete });
+    }
+    const c = cleanResults(b?.results);
+    if (!c.ok) return json(req, { error: c.error }, 400);
+    const { data, error } = await db.rpc('job_check_save', { p_lead: a.lead_id, p_kind: 'garage', p_by: garageId, p_results: c.value });
+    if (error) { console.error('garage-app check_save', error.code); return json(req, { error: 'Could not save the check. Try again.' }, 500); }
+    return json(req, { ok: true, complete: !!data?.complete });
   }
 
   if (action === 'verify_code') {

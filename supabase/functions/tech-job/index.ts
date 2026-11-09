@@ -11,6 +11,7 @@ import { navigateUrl } from '../_shared/eta.ts';
 import { sendOnTheWay } from '../_shared/after-payment.ts';
 import { buildInvoice } from '../_shared/invoice.ts';
 import { collectAction, cashAllowed, isArrived } from '../_shared/collect-payment.ts';
+import { cleanResults } from '../_shared/pro-check.ts';
 import { isKind, isCode, isPickupJob, handoverHash, sameHash, stepState, afterWrongTry, cleanPhotos, cleanUploadRequest, HANDOVER_KINDS, MAX_ATTEMPTS, DOOR_KIND, photoPolicy, allowedStages, doorState, canChooseOutcome } from '../_shared/handover.ts';
 
 const NOT_VALID = 'This link is not valid.', EXPIRED = 'This link has expired. Ask the desk for a new one.', DONE = 'This job is already reported.';
@@ -20,6 +21,7 @@ const VISIT_ACTIONS = ['visit_state', 'visit_status', 'visit_start', 'visit_outc
 const JOURNEY_ACTIONS = ['my_jobs', 'my_job_open', 'location_update'];
 // Collect payment (online first; cash/UPI only for a customer who inspects first): same rules as the garage app, in _shared/collect-payment.ts.
 const PAY_ACTIONS = ['payment_request', 'payment_cash', 'inspect_first_set'];
+const CHECK_ACTIONS = ['check_get', 'check_save'];   // Pro Check 20: the 20 points and the test ride
 const hidesIds = (t: string) => !(/[A-Z]{5}[0-9]{4}[A-Z]/i.test(t) || /[0-9]{12,}/.test(t.replace(/[ -]/g, '')));
 
 Deno.serve(async (req) => {
@@ -33,7 +35,7 @@ Deno.serve(async (req) => {
   if ((count ?? 0) >= 20) return json(req, { error: 'Too many tries. Wait a few minutes.' }, 429);
 
   const body = await req.json().catch(() => ({}));
-  const action = body?.action === 'report' ? 'report' : HANDOVER_ACTIONS.includes(body?.action) || VISIT_ACTIONS.includes(body?.action) || JOURNEY_ACTIONS.includes(body?.action) || PAY_ACTIONS.includes(body?.action) ? String(body.action) : 'get';
+  const action = body?.action === 'report' ? 'report' : HANDOVER_ACTIONS.includes(body?.action) || VISIT_ACTIONS.includes(body?.action) || JOURNEY_ACTIONS.includes(body?.action) || PAY_ACTIONS.includes(body?.action) || CHECK_ACTIONS.includes(body?.action) ? String(body.action) : 'get';
   const t = String(body?.t ?? '');
   if (!/^[0-9a-f]{64}$/.test(t)) { await db.from('audit_log').insert({ action: 'tech_job_hit', details: { ip: ipHash, action } }); return json(req, { error: NOT_VALID }, 404); }
   const tokHash = await sha256Hex(t), tok16 = tokHash.slice(0, 16);
@@ -51,10 +53,11 @@ Deno.serve(async (req) => {
   const { data: lead } = await db.from('leads').select('*').eq('id', link.lead_id).maybeSingle();
   if (!lead || lead.deleted_at || lead.status === 'lost' || lead.mechanic_id !== link.mechanic_id) return json(req, { error: EXPIRED }, 410);
   // The handover steps work on the same link, and the return step comes after the job is reported, so they look at the link's own life (7 days, or 30 after the report) instead of the report.
-  if (HANDOVER_ACTIONS.includes(action) || VISIT_ACTIONS.includes(action) || JOURNEY_ACTIONS.includes(action) || PAY_ACTIONS.includes(action)) {
+  if (HANDOVER_ACTIONS.includes(action) || VISIT_ACTIONS.includes(action) || JOURNEY_ACTIONS.includes(action) || PAY_ACTIONS.includes(action) || CHECK_ACTIONS.includes(action)) {
     if (Date.parse(link.reported_at ?? link.expires_at) + (link.reported_at ? 30 * 864e5 : 0) <= Date.now()) return json(req, { error: EXPIRED }, 410);
     if (JOURNEY_ACTIONS.includes(action)) return await journey(req, db, link, tokHash, action, body);
     if (PAY_ACTIONS.includes(action)) return await collect(req, db, link, lead, action, body);
+    if (CHECK_ACTIONS.includes(action)) return await proCheck(req, db, link, lead, action, body);
     return VISIT_ACTIONS.includes(action) ? await visit(req, db, link, lead, action, body) : await handover(req, db, link, lead, action, body);
   }
   // Once reported, the link shows only the payment (for 30 more days), never the customer's details.
@@ -357,4 +360,19 @@ async function customerNote(db: ReturnType<typeof adminDb>, leadId: string) {
   for (const p of ph ?? []) { const { data: u } = await db.storage.from('booking-updates').createSignedUrl(String((p as any).path), 600); if (u?.signedUrl) photos.push(u.signedUrl); }
   if (!d && !photos.length) return null;
   return { landmark: (d as any)?.landmark ?? null, access_note: (d as any)?.access_note ?? null, reg_no: (d as any)?.reg_no ?? null, kms: (d as any)?.kms ?? null, vehicle_note: (d as any)?.vehicle_note ?? null, issue_text: (d as any)?.issue_text ?? null, photos };
+}
+
+
+/** Pro Check 20 for the mechanic on this job link: read or save the 20 points and the test ride. Only the technician assigned to this lead gets here (the link check above). */
+async function proCheck(req: Request, db: ReturnType<typeof adminDb>, link: any, lead: any, action: string, body: any): Promise<Response> {
+  if (lead.vehicle === 'car') return json(req, { error: 'Pro Check 20 is for bikes.' }, 400);
+  if (action === 'check_get') {
+    const { data } = await db.rpc('job_check_get', { p_lead: lead.id });
+    return json(req, { ok: true, results: data?.results ?? {}, complete: !!data?.complete });
+  }
+  const c = cleanResults(body?.results);
+  if (!c.ok) return json(req, { error: c.error }, 400);
+  const { data, error } = await db.rpc('job_check_save', { p_lead: lead.id, p_kind: 'mechanic', p_by: link.mechanic_id, p_results: c.value });
+  if (error) { console.error('tech-job check_save', error.code); return json(req, { error: 'Could not save the check. Try again.' }, 500); }
+  return json(req, { ok: true, complete: !!data?.complete });
 }
