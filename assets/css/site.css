@@ -415,3 +415,5 @@ input,select,textarea{font-family:var(--font)}
 .final,.proof,.pcteaser,.ab-cta{background-image:linear-gradient(90deg,rgba(3,25,71,.72),rgba(3,25,71,0) 78%),url(/assets/img/bg/brand-wave-800.webp)!important}
 @media(min-width:700px){.final,.proof,.pcteaser,.ab-cta{background-image:linear-gradient(90deg,rgba(3,25,71,.72),rgba(3,25,71,0) 78%),url(/assets/img/bg/brand-wave-1600.webp)!important}}
 .pcteaser .btn-ghost,.final .btn-ghost,.ab-cta .btn-ghost,.stage .btn-ghost{color:#fff!important;border-color:rgba(255,255,255,.55)!important;background:transparent!important}
+
+.hub-book{display:inline-block;margin-left:10px;font-weight:700;color:#F2801F;text-decoration:none}.hub-book:hover{text-decoration:underline}

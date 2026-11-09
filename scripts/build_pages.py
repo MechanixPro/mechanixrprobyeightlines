@@ -1168,7 +1168,7 @@ HUB_ROWS = [
     ('One-time code at handover', 'Yes', 'Usually no'),
     ('Photos at pickup, ready and delivery', 'Yes', 'Rarely'),
     ('Online payment with a bill', 'QR or link, with a bill', 'Often cash only'),
-    ('Repair warranty', '{{days}}-day service warranty on our work', 'Usually none or verbal'),
+    ('Repair warranty', '{{days}}-day Redo Promise: the same work fails, we redo it free', 'Usually none or verbal'),
     ('Doorstep service', 'Yes, in our service area', 'You usually take the bike in'),
     ('Track your job', 'Private tracking link', 'Usually call to ask'),
 ]
@@ -1178,7 +1178,7 @@ def city_hub_parts():
               '<h3 class="hub-lab">Petrol motorcycles and scooters</h3>' + chips(HUB_PETROL) + '<h3 class="hub-lab">Electric two-wheelers</h3>' + chips(HUB_EV) +
               '<p class="tiny muted">Brand names belong to their owners and are used only to show which bikes we service.</p></div></section>')
     POP = '<span class="hub-pop">Popular in Bengaluru</span>'
-    cards = ''.join('<li class="hub-card">' + (POP if pop else '') + f'<h3>{html.escape(t)}</h3><p>{html.escape(d)}</p><ul>' + ''.join(f'<li>{html.escape(b)}</li>' for b in bl) + f'</ul><a href="{href}">See what is included</a></li>' for t, d, bl, href, _k, pop in HUB_CARDS)
+    cards = ''.join('<li class="hub-card">' + (POP if pop else '') + f'<h3>{html.escape(t)}</h3><p>{html.escape(d)}</p><ul>' + ''.join(f'<li>{html.escape(b)}</li>' for b in bl) + f'</ul><a href="{href}">See what is included</a> <a class="hub-book" href="/book/?service={"general" if _k in ("periodic", "doorstep") else "repair"}">Book this</a></li>' for t, d, bl, href, _k, pop in HUB_CARDS)
     services = f'<section class="band" id="services-hub"><div class="wrap"><div class="sec-head"><h2>Services we provide in Bengaluru.</h2></div><ul class="hub-cards">{cards}</ul></div></section>'
     steps = ''.join(f'<li class="hub-step"><img src="/assets/img/hero/{im}-700.webp" width="700" height="347" loading="lazy" decoding="async" alt="{html.escape(alt)}"><h3><span class="soon-n">{i + 1}</span> {html.escape(t)}</h3><p>{html.escape(d)}</p></li>' if im == 'at-your-door' else f'<li class="hub-step"><img src="/assets/img/hero/{im}-{"600" if im.startswith("garage") else "700"}.webp" width="600" height="400" loading="lazy" decoding="async" alt="{html.escape(alt)}"><h3><span class="soon-n">{i + 1}</span> {html.escape(t)}</h3><p>{html.escape(d)}</p></li>' for i, (im, alt, t, d) in enumerate(HUB_STEPS))
     JR = [('book-phone', 'A customer in an apartment complex books a service on her phone, her scooter parked beside her', 'Book in minutes', 'Pick your bike and a slot, then pay the small fee.', 'Choose your bike, your PIN code and a time, including today if there is room. You pay a small confirmation fee, {{confirmrange}} by engine size, adjusted in your final bill.', ('Home, office or society', 'Fee adjusted in your bill')),

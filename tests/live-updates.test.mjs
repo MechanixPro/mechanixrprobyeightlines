@@ -38,3 +38,11 @@ test('the mechanic page and the garage app open the screen', () => {
   assert.match(read('assets/js/job.js'), /live_open/); assert.match(read('assets/js/garage.js'), /MXP_LIVE\.create/);
   assert.match(read('job/index.html'), /live-ui\.js/); assert.match(read('garage/index.html'), /live-ui\.js/);
 });
+test('the purge function also removes Live files older than 3 months, files first and then the rows, and a dry run only counts', () => {
+  const f = read('supabase/functions/handover-purge/index.ts');
+  assert.match(f, /live_months/); assert.match(f, /storage\.from\('live-updates'\)\.remove/); assert.match(f, /from\('live_updates'\)\.delete\(\)/); assert.match(f, /live_due/);
+  assert.ok(f.indexOf("storage.from('live-updates').remove") < f.indexOf("from('live_updates').delete()"), 'files before rows');
+});
+test('the booking sheet shows the Pro Check result in Crew and Admin', () => {
+  for (const d of ['crm', 'admin']) { const s = read(d + '/flow-core.js'); assert.match(s, /rpc\('crm_job_check'/); assert.match(s, /function checkBlock/); assert.match(s, /quoteBlock\(l, flow\) \+ checkBlock\(flow\)/); }
+});

@@ -44,10 +44,10 @@ export function createFlow(deps) {
     // A part that fails is NOT shown as "none yet": its name goes into `failed`, and the card says so with a Retry button.
     const failed = [], safe = (name, p) => p.then((x) => x, () => { failed.push(name); return null; });
     const gd = deps.garageDesk && deps.garageDesk.visible();   // partner garage: only for people who may manage garages
-    const [conf, notes, quote, updates, seen, garage] = await Promise.all([safe('payment status', rpc('crm_confirmation', { p_lead: leadId })), safe('messages', rpc('crm_notifications', { p_lead: leadId })), safe('quote', rpc('crm_quote_get', { p_lead: leadId })),
+    const [conf, notes, quote, updates, seen, garage, check] = await Promise.all([safe('payment status', rpc('crm_confirmation', { p_lead: leadId })), safe('messages', rpc('crm_notifications', { p_lead: leadId })), safe('quote', rpc('crm_quote_get', { p_lead: leadId })),
       safe('customer details', rpc('crm_booking_updates', { p_lead: leadId })), safe('mechanic location', rpc('crm_tech_location', { p_lead: leadId })),
-      gd ? safe('partner garage', deps.garageDesk.forLead(leadId)) : Promise.resolve(null)]);
-    return { conf, notes: notes || [], quote, updates, seen, garage, failed };
+      gd ? safe('partner garage', deps.garageDesk.forLead(leadId)) : Promise.resolve(null), safe('Pro Check', rpc('crm_job_check', { p_lead: leadId }))]);
+    return { conf, notes: notes || [], quote, updates, seen, garage, check, failed };
   }
   /** Fold the confirmation fields into the lead the step bar reads. */
   const withFlow = (lead, flow) => (flow && flow.conf ? { ...lead, confirm_fee: flow.conf.fee, confirm_paid_at: flow.conf.paid ? (flow.conf.paid_at || 'paid') : null, visit_stage: flow.conf.stage, quote_state: flow.conf.quote ? flow.conf.quote.status : null } : lead);
@@ -78,7 +78,7 @@ export function createFlow(deps) {
       if (['repair_doorstep', 'picked_up'].includes(c && c.stage)) row.push('<button class="flow-btn" type="button" data-flow="markReady">Mark ready</button>');
       if ((c && c.stage) === 'ready' && l.job_place !== 'garage') row.push('<button class="flow-btn" type="button" data-flow="markDelivered">Mark delivered</button>');
       if (row.length) h += `<div class="flow-row">${row.join('')}</div>`;
-      h += quoteBlock(l, flow);
+      h += quoteBlock(l, flow) + checkBlock(flow);
       if (deps.garageDesk && deps.garageDesk.visible()) h += deps.garageDesk.leadHtml(flow && flow.garage);
     }
     h += seenBlock(l, flow) + customerBlock(flow);
@@ -87,6 +87,16 @@ export function createFlow(deps) {
       h += `<h4>Messages</h4><ul class="flow-list">${flow.notes.map((n) => { const k = String(n.kind).split(':'); return `<li>${chip(n.status, NOTICE_TONE[n.status] || '')} ${esc(NOTICE_LABEL[k[0]] || n.kind)}${k[1] ? ' v' + esc(k[1]) : ''} <small class="flow-muted">${esc(when(n.at))}${n.error ? ' · ' + esc(n.error) : ''}</small>${rs.includes(n) ? ` <button class="flow-btn flow-sm" type="button" data-flow="resend" data-kind="${esc(k[0])}" data-n="${esc(k[1] || '')}">Resend</button>` : ''}</li>`; }).join('')}</ul>`;
     }
     return h + '</section>';
+  }
+  /* Pro Check 20 result: counts, the points that need attention and the test ride. Read only; the mechanic or garage fills it in the app. */
+  const CHK_RIDE = { done_fine: 'Test ride done, all fine', done_note: 'Test ride done, something to note', not_done: 'Test ride not done' };
+  function checkBlock(flow) {
+    const c = flow && flow.check, r = c && c.results; if (!r || !r.points || !Object.keys(r.points).length) return '';
+    const pts = Object.entries(r.points), ok = pts.filter(([, v]) => v.r === 'ok').length, att = pts.filter(([, v]) => v.r === 'needs_attention'), sk = pts.length - ok - att.length;
+    const nice = (k) => k.replace(/_/g, ' ').replace(/^./, (x) => x.toUpperCase());
+    let h = `<h4>Pro Check 20 ${c.complete ? chip('Complete', 'good') : chip(pts.length + ' of 20 so far', 'warn')}</h4><p class="flow-muted">${ok} OK${att.length ? ', <b>' + att.length + ' need attention</b>' : ''}${sk ? ', ' + sk + ' skipped' : ''}.${r.test_ride ? ' ' + esc(CHK_RIDE[r.test_ride.r] || '') + (r.test_ride.r === 'not_done' && r.test_ride.why ? ' (' + esc(String(r.test_ride.why).replace(/_/g, ' ')) + ')' : '') + '.' : ''}</p>`;
+    if (att.length) h += `<ul class="flow-list">${att.map(([k, v]) => `<li><b>${esc(nice(k))}</b>${v.n ? ': ' + esc(v.n) : ''}</li>`).join('')}</ul>`;
+    return h;
   }
   /* Mechanic last seen: only while On the way or Arrived. The same line is in the Dispatch list. */
   function seenBlock(l, flow) {
