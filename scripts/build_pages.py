@@ -127,10 +127,10 @@ CAR_WA = 'Hi Mechanix Pro, I need a car service in Bangalore.\nCar make and mode
 def _wa_attr(t): return f' data-wa-text="{html.escape(t, quote=True).replace(chr(10), "&#10;")}"'
 DOCK_HOME = ('<nav class="dock" aria-label="Message or call Mechanix Pro"><a class="btn btn-wa bike-only" href="#" data-wa="general"' + _wa_attr(BIKE_WA) + '>' + _WA_I + 'WhatsApp</a>'
              '<a class="btn btn-wa car-only" href="#" data-wa="general"' + _wa_attr(CAR_WA) + '>' + _WA_I + 'WhatsApp</a><a class="btn btn-call" href="#" data-call>' + _PH_I + 'Call</a></nav>\n')
-def foot(extra='', dock=True, dock_text=None, dock_home=False):
+def foot(extra='', dock=True, dock_text=None, dock_home=False, tabbar=None):
     """Footer and scripts. The phone-only WhatsApp and Call bar is on every page unless dock=False (booking, payment, tracking, rating, warranty, unsubscribe: one-task pages)."""
     _dk = (DOCK_HOME if dock_home else DOCK.format(wa_text=_wa_attr(dock_text) if dock_text else '')) if dock else ''
-    _dk += TABBAR if dock else ''
+    _dk += TABBAR if (dock if tabbar is None else tabbar) else ''
     return FOOT.format(dock=_dk, footer=FOOTER.format(area_links=AREA_LINKS, company_name=COMPANY['legalName'], company_addr=', '.join(COMPANY['addressLines']) + f", {COMPANY['city']} {COMPANY['pincode']}", company_gstin=COMPANY['gstin']), extra=extra)
 
 COMPANY = json.load(open(os.path.join(ROOT, 'src', 'company.json'), encoding='utf-8'))
@@ -940,7 +940,7 @@ write('track/index.html', _tr + '''<h1 style="font-size:40px">Track your booking
   <p class="small" id="trMsg" role="status" aria-live="polite"></p>
 </form>
 <div id="trResult" data-company="{company_line}"></div>
-<p class="tiny muted">Can't find it? Message us on WhatsApp with your name and number and we will tell you where it stands.</p>'''.replace('{company_line}', html.escape(f"{COMPANY['legalName']}, {_ADDR}. GSTIN {COMPANY['gstin']}", quote=True)) + foot(dock=False))
+<p class="tiny muted">Can't find it? Message us on WhatsApp with your name and number and we will tell you where it stands.</p>'''.replace('{company_line}', html.escape(f"{COMPANY['legalName']}, {_ADDR}. GSTIN {COMPANY['gstin']}", quote=True)) + foot(dock=False, tabbar=True))
 
 
 # Rate card: every price in one place, before GST and with 18% GST, built from src/site.json so it always matches the Services page.
@@ -1323,7 +1323,7 @@ for slug, src, title, desc, ld, body, scripts, prio in MAIN:
         if _faq: schema += ld_tag(faq_ld(_faq))
     content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--AREA_LINKS-->', AREA_LINKS).replace('<!--WORKSHOP_TEASER-->', workshop_teaser_html()).replace('<!--HOME_JOURNEY-->', home_journey_html()).replace('<!--HOME_REELS-->', home_reels_html()).replace('<!--HOME_TRUST-->', home_trust_html()).replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
     if src == 'help': content = help_journey(content)
-    out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(dock=(src not in ('book', 'book-pay')), dock_home=(src == 'home'))
+    out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(dock=(src not in ('book', 'book-pay')), dock_home=(src == 'home'), tabbar=True)
     if src in ('book', 'book-pay'):
         out = out.replace('</title>', '</title><meta name="robots" content="noindex,follow">', 1)   # transactional pages: kept out of search, still crawlable for links
     if src == 'home':

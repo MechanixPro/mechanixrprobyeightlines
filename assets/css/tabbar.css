@@ -10,6 +10,7 @@
   .tabbar .tb-book svg{stroke:#0B1220;width:26px;height:26px}
   .tabbar .tb-book{color:#fff}
   body:has(.tabbar) .dock{display:none}
+  body:has(.tabbar) .bk-sum{bottom:calc(72px + env(safe-area-inset-bottom,0px))}
   body:has(.tabbar){padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
 }
 @media (display-mode:standalone){
