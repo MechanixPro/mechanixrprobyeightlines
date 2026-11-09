@@ -274,6 +274,16 @@ let shell = null;
 const goGroup = (g) => { S.tab = S.lastTab[g] || firstTab(g); syncNav(); render(); };
 // Global search in the top bar: opens Bookings filtered by what was typed.
 $('#gsearch').addEventListener('submit', (e) => { e.preventDefault(); const q = $('#gq').value.trim(); if (!q) return; S.q = q; S.tab = 'leads'; syncNav(); render(); });
+/* Partners who have sent their documents and wait for a decision, as a badge on Team and areas (owner and admin only; refreshed every 2 minutes). */
+function kycBadgeLoad() {
+  if (!['owner', 'admin'].includes(S.me?.role) || Date.now() - (S.kycAt || 0) < 120000) return;
+  S.kycAt = Date.now();
+  sb.rpc('kyc_review_list').then(({ data, error }) => {
+    if (error) return;
+    S.kycWaiting = (data || []).filter((r) => r.submitted && r.decision === 'pending').length;
+    document.querySelectorAll('[data-badge="kyc"]').forEach((el) => { el.textContent = String(S.kycWaiting); el.hidden = !S.kycWaiting; });
+  });
+}
 function syncNav() {
   const g = groupOf(S.tab); S.lastTab[g] = S.tab;
   if (shell) shell.setActive(g);
@@ -283,7 +293,8 @@ function syncNav() {
   const kb = document.querySelector('[data-tab=kyc]'); if (kb) kb.hidden = !['owner', 'admin'].includes(S.me?.role);   // owner and admin only
   const ga = document.querySelector('[data-tab=garageapp]'); if (ga) ga.hidden = !isOwner();   // owner only
   const bd = navBadges({ leads: S.leads, issues: S.issues });
-  bd.paidOpen = paidNeedsMechanic(S.leads).length;
+  bd.paidOpen = paidNeedsMechanic(S.leads).length; bd.kyc = S.kycWaiting || 0;
+  kycBadgeLoad();
   document.querySelectorAll('[data-badge]').forEach((el) => { const n = bd[el.dataset.badge] || 0; el.textContent = n > 99 ? '99+' : String(n); el.hidden = !n; });
 }
 function render() { try { renderPage(); } catch (e) { console.error('render', S.tab, e); $('#view').innerHTML = errorHtml('This page could not be shown.', e, 'render'); } }

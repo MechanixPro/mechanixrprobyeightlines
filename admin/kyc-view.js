@@ -69,6 +69,24 @@ export function createKycView({ rpc, invoke, dialog, toast }) {
         onOpen: (f) => f.querySelector('[data-copy]').addEventListener('click', async () => { try { await navigator.clipboard.writeText(r.url); toast('Copied.'); } catch (e) { toast('Copy failed. Select the link and copy it.', true); } }) });
     } catch (e) { bad(e); }
   }
+  /* After going live the partner needs a way in: make the app access (private link and a random PIN) in the same step and offer the welcome message on WhatsApp. The link and PIN show once. */
+  const makePin = () => { const a = new Uint32Array(1); for (;;) { crypto.getRandomValues(a); const p = String(1000 + (a[0] % 9000)); if (!/^(.)\1+$/.test(p) && p !== '1234' && p !== '4321') return p; } };
+  async function issueAccess(who) {
+    const pin = makePin();
+    let r;
+    try {
+      r = who.kind === 'garage' ? await rpc('crm_garage_access_create', { p_garage: who.id, p_pin: pin, p_label: 'Owner' }) : await rpc('crm_mechanic_access_create', { p_mechanic: who.id, p_pin: pin });
+    } catch (e) {
+      if (/already has app access/i.test(msg(e))) return toast(who.name + ' already has app access. Use the ' + (who.kind === 'garage' ? 'Garage app' : 'Mechanic app') + ' tab to reset the PIN or make a new link.');
+      return bad(e);
+    }
+    const first = String(who.name || '').split(' ')[0] || 'there', phone = String(who.phone || '').replace(/\D/g, '').slice(-10);
+    const app = who.kind === 'garage' ? 'garage app' : 'mechanic app';
+    const text = `Hi ${first}, you are now live on Mechanix Pro. Open your ${app}: ${r.link}\nYour PIN: ${pin}\nKeep both private. On first open you will share your location, set yourself Available and accept the terms. New jobs arrive here with a sound.`;
+    dialog({ title: 'App access for ' + (who.name || 'the partner'), intro: 'Shown once. Send it now: the link and the PIN are not kept in a readable form.',
+      body: `<label class="flow-label">Private link</label><p class="flow-box2" style="overflow-wrap:anywhere">${esc(r.link)}</p><label class="flow-label">PIN</label><p class="flow-code">${esc(pin)}</p><div class="flow-row"><button class="flow-btn" type="button" data-copy>Copy the message</button>${phone ? `<a class="flow-btn flow-primary" href="https://wa.me/91${phone}?text=${encodeURIComponent(text)}" target="_blank" rel="noopener noreferrer">Send on WhatsApp</a>` : ''}</div>`,
+      onOpen: (f) => f.querySelector('[data-copy]').addEventListener('click', async () => { try { await navigator.clipboard.writeText(text); toast('Copied.'); } catch (e) { toast('Copy failed. Select the link and copy it.', true); } }) });
+  }
   async function viewDoc(id) {
     try { const r = await invoke('kyc-admin', { action: 'view', doc: id }); const a = document.createElement('a'); a.href = r.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; document.body.appendChild(a); a.click(); a.remove(); toast('Opened. The link works for 60 seconds.'); } catch (e) { bad(e); }
   }
@@ -86,7 +104,7 @@ export function createKycView({ rpc, invoke, dialog, toast }) {
       if (t.dataset.reject) return askReason('Reject ' + t.dataset.label, 'Tell the applicant what to fix. They will see this reason.', async (why) => { await rpc('kyc_doc_set_status', { p_doc: t.dataset.reject, p_status: 'rejected', p_reason: why }); await refresh(); toast('Rejected.'); });
       if (t.hasAttribute('data-approve')) { if (!canApprove(cur.kind, cur.docs)) return; return confirmBox('Approve KYC', `Approve the documents of ${cur.name}? This does not make them live.`, 'Approve KYC', async () => { await rpc('kyc_decide', { p_kind: cur.kind, p_id: cur.id, p_decision: 'approve', p_reason: null }); await refresh(); toast('KYC approved.'); }); }
       if (t.hasAttribute('data-decline')) { const r = checkReason(root.querySelector('#kvReason')?.value); if (!r.ok) { toast(r.error, true); root.querySelector('#kvReason')?.focus(); return; } return run(async () => { await rpc('kyc_decide', { p_kind: cur.kind, p_id: cur.id, p_decision: 'reject', p_reason: r.reason }); await refresh(); }, 'KYC rejected.'); }
-      if (t.hasAttribute('data-onboard')) return confirmBox('Go live', `Make ${cur.name} live? They will start getting work.`, 'Go live', async () => { await rpc('kyc_onboard', { p_kind: cur.kind, p_id: cur.id }); await refresh(); toast('Now live.'); });
+      if (t.hasAttribute('data-onboard')) return confirmBox('Go live', `Make ${cur.name} live? They will start getting work, and you will get their app link and PIN to send right after.`, 'Go live', async () => { const who = cur; await rpc('kyc_onboard', { p_kind: who.kind, p_id: who.id }); await refresh(); toast('Now live.'); await issueAccess(who); });
       if (t.hasAttribute('data-delete')) return confirmBox('Delete documents', `Delete every uploaded document of ${cur.name}? This cannot be undone.`, 'Delete documents', async () => { const r = await invoke('kyc-admin', { action: 'delete', kind: cur.kind, id: cur.id }); await refresh(); toast(`Deleted ${r && r.removed != null ? r.removed : ''} files.`); });
     });
   }

@@ -1,5 +1,5 @@
 // POST /functions/v1/submit-partner  { kind, name?, owner_name, mobile, address, pincode?, categories[], bays?, note?, consent }
-// Public, for the "Join us" page. The application lands in the Care Buddy desk as a garage at the "applied" step, and the owners get an email.
+// Public, for the "Join us" page. The application lands in Partner KYC at the "applied" step (a garage as a garage, an independent mechanic as a mechanic), and the owners get an email.
 import { adminDb, env, json, corsHeaders, sha256Hex } from '../_shared/util.ts';
 import { cleanPartner, PARTNER_KINDS } from '../_shared/partner.ts';
 import { sendEmail } from '../_shared/resend.ts';
@@ -32,20 +32,32 @@ Deno.serve(async (req) => {
   if ((count ?? 0) >= 3) return json(req, { error: 'Too many requests. Please try again later.' }, 429);
 
   const kindLabel = PARTNER_KINDS.find((k) => k.id === p.kind)?.label ?? p.kind;
-  const { data: row, error } = await db.from('garages').insert({
-    name: p.name, owner_name: p.owner_name, mobile: p.mobile, address: p.address, pincode: p.pincode, categories: p.categories, bays: p.bays, status: 'applied',
-    notes: `Applied on the website as: ${kindLabel}.${p.note ? ' ' + p.note : ''}`.slice(0, 1000),
-  }).select('code').single();
-  if (error) {
-    if ((error as { code?: string }).code === '23505') return json(req, { ok: true, duplicate: true });
-    console.error('partner insert failed', error.message); return json(req, { error: 'Could not save. Please message us on WhatsApp.' }, 500);
+  // A garage applies as a garage. An independent mechanic applies as a mechanic (not active until KYC and go-live), so the KYC list asks for the right documents and going live gives the mechanic app, not the garage app.
+  let code: string | null = null;
+  if (p.kind === 'mechanic') {
+    const { data: dup } = await db.from('mechanics').select('id').eq('phone', p.mobile).limit(1);
+    if (dup && dup.length) return json(req, { ok: true, duplicate: true });
+    const skills = [...new Set(p.categories.map((c) => ({ bike: 'two-wheeler', scooter: 'scooter', electric: 'electric' } as Record<string, string>)[c]).filter(Boolean))];
+    const { data: m, error: me } = await db.from('mechanics').insert({ name: p.owner_name, phone: p.mobile, area: p.address.slice(0, 80), pincodes: p.pincode ? [p.pincode] : [], skills, active: false, onboarding_status: 'applied' }).select('id').single();
+    if (me) { console.error('partner mechanic insert failed', me.message); return json(req, { error: 'Could not save. Please message us on WhatsApp.' }, 500); }
+    code = 'MECH-' + String(m?.id ?? '').slice(0, 6).toUpperCase();
+  } else {
+    const { data: row, error } = await db.from('garages').insert({
+      name: p.name, owner_name: p.owner_name, mobile: p.mobile, address: p.address, pincode: p.pincode, categories: p.categories, bays: p.bays, status: 'applied',
+      notes: `Applied on the website as: ${kindLabel}.${p.note ? ' ' + p.note : ''}`.slice(0, 1000),
+    }).select('code').single();
+    if (error) {
+      if ((error as { code?: string }).code === '23505') return json(req, { ok: true, duplicate: true });
+      console.error('partner insert failed', error.message); return json(req, { error: 'Could not save. Please message us on WhatsApp.' }, 500);
+    }
+    code = row?.code ?? null;
   }
-  await db.from('audit_log').insert({ actor: null, action: 'partner_apply', details: { ip: ipHash, code: row?.code, kind: p.kind } });
+  await db.from('audit_log').insert({ actor: null, action: 'partner_apply', details: { ip: ipHash, code, kind: p.kind } });
 
   // Tell the owners. A failed email never fails the application.
   try {
     const to = await supervisorEmails(db);
-    const body = `New ${kindLabel.toLowerCase()} application ${row?.code}\n\nName: ${p.name}\nContact: ${p.owner_name}, ${p.mobile}\nArea: ${p.address}${p.pincode ? ' ' + p.pincode : ''}\nWorks on: ${p.categories.join(', ')}${p.bays ? `\nBays: ${p.bays}` : ''}${p.note ? `\nNote: ${p.note}` : ''}\n\nOpen the Care Buddy desk, Garages, to take it forward.`;
+    const body = `New ${kindLabel.toLowerCase()} application ${code}\n\nName: ${p.name}\nContact: ${p.owner_name}, ${p.mobile}\nArea: ${p.address}${p.pincode ? ' ' + p.pincode : ''}\nWorks on: ${p.categories.join(', ')}${p.bays ? `\nBays: ${p.bays}` : ''}${p.note ? `\nNote: ${p.note}` : ''}\n\nOpen the Care Buddy desk, Garages, to take it forward.`;
     for (const t of to) await sendEmail({ to: t, subject: `New partner application: ${p.name}`, text: body, html: `<pre style="font:14px/1.5 system-ui">${body.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] as string))}</pre>` });
   } catch { /* ignore */ }
   return json(req, { ok: true });

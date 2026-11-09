@@ -23,7 +23,7 @@
     fetch(C.supabaseUrl + '/functions/v1/submit-partner', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey },
       body: JSON.stringify({ kind: kind(), name: $('pt-name').value, owner_name: $('pt-owner').value, mobile: mobile, address: $('pt-address').value, pincode: pin, categories: work, bays: $('pt-bays').value, note: $('pt-note').value, consent: true }) })
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
-      .then(function (x) { if (x.ok) { form.reset(); swap(); say(x.d && x.d.duplicate ? 'We already have an application from this number. Our team will call you soon.' : 'Thank you! Our team will call you soon.', true); } else say((x.d && x.d.error) || 'Something went wrong. Please try again.'); })
+      .then(function (x) { if (x.ok) { form.reset(); swap(); say(x.d && x.d.duplicate ? 'We already have an application from this number. Our team will call you soon.' : 'Thank you! Our team will call you soon and send your onboarding link on WhatsApp.', true); } else say((x.d && x.d.error) || 'Something went wrong. Please try again.'); })
       .catch(function () { say('No connection. Please try again.'); })
       .then(function () { busy = false; });
   });
