@@ -80,3 +80,14 @@ test('car bookings can choose AC, battery, tyres, brakes, inspection, repair and
   }
   assert.match(f, /Object\.keys\(CAR_NEEDS\)\.includes\(String\(b\.car_need\)\)/);
 });
+import { garageFromForm, CATS } from '../admin/garages-view.js';
+test('Admin can add, edit and delete a garage by hand', () => {
+  const ok = garageFromForm({ name: ' Sri Motors ', owner_name: 'Owner', mobile: '9876543210', address: '12 Main Road HSR', pincode: '560102', lat: '12.9116, 77.6389', lng: '', categories: ['2-wheeler', 'bogus'], open_days: 'Mon-Sat', open_time: '09:00', close_time: '19:00', bays: '3' }, 'abc');
+  assert.equal(ok.value.name, 'Sri Motors'); assert.deepEqual(ok.value.categories, ['2-wheeler']); assert.equal(ok.value.lat, 12.9116); assert.equal(ok.value.lng, 77.6389); assert.equal(ok.value.bays, 3); assert.equal(ok.value.id, 'abc');
+  assert.match(garageFromForm({ lat: 'near the temple', lng: '' }).error, /Bengaluru/); assert.ok(CATS.length === 5);
+  const m = read('supabase/migrations/20270133000000_admin_garage_delete.sql');
+  assert.match(m, /admin_garage_delete[\s\S]*kyc_need_admin\(\)/); assert.match(m, /open job/); assert.match(m, /deleted_at = now\(\)/); assert.match(m, /revoked_at = coalesce\(revoked_at, now\(\)\)/);
+  assert.match(m, /revoke all on function public\.admin_garage_delete\(uuid\).* from public, anon/);
+  assert.match(read('admin/nav.js'), /\['garages', 'Garages'\]/); assert.match(read('admin/index.html'), /data-tab="garages"/); assert.match(read('admin/admin.js'), /garagesView\.mount/);
+  assert.equal(read('crm/geo-parse.js'), read('admin/geo-parse.js'));
+});

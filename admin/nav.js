@@ -4,7 +4,7 @@ export const GROUPS = [
   { id: 'today', label: 'Today', tabs: [['dash', 'Dashboard'], ['watch', 'Service Watch']] },
   { id: 'bookings', label: 'Bookings', tabs: [['board', 'Today board'], ['dispatch', 'Dispatch'], ['leads', 'Bookings'], ['customers', 'Customers'], ['custbook', 'Customer bookings'], ['issues', 'Issues'], ['whatsapp', 'WhatsApp']] },
   { id: 'money', label: 'Money', tabs: [['sales', 'Sales and collections'], ['mechledger', 'Mechanic ledgers'], ['invoices', 'Invoices'], ['conversion', 'Conversion'], ['reports', 'Reports'], ['coupons', 'Coupons'], ['prices', 'Prices']] },
-  { id: 'team', label: 'Team and areas', tabs: [['mechanics', 'Mechanics'], ['garageapp', 'Garage app'], ['kyc', 'Partner KYC'], ['pins', 'PIN codes']] },
+  { id: 'team', label: 'Team and areas', tabs: [['mechanics', 'Mechanics'], ['garages', 'Garages'], ['garageapp', 'Garage app'], ['kyc', 'Partner KYC'], ['pins', 'PIN codes']] },
   { id: 'more', label: 'More', tabs: [['offers', 'Offers'], ['waitlist', 'Waitlist'], ['homeimgs', 'Home images'], ['settings', 'Settings'], ['activity', 'Activity']] },
 ];
 export const ALL_TABS = GROUPS.flatMap((g) => g.tabs.map((t) => t[0]));

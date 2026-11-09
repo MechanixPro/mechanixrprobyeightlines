@@ -31,7 +31,8 @@ import { createSpeedPanel } from "./speed-panel.js";
 import { createDupesPanel } from "./dupes-panel.js";
 import { createImportPanel, phoneSet } from "./import-panel.js";
 import { createTargetsPanel } from "./targets-panel.js";
-import { createKycView } from "./kyc-view.js";   // sales targets on the Sales page   // lead speed on the Sales page
+import { createKycView } from "./kyc-view.js";
+import { createGaragesView } from "./garages-view.js";   // sales targets on the Sales page   // lead speed on the Sales page
 import { createQuoteDoc } from "./quote-doc.js";   // numbered quote page
 import { createMechanicDesk } from './mechanic-desk.js';
 import { STATUS, skeleton, errorState, labelTables, initShell, initials } from './ds.js';
@@ -290,6 +291,7 @@ function syncNav() {
   document.querySelectorAll('[data-group]').forEach((b) => (b.dataset.group === g ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   document.querySelectorAll('[data-sub]').forEach((d) => { d.hidden = d.dataset.sub !== g; });
   document.querySelectorAll('#side [data-tab]').forEach((b) => (b.dataset.tab === (S.tab === 'custbook' ? 'customers' : S.tab) ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
+  const gb = document.querySelector('[data-tab=garages]'); if (gb) gb.hidden = !['owner', 'admin'].includes(S.me?.role);
   const kb = document.querySelector('[data-tab=kyc]'); if (kb) kb.hidden = !['owner', 'admin'].includes(S.me?.role);   // owner and admin only
   const ga = document.querySelector('[data-tab=garageapp]'); if (ga) ga.hidden = !isOwner();   // owner only
   const bd = navBadges({ leads: S.leads, issues: S.issues });
@@ -299,7 +301,7 @@ function syncNav() {
 }
 function render() { try { renderPage(); } catch (e) { console.error('render', S.tab, e); $('#view').innerHTML = errorHtml('This page could not be shown.', e, 'render'); } }
 const failBanner = () => ((S.failed || []).length ? `<div class="alert" role="alert"><b>Some data could not be loaded:</b> ${esc(S.failed.join(', '))}. What you see may be incomplete. <button class="btn btn-ghost btn-sm" type="button" data-retry="boot">Retry</button></div>` : '');
-function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, watch: watchView, whatsapp, dispatch, board, leads, customers, mechanics, garageapp, kyc, coupons, issues, pins, waitlist, offers, conversion, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'whatsapp') waDesk.mount($('#waRoot')); else waDesk.unmount(); if (S.tab === 'conversion') funnelDesk.mount($('#fnRoot')); if (S.tab === "sales") { speedPanel.mount($("#spRoot")); targetsPanel.mount($("#tgRoot")); importPanel.mount($("#ipRoot")); } if (S.tab === 'dispatch') loadDispatch(); if (S.tab === "watch") loadWatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'kyc') kycView.mount($('#kycRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); if (S.tab === 'customers') bindDupes(); if (S.tab === 'activity') loadActivity(); }
+function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, watch: watchView, whatsapp, dispatch, board, leads, customers, mechanics, garages, garageapp, kyc, coupons, issues, pins, waitlist, offers, conversion, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'whatsapp') waDesk.mount($('#waRoot')); else waDesk.unmount(); if (S.tab === 'conversion') funnelDesk.mount($('#fnRoot')); if (S.tab === "sales") { speedPanel.mount($("#spRoot")); targetsPanel.mount($("#tgRoot")); importPanel.mount($("#ipRoot")); } if (S.tab === 'dispatch') loadDispatch(); if (S.tab === "watch") loadWatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'kyc') kycView.mount($('#kycRoot')); if (S.tab === 'garages') garagesView.mount($('#gvRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); if (S.tab === 'customers') bindDupes(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
@@ -416,6 +418,7 @@ function openCustomer(id) {
 
 /* ---------- garage app (partner garages): the shared desk fills #gdRoot ---------- */
 function garageapp() { return '<div id="gdRoot"></div>'; }
+function garages() { return '<div class="view-head"><h2>Garages</h2><p class="muted">Add a garage by hand, edit its details, or delete it. Deleted garages can be brought back.</p></div><div id="gvRoot"></div>'; }
 function kyc() { return '<div class="view-head"><h2>Partner KYC</h2><p class="muted">Check the documents of garages and mechanics who are applying, approve them, then take them live.</p></div><div id="kycRoot"></div>'; }
 function whatsapp() { return '<div id="waRoot"></div>'; }
 const waDesk = createWaDesk({ sb, url: C.supabaseUrl, anonKey: C.supabaseAnonKey, toast: (m, bad) => toast(m, bad ? 6000 : 2600) });
@@ -775,6 +778,7 @@ const funnelDesk = createFunnelDesk({ rpc: adminRpc, openLead: (id) => { S.tab =
 const routing = createRouting({ rpc: adminRpc, onReady: () => { if (S.tab === "board") render(); } });   // owner, Next step and late chip on the Today board
 const conversion = () => `<div class="view-head"><h2>Conversion</h2><p class="muted">Lead to quote to booking to visit to invoice. Counts and median times, by period, source, campaign, Crew member and vehicle.</p></div><div id="fnRoot"></div>`;
 const mechanicDesk = createMechanicDesk({ rpc: adminRpc, toast, can: () => isOwner(), dialog: (o) => flow.dialog(o) });
+const garagesView = createGaragesView({ rpc: adminRpc, dialog: (o) => flow.dialog(o), toast });
 const kycView = createKycView({ rpc: adminRpc, invoke: async (fn, body) => { const { data, error } = await sb.functions.invoke(fn, { body }); if (error) { let m = null; try { m = (await error.context.json()).error; } catch (x) { /* no body */ } throw new Error(m || error.message); } if (data && data.error) throw new Error(data.error); return data; }, dialog: (o) => flow.dialog(o), toast });
 const flow = createFlow({
   quoteDoc: createQuoteDoc({ rpc: adminRpc, toast, loadCompany }),

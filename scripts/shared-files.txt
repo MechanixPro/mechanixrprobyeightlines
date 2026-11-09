@@ -19,3 +19,4 @@ tell-mechanic.js
 garage-assign.js
 kyc-rules.js
 watch.js
+geo-parse.js
