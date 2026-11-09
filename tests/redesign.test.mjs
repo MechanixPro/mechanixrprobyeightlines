@@ -9,7 +9,7 @@ const SAMPLE = ['index.html', 'bike-service-hsr-layout/index.html', 'bike-servic
 
 test('the home page has six sections, in the order a visitor decides', () => {
   const ids = [...main.matchAll(/<section[^>]*id="([a-z-]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(ids, ['hero', 'how-hub', 'brief', 'work', 'prices', 'team', 'garages', 'trust', 'pro-check', 'compare', 'own-a-workshop', 'helpline', 'phone-app', 'areas', 'faq', 'tools']);   // changed on purpose 2026-11-09: journey after the hero (the old brief stays for cars), then Pro Check, comparison, partner, helpline and app sections
+  assert.deepEqual(ids, ['hero', 'how-hub', 'brief', 'work', 'pictures', 'prices', 'team', 'garages', 'trust', 'pro-check', 'compare', 'own-a-workshop', 'helpline', 'phone-app', 'areas', 'faq', 'tools']);   // changed on purpose 2026-11-09: journey after the hero (the old brief stays for cars), then Pro Check, comparison, partner, helpline and app sections
   assert.ok(main.indexOf('class="stage"') < main.indexOf('class="sheet"'), 'a navy stage first, then the light sheet');
   assert.equal((main.match(/<h1[ >]/g) || []).length, 1);
 });
@@ -241,7 +241,7 @@ test('every bike in the strip links to an existing model page', () => {
   const links = new Set([...work.matchAll(/href="\/bike-service\/([a-z0-9-]+)\/"/g)].map((m) => m[1]));
   assert.ok(links.size >= 12);
   for (const s of links) { assert.ok(existsSync(new URL(`../bike-service/${s}/index.html`, import.meta.url)), s); assert.ok(existsSync(new URL(`../assets/img/showcase/${s}.webp`, import.meta.url)), s); }
-  assert.match(work, /href="\/terms\/#credits"/);
+  assert.match(home, /href="\/terms\/#credits"/);   // changed on purpose 2026-11-09: the caption under the strip was removed at the owner's request; the credits link stays in the footer of every page
 });
 test('the strip is calm, pauses on hover and focus, and is static for reduced motion and reduced data', () => {
   assert.match(css, /\.mq-track\{[^}]*animation:mq-left 70s linear infinite/);

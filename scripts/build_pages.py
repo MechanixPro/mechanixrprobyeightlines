@@ -34,7 +34,7 @@ FOOTER = '''<footer class="foot">
     </div>
     <div class="foot-cols">
       <div><b>Areas</b>{area_links}<a href="/areas/">All Bengaluru PIN codes</a></div>
-      <div><b>Company</b><a href="/services/">Services and prices</a><a href="/rate-card/">Rate card</a><a href="/help/">How it works</a><a href="/our-process/">How we keep your bike safe</a><a href="/pro-check/">Pro Check 20</a><a href="/app/">Mechanix Pro on your phone</a><a href="/roadside/">Roadside help</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
+      <div><b>Company</b><a href="/services/">Services and prices</a><a href="/rate-card/">Rate card</a><a href="/help/">How it works</a><a href="/our-process/">How we keep your bike safe</a><a href="/about/">About us</a><a href="/pro-check/">Pro Check 20</a><a href="/app/">Mechanix Pro on your phone</a><a href="/roadside/">Roadside help</a><a href="/fleet/">Fleets and delivery riders</a><a href="/societies/">Apartments and offices</a><a href="/track/">Track your booking</a><a href="https://www.instagram.com/themechanixpro/" rel="me noopener" target="_blank">Instagram</a><a href="/contact/">Contact</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund-policy/">Refund policy</a><a href="/terms/#credits">Credits</a></div>
     </div>
     <p class="tiny">© 2026 Mechanix Pro. All rights reserved.</p><p class="tiny">Mechanix Pro is a brand of {company_name}, {company_addr}. GSTIN {company_gstin}</p><p class="tiny">Website developed by <a href="https://ziyam.me" target="_blank" rel="noopener" class="inl">ziyam.me</a></p><p class="tiny">Brand and model names belong to their owners and are used only to show which bikes we service. Mechanix Pro is an independent service and is not affiliated with or endorsed by them.</p>
   </div>
@@ -696,6 +696,19 @@ def _build_app_page():
     urls.append(('/app/', '0.5'))
 _build_app_page()
 
+# ---- /about/: the story of Mechanix Pro in chapters. Every figure on it is a real one (PIN count from src/pincodes.json, warranty days, fee range). Source in src/about.html ----
+def _build_about_page():
+    _t = 'About Mechanix Pro | The story behind doorstep bike service in Bengaluru'
+    _d = 'Why we built Mechanix Pro: quote first, a one-time code at your door, photos and a bill. Meet how we work, who comes to your door and where we serve in Bengaluru.'
+    _url = f'{SITE}/about/'
+    _raw = open(os.path.join(ROOT, 'src', 'about.html'), encoding='utf-8').read()
+    _raw = _raw.replace('{{pincount}}', str(len(json.load(open(os.path.join(ROOT, 'src', 'pincodes.json'), encoding='utf-8'))['pins']))).replace('{{companyname}}', html.escape(COMPANY['legalName'])).replace('{{companycity}}', html.escape(COMPANY['city']))
+    _body = tok(_raw)
+    _ld = crumbs(('About us', '/about/')) + page_ld({"@type": "AboutPage", "@id": _url + '#webpage', "url": _url, "name": _t, "isPartOf": {"@id": SITE + '/#website'}})
+    write('about/index.html', HEAD.format(title=html.escape(_t), desc=html.escape(_d), url=_url, site=SITE, schema=_ld, scripts=LEGAL_JS, body='', nav=NAV, main='page') + _body + foot())
+    urls.append(('/about/', '0.7'))
+_build_about_page()
+
 # ---- /pro-check/: the public 20-point list and the test ride, generated from the same list the apps use (src/pro-check.html is written from supabase/functions/_shared/pro-check.ts) ----
 def _build_pro_check_page():
     _t = 'Pro Check 20: the 20-point check and test ride | Mechanix Pro'
@@ -1193,6 +1206,20 @@ def city_hub_parts():
     return {'brands': brands, 'services': services, 'how': how, 'cmp': cmp_, 'helpline': helpline, 'partner': partner}
 
 # ---- Home page sections (bike view): the animated booking journey, then Pro Check 20, the comparison, the partner call and the helpline. Built from the same parts as the city page. ----
+
+# ---- Home: "On the job, in pictures": vertical story cards (9:16, swipe sideways). Pictures are in assets/img/reels. ----
+REELS = [('collage', 'A booking, start to finish', 'A collage: booking on the phone, the mechanic waving at the gate, a roadside check, a handshake and the Mechanix Pro shield'),
+         ('quote', 'Quote first, you approve', 'A customer points at an itemised quote on the mechanic\'s tablet'),
+         ('selfie', 'Photos at delivery', 'A mechanic takes a photo of the finished motorcycle while the customer gives a thumbs up'),
+         ('code', 'Your one-time code', 'A customer shows the one-time code on her phone while the mechanic holds a tablet ready to enter it'),
+         ('car', 'Cars too', 'A Mechanix Pro mechanic checks a car with the bonnet open and a tablet in hand'),
+         ('rating', 'Rate your service', 'A customer rates her service on her phone at her gate while the mechanic waves goodbye'),
+         ('society', 'Society service days', 'A Mechanix Pro mechanic services a motorcycle in an apartment parking area'),
+         ('owner', 'Partner garages', 'A garage owner in a navy apron stands proudly in front of his partner garage')]
+def home_reels_html():
+    cards = ''.join(f'<li class="reel"><img src="/assets/img/reels/{n}.webp" width="540" height="960" loading="lazy" decoding="async" alt="{html.escape(a)}"><span class="reel-bars" aria-hidden="true"><i></i><i></i><i></i></span><span class="reel-cap"><b class="reel-av" aria-hidden="true"></b>{html.escape(c)}</span></li>' for n, c, a in REELS)
+    return ('<section id="pictures" class="bike-only" aria-labelledby="pictures-h"><div class="wrap"><div class="sec-head"><h2 id="pictures-h">On the job, in pictures.</h2><p>Swipe through a booking, from the first tap to the thumbs up.</p></div>'
+            f'<ul class="reels" tabindex="0" aria-label="Pictures from the job">{cards}</ul></div></section>')
 def home_journey_html():
     return '<div class="bike-only">' + city_hub_parts()['how'] + '</div>'
 def home_trust_html():
@@ -1267,7 +1294,7 @@ for slug, src, title, desc, ld, body, scripts, prio in MAIN:
         _src = open(os.path.join(ROOT, 'src', 'home.html'), encoding='utf-8').read()
         _faq = faq_from_html(_src)
         if _faq: schema += ld_tag(faq_ld(_faq))
-    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--AREA_LINKS-->', AREA_LINKS).replace('<!--WORKSHOP_TEASER-->', workshop_teaser_html()).replace('<!--HOME_JOURNEY-->', home_journey_html()).replace('<!--HOME_TRUST-->', home_trust_html()).replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
+    content = open(os.path.join(ROOT, 'src', src + '.html'), encoding='utf-8').read().replace('<!--AREA_LINKS-->', AREA_LINKS).replace('<!--WORKSHOP_TEASER-->', workshop_teaser_html()).replace('<!--HOME_JOURNEY-->', home_journey_html()).replace('<!--HOME_REELS-->', home_reels_html()).replace('<!--HOME_TRUST-->', home_trust_html()).replace('<!--CHAT-->', chat_block()).replace('<!--BRAND_CHIPS-->', brand_chips()).replace('<!--SOON_CARDS-->', soon_cards()).replace('<!--REVIEWS-->', reviews_html()).replace('<!--MECHANICS-->', mechanics_html()).replace('<!--INSTAGRAM-->', instagram_html())
     if src == 'help': content = help_journey(content)
     out = HEAD.format(title=html.escape(title), desc=html.escape(desc), url=url, site=SITE, schema=schema, scripts=scripts, body=body, nav=NAV, main='') + content + foot(dock=(src not in ('book', 'book-pay')), dock_home=(src == 'home'))
     if src in ('book', 'book-pay'):

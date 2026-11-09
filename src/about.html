@@ -1,0 +1,62 @@
+<style>
+.ab{--ink:#0b1220;--navy:#14295A}main.page .ab .wrap,.ab .wrap{max-width:1140px;width:100%;margin-left:auto;margin-right:auto;padding-left:20px;padding-right:20px;box-sizing:border-box}main.page .ab-ch p,main.page .ab-hero p{max-width:62ch}.ab-hero{padding:34px 0 18px}.ab-hero .eyebrow{display:inline-block;background:#eaf3f0;color:#17604f;font-weight:700;font-size:12px;letter-spacing:.05em;text-transform:uppercase;padding:6px 12px;border-radius:999px}
+.ab-hero h1{font-size:clamp(34px,6.4vw,64px);line-height:1.04;margin:14px 0 12px;max-width:16ch}.ab-hero p{font-size:20px;color:var(--muted);max-width:56ch}
+.ab-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:26px 0 8px;list-style:none;padding:0}@media(min-width:760px){.ab-stats{grid-template-columns:repeat(4,1fr)}}
+.ab-stats li{background:var(--navy);color:#fff;border-radius:18px;padding:16px 18px}.ab-stats b{display:block;font-size:clamp(26px,4vw,38px);line-height:1}.ab-stats span{display:block;margin-top:6px;font-size:14px;color:#d7def0}
+.ab-nav{position:sticky;top:0;z-index:5;background:rgba(250,250,248,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);margin:18px 0 0}.ab-nav ol{list-style:none;margin:0;padding:8px 0;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}.ab-nav ol::-webkit-scrollbar{display:none}
+.ab-nav a{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:#fff;font-weight:600;font-size:15px;text-decoration:none;color:var(--ink)}.ab-nav a i{font-style:normal;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px}
+.ab-ch{padding:44px 0 8px;scroll-margin-top:64px}.ab-ch .num{font-weight:800;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#F2801F}.ab-ch h2{font-size:clamp(28px,4.4vw,44px);margin:6px 0 12px;line-height:1.08}.ab-ch p{font-size:18px;max-width:62ch}
+.ab-split{display:grid;gap:22px;align-items:center}@media(min-width:860px){.ab-split{grid-template-columns:1fr 1fr}.ab-split.flip>:first-child{order:2}}
+.ab-pic{margin:0}.ab-pic img{display:block;width:100%;height:auto;border-radius:20px;aspect-ratio:3/2;object-fit:cover}
+.ab-quote{margin:26px 0;padding:26px 28px;border-radius:22px;background:var(--navy);color:#fff;font-size:clamp(22px,3.4vw,34px);line-height:1.2;font-weight:700}.ab-quote small{display:block;margin-top:10px;font-size:15px;font-weight:500;color:#d7def0}
+.ab-worry{display:grid;gap:12px;margin:18px 0;list-style:none;padding:0}@media(min-width:760px){.ab-worry{grid-template-columns:repeat(3,1fr)}}
+.ab-worry li{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}.ab-worry h3{margin:0 0 6px;font-size:19px}.ab-worry p{margin:0;font-size:16px;color:var(--muted)}
+.ab-line{list-style:none;margin:20px 0;padding:0;position:relative}.ab-line::before{content:"";position:absolute;left:19px;top:6px;bottom:6px;width:2px;background:repeating-linear-gradient(to bottom,var(--navy) 0 6px,transparent 6px 12px)}
+.ab-line li{position:relative;padding:0 0 18px 58px}.ab-line li b{position:absolute;left:0;top:0;width:40px;height:40px;border-radius:50%;background:#F2801F;color:#1A0E03;display:grid;place-items:center;font-size:17px}.ab-line h3{margin:0 0 2px;font-size:19px}.ab-line p{margin:0;font-size:16px;color:var(--muted)}
+.ab-cta{margin:34px 0 10px;padding:28px;border-radius:24px;background:var(--navy);color:#fff}.ab-cta h2{margin:0 0 8px;color:#fff;font-size:clamp(26px,4vw,38px)}.ab-cta p{color:#d7def0;max-width:56ch}.ab-cta .btn-ghost{color:#fff;border-color:rgba(255,255,255,.55);background:transparent}
+.ab-note{font-size:14px;color:var(--muted);margin:18px 0 0}
+main.page .ab-ch h2{padding:0;border:0}.ab-ch h2::before{display:none}
+</style>
+<div class="ab">
+<section class="ab-hero"><div class="wrap">
+  <span class="eyebrow">About Mechanix Pro</span>
+  <h1>Your bike, serviced at your door. Honestly.</h1>
+  <p>Mechanix Pro began with a plain question: why should looking after a bike cost you an afternoon, and a surprise at the bill? This is how we answered it.</p>
+  <ul class="ab-stats">
+    <li><b>{{pincount}}</b><span>Bengaluru PIN codes we serve</span></li>
+    <li><b>Quote first</b><span>Nothing starts until you say yes</span></li>
+    <li><b>20 + ride</b><span>Pro Check 20 and a test ride</span></li>
+    <li><b>{{days}} days</b><span>Service warranty on our work</span></li>
+  </ul>
+</div></section>
+<nav class="ab-nav" aria-label="Chapters"><div class="wrap"><ol>
+  <li><a href="#question"><i>1</i>The question</a></li><li><a href="#worries"><i>2</i>The three worries</a></li><li><a href="#built"><i>3</i>What we built</a></li><li><a href="#people"><i>4</i>Who comes to your door</a></li><li><a href="#honest"><i>5</i>Staying honest</a></li><li><a href="#city"><i>6</i>Our city</a></li><li><a href="#partners"><i>7</i>Join us</a></li>
+</ol></div></nav>
+<div class="wrap">
+  <section class="ab-ch" id="question"><span class="num">Chapter 1</span><div class="ab-split"><div><h2>It started with a question.</h2><p>Every rider knows the routine. Take the day off, ride to a workshop, wait, and hope the bill matches the work. We asked a simpler thing: what if the service came to you, and you could see and approve everything before it began?</p></div>
+  <figure class="ab-pic"><img src="/assets/img/hero/book-phone-700.webp" width="700" height="467" loading="lazy" decoding="async" alt="A customer in an apartment complex books a service on her phone, her scooter parked beside her"></figure></div>
+  <blockquote class="ab-quote">A service you can see, approve and pay for, without leaving home.<small>The idea behind Mechanix Pro</small></blockquote></section>
+
+  <section class="ab-ch" id="worries"><span class="num">Chapter 2</span><h2>The three worries.</h2><p>Talk to riders and the same three worries come up. We built around each one.</p>
+  <ul class="ab-worry"><li><h3>"Will the bill change?"</h3><p>You get an itemised quote first. Extra work needs a new approval. Nothing starts until you say yes.</p></li>
+  <li><h3>"Who has my bike?"</h3><p>You get the booking ID, the mechanic's name and a private tracking link. A one-time code at the door protects your vehicle.</p></li>
+  <li><h3>"What was actually done?"</h3><p>Photos at pickup, when work is done and at delivery. A Pro Check on 20 points and a test ride. A GST bill.</p></li></ul></section>
+
+  <section class="ab-ch" id="built"><span class="num">Chapter 3</span><div class="ab-split flip"><div><h2>What we built.</h2><p>A booking takes minutes. You pay a small confirmation fee, {{confirmrange}} by engine size, adjusted in your final bill. A checked mechanic or partner garage is assigned, and you follow the job on your tracking page.</p>
+  <ol class="ab-line"><li><b>1</b><h3>Book and pay the small fee</h3><p>Choose your bike, your PIN code and a time.</p></li><li><b>2</b><h3>Share your code at the door</h3><p>The mechanic cannot start without it.</p></li><li><b>3</b><h3>Approve the quote, get proof</h3><p>Pay online by QR or link, and get your photos and bill.</p></li></ol></div>
+  <figure class="ab-pic"><img src="/assets/img/hero/quote-approval-700.webp" srcset="/assets/img/hero/quote-approval-700.webp 700w, /assets/img/hero/quote-approval-1200.webp 1200w" sizes="(min-width:860px) 520px, 100vw" width="700" height="467" loading="lazy" decoding="async" alt="A customer points at an itemised quote on a mechanic's tablet and smiles"></figure></div></section>
+
+  <section class="ab-ch" id="people"><span class="num">Chapter 4</span><div class="ab-split"><div><h2>Who comes to your door.</h2><p>Garages and mechanics send us their documents and photos, and we check them before they take a single job. Every one works in a Mechanix Pro app that records each step, asks for your code, and cannot start work without your approval.</p><p>Want to join the network? You apply from your phone, upload your documents and the signed agreement, and we tell you when you are approved.</p><p><a class="btn btn-wa" href="/join/">Apply to join</a> <a class="btn btn-ghost" href="/our-process/">How we keep your bike safe</a></p></div>
+  <figure class="ab-pic"><img src="/assets/img/hero/team-1000.webp" srcset="/assets/img/hero/team-1000.webp 1000w, /assets/img/hero/team-1600.webp 1600w" sizes="(min-width:860px) 520px, 100vw" width="1000" height="496" loading="lazy" decoding="async" alt="The Mechanix Pro team in navy polo shirts with the shield badge in front of a garage and a service van"></figure></div></section>
+
+  <section class="ab-ch" id="honest"><span class="num">Chapter 5</span><div class="ab-split flip"><div><h2>Staying honest.</h2><p>We would rather promise less and keep it. Our repair work has a {{days}}-day service warranty. Parts carry the maker's or supplier's warranty, shown on your bill. Every service starts with a <a href="/pro-check/">Pro Check 20</a> and a test ride, and you see the results.</p><p>Our prices are on the site. Our terms, refund policy and privacy policy are in plain words. If something goes wrong, you can call or message us, and we will put it right.</p></div>
+  <figure class="ab-pic"><img src="/assets/img/hero/delivery-photo-700.webp" srcset="/assets/img/hero/delivery-photo-700.webp 700w, /assets/img/hero/delivery-photo-1200.webp 1200w" sizes="(min-width:860px) 520px, 100vw" width="700" height="467" loading="lazy" decoding="async" alt="A mechanic takes a photo of the finished motorcycle while the customer gives a thumbs up"></figure></div></section>
+
+  <section class="ab-ch" id="city"><span class="num">Chapter 6</span><div class="ab-split"><div><h2>Our city: Bengaluru.</h2><p>We serve {{pincount}} Bengaluru PIN codes, from apartments and offices to society parking, with service days for whole communities. Check your PIN before you book. If we do not serve it yet, message us and we will tell you when we do.</p><p><a class="btn btn-wa" href="/areas/">See all areas</a> <a class="btn btn-ghost" href="/societies/">Service days for societies</a></p></div>
+  <figure class="ab-pic"><img src="/assets/img/hero/society-day-700.webp" srcset="/assets/img/hero/society-day-700.webp 700w, /assets/img/hero/society-day-1200.webp 1200w" sizes="(min-width:860px) 520px, 100vw" width="700" height="350" loading="lazy" decoding="async" alt="Two Mechanix Pro mechanics service motorcycles in an apartment parking area while residents chat nearby"></figure></div></section>
+
+  <section class="ab-ch" id="partners"><span class="num">Chapter 7</span><h2>Join us.</h2><p>Own a workshop or work as a mechanic in Bengaluru? Get doorstep and garage jobs on your phone, with the address, a Navigate button, a quote you send and a weekly statement.</p>
+  <div class="ab-cta"><h2>Ready when you are.</h2><p>Book a service in minutes, or tell us you want to join the network.</p><p><a class="btn btn-wa" href="/book/">Book a service</a> <a class="btn btn-ghost" href="/join/">Join the network</a> <a class="btn btn-ghost" href="#" data-wa="general" data-wa-text="Hi Mechanix Pro, I have a question.">Ask on WhatsApp</a></p></div>
+  <p class="ab-note">Mechanix Pro is a brand of {{companyname}}, {{companycity}}. The pictures on this page are illustrations created for Mechanix Pro.</p></section>
+</div>
+</div>
