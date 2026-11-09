@@ -12,12 +12,15 @@
 //   status_set   { session, status, lat?, lng?, acc? }   Available / Busy (Available may carry the last known location)
 //   pay_link     { session, id } | { session, all: true }  Razorpay link for the amount the SERVER computed from the ledger
 //   team_contact { session }
+//   kyc_state    { session }               -> { kyc: { decision, submitted, skipped } }  the KYC card on Home
+//   kyc_link     { session }               -> { url }  this mechanic's own private /onboard/ link (the old link stops working)
+//   kyc_skip     { session }               -> { ok }   "Skip for now": KYC is never required to use the app; the choice is logged
 import { signMechanicSession, verifyMechanicSession, mechanicJobItem, duesView, payAmount, istToday, dateOk, monthRange, isOpenLead, LINK_RE, PIN_RE, UUID_RE, LOGIN_MESSAGE } from './mechanic.ts';
 import { mechanicDues, unsettledRows } from './mech-dues.ts';
 import { selfieFresh, checkSelfie, selfiePath, selfiePathOk, TERMS_VERSION, SELFIE_NEEDED } from './partner-avail.ts';
 import { techPct } from './tech-job.ts';
 
-export const ACTIONS = ['login', 'me', 'dashboard', 'jobs', 'offers', 'accept', 'decline', 'dues', 'job_link', 'status_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'pay_link', 'team_contact'];
+export const ACTIONS = ['login', 'me', 'dashboard', 'jobs', 'offers', 'accept', 'decline', 'dues', 'job_link', 'status_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'pay_link', 'team_contact', 'kyc_state', 'kyc_link', 'kyc_skip'];
 const BAD = 'Could not save. Please try again.', SESSION_OVER = 'Your session has ended. Enter your PIN again.';
 
 export type Deps = {
@@ -105,6 +108,25 @@ export async function handleMechanic(req: Request, d: Deps): Promise<Response> {
   if (action === 'team_contact') {
     const wa = d.env('GARAGE_TEAM_WHATSAPP').replace(/\D/g, ''), tel = d.env('GARAGE_TEAM_PHONE').replace(/\D/g, '');
     return json(req, { ok: true, whatsapp: /^\d{12}$/.test(wa) ? wa : null, call: /^\d{12}$/.test(tel) ? tel : null });
+  }
+
+  if (action === 'kyc_state') {
+    const k = await rpc('mechanic_kyc_state', { p_id: mechId });
+    if (!k) return json(req, { error: BAD }, 500);
+    return json(req, { ok: true, kyc: { decision: k.decision, submitted: !!k.submitted, skipped: !!k.skipped, reason: k.reason ?? null } });
+  }
+  if (action === 'kyc_link') {
+    const { count } = await db.from('audit_log').select('id', { count: 'exact', head: true }).eq('action', 'mechanic_kyc_link').eq('details->>access', who.access_id).gte('created_at', ago(60));
+    if ((count ?? 0) >= 10) return json(req, { error: 'Too many tries. Wait a while.' }, 429);
+    await db.from('audit_log').insert({ action: 'mechanic_kyc_link', details: { access: who.access_id } });
+    const tok = await rpc('kyc_link_create', { p_kind: 'mechanic', p_id: mechId });
+    if (!tok || !/^[a-f0-9]{64}$/.test(String(tok))) return json(req, { error: BAD }, 500);
+    return json(req, { ok: true, url: `${d.env('SITE_URL', 'https://mechanixpro.in')}/onboard/?t=${tok}` });
+  }
+  if (action === 'kyc_skip') {
+    const r = await db.rpc('mechanic_kyc_skip', { p_id: mechId });
+    if (r.error) { console.error('mechanic-app kyc_skip', r.error.code); return json(req, { error: BAD }, 500); }
+    return json(req, { ok: true });
   }
 
   /* ---------- the ledger view: the same figures as Admin > Mechanic ledgers ---------- */

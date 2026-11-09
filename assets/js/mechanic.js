@@ -207,7 +207,22 @@
         F().runGate(win, app, { me: r.data, kind: 'mechanic', api: api, done: openHome });
       });
     }
-    function openHome() { S.screen = 'home'; S.dash = null; S.jobs = null; S.dues = null; S.pay = null; render(); pollOffers(); return refresh(); }
+    function loadKyc() { api('kyc_state').then(function (r) { if (r.ok && r.data && r.data.kyc) { S.kyc = r.data.kyc; if (S.screen === 'home') render(); } }); }
+    function kycStart(btn) {
+      btn.disabled = true; btn.textContent = 'Opening…';
+      api('kyc_link').then(function (r) { if (ended(r)) return; if (r.ok && r.data.url) { win.location.href = r.data.url; return; } btn.disabled = false; btn.textContent = 'Start KYC'; S.kycErr = (r.data && r.data.error) || ERR.gen; render(); });
+    }
+    function kycSkip() { S.kyc = Object.assign({}, S.kyc, { skipped: true }); render(); api('kyc_skip'); }
+    function kycCard() {
+      var k = S.kyc; if (!k || k.decision === 'approved') return null;
+      if (k.submitted) return el('section', { class: 'd-card', id: 'dKyc' }, [el('p', { class: 'd-label', text: 'KYC' }), el('p', { text: 'Your documents are with the Mechanix Pro team. We will contact you.' })]);
+      var start = el('button', { class: 'g-btn g-btn-primary', type: 'button', id: 'dKycStart', text: 'Start KYC', onclick: function (e) { kycStart(e.currentTarget); } });
+      var err = S.kycErr ? notice('err', S.kycErr) : null;
+      if (k.decision === 'rejected') return el('section', { class: 'd-card', id: 'dKyc' }, [el('p', { class: 'd-label', text: 'KYC needs changes' }), k.reason ? el('p', { text: k.reason }) : null, err, start]);
+      if (k.skipped) return el('section', { class: 'd-card', id: 'dKyc' }, [el('p', { class: 'd-label', text: 'KYC' }), el('p', { text: 'You skipped KYC for now. You can finish it any time.' }), err, el('button', { class: 'g-btn g-btn-ghost', type: 'button', id: 'dKycStart', text: 'Finish KYC', onclick: function (e) { kycStart(e.currentTarget); } })]);
+      return el('section', { class: 'd-card', id: 'dKyc' }, [el('p', { class: 'd-label', text: 'Complete your KYC' }), el('p', { text: 'Add your photo, Aadhaar and PAN once. It takes a few minutes and you can do it later.' }), err, el('div', { class: 'g-row' }, [start, el('button', { class: 'g-btn g-btn-ghost', type: 'button', id: 'dKycSkip', text: 'Skip for now', onclick: kycSkip })])]);
+    }
+    function openHome() { S.screen = 'home'; S.dash = null; S.jobs = null; S.dues = null; S.pay = null; render(); pollOffers(); loadKyc(); return refresh(); }
     function refresh(keepPanels) {
       var dateAtStart = S.date;
       return Promise.all([api('dashboard', { date: dateAtStart }), api('jobs', { date: dateAtStart }), S.duesOpen || keepPanels ? api('dues') : Promise.resolve(null)]).then(function (rs) {
@@ -358,6 +373,7 @@
       body.push(banner);
       if (dash === null) { body.push(loading('Loading your day')); shell(body, 'home', true); return; }
       if (dash === 'error') { body.push(el('div', { class: 'g-card g-center' }, [el('p', { text: S.dashErr || ERR.gen }), el('button', { class: 'g-btn g-btn-primary', type: 'button', onclick: function () { S.dash = null; render(); refresh(); }, text: 'Retry' })])); shell(body, 'home', true); return; }
+      var kc = kycCard(); if (kc) body.push(kc);
       body.push(statusCard(dash.mechanic.availability));
       body.push(nextCard());
       body.push(cashCard(dash.cash));

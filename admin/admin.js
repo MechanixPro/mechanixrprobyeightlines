@@ -1498,7 +1498,7 @@ const ACT = {
     if (!a || a.key !== key) return toast('That is no longer the next step.');
     const g = stepGuard(l, key); if (!g.ok) return toast(g.error);
     if (key === 'resend_link') return flow.actions.payLink(l);
-    if (key === 'assign') return flow.actions.assign(l);
+    if (key === 'assign') return flow.actions.assignPick(l);
     if (key === 'confirm') return ACT.giveId();
     if (key === 'schedule') return ACT.confirmBooking();
     const upd = key === 'quote' ? { status: 'quoted' } : { status: 'completed', completed_at: new Date().toISOString() };

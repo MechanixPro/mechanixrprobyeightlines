@@ -154,6 +154,14 @@ export function createFlow(deps) {
     reloadFlow() { deps.reload(); },
     garageAssign(lead, flow, btn) { return deps.garageDesk.assignDialog({ lead, moveFrom: (btn && btn.dataset && btn.dataset.move) || undefined }); },
     copyScript(lead, flow, btn) { copy(callScript(btn.dataset.amount || '49 to 99')); },
+    /* "Assign" offers both: one of our mechanics, or a partner garage (when the garage desk is on for this user). */
+    async assignPick(lead) {
+      const gOk = !!(deps.garageDesk && deps.garageDesk.visible && deps.garageDesk.visible());
+      if (!gOk) return actions.assign(lead);
+      dialog({ title: 'Assign this booking', intro: esc([lead.area, lead.pincode].filter(Boolean).join(' ') || 'Area not given'),
+        body: '<div class="flow-row"><button class="flow-btn flow-primary" type="button" data-pick="mechanic">A mechanic</button><button class="flow-btn" type="button" data-pick="garage">A partner garage</button></div><p class="flow-muted">Either one can take it. You can move it later.</p>',
+        onOpen: (f, d) => f.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => { if (d && d.close) d.close(); if (b.dataset.pick === 'garage') actions.garageAssign(lead); else actions.assign(lead); })) });
+    },
     async assign(lead) {
       const list = await (deps.mechanics ? deps.mechanics() : rpc('crm_mechanic_picker'));
       dialog({ title: lead.mechanic_name ? 'Reassign the mechanic' : 'Assign a mechanic', intro: esc([lead.area, lead.pincode].filter(Boolean).join(' ') || 'Area not given'),

@@ -47,3 +47,26 @@ export function checklist(kind, docs) {
   return [...req.map((r) => ({ type: r.type, min: r.min, required: true })), ...extra.map((t) => ({ type: t, min: 0, required: false }))]
     .map((g) => ({ ...g, label: docLabel(g.type), files: (docs || []).filter((d) => d.doc_type === g.type), accepted: acceptedCount(docs, g.type) }));
 }
+
+/* ---- Partner plans and history (Admin only; these pure rules sit here so they are tested with the other KYC rules) ---- */
+export const PLAN_LABEL = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold' };
+const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+/** One plain line for a plan row from partner_plans: "Deposit ₹10,000 for 3 months · Mechanix Pro commission 30% · 50 to 80 orders a month". */
+export function planSummary(p) {
+  if (!p) return '';
+  const dep = Number(p.deposit_amount) > 0 ? `Deposit ${inr(p.deposit_amount)} for ${p.deposit_months} months` : 'No deposit';
+  const orders = p.orders_min != null && p.orders_max != null ? ` · ${p.orders_min} to ${p.orders_max} orders a month` : '';
+  return `${dep} · Mechanix Pro commission ${Number(p.commission_pct)}%${orders}`;
+}
+export const DEPOSIT_TEXT = { not_required: 'No deposit needed', pending: 'Deposit not received yet', held: 'Deposit received', refunded: 'Deposit refunded' };
+export const depositChip = (s) => ({ label: DEPOSIT_TEXT[s] || 'No deposit needed', tone: s === 'held' ? 'ok' : s === 'pending' ? 'warn' : 'muted' });
+const EVENT_TEXT = { link_created: 'Onboarding link sent', docs_deleted: 'Documents deleted', kyc_skipped: 'Mechanic skipped KYC for now', submitted: 'Documents submitted' };
+/** Readable text for one onboarding-log action. Never includes a document name or number. */
+export function eventText(action) {
+  const a = String(action || '');
+  if (EVENT_TEXT[a]) return EVENT_TEXT[a];
+  let m = /^plan_set:(bronze|silver|gold)$/.exec(a); if (m) return 'Plan set to ' + PLAN_LABEL[m[1]];
+  m = /^deposit:(pending|held|refunded)$/.exec(a); if (m) return { pending: 'Deposit marked pending', held: 'Deposit marked received', refunded: 'Deposit marked refunded' }[m[1]];
+  m = /^(doc_[a-z_]+|kyc_[a-z_]+|onboard[a-z_]*|[a-z_]+)$/.exec(a);
+  return m ? a.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase()) : 'Activity';
+}

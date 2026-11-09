@@ -65,7 +65,7 @@ const noLeak = (out, extra = []) => { for (const bad of [ADDRESS, EMAIL, 'Secret
 
 test('the function knows exactly these actions, and refuses everything else', async () => {
   // Why: the offer flow (M1a) adds offers/accept/decline; the list is pinned so a new action cannot slip in without a session check.
-  assert.deepEqual(ACTIONS, ['login', 'me', 'dashboard', 'jobs', 'offers', 'accept', 'decline', 'dues', 'job_link', 'status_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'pay_link', 'team_contact']);
+  assert.deepEqual(ACTIONS, ['login', 'me', 'dashboard', 'jobs', 'offers', 'accept', 'decline', 'dues', 'job_link', 'status_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'pay_link', 'team_contact', 'kyc_state', 'kyc_link', 'kyc_skip']); // changed on purpose 2026-11-10: KYC card with Skip in the mechanic app
   const w = world();
   assert.equal((await w.call({ action: 'delete_everything' })).status, 400); assert.equal((await w.call({})).status, 400);
   const get = await handleMechanic(new Request('https://x.test/', { method: 'GET' }), w.deps); assert.equal(get.status, 405);
@@ -106,7 +106,7 @@ test('sessions: valid works; a garage session, a tampered one, an expired one, o
   const old = (await signMechanicSession(SECRET, { access: ACCESS, mechanic: MECH, version: 1 }, NOW - 13 * 3600e3)).token; assert.equal((await w.call({ action: 'me', session: old })).status, 401);
   assert.equal((await w.call({ action: 'me', session: (await signMechanicSession(SECRET, { access: ACCESS, mechanic: OTHER, version: 1 }, NOW)).token })).status, 401, 'claims must match the access');
   // Why: offers/accept/decline are private too: no session, no answer.
-  for (const a of ['dashboard', 'jobs', 'offers', 'accept', 'decline', 'dues', 'job_link', 'status_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'pay_link', 'team_contact']) assert.equal((await w.call({ action: a })).status, 401, a + ' needs a session');
+  for (const a of ['dashboard', 'jobs', 'offers', 'accept', 'decline', 'dues', 'job_link', 'status_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'pay_link', 'team_contact', 'kyc_state', 'kyc_link', 'kyc_skip']) assert.equal((await w.call({ action: a })).status, 401, a + ' needs a session');
   w.access.version = 2; assert.equal((await w.call({ action: 'me', session: s })).status, 401, 'PIN reset or new link ends old sessions');
   w.access.version = 1; w.access.active = false; assert.equal((await w.call({ action: 'jobs', session: s })).status, 401, 'revoked');
 });

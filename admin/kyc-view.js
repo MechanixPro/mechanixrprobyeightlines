@@ -1,6 +1,6 @@
 // Partner KYC review screen (Admin, owner and admin only). Rules live in kyc-rules.js (shared with Crew, pure).
 // Documents are never shown inline: View asks the kyc-admin function for a link that works for 60 seconds and opens it in a new tab.
-import { applicantChip, sortApplicants, docChip, checklist, canApprove, missingAccepted, checkReason, docLabel, esc } from './kyc-rules.js';
+import { applicantChip, sortApplicants, docChip, checklist, canApprove, missingAccepted, checkReason, docLabel, esc, PLAN_LABEL, planSummary, depositChip, eventText } from './kyc-rules.js';
 import { chip, skeleton, errorState, emptyState } from './ds.js';
 
 const TONE = { ok: 'good', bad: 'bad', warn: 'warn', muted: '' };
@@ -8,17 +8,48 @@ const KIND = { garage: 'Garage', mechanic: 'Mechanic' };
 const STAGE = { applied: 'Applied', visited: 'Visited', kyc_done: 'KYC done', trained: 'Trained', live: 'Live' };
 const when = (t) => { try { return t ? new Date(t).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''; } catch (e) { return ''; } };
 
+const tabsHtml = (tab) => `<div class="kv-tabs" role="tablist"><button type="button" class="btn ${tab === 'apps' ? 'primary' : 'btn-ghost'}" data-tab="apps">Applicants</button><button type="button" class="btn ${tab === 'all' ? 'primary' : 'btn-ghost'}" data-tab="all">All partners and history</button></div>`;
+export function allHtml(rows) {
+  const list = [...(rows || [])].sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+  if (!list.length) return tabsHtml('all') + emptyState({ title: 'No partners yet.', text: 'Garages and mechanics will show up here.' });
+  return tabsHtml('all') + `<ul class="kv-list">${list.map((r) => { const c = applicantChip(r), dp = depositChip(r.deposit_status); return `<li class="kv-row">
+    <button type="button" class="kv-open" data-open="${esc(r.kind)}:${esc(r.id)}" aria-label="Open ${esc(r.name)}"><span class="kv-name">${esc(r.name || 'Unnamed')}</span>
+      <span class="kv-sub">${esc(KIND[r.kind] || r.kind)} · ${esc(r.phone || 'No phone')} · ${esc(STAGE[r.status] || r.status)}</span>
+      <span class="kv-meta">${chip(PLAN_LABEL[r.plan] || 'Bronze', '')} ${chip(c.label, TONE[c.tone])} ${r.deposit_status !== 'not_required' ? chip(dp.label, TONE[dp.tone]) : ''}${r.kyc_skipped_at && r.decision !== 'approved' ? ' ' + chip('KYC skipped', 'warn') : ''}</span></button></li>`; }).join('')}</ul>`;
+}
+
 export function listHtml(rows) {
   const list = sortApplicants(rows);
-  if (!list.length) return emptyState({ title: 'No applicants right now.', text: 'Garages and mechanics who are applying will show up here.' });
-  return `<ul class="kv-list">${list.map((r) => { const c = applicantChip(r); return `<li class="kv-row">
+  if (!list.length) return tabsHtml('apps') + emptyState({ title: 'No applicants right now.', text: 'Garages and mechanics who are applying will show up here.' });
+  return tabsHtml('apps') + `<ul class="kv-list">${list.map((r) => { const c = applicantChip(r); return `<li class="kv-row">
     <button type="button" class="kv-open" data-open="${esc(r.kind)}:${esc(r.id)}" aria-label="Review ${esc(r.name)}"><span class="kv-name">${esc(r.name || 'Unnamed')}</span>
       <span class="kv-sub">${esc(KIND[r.kind] || r.kind)} · ${esc(r.phone || 'No phone')} · ${esc(STAGE[r.status] || r.status)}</span>
       <span class="kv-meta">${chip(c.label, TONE[c.tone])} <span class="kv-count">${Number(r.docs) || 0} documents${r.submitted_at ? ' · sent ' + esc(when(r.submitted_at)) : ''}</span></span></button>
     <button type="button" class="btn btn-ghost kv-link" data-link="${esc(r.kind)}:${esc(r.id)}">Send onboarding link</button></li>`; }).join('')}</ul>`;
 }
 
-export function detailHtml(d, { reason = '' } = {}) {
+const money = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+const dt = (t) => { try { return t ? new Date(t).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''; } catch (e) { return ''; } };
+export function planHtml(profile, plans) {
+  if (!profile) return '';
+  const cur = profile.plan || 'bronze', dp = depositChip(profile.deposit_status), hasDep = profile.terms && Number(profile.terms.deposit_amount) > 0;
+  const opts = (plans || []).map((p) => `<option value="${esc(p.plan)}"${p.plan === cur ? ' selected' : ''}>${esc(p.label)}</option>`).join('');
+  return `<section class="kv-plan"><h4>Partner plan</h4>${profile.kyc_skipped_at ? '<p class="kv-sub">' + chip('KYC skipped in the app', 'warn') + ' <span class="kv-count">' + esc(when(profile.kyc_skipped_at)) + '</span></p>' : ''}
+    <label class="kv-f"><span>Plan</span><select id="kvPlan">${opts}</select></label>
+    <p class="kv-hint">${esc(planSummary(profile.terms))}</p>
+    <p class="kv-sub">${chip(dp.label, TONE[dp.tone])}${profile.deposit_received_at ? ' <span class="kv-count">received ' + esc(when(profile.deposit_received_at)) + '</span>' : ''}</p>
+    ${hasDep ? `<div class="kv-big-row"><button type="button" class="btn btn-ghost" data-deposit="held"${profile.deposit_status === 'held' ? ' disabled' : ''}>Mark deposit received</button><button type="button" class="btn btn-ghost" data-deposit="refunded"${profile.deposit_status === 'refunded' ? ' disabled' : ''}>Mark deposit refunded</button></div>` : ''}
+    <p class="kv-hint">The commission is the Mechanix Pro share of a job. It is recorded here only: it does not change any payout, and no deposit is collected by this screen.</p></section>`;
+}
+export function historyHtml(h) {
+  if (!h) return '';
+  const ev = h.events || [], bk = h.bookings || [], sm = h.summary || {};
+  const evs = ev.length ? `<ul class="kv-hist">${ev.map((e) => `<li><span>${esc(eventText(e.action))}</span> <small class="kv-count">${esc(dt(e.at))}</small></li>`).join('')}</ul>` : '<p class="kv-none">No activity recorded yet.</p>';
+  const rows = bk.length ? `<div class="scroll"><table class="kv-bk"><thead><tr><th>Booking</th><th>Date</th><th>Area</th><th>Status</th><th>Paid</th></tr></thead><tbody>${bk.map((b) => `<tr><td>${esc(b.ref || '')}</td><td>${esc(b.preferred_date || when(b.assigned_at))}</td><td>${esc(b.area || '')}</td><td>${esc(b.partner_status && b.partner_status !== b.booking_status ? b.booking_status + ' · ' + b.partner_status : b.booking_status || '')}</td><td>${b.paid_amount ? esc(money(b.paid_amount)) : ''}</td></tr>`).join('')}</tbody></table></div>` : '<p class="kv-none">No bookings yet.</p>';
+  return `<section class="kv-history"><h4>KYC and onboarding history</h4>${evs}<h4>Booking history</h4><p class="kv-sub">${Number(sm.total) || 0} bookings · ${Number(sm.completed) || 0} completed · ${esc(money(sm.paid_total))} paid in total</p>${rows}</section>`;
+}
+
+export function detailHtml(d, { reason = '', profile = null, plans = [], history = null } = {}) {
   const c = applicantChip({ decision: d.decision, submitted: !!d.submitted_at });
   const docs = d.docs || [], rows = checklist(d.kind, docs), ok = canApprove(d.kind, docs), miss = missingAccepted(d.kind, docs);
   const approved = d.decision === 'approved', live = d.status === 'live';
@@ -37,23 +68,28 @@ export function detailHtml(d, { reason = '' } = {}) {
     <p class="kv-sub">${esc(KIND[d.kind] || d.kind)} · ${esc(d.phone || 'No phone')} · ${esc(STAGE[d.status] || d.status)} ${chip(c.label, TONE[c.tone])}</p>
     ${d.decision === 'rejected' && d.decision_reason ? `<p class="kv-note">Rejected: ${esc(d.decision_reason)}</p>` : ''}
     <p class="kv-hint">View opens a link that works for 60 seconds. Documents are never shown on this page.</p>
-    <ul class="kv-docs">${rows.map(group).join('')}</ul>${decided}${del}</div>`;
+    <ul class="kv-docs">${rows.map(group).join('')}</ul>${decided}${del}${planHtml(profile, plans)}${historyHtml(history)}</div>`;
 }
 
 export function createKycView({ rpc, invoke, dialog, toast }) {
-  let root = null, rows = null, cur = null;
+  let root = null, rows = null, cur = null, tab = 'apps', extra = { profile: null, plans: [], history: null };
   const msg = (e) => String((e && e.message) || e || 'Something went wrong. Try again.');
   const bad = (e) => toast(msg(e), true);
 
   async function showList() {
     cur = null; root.innerHTML = skeleton(3, 'Loading applicants');
-    try { rows = await rpc('kyc_review_list'); root.innerHTML = listHtml(rows || []); }
+    try { if (tab === 'all') { rows = await rpc('partner_all_list'); root.innerHTML = allHtml(rows || []); } else { rows = await rpc('kyc_review_list'); root.innerHTML = listHtml(rows || []); } }
     catch (e) { root.innerHTML = errorState({ title: 'Applicants could not load.', detail: msg(e) }); root.querySelector('[data-retry]')?.addEventListener('click', showList); }
   }
   async function showDetail(kind, id, keepReason) {
     const reason = keepReason ? (root.querySelector('#kvReason')?.value || '') : '';
     if (!keepReason) root.innerHTML = skeleton(4, 'Loading documents');
-    try { cur = await rpc('kyc_review_detail', { p_kind: kind, p_id: id }); root.innerHTML = detailHtml(cur, { reason }); }
+    try {
+      cur = await rpc('kyc_review_detail', { p_kind: kind, p_id: id });
+      const [profile, plans, history] = await Promise.all([rpc('partner_profile', { p_kind: kind, p_id: id }).catch(() => null), rpc('partner_plans_list').catch(() => []), rpc('partner_history', { p_kind: kind, p_id: id }).catch(() => null)]);
+      extra = { profile, plans: plans || [], history };
+      root.innerHTML = detailHtml(cur, { reason, ...extra });
+    }
     catch (e) { root.innerHTML = errorState({ title: 'This applicant could not load.', detail: msg(e) }); root.querySelector('[data-retry]')?.addEventListener('click', () => showDetail(kind, id)); }
   }
   const refresh = () => showDetail(cur.kind, cur.id, true);
@@ -93,9 +129,12 @@ export function createKycView({ rpc, invoke, dialog, toast }) {
   const run = async (fn, ok) => { try { await fn(); if (ok) toast(ok); } catch (e) { bad(e); } };
 
   function wire() {
+    root.addEventListener('change', planChange);
     root.addEventListener('click', (ev) => {
       const t = ev.target.closest('button'); if (!t || t.disabled) return;
       const [k, i] = String(t.dataset.open || t.dataset.link || '').split(':');
+      if (t.dataset.tab) { tab = t.dataset.tab === 'all' ? 'all' : 'apps'; return showList(); }
+      if (t.dataset.deposit) return confirmBox('Deposit', t.dataset.deposit === 'held' ? `Record that ${cur.name} has paid the deposit? Nothing is charged by this.` : `Record that the deposit of ${cur.name} was refunded? Nothing is paid out by this.`, 'Save', async () => { await rpc('partner_deposit_set', { p_kind: cur.kind, p_id: cur.id, p_status: t.dataset.deposit }); await refresh(); toast('Saved.'); });
       if (t.dataset.open) return showDetail(k, i);
       if (t.dataset.link) return sendLink(k, i);
       if (t.hasAttribute('data-back')) return showList();
@@ -108,6 +147,7 @@ export function createKycView({ rpc, invoke, dialog, toast }) {
       if (t.hasAttribute('data-delete')) return confirmBox('Delete documents', `Delete every uploaded document of ${cur.name}? This cannot be undone.`, 'Delete documents', async () => { const r = await invoke('kyc-admin', { action: 'delete', kind: cur.kind, id: cur.id }); await refresh(); toast(`Deleted ${r && r.removed != null ? r.removed : ''} files.`); });
     });
   }
+  const planChange = (ev) => { const sel = ev.target.closest('#kvPlan'); if (!sel || !cur) return; run(async () => { await rpc('partner_plan_set', { p_kind: cur.kind, p_id: cur.id, p_plan: sel.value }); await refresh(); }, 'Plan saved.'); };
   let wired = false;
   return { mount(el) { if (!el) return; root = el; if (!wired || !root.dataset.kv) { root.dataset.kv = '1'; wire(); wired = true; } showList(); } };
 }
