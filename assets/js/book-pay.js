@@ -32,6 +32,7 @@
 
   /* The live "Your service" summary. Pure: the numbers come from the site's own price rows (build-time defaults from src/site.json in a hidden list,
      replaced by the live rows when they load) and from feeFor above. Nothing here is typed in as a price. */
+  var CAR_NEED = { service: 'Service', inspection: 'Car inspection', brakes: 'Brake service', ac: 'AC service', battery: 'Battery check or replacement', tyres: 'Tyres, alignment and balancing', repair: 'Clutch, suspension or other repair', cleaning: 'Cleaning and detailing', problem: 'Problem check' };
   var SVC_NAME = { basic: 'Basic service', general: 'Standard service', full: 'Full service', repair: 'Repair or problem check', puncture: 'Puncture repair' };
   var TIER_TXT = { std: 'Up to 149cc', mid: '150 to 250cc', big: '251cc and above' };
   var GST_NOTE = 'Excluding GST. GST at 18% is added on your final invoice.';
@@ -45,7 +46,7 @@
     var car = v.vehicle === 'car', model = String(car ? v.car_model : v.model || '').trim(), brand = car ? '' : String(v.brand || '').trim();
     var vehicle = car ? model : (brand && model.toLowerCase().indexOf(brand.toLowerCase()) !== 0 ? brand + ' ' : '') + model;
     var f = feeFor({ vehicle: v.vehicle, model: car ? '' : v.model, engine: v.engine_class }, rows), tier = car ? null : engineFor(v.model, v.engine_class);
-    var service = car ? (v.car_need === 'problem' ? 'Problem check' : 'Service') : (SVC_NAME[v.service_id] || '');
+    var service = car ? (CAR_NEED[v.car_need] || 'Service') : (SVC_NAME[v.service_id] || '');
     var priceNum = car ? null : priceFor(v.service_id, tier, prices), priceText = '', note = '';
     if (car) { priceText = 'Quoted before any work starts'; note = 'GST at 18% is added on your final invoice.'; }
     else if (priceNum) {
@@ -236,7 +237,7 @@
     var linkPin = pinFromQuery(q.get('pincode')), linked = !!(linkPin || q.get('vehicle') === 'car' || q.get('vehicle') === 'bike'); if (linkPin) set('pincode', linkPin);   // the home card: a link wins over a saved draft
     if (q.get('vehicle') === 'car') {   // a car link (from Mechu or an ad): the model goes to the car field, and service or problem to what the car needs
       set('car_model', String(q.get('model') || '').slice(0, 60));
-      if (['service', 'problem'].indexOf(q.get('service')) > -1) set('car_need', q.get('service'));
+      if (CAR_NEED[q.get('service')]) set('car_need', q.get('service'));
     }
     if (!saved.model && q.get('model') && q.get('vehicle') !== 'car') guessEngine();
     setVehicle(); show(!linked && (saved.step || back.step) && (saved.step || back.step) < 3 ? (saved.step || back.step) : 1);   // a link from the home card starts at step 1 (vehicle, model and service); the PIN is already filled for step 2 started = true;

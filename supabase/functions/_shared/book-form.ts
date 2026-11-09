@@ -3,6 +3,7 @@ import { cleanEmail } from './email-address.ts';
 import { cleanEngine } from './confirm-fee.ts';
 import { todaySlots, istToday } from './today-slots.ts';
 const SLOTS = ['morning', 'afternoon', 'evening', 'asap'];
+export const CAR_NEEDS: Record<string, string> = { service: 'Service', inspection: 'Car inspection', brakes: 'Brake service', ac: 'AC service', battery: 'Battery check or replacement', tyres: 'Tyres, alignment and balancing', repair: 'Clutch, suspension or other repair', cleaning: 'Cleaning and detailing', problem: 'Problem check' };
 const BIKE_SERVICES = ['basic', 'general', 'full', 'repair', 'puncture'];
 const strip = (v: unknown, max: number) => String(v ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, max);
 const num = (v: unknown) => (typeof v === 'number' || (typeof v === 'string' && v.trim() !== '') ? Number(v) : NaN);
@@ -23,7 +24,7 @@ export function cleanBooking(b: Record<string, unknown>, now: number): Out {
   const service_id = strip(b.service_id, 30);
   if (vehicle === 'bike' && !BIKE_SERVICES.includes(service_id)) return no('service_id', 'Choose what your bike needs.');
   const need_text = strip(b.need_text, 120);
-  if (vehicle === 'car' && !['service', 'problem'].includes(String(b.car_need)) ) return no('car_need', 'Choose what your car needs.');
+  if (vehicle === 'car' && !Object.keys(CAR_NEEDS).includes(String(b.car_need))) return no('car_need', 'Choose what your car needs.');
   const house = strip(b.house, 80), street = strip(b.street, 100), area = strip(b.area, 40), pincode = String(b.pincode ?? '').replace(/\s/g, '');
   if (house.length < 2) return no('house', 'Enter your house or flat number.');
   if (street.length < 3) return no('street', 'Enter your street or a landmark.');
@@ -44,7 +45,7 @@ export function cleanBooking(b: Record<string, unknown>, now: number): Out {
   if (!email) return no('email', 'Enter a valid email address. We send your confirmation and code there.');
   const utm = typeof b.utm === 'object' && b.utm ? Object.fromEntries(Object.entries(b.utm as Record<string, unknown>).slice(0, 8).map(([k, v]) => [strip(k, 30), strip(v, 80)])) : {};
   return { ok: true, value: {
-    client_key, vehicle, brand, model, engine_class: cleanEngine(b.engine_class), service_id: vehicle === 'bike' ? service_id : '', need_text: vehicle === 'car' ? (b.car_need === 'problem' ? 'Problem check' : 'Service') + (need_text ? ': ' + need_text : '') : need_text,
+    client_key, vehicle, brand, model, engine_class: cleanEngine(b.engine_class), service_id: vehicle === 'bike' ? service_id : '', need_text: vehicle === 'car' ? (CAR_NEEDS[String(b.car_need)] ?? 'Service') + (need_text ? ': ' + need_text : '') : need_text,
     address: `${house}, ${street}`.slice(0, 200), area, pincode, lat: geo ? lat : null, lng: geo ? lng : null, preferred_date, preferred_slot, name, phone, email, consent_whatsapp: b.consent_whatsapp === true,
     note: strip(b.note, 300) || null, ref_code: strip(b.ref_code, 40).toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 20) || null, campaign: strip(b.campaign, 100).toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 60) || null, utm,
   } };

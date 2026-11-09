@@ -73,3 +73,10 @@ test('review fixes: suspended garages get no customer contact, the accept window
   assert.match(read('supabase/functions/_shared/mechanic-handler.ts'), /Your KYC is already approved/);
   assert.match(read('crm/crm.js'), /'assignPick'/);
 });
+test('car bookings can choose AC, battery, tyres, brakes, inspection, repair and cleaning, and the server accepts exactly those', () => {
+  const h = read('src/book-pay.html'), f = read('supabase/functions/_shared/book-form.ts'), js = read('assets/js/book-pay.js');
+  for (const k of ['service', 'inspection', 'brakes', 'ac', 'battery', 'tyres', 'repair', 'cleaning', 'problem']) {
+    assert.match(h, new RegExp(`name="car_need" value="${k}"`), k); assert.match(f, new RegExp(`${k}: '`), k); assert.match(js, new RegExp(`${k}: '`), k);
+  }
+  assert.match(f, /Object\.keys\(CAR_NEEDS\)\.includes\(String\(b\.car_need\)\)/);
+});
