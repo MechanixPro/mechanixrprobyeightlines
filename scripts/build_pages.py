@@ -113,6 +113,13 @@ AREA_LINKS = ''.join(f'<a href="/bike-service-{slug}/">{name}</a>' for slug, nam
 ALL_AREA_LINKS = ''.join(f'<a href="/bike-service-{slug}/">{name}</a>' for slug, name, *_ in AREAS)
 _WA_I = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></svg>'
 _PH_I = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>'
+TABBAR = ('<nav class="tabbar" aria-label="App menu">'
+  '<a href="/" data-tab="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Home</a>'
+  '<a href="/services/" data-tab="services"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5 5L3 18l3 3 6.7-6.7a4 4 0 0 0 5-5l-2.5 2.5-2.2-.5-.5-2.2z"/></svg>Services</a>'
+  '<a class="tb-book" href="/book/" data-tab="book"><span class="tb-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>Book</a>'
+  '<a href="/track/" data-tab="track"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Track</a>'
+  '<a href="#" data-wa="general" data-tab="chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.8 7L4 20l1.1-4.6A8 8 0 1 1 21 12z"/></svg>Chat</a>'
+  '</nav><link rel="stylesheet" href="/assets/css/tabbar.css"><script src="/assets/js/tabbar.js" defer></script>\n')
 DOCK = '<nav class="dock" aria-label="Message or call Mechanix Pro"><a class="btn btn-wa" href="#" data-wa="general"{wa_text}>' + _WA_I + 'WhatsApp</a><a class="btn btn-call" href="#" data-call>' + _PH_I + 'Call</a></nav>\n'
 # Home: the Bike / Car switch also decides which WhatsApp message the bar sends (the other button is hidden by CSS).
 BIKE_WA = 'Hi Mechanix Pro, I need a service for my bike in Bengaluru.\nBike model: \nArea: '
@@ -123,6 +130,7 @@ DOCK_HOME = ('<nav class="dock" aria-label="Message or call Mechanix Pro"><a cla
 def foot(extra='', dock=True, dock_text=None, dock_home=False):
     """Footer and scripts. The phone-only WhatsApp and Call bar is on every page unless dock=False (booking, payment, tracking, rating, warranty, unsubscribe: one-task pages)."""
     _dk = (DOCK_HOME if dock_home else DOCK.format(wa_text=_wa_attr(dock_text) if dock_text else '')) if dock else ''
+    _dk += TABBAR if dock else ''
     return FOOT.format(dock=_dk, footer=FOOTER.format(area_links=AREA_LINKS, company_name=COMPANY['legalName'], company_addr=', '.join(COMPANY['addressLines']) + f", {COMPANY['city']} {COMPANY['pincode']}", company_gstin=COMPANY['gstin']), extra=extra)
 
 COMPANY = json.load(open(os.path.join(ROOT, 'src', 'company.json'), encoding='utf-8'))

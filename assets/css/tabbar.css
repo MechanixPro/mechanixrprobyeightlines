@@ -1,0 +1,19 @@
+/* App-style bottom tab bar: phones only; replaces the WhatsApp/Call dock there */
+.tabbar{display:none}
+@media (max-width:720px){
+  .tabbar{position:fixed;z-index:60;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(5,1fr);align-items:end;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:rgba(11,18,32,.96);-webkit-backdrop-filter:saturate(1.4) blur(16px);backdrop-filter:saturate(1.4) blur(16px);border-top:1px solid rgba(255,255,255,.1)}
+  .tabbar a{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;min-height:52px;color:rgba(255,255,255,.62);font:600 11px/1.1 inherit;font-family:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
+  .tabbar svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .tabbar a[aria-current=page]{color:#fff}
+  .tabbar a[aria-current=page] svg{stroke:#F7C61B}
+  .tabbar .tb-book span.tb-ic{display:grid;place-items:center;width:52px;height:52px;margin-top:-22px;border-radius:50%;background:#F7C61B;color:#0B1220;box-shadow:0 6px 18px rgba(0,0,0,.35);border:3px solid #0B1220}
+  .tabbar .tb-book svg{stroke:#0B1220;width:26px;height:26px}
+  .tabbar .tb-book{color:#fff}
+  body:has(.tabbar) .dock{display:none}
+  body:has(.tabbar){padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+}
+@media (display-mode:standalone){
+  html,body{overscroll-behavior-y:none}
+  body{-webkit-user-select:none;user-select:none}
+  input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
+}

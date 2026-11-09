@@ -1,5 +1,5 @@
 /* Mechanix Pro service worker: fast repeat visits + offline page. Never caches admin or API calls. */
-const VERSION = 'mxp-v5';
+const VERSION = 'mxp-v6';
 const CORE = ['/', '/assets/css/style.css', '/assets/css/theme.css', '/assets/css/bento.css', '/assets/js/app.js', '/assets/js/logic.js', '/assets/js/loader.js', '/assets/js/bikes.js', '/book/', '/services/', '/help/', '/assets/js/config.js', '/assets/img/logo.svg', '/assets/img/logo-mark.webp', '/assets/img/logo-wordmark.webp', '/assets/img/icon-192.png', '/offline.html'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(VERSION).then((c) => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== VERSION).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
