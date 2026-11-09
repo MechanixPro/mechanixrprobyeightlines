@@ -31,6 +31,7 @@
   function setup(el, win, still) {
     var doc = win.document, slides = [].slice.call(el.querySelectorAll('.hs-slide')), n = slides.length; if (n < 2) return;
     var track = el.querySelector('.hs-track'), video = el.querySelector('video'), st = create(n, !still), dots = [];
+    var vi = -1; slides.forEach(function (s, k) { if (s.querySelector('video')) vi = k; });   // the video is whichever slide holds it (it is the last one now)
     var ctl = doc.createElement('div'); ctl.className = 'hs-ctl'; ctl.setAttribute('role', 'group'); ctl.setAttribute('aria-label', 'Picture controls');
     var bp = btn('hs-btn hs-prev', 'Previous picture', CHEV + 'M15 5l-7 7 7 7"/></svg>'), bn = btn('hs-btn hs-next', 'Next picture', CHEV + 'M9 5l7 7-7 7"/></svg>');
     var dw = doc.createElement('div'); dw.className = 'hs-dots';
@@ -48,7 +49,7 @@
     function loadNear() { if (!visible()) return; if (still || (win.navigator.connection && win.navigator.connection.saveData)) load(st.i); else near(st).forEach(load); }
     function video_() {
       if (!video) return;
-      if (wantsVideo(st, 0) && !still && !doc.hidden) { var p = video.play(); if (p && p.catch) p.catch(function () {}); } else video.pause();
+      if (vi >= 0 && wantsVideo(st, vi) && !still && !doc.hidden) { var p = video.play(); if (p && p.catch) p.catch(function () {}); } else video.pause();
     }
     function paint() {
       slides.forEach(function (s, k) { var on = k === st.i; s.classList.toggle('is-on', on); if (on) s.removeAttribute('aria-hidden'); else s.setAttribute('aria-hidden', 'true'); });

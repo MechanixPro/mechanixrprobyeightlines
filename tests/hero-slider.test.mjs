@@ -19,25 +19,26 @@ test('markup: a bike carousel with 5 slides and a car carousel with 2, each a la
   assert.equal((b.match(/class="hs-slide/g) || []).length, 5); assert.equal((c.match(/class="hs-slide/g) || []).length, 2);
   for (const [grp, n] of [[b, 5], [c, 2]]) for (let i = 1; i <= n; i++) assert.ok(grp.includes(`role="group" aria-roledescription="slide" aria-label="${i} of ${n}"`), `${i} of ${n}`);
 });
-test('markup: bike order is video, hero-quote, hero-road, hero-team, hero-delivery; car is hero-car then car-closeup', () => {
-  const order = (g) => [...g.matchAll(/<video\b|data-src="\/assets\/img\/hero\/([\w-]+?)-\d+\.webp"/g)].map((m) => m[1] || 'video');
-  assert.deepEqual(order(set('bike')[0]), ['video', 'hero-quote', 'hero-road', 'hero-team', 'hero-delivery']);   // changed on purpose 2026-11-09: the four picture slides are the owner's new Indian-character art
+test('markup: bike order is hero-quote, hero-team, hero-road, hero-delivery, video; car is hero-car then car-closeup', () => {
+  const order = (g) => [...g.matchAll(/<video\b|\s(?:data-)?src="\/assets\/img\/hero\/([\w-]+?)-\d+\.webp"/g)].map((m) => m[1] || 'video');
+  assert.deepEqual(order(set('bike')[0]), ['hero-quote', 'hero-team', 'hero-road', 'hero-delivery', 'video']);   // changed on purpose 2026-11-09: the four picture slides are the owner's new Indian-character art
   assert.deepEqual(order(set('car')[0]), ['hero-car', 'car-closeup']);
-  assert.match(set('bike')[0], /poster="\/assets\/img\/hero\/hero-garage-poster\.webp"[^>]*>\s*<source src="\/assets\/video\/hero-garage\.mp4"/);
+  assert.match(set('bike')[0], /poster="\/assets\/img\/hero\/hero-garage-poster\.webp"[^>]*>\s*<source src="\/assets\/video\/hero-garage\.mp4"/);   // the video is now the last slide
 });
 test('markup: only the first slide is eager (the video poster); the pictures carry data-src, sized, honest alt text, existing files', () => {
   const imgs = [...media.matchAll(/<img\b[^>]*>/g)].map((m) => m[0]);
   assert.equal(imgs.length, 6);
-  for (const t of imgs) {
-    assert.doesNotMatch(t, /\ssrc=|\ssrcset=|fetchpriority|loading="eager"/, 'no eager picture in the carousel markup');
-    assert.match(t, /data-src="[^"]+"/); assert.match(t, /data-srcset="[^"]+"/); assert.match(t, /\bwidth="\d+"/); assert.match(t, /\bheight="\d+"/);
+  for (const [i, t] of imgs.entries()) {
+    // changed on purpose 2026-11-09: the first slide is now the quote picture, eager (it is the first thing a visitor sees); the others stay lazy
+    if (i === 0 && /hero-quote/.test(t)) { assert.match(t, /\ssrc="[^"]+"/); assert.match(t, /fetchpriority="high"/); assert.match(t, /\bwidth="\d+"/); }
+    else { assert.doesNotMatch(t, /\ssrc=|\ssrcset=|fetchpriority|loading="eager"/, 'no eager picture in the carousel markup'); assert.match(t, /data-src="[^"]+"/); assert.match(t, /data-srcset="[^"]+"/); assert.match(t, /\bwidth="\d+"/); assert.match(t, /\bheight="\d+"/); }
     const alt = t.match(/\balt="([^"]{25,})"/); assert.ok(alt, 'alt text'); assert.doesNotMatch(alt[1], /illustration/i);
     for (const m of t.matchAll(/\/assets\/img\/hero\/[\w-]+\.webp/g)) assert.ok(existsSync(new URL('..' + m[0], import.meta.url)), m[0]);
   }
   assert.doesNotMatch(media, /Illustration|hm-ill/);
   // only the first bike slide is on, and the preload in <head> is still the video poster only
   assert.equal((set('bike')[0].match(/hs-slide is-on/g) || []).length, 1); assert.equal((set('car')[0].match(/hs-slide is-on/g) || []).length, 1);
-  assert.equal((home.match(/rel="preload" as="image"/g) || []).length, 1); assert.match(home, /rel="preload" as="image" href="\/assets\/img\/hero\/hero-garage-poster\.webp"/);
+  assert.equal((home.match(/rel="preload" as="image"/g) || []).length, 1); assert.match(home, /rel="preload" as="image" href="\/assets\/img\/hero\/hero-quote-1200\.webp"/);
 });
 test('script is loaded with defer, no inline script, no handlers or style attributes in the hero', () => {
   assert.match(home, /<script src="\/assets\/js\/hero-slider\.js(\?v=\w+)?" defer><\/script>/);

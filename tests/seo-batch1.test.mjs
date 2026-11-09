@@ -213,7 +213,7 @@ test('7a/7b. home: the hidden car hero image is lazy and not preloaded; the bike
   // Changed on purpose (hero carousel): the car picture is a carousel slide with data-src only (no src until the car view shows), so it is never fetched or preloaded on load. See tests/hero-slider.test.mjs.
   assert.match(h, /<img data-src="\/assets\/img\/hero\/hero-car-1200\.webp"[^>]*>/); assert.doesNotMatch(h, /<img class="car-only" src=/);
   const pre = [...h.matchAll(/<link rel="preload"[^>]*>/g)].map((m) => m[0]);
-  assert.deepEqual(pre, ['<link rel="preload" as="image" href="/assets/img/hero/hero-garage-poster.webp" fetchpriority="high">']);
+  assert.deepEqual(pre, ['<link rel="preload" as="image" href="/assets/img/hero/hero-quote-1200.webp" fetchpriority="high">']);   // changed on purpose 2026-11-09: the first hero picture is the quote scene
   for (const f of htmlFiles()) if (f !== 'index.html') assert.doesNotMatch(read(f), /rel="preload" as="image"/, f);
   assert.ok(statSync(ROOT + 'assets/img/hero/hero-garage-poster.webp').size > 1000);
 });

@@ -1129,7 +1129,7 @@ def workshop_teaser_html():
             f'<a class="ws-tz" href="/workshop/">{imgs}</a><p><a class="btn btn-ghost" href="/workshop/">Visit the workshop page</a></p></div></section>\n')
 
 HERO_CSS = '<link rel="stylesheet" href="/assets/css/hero.css">\n'
-HERO_PRELOAD = '<link rel="preload" as="image" href="/assets/img/hero/hero-garage-poster.webp" fetchpriority="high">\n'   # the bike hero's first picture (the video poster); home only. The car picture is lazy and is not preloaded.
+HERO_PRELOAD = '<link rel="preload" as="image" href="/assets/img/hero/hero-quote-1200.webp" fetchpriority="high">\n'   # the bike hero's first picture (the quote scene, eager); home only. The car picture is lazy and is not preloaded.
 BOOK_JS = '<link rel="stylesheet" href="/assets/css/book.css"><link rel="stylesheet" href="/assets/css/journey.css">\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/thanks.js" defer></script>\n<script src="/assets/js/book-pay.js" defer></script>'
 def services_catalog():
     """OfferCatalog (the @id the home page's business node points to): every service in src/site.json with its price before GST. The three packages have one Offer per engine-size tier."""
