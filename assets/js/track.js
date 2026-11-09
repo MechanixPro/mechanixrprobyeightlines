@@ -103,7 +103,7 @@
       return win.fetch(C.supabaseUrl + '/functions/v1/' + fn, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey }, body: JSON.stringify(body) })
         .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); });
     };
-    var SECTIONS = ['trThanks', 'trMain', 'trLive', 'trCode', 'trQuote', 'trCheck', 'trRedo', 'trShield', 'trDetails', 'trRate', 'trDocs', 'trHist', 'trInstall'];
+    var SECTIONS = ['trThanks', 'trMain', 'trLive', 'trCode', 'trQuote', 'trCheck', 'trRedo', 'trShield', 'trClips', 'trDetails', 'trRate', 'trDocs', 'trHist', 'trInstall'];
     var sigs = {}, state = { msg: '', issueMsg: '', rated: 0, fetchedAt: 0, startKm: 0, last: null, rateMsg: '' };
     if (tok) { out.innerHTML = SECTIONS.map(function (id) { return '<div id="' + id + '"></div>'; }).join(''); }
     // A part of the page is redrawn only when its data changed and the person is not typing in it.
@@ -156,6 +156,14 @@
       if (c && c.status === 'declined') return '<div class="card track-card"><h3>Mechanix Shield <small>Not approved</small></h3><p>' + esc(c.note || 'We could not approve this claim. Message us and we will look at it again.') + '</p></div>';
       return '';
     }
+    /* Mechanix Live card: the photos and short clips the mechanic or garage shared, newest first, and a Video call button while the job is on. Pure: live_updates + job_on in, html out. */
+    function clipsCard(items, on, bookingId) {
+      items = items || []; if (!items.length && !on) return '';
+      var when = function (a) { return new Date(a).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }); };
+      var grid = items.length ? '<ul class="lv-grid">' + items.map(function (i) { return '<li>' + (i.kind === 'clip' ? '<video controls playsinline preload="metadata" src="' + esc(i.url) + '#t=0.1" aria-label="Short clip from your service"></video>' : '<a href="' + esc(i.url) + '" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="' + esc(i.url) + '" alt="Photo from your service"></a>') + '<small>' + esc(when(i.at)) + '</small></li>'; }).join('') + '</ul>' : '<p class="jy-meta">Photos and short clips from your service will show here as the work goes on.</p>';
+      var call = on ? '<a class="btn btn-wa wide" href="#" data-wa="Video call" data-wa-text="' + esc('Hi Mechanix Pro, please show me my service live on a WhatsApp video call. Booking ID: ' + (bookingId || '')) + '">Ask for a video call</a><p class="jy-meta">We will call you on WhatsApp video so you can see the work.</p>' : '';
+      return '<div class="card track-card"><h3>Mechanix Live</h3>' + grid + call + '</div>';
+    }
     function quoteCard(v) {
       var z = v.quote; if (!z || !z.lines) return z ? '<div class="card track-card"><h3>Quote</h3><p>Status: <b>' + esc(z.status) + '</b>. Open the link in your email to review it.</p></div>' : '';
       var items = z.lines.map(function (l) { return '<tr><td>' + esc(l.name) + ' <small>' + esc((KIND[l.kind] || l.kind) + (l.kind === 'parts' && PTYPE[l.part_type] ? ', ' + PTYPE[l.part_type] : '')) + '</small></td><td class="r">' + inr(l.amount) + '</td></tr>'; }).join('');
@@ -192,6 +200,7 @@
       put('trCheck', proCheckCard(v.pro_check), JSON.stringify(v.pro_check || null));
       put('trRedo', redoCard(v.redo), JSON.stringify(v.redo || null));
       put('trShield', shieldCard(v.shield), JSON.stringify(v.shield || null));
+      put('trClips', clipsCard(v.live_updates, v.job_on, v.booking_id), JSON.stringify([(v.live_updates || []).map(function (i) { return i.id; }), !!v.job_on]));   // signed links change on every poll, so only the ids decide a redraw
       if (J) {
         put('trDetails', detailsHtml(J.updates, state.msg), JSON.stringify([J.updates, state.msg]));
         put('trRate', rateHtml(J.rating, state.rated, C.googleReviewUrl), JSON.stringify([J.rating, state.rated]));

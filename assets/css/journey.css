@@ -46,3 +46,8 @@
 .jm-quote table{width:100%;border-collapse:collapse}.jm-quote td{padding:7px 0;border-bottom:1px solid var(--line,#e3e6ec)}.jm-quote td.r{text-align:right;white-space:nowrap}.jm-quote tr.b td{font-weight:700}
 .jm-wait{background:#FFF7E6;border:1px solid #F5D78A;border-radius:12px;padding:10px 12px;margin:8px 0}.jm-go{background:#E7F5EC;border:1px solid #9AD3AE;border-radius:12px;padding:10px 12px;margin:8px 0;font-weight:600}
 @media(prefers-reduced-motion:reduce){.jm-dot{animation:none}}
+/* Mechanix Live: the customer's gallery of shared photos and short clips */
+.lv-grid{list-style:none;margin:10px 0 14px;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:700px){.lv-grid{grid-template-columns:repeat(3,1fr)}}
+.lv-grid li{margin:0}.lv-grid img,.lv-grid video{display:block;width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;background:#0b1220}
+.lv-grid small{display:block;margin-top:4px;color:var(--tx2,#5b6577);font-size:12px}

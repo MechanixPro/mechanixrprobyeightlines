@@ -337,6 +337,15 @@
         call: function (a, b) { return api(a, Object.assign({ id: j.id }, b || {})).then(function (r) { return { ok: r.ok, data: r.data }; }); } });
       chkOverlay.appendChild(ui.el); d.body.appendChild(chkOverlay);
     }
+    /* Mechanix Live: share a photo or a short clip with the customer (shared module assets/js/live-ui.js). */
+    var liveOverlay = null;
+    function closeLive() { if (liveOverlay && liveOverlay.parentNode) liveOverlay.parentNode.removeChild(liveOverlay); liveOverlay = null; render(); }
+    function openLive(j) {
+      if (liveOverlay || !win.MXP_LIVE) return;
+      liveOverlay = d.createElement('div'); liveOverlay.className = 'cp-overlay'; liveOverlay.id = 'gLivePage';
+      var ui = win.MXP_LIVE.create({ doc: d, win: win, onClose: closeLive, call: function (a, b) { return api(a, Object.assign({ id: j.id }, b || {})).then(function (r) { return { ok: r.ok, data: r.data }; }); } });
+      liveOverlay.appendChild(ui.el); d.body.appendChild(liveOverlay);
+    }
     /* Collect payment page: online first (amount, QR, WhatsApp link); cash/UPI behind 'Customer wants to inspect first'. Rules are enforced by the server. */
     var payUI = null;
     function payPage(j) {
@@ -463,6 +472,7 @@
         title = 'Ready for return'; lines = ['Mechanix Pro has been told.', 'The team hands the vehicle back and closes the job.'];
         kids.push(big('gStepDone', 'All jobs', toJobs));
       }
+      if ((page === 'inspect' || page === 'work') && win.MXP_LIVE) kids.push(big('gStepLive', 'Share an update with the customer', function () { openLive(j); }));
       if (page !== 'offer') stopAlert();
       var tick = S.tick ? el('div', { class: 'g-tick', 'aria-hidden': 'true' }, [svgTick()]) : null; S.tick = false;
       return el('div', { class: 'g-wiz-page' + (page === 'offer' && j.status === 'sent' ? ' g-offer' : '') }, [tick, wizTop(j, page), el('h1', { class: 'g-wiz-h g-key', text: title })].concat(lines.map(function (t, i) { return el('p', { class: 'g-wiz-l', id: i === 0 ? 'gStepHint' : null, text: t }); }), [el('div', { class: 'g-wiz-btns' }, kids), msg]));

@@ -40,7 +40,7 @@ test('IST day and location cleaning', () => {
 });
 test('garage-app: the new actions are listed, session-guarded and use the new database functions only', () => {
   const f = read('supabase/functions/garage-app/index.ts');
-  assert.match(f, /const ACTIONS = \[[^\]]*'dashboard', 'location_set', 'open_set'(, 'selfie_upload_url', 'selfie_record', 'terms_accept')?(, 'verify_code')?(, 'payment_request', 'payment_cash', 'inspect_first_set')?(, 'check_get', 'check_save')?(, 'leads', 'claim')?\]/);   // Live leads added leads and claim   // J3 added verify_code at the end; Pro Check 20 added check_get and check_save
+  assert.match(f, /const ACTIONS = \[[^\]]*'dashboard', 'location_set', 'open_set'(, 'selfie_upload_url', 'selfie_record', 'terms_accept')?(, 'verify_code')?(, 'payment_request', 'payment_cash', 'inspect_first_set')?(, 'check_get', 'check_save')?(, 'leads', 'claim')?(, 'live_upload_url', 'live_add')?\]/);   // Live leads added leads and claim   // J3 added verify_code at the end; Pro Check 20 added check_get and check_save
   const afterSession = f.slice(f.indexOf('const claims = await verifySession')); for (const a of ['location_set', 'open_set', "'dashboard'"]) assert.ok(afterSession.includes(a), a + ' is after the session check');
   assert.match(f, /rpc\('garage_location_set'/); assert.match(f, /rpc\('garage_open_set'/); assert.match(f, /cleanLocation\(b\)/);
   assert.ok(!/\.from\('leads'\)\.select\('\*'\)/.test(f) && !/address|email/.test(f.slice(f.indexOf("if (action === 'dashboard')"), f.indexOf("if (action === 'jobs')"))), 'the dashboard reads no address or email');

@@ -74,5 +74,9 @@ Deno.serve(async (req) => {
   if (chk && chk.complete && isComplete(chk.results)) pro_check = customerView(chk.results);
   const redo = await rpc('redo_status_get', { p_lead: lead.id });   // Redo Promise: can a redo be asked for, until when, and the latest request
   const shield = await rpc('shield_status_get', { p_lead: lead.id });   // Mechanix Shield: can a claim be made, until when, and the latest claim
-  return json(req, { ...out, token_mode: true, journey, pro_check, redo, shield });
+  // Mechanix Live: the shared photos and short clips as signed links (6 hours), and whether the job is on so the Video call button shows.
+  const liveRows = ((await rpc('live_updates_for', { p_lead: lead.id })) ?? []) as { id: string; kind: string; path: string; at: string }[];
+  const live_updates = (await Promise.all(liveRows.map(async (r) => { const { data } = await db.storage.from('live-updates').createSignedUrl(r.path, 21600); return data?.signedUrl ? { id: r.id, kind: r.kind, url: data.signedUrl, at: r.at } : null; }))).filter(Boolean);
+  const job_on = ['started', 'repair_doorstep', 'picked_up', 'ready'].includes(String(lead.visit_stage ?? ''));
+  return json(req, { ...out, token_mode: true, journey, pro_check, redo, shield, live_updates, job_on });
 });

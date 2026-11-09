@@ -23,9 +23,10 @@ import { buildInvoice } from '../_shared/invoice.ts';
 import { selfieFresh, checkSelfie, selfiePath, selfiePathOk, TERMS_VERSION, SELFIE_NEEDED } from '../_shared/partner-avail.ts';
 import { isCode, handoverHash, sameHash, afterWrongTry, doorState, MAX_ATTEMPTS, DOOR_KIND } from '../_shared/handover.ts';
 import { cleanResults } from '../_shared/pro-check.ts';
+import { liveUploadUrls, liveAdd } from '../_shared/live.ts';
 import { signSession, verifySession, garageJobListItem, garageJobDetail, garageStatement, garageDashboard, cleanLocation, cleanUpload, cleanEstimate, photoPath, photoPathOk, LINK_RE, PIN_RE, UUID_RE, EVENTS, LOGIN_MESSAGE, isOpen, type RawJob } from '../_shared/garage.ts';
 
-const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_get', 'check_save', 'leads', 'claim'];
+const ACTIONS = ['login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_get', 'check_save', 'leads', 'claim', 'live_upload_url', 'live_add'];
 const BAD = 'Could not save. Please try again.', SESSION_OVER = 'Your session has ended. Enter your PIN again.';
 const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
 
@@ -237,6 +238,14 @@ Deno.serve(async (req) => {
       uploads.push({ path, url: data.signedUrl });
     }
     return json(req, { ok: true, uploads });
+  }
+
+  if (action === 'live_upload_url' || action === 'live_add') {
+    // Mechanix Live for a job assigned to THIS garage: photos and short clips the customer watches on the tracking page.
+    const { data: a } = await mine(jobId).maybeSingle();
+    if (!a || !['received', 'in_work', 'ready'].includes(a.status)) return json(req, { error: a ? 'Accept the job first.' : 'This job is not available.' }, a ? 409 : 404);
+    const r = action === 'live_upload_url' ? await liveUploadUrls(db as any, a.lead_id, b) : await liveAdd(db as any, a.lead_id, 'garage', garageId, b);
+    return json(req, r.body, r.status);
   }
 
   if (action === 'check_get' || action === 'check_save') {

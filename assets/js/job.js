@@ -198,6 +198,7 @@
     else if (st === 'picked_up') h += '<p class="job-ok">Picked up for the workshop.</p>' + quotePanel(d.quote_view) + vbtn('visit_ready', 'Mark ready for return');
     else if (st === 'ready') h += d.place === 'garage' ? '<p class="job-ok">Ready. Use Return below with a new code and photos when you bring it back.</p>' : '<p class="job-ok">Ready.</p>' + vbtn('visit_deliver', 'Handed back to the customer');
     else if (st === 'returned') h += '<p class="job-ok">Delivered.</p>';
+    if (/^(started|repair_doorstep|picked_up|ready)$/.test(st || '') && window.MXP_LIVE) h += vbtn('live_open', 'Share an update with the customer', ' id="jv-live"', 'btn-ghost');
     payState = d.pay ? { pay: d.pay, first: d.first_name } : null;
     if (d.paid && d.pay && !/^(on_the_way|arrived|started)$/.test(st || '') && st) h += d.pay.paid ? '<p class="job-ok" id="jv-paid">Paid: ' + esc(d.pay.method === 'online' ? 'online' : d.pay.method) + '.</p>' : vbtn('pay_open', 'Collect payment', ' id="jv-pay"');
     vis.innerHTML = h + '<p class="err" id="jv-err" role="alert"></p></div>'; vis.hidden = false;
@@ -224,6 +225,16 @@
       call: function (a, b) { return call(Object.assign({ action: a, t: t }, b || {})).then(function (x) { return { ok: x.ok && x.d.ok !== false, data: x.d }; }); } });
     chkOverlay.appendChild(ui.el); document.body.appendChild(chkOverlay);
   };
+  /* Mechanix Live: share a photo or a short clip with the customer (shared module assets/js/live-ui.js). */
+  var liveOverlay = null;
+  var closeLive = function () { if (liveOverlay) liveOverlay.remove(); liveOverlay = null; loadVisit(); };
+  var openLive = function () {
+    if (!window.MXP_LIVE || liveOverlay) return;
+    liveOverlay = document.createElement('div'); liveOverlay.className = 'cp-overlay'; liveOverlay.id = 'jbLivePage';
+    var ui = window.MXP_LIVE.create({ doc: document, win: window, onClose: closeLive,
+      call: function (a, b) { return call(Object.assign({ action: a, t: t }, b || {})).then(function (x) { return { ok: x.ok && x.d.ok !== false, data: x.d }; }); } });
+    liveOverlay.appendChild(ui.el); document.body.appendChild(liveOverlay);
+  };
   var payState = null;
   var pollTimer = null;
   var loadVisit = function () {
@@ -237,6 +248,7 @@
     var b = e.target.closest('button'); if (!b || vbusy) return; var act = b.dataset.v, msgEl = document.getElementById('jv-msg') || document.getElementById('jv-err'), body = { action: act, t: t };
     if (act === 'refresh') { loadVisit(); return; }
     if (act === 'check_open') { openCheck(); return; }
+    if (act === 'live_open') { openLive(); return; }
     if (act === 'pay_open') { if (payState) openPay(Object.assign({}, payState.pay), payState.first); return; }
     if (act === 'share') { if (!sharer) return; if (sharer.active()) sharer.stop('stopped'); else sharer.start(); paintShare(); return; }
     if (act === 'visit_status') body.stage = b.dataset.stage;
