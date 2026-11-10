@@ -87,7 +87,7 @@
       }, false);
       var upd = function () { btn.disabled = !(cb.checked && nm.value.trim().length >= 3); };
       cb.addEventListener('change', upd); nm.addEventListener('input', upd);
-      main.appendChild(errBox(S.err)); main.appendChild(el('h1', { text: 'Read and sign your agreement' })); main.appendChild(sum); main.appendChild(box);
+      var eb = errBox(S.err); if (eb) main.appendChild(eb); main.appendChild(el('h1', { text: 'Read and sign your agreement' })); main.appendChild(sum); main.appendChild(box);
       main.appendChild(el('label', { class: 'o-fld', for: 'oGst' }, ['GSTIN (optional, leave empty if you have none)', gst]));
       main.appendChild(el('label', { class: 'o-fld', for: 'oName' }, ['Your full name, as your signature', nm]));
       main.appendChild(el('label', { class: 'o-consent', for: 'oSign' }, [cb, el('span', { text: 'I have read this agreement and I agree to it. Typing my name above is my signature.' })]));
