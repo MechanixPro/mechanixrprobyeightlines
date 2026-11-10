@@ -140,5 +140,21 @@ test('the client can edit the agreement terms himself: saved text and numbers ar
   const body = termsBody(null, [{ plan: 'silver', commission_pct: 30, deposit_amount: 10000, deposit_months: 3, orders_min: 30, orders_max: 80 }]);
   assert.match(body, /data-sec="part_a"/); assert.match(body, /data-sec="gold"/); assert.match(body, /name="c_silver" [^>]*value="30"/); assert.match(body, /Go back to the original text/);
   assert.equal((body.match(/class="at-clause"/g) || []).length, PART_A.length + PART_B.bronze.length + PART_B.silver.length + PART_B.gold.length);
-  assert.match(read('admin/garages-view.js'), /data-terms/); assert.match(read('admin/garages-view.js'), /agreement_issued/);
+  assert.match(read('admin/garages-view.js'), /data-terms/); assert.doesNotMatch(read('admin/agreement-terms.js'), /agreement_terms_reset/); assert.match(read('admin/garages-view.js'), /agreement_issued/);
+});
+import { agreementParts } from '../admin/agreement.js';
+test('a garage signs its agreement online, gives its GSTIN and uploads its photos on the onboarding page', () => {
+  const m = read('supabase/migrations/20270138000000_online_agreement_gstin.sql'), fn = read('supabase/functions/partner-onboard/index.ts'), js = read('assets/js/onboard.js');
+  assert.match(m, /gstin ~ '\^\[0-9\]\{2\}\[A-Z\]\{5\}/); assert.match(m, /create table if not exists public\.partner_agreements/); assert.match(m, /enable row level security/);
+  assert.match(m, /grant execute on function public\.partner_agreement_data\(uuid\), public\.partner_agreement_sign\([^)]*\) to service_role/);
+  assert.match(m, /The agreement was just updated/); assert.match(m, /already signed/); assert.match(m, /insert into public\.agreement_terms \(id, doc, version, updated_at\)/);
+  assert.match(fn, /'agreement', 'sign'/); assert.match(fn, /Please read and sign the agreement first/); assert.match(fn, /consent !== true/);
+  assert.match(fn, /sha256Hex\('mxp-agr:' \+ ip\)/); assert.doesNotMatch(fn, /console\.(log|error)\([^)]*(gstin|name)/i);
+  assert.match(js, /kind: 'sign'/); assert.match(js, /import\('\/assets\/js\/agreement\.js'\)/); assert.match(js, /autocapitalize: 'characters'/); assert.doesNotMatch(js, /innerHTML/);
+  assert.equal(read('assets/js/agreement.js'), read('admin/agreement.js'));   // the site copy is the Admin file, byte for byte
+  const p = agreementParts({ tier: 'silver', garage: { code: 'G-9', legal_name: 'X Works', owner_name: 'O' }, plan: { commission_pct: 30, deposit_amount: 10000, orders_min: 30, orders_max: 80 }, rate: 30 });
+  assert.equal(p.A.length, 18); assert.equal(p.B.length, 6); assert.equal(p.no, 'MXP-SL-G-9'); assert.match(p.B[1].text, /Rs 10,000/);
+  const signed = agreementHtml({ tier: 'silver', garage: { code: 'G-9', name: 'X', gstin: '29ABCDE1234F1Z5' }, plan: { commission_pct: 30, deposit_amount: 10000, orders_min: 30, orders_max: 80 }, rate: 30, esign: { name: 'Owner Name', at: '2026-11-10T05:00:00Z' } });
+  assert.match(signed, /Signed online by <b>Owner Name<\/b>/); assert.match(signed, /29ABCDE1234F1Z5/);
+  const k = read('supabase/functions/_shared/partner-kyc.ts'); assert.doesNotMatch(k.slice(k.indexOf('REQUIRED'), k.indexOf('  mechanic: [', k.indexOf('REQUIRED'))), /mechanic_aadhaar|signed_agreement/);
 });

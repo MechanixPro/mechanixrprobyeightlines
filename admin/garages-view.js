@@ -62,17 +62,23 @@ export function createGaragesView({ rpc, dialog, toast }) {
   async function edit(id) { try { const r = await rpc('admin_garage_get', { p_id: id }); form(r.garage); } catch (e) { toast(msg(e), true); } }
   // The printable agreement, filled from the garage record. Asks only for what is not stored: the plan to print, the Bronze rate, and who signs for the Company.
   async function agreement(id) {
-    let garage, plans, tdoc;
-    try { const [r, p, t] = await Promise.all([rpc('admin_garage_get', { p_id: id }), rpc('partner_plans_list'), rpc('agreement_terms_get')]); garage = r.garage; plans = p || []; tdoc = t || {}; } catch (e) { return toast(msg(e), true); }
+    let garage, plans, tdoc, signed;
+    try { const [r, p, t, sg] = await Promise.all([rpc('admin_garage_get', { p_id: id }), rpc('partner_plans_list'), rpc('agreement_terms_get'), rpc('admin_agreement_signed', { p_garage: id })]); garage = r.garage; plans = p || []; tdoc = t || {}; signed = sg || null; } catch (e) { return toast(msg(e), true); }
+    if (signed) {   // already signed online: print exactly what was signed (the stored terms and numbers), never today's edits
+      return dialog({ title: 'Signed agreement: ' + (garage.name || ''), intro: `Signed online by <b>${esc(signed.name)}</b> on ${esc(new Date(signed.at).toLocaleDateString('en-GB'))}. Plan ${esc(signed.tier)}, commission ${esc(signed.rate)}%, terms version ${esc(signed.terms_version)}. The signed copy prints with the wording and numbers that were shown when it was signed.`, submit: 'Open signed copy',
+        onSubmit: async (f, d) => { const w = window.open('', '_blank'); if (!w) throw new Error('Allow pop-ups for this site, then try again.');
+          w.document.open(); w.document.write(agreementHtml({ tier: signed.tier, garage: { ...signed.garage, gstin: signed.garage.gstin || garage.gstin }, plan: signed.plan, rate: signed.rate, terms: signed.terms, signer: { name: 'Mohammed Ruwaid', designation: 'Founder' }, now: new Date(signed.at), esign: { name: signed.name, at: signed.at } })); w.document.close(); d.close(); } });
+    }
     const opts = Object.entries(TIERS).map(([k, t]) => `<option value="${k}"${k === (garage.plan || 'bronze') ? ' selected' : ''}>${t.name}</option>`).join('');
-    dialog({ title: 'Agreement for ' + (garage.name || 'this garage'), intro: 'Opens a printable agreement filled with this garage’s details. Check it, then print or save as PDF.',
-      body: `<label class="flow-f"><span>Plan</span><select name="tier">${opts}</select></label><label class="flow-f"><span>Agreed commission % (Bronze; blank uses the plan rate)</span><input name="rate" inputmode="decimal" maxlength="5" placeholder="e.g. 35"></label>
+    dialog({ title: 'Agreement for ' + (garage.name || 'this garage'), intro: 'Opens a printable agreement filled with this garage’s details. The garage can also sign it online from its onboarding link, once its plan is set and, for Bronze, the rate is saved here.',
+      body: `<label class="flow-f"><span>Plan</span><select name="tier">${opts}</select></label><label class="flow-f"><span>Agreed commission % (Bronze; blank uses the plan rate)</span><input name="rate" inputmode="decimal" maxlength="5" placeholder="e.g. 35" value="${esc(garage.agreed_rate ?? '')}"></label>
         <label class="flow-f"><span>Signing for the Company: name</span><input name="sname" value="Mohammed Ruwaid" maxlength="80"></label><label class="flow-f"><span>Designation</span><input name="sdes" value="Founder" maxlength="60"></label>`,
       submit: 'Open agreement',
       onSubmit: async (f, d) => {
         const tier = f.querySelector('[name=tier]').value, plan = plans.find((x) => x.plan === tier) || {};
         const rate = tier === 'bronze' ? Number(f.querySelector('[name=rate]').value || plan.commission_pct) : plan.commission_pct;
         if (!(rate > 0 && rate <= 100)) throw new Error('Enter the agreed commission, between 1 and 100.');
+        if (tier === 'bronze' && rate !== Number(garage.agreed_rate)) await rpc('garage_agreed_rate_set', { p_id: id, p_rate: rate });   // saved, so the garage's own sign screen shows it
         const w = window.open('', '_blank'); if (!w) throw new Error('Allow pop-ups for this site, then try again.');
         w.document.open(); w.document.write(agreementHtml({ tier, garage, plan, rate, terms: tdoc.doc, signer: { name: f.querySelector('[name=sname]').value, designation: f.querySelector('[name=sdes]').value }, now: new Date() })); w.document.close();
         rpc('agreement_issued', { p_garage: id, p_tier: tier, p_rate: rate, p_version: tdoc.version || 0 }).catch(() => {});

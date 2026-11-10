@@ -3,9 +3,9 @@
 
 export type PartnerKind = 'garage' | 'mechanic';
 
-/** Document types per partner kind. For a garage, the mechanic_* types are for the mechanic who will work on jobs. */
+/** Document types per partner kind. A garage does not submit KYC for its mechanics (agreement clause 2) and signs the agreement online. */
 export const DOC_TYPES: Record<PartnerKind, string[]> = {
-  garage: ['aadhaar_front', 'aadhaar_back', 'pan', 'garage_photo', 'shop_licence', 'mechanic_photo', 'mechanic_aadhaar_front', 'mechanic_aadhaar_back', 'mechanic_pan', 'signed_agreement'],
+  garage: ['aadhaar_front', 'aadhaar_back', 'pan', 'garage_photo', 'shop_licence', 'signed_agreement'],   // signed_agreement here is only an optional stamped scan; the agreement itself is signed online
   mechanic: ['mechanic_photo', 'aadhaar_front', 'aadhaar_back', 'pan', 'signed_agreement'],
 };
 
@@ -13,8 +13,6 @@ export const DOC_TYPES: Record<PartnerKind, string[]> = {
 export const REQUIRED: Record<PartnerKind, { type: string; min: number }[]> = {
   garage: [
     { type: 'aadhaar_front', min: 1 }, { type: 'aadhaar_back', min: 1 }, { type: 'pan', min: 1 }, { type: 'garage_photo', min: 3 },
-    { type: 'mechanic_photo', min: 1 }, { type: 'mechanic_aadhaar_front', min: 1 }, { type: 'mechanic_aadhaar_back', min: 1 }, { type: 'mechanic_pan', min: 1 },
-    { type: 'signed_agreement', min: 1 },
   ],
   mechanic: [
     { type: 'mechanic_photo', min: 1 }, { type: 'aadhaar_front', min: 1 }, { type: 'aadhaar_back', min: 1 }, { type: 'pan', min: 1 }, { type: 'signed_agreement', min: 1 },

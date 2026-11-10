@@ -1,6 +1,6 @@
 // Printable partner agreement (Bronze, Silver, Gold), filled from the garage record. The commercial terms are the client's signed-off text, wording only tidied.
 // Never includes Aadhaar, PAN or bank details: those stay on the Platform. Opened in its own window; "Print or save as PDF" produces the signed copy.
-import { esc } from './kyc-rules.js';
+const esc = (x) => String(x ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 export const TIERS = { bronze: { name: 'Bronze', code: 'BR' }, silver: { name: 'Silver', code: 'SL' }, gold: { name: 'Gold', code: 'GD' } };
 const inr = (n) => 'Rs ' + Number(n).toLocaleString('en-IN');
@@ -74,17 +74,24 @@ h2{font-size:13px;color:#12294f;margin:10px 0 4px}p{margin:0 0 5px;text-align:ju
 .ft{margin-top:10px;border-top:2px solid #12294f;padding-top:5px;text-align:center;color:#12294f;font-size:10.5px}.sm{font-size:10.5px}@media print{body{background:#fff}.bar{display:none}.pg{margin:0;box-shadow:none;width:auto;padding:0}.brk{page-break-before:always}@page{size:A4;margin:12mm}}`;
 
 /** d: { tier, garage, terms (the saved document or null), plan: {commission_pct, deposit_amount, orders_min, orders_max}, rate, signer: {name, designation}, now: Date } → one complete HTML document. */
-export function agreementHtml(d) {
+/** The agreement as data: header facts and the numbered clauses with the numbers filled in. Used by the printable page and by the partner's sign screen (which builds it with textContent, no HTML). */
+export function agreementParts(d) {
   const tier = TIERS[d.tier] ? d.tier : 'bronze', T = TIERS[tier], g = d.garage || {}, pl = d.plan || {}, now = d.now || new Date();
   const rate = d.rate ?? pl.commission_pct ?? '';
-  const no = `MXP-${T.code}-${g.code || ''}`;
-  const v = (x, w = 160) => `<span class="v" style="display:inline-block;min-width:${w}px">${esc(x || '')}&nbsp;</span>`;
-  const addr = [g.address, g.landmark, g.pincode, g.city].filter(Boolean).join(', ');
-  const held = g.deposit_status === 'held';
   const terms = resolveTerms(d.terms), V = terms.vars;
   const ctx = { rate, deposit: pl.deposit_amount != null ? inr(pl.deposit_amount) : '', min: pl.orders_min ?? '', max: pl.orders_max ?? '', accept: tier === 'gold' ? V.accept_gold : V.accept_silver, pen_noshow: inr(V.pen_noshow), pen_cancel: inr(V.pen_cancel), pen_date: inr(V.pen_date), pen_cap: V.pen_cap };
-  const A = terms.part_a.map((c, i) => `<p><b>${i + 1}. ${esc(fill(c.title, ctx))}.</b> ${esc(fill(c.text, ctx))}</p>`).join('');
-  const B = terms.part_b[tier].map((c, i) => `<p><b>${i + 1}. ${esc(fill(c.title, ctx))}.</b> ${esc(fill(c.text, ctx))}</p>`).join('');
+  const mk = (rows) => rows.map((c, i) => ({ n: i + 1, title: fill(c.title, ctx), text: fill(c.text, ctx) }));
+  return { tier, tierName: T.name, no: `MXP-${T.code}-${g.code || ''}`, date: dmy(now), garageName: g.legal_name || g.name || '', owner: g.owner_name || '', addr: [g.address, g.landmark, g.pincode, g.city].filter(Boolean).join(', '), A: mk(terms.part_a), B: mk(terms.part_b[tier]), rate };
+}
+
+/** d: { tier, garage, terms, plan, rate, signer, now, esign: { name, at } | null, bar: false hides the print bar } → one complete HTML document. */
+export function agreementHtml(d) {
+  const P = agreementParts(d), tier = P.tier, T = TIERS[tier], g = d.garage || {}, pl = d.plan || {}, now = d.now || new Date(), no = P.no, addr = P.addr;
+  const v = (x, w = 160) => `<span class="v" style="display:inline-block;min-width:${w}px">${esc(x || '')}&nbsp;</span>`;
+  const held = g.deposit_status === 'held';
+  const A = P.A.map((c) => `<p><b>${c.n}. ${esc(c.title)}.</b> ${esc(c.text)}</p>`).join('');
+  const B = P.B.map((c) => `<p><b>${c.n}. ${esc(c.title)}.</b> ${esc(c.text)}</p>`).join('');
+  const es = d.esign && d.esign.name ? `Signed online by <b>${esc(d.esign.name)}</b> on ${esc(d.esign.at ? new Date(d.esign.at).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) : '')} IST` : '';
   const row = (a, b) => `<tr><td>${a}</td><td>${b}</td></tr>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(no)} Garage Partner Agreement ${T.name}</title><style>${CSS}</style></head><body>
 <div class="bar"><button onclick="print()">Print or save as PDF</button><span>${esc(no)} · ${esc(g.legal_name || g.name || '')}. Check the details, then print. Bank details are entered on the Platform, never on this page.</span></div>
@@ -97,11 +104,11 @@ export function agreementHtml(d) {
 <table><tr><th>For NOVA VENTURES (Mechanix Pro)</th><th>For the Garage</th></tr>
 ${row('Name: ' + v(d.signer && d.signer.name, 160), 'Garage name: ' + v(g.legal_name || g.name, 150))}
 ${row('Designation: ' + v(d.signer && d.signer.designation, 130), 'Owner name: ' + v(g.owner_name, 150))}
-${row('Signature:<br><br>', 'Signature:<br><br>')}
-${row('Date: ' + v(dmy(now), 120), 'Date: ' + v('', 150))}
-${row('Place: Bengaluru', 'Place: ' + v('', 150))}
+${row('Signature:<br><br>', 'Signature:<br>' + (es || '<br>'))}
+${row('Date: ' + v(dmy(now), 120), 'Date: ' + v(d.esign && d.esign.at ? dmy(new Date(d.esign.at)) : '', 150))}
+${row('Place: Bengaluru', 'Place: ' + v(es ? 'Online' : '', 150))}
 ${row('Email: ' + v('hello@mechanixpro.in', 160), 'Email: ' + v('', 150))}</table>
-<p class="sm"><b>Garage details:</b> Address ${v(addr, 260)} Phone ${v(g.mobile, 90)} GSTIN (if any) ${v('', 120)} Shop/trade licence no. (if any) ${v(g.trade_id, 120)}</p>
+<p class="sm"><b>Garage details:</b> Address ${v(addr, 260)} Phone ${v(g.mobile, 90)} GSTIN (if any) ${v(g.gstin, 150)} Shop/trade licence no. (if any) ${v(g.trade_id, 120)}</p>
 <p class="sm"><b>Bank account for payouts:</b> to be given in the Platform, not on this page.</p>
 ${tier === 'bronze' ? '' : `<p class="sm"><b>Deposit received:</b> Rs ${v(held ? Number(pl.deposit_amount).toLocaleString('en-IN') : '', 70)} Date ${v(held && g.deposit_received_at ? dmy(new Date(g.deposit_received_at)) : '', 80)} Ref ${v('', 110)}</p>`}
 <p class="sm">Witness 1: Name ${v('', 130)} Signature ${v('', 100)}</p><p class="sm">Witness 2: Name ${v('', 130)} Signature ${v('', 100)}</p>

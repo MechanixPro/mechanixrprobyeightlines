@@ -1,10 +1,9 @@
 // Partner KYC review rules (pure, no DOM, no Supabase). Shared by Admin (admin/kyc-view.js). Tested in tests/kyc-view.test.mjs.
+// A garage signs its agreement online on the onboarding page (partner_agreements) and does not submit KYC for its mechanics (agreement clause 2), so neither is a document here.
 // REQUIRED is a copy of supabase/functions/_shared/partner-kyc.ts; the test checks the two stay the same.
 export const REQUIRED = {
   garage: [
     { type: 'aadhaar_front', min: 1 }, { type: 'aadhaar_back', min: 1 }, { type: 'pan', min: 1 }, { type: 'garage_photo', min: 3 },
-    { type: 'mechanic_photo', min: 1 }, { type: 'mechanic_aadhaar_front', min: 1 }, { type: 'mechanic_aadhaar_back', min: 1 }, { type: 'mechanic_pan', min: 1 },
-    { type: 'signed_agreement', min: 1 },
   ],
   mechanic: [
     { type: 'mechanic_photo', min: 1 }, { type: 'aadhaar_front', min: 1 }, { type: 'aadhaar_back', min: 1 }, { type: 'pan', min: 1 }, { type: 'signed_agreement', min: 1 },

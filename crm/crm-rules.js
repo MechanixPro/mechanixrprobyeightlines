@@ -275,7 +275,7 @@ export function nextAction(lead, role = 'agent', me = null) {
     case 1: return { key: 'quote', label: 'Send quote', allowed: true, reason: '' };
     case 2: { if (confirmPending(lead)) return { key: 'resend_link', label: 'Resend payment link', allowed: true, reason: '' };
       const ok = me ? canConfirmBooking(lead, me) : true; return { key: 'confirm', label: 'Confirm booking', allowed: ok, reason: ok ? '' : 'You cannot confirm this booking. Ask a supervisor.' }; }
-    case 3: if (confirmPaid(lead) && !lead.mechanic_name && !lead.mechanic_id) return { key: 'assign', label: 'Assign mechanic', allowed: true, reason: '' };
+    case 3: if (confirmPaid(lead) && !lead.mechanic_name && !lead.mechanic_id) return { key: 'assign', label: 'Assign mechanic or garage', allowed: true, reason: '' };
       return { key: 'schedule', label: 'Schedule', allowed: true, reason: '' };
     default: return role === 'admin' ? { key: 'done', label: 'Mark done', allowed: true, reason: '' } : { key: 'done', label: 'Mark done', allowed: false, reason: 'An admin marks the job done after the technician reports and payment is checked.' };
   }

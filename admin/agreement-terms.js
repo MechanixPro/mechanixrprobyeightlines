@@ -48,7 +48,7 @@ export function createAgreementTerms({ rpc, dialog, toast }) {
           const b = ev.target.closest('button'); if (!b) return;
           if (b.hasAttribute('data-at-add')) { b.previousElementSibling.insertAdjacentHTML('beforeend', clauseRow({ title: '', text: '' })); }
           if (b.hasAttribute('data-at-del')) { b.closest('.at-clause').remove(); }
-          if (b.hasAttribute('data-at-reset')) { if (!window.confirm('Go back to the original text? Your edits to the clauses are removed. Plan numbers stay as they are.')) return; try { await rpc('agreement_terms_reset'); toast('Back to the original text.'); d.close(); } catch (e) { toast(msg(e), true); } }
+          if (b.hasAttribute('data-at-reset')) { if (!window.confirm('Go back to the original text? Your edits to the clauses are removed. Plan numbers stay as they are.')) return; try { const o = resolveTerms(null); await rpc('agreement_terms_save', { p_doc: { part_a: o.part_a, part_b: o.part_b, vars: o.vars }, p_note: 'Back to the original text' }); toast('Back to the original text.'); d.close(); } catch (e) { toast(msg(e), true); } }
         });
       },
       onSubmit: async (f, d) => {

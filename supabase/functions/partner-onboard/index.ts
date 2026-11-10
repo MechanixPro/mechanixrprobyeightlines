@@ -1,9 +1,9 @@
 // POST /functions/v1/partner-onboard  { action, token, ... }  — the private /onboard/ page. Public (no sign-in), the long random link token is the key.
-// Actions: me, upload_url, doc_done, submit. Documents go to the PRIVATE 'kyc' bucket by signed upload URLs. No token, file content or identity number is logged or returned.
+// Actions: me, upload_url, doc_done, submit, agreement, sign (a garage reads and signs its agreement online; the typed name, time and a hash of the IP and browser are kept). Documents go to the PRIVATE 'kyc' bucket by signed upload URLs. No token, file content or identity number is logged or returned.
 import { adminDb, env, json, corsHeaders, sha256Hex } from '../_shared/util.ts';
 import { isKind, checkUpload, docPath, pathOk, missing, canSubmit, countDocs, DOC_LABEL, MULTI, REQUIRED, type PartnerKind } from '../_shared/partner-kyc.ts';
 
-const ACTIONS = ['me', 'upload_url', 'doc_done', 'submit'];
+const ACTIONS = ['me', 'upload_url', 'doc_done', 'submit', 'agreement', 'sign'];
 const BAD_LINK = 'This link has expired or is not valid. Ask Mechanix Pro for a new one.';
 
 Deno.serve(async (req) => {
@@ -38,13 +38,30 @@ Deno.serve(async (req) => {
       : (await db.from('mechanics').select('name').eq('id', partnerId).maybeSingle()).data?.name;
     const docs = await loadDocs();
     const counts = countDocs(docs);
+    let signed: any = null;
+    if (kind === 'garage') { const { data: ag } = await db.rpc('partner_agreement_data', { p_garage: partnerId }); signed = ag?.signed ?? null; }
     const { data: k } = await db.from('partner_kyc').select('submitted_at,decision,decision_reason').eq('partner_kind', kind).eq('partner_id', partnerId).maybeSingle();
     return json(req, {
       ok: true, kind, name: name ?? '',
       submitted: !!k?.submitted_at && k?.decision !== 'rejected', decision: k?.decision ?? 'pending', decision_reason: k?.decision_reason ?? null,
       checklist: REQUIRED[kind].map((r) => ({ type: r.type, label: DOC_LABEL[r.type] ?? r.type, min: r.min, have: counts[r.type] ?? 0, rejected: docs.filter((d: any) => d.doc_type === r.type && d.status === 'rejected').map((d: any) => d.reject_reason ?? 'Please upload this again.').slice(0, 1) })),
-      can_submit: canSubmit(kind, counts),
+      agreement: kind === 'garage' ? { required: true, signed: !!signed, name: signed?.name ?? null, at: signed?.at ?? null } : { required: false, signed: true },
+      can_submit: canSubmit(kind, counts) && (kind !== 'garage' || !!signed),
     });
+  }
+
+  if (action === 'agreement' || action === 'sign') {
+    if (kind !== 'garage') return json(req, { error: 'This agreement is for garages.' }, 400);
+    if (action === 'agreement') {
+      const { data, error } = await db.rpc('partner_agreement_data', { p_garage: partnerId });
+      if (error || !data) { console.error('partner-onboard agreement', error?.code); return json(req, { error: 'Could not load the agreement. Try again.' }, 500); }
+      return json(req, { ok: true, ...data });
+    }
+    if (b?.consent !== true) return json(req, { error: 'Tick the box to confirm you have read and agree.' }, 400);
+    const ip = req.headers.get('cf-connecting-ip') ?? req.headers.get('x-forwarded-for') ?? '';
+    const { data, error } = await db.rpc('partner_agreement_sign', { p_garage: partnerId, p_name: String(b?.name ?? '').slice(0, 100), p_gstin: String(b?.gstin ?? '').slice(0, 20), p_terms_version: Number(b?.terms_version), p_ip_hash: await sha256Hex('mxp-agr:' + ip), p_ua_hash: await sha256Hex('mxp-agr:' + (req.headers.get('user-agent') ?? '')) });
+    if (error || !data) { console.error('partner-onboard sign', error?.code); return json(req, { error: 'Could not save your signature. Try again.' }, 500); }
+    return json(req, data, data.ok ? 200 : (data.stale ? 409 : 400));
   }
 
   const { data: kyc } = await db.from('partner_kyc').select('submitted_at,decision').eq('partner_kind', kind).eq('partner_id', partnerId).maybeSingle();
@@ -79,6 +96,7 @@ Deno.serve(async (req) => {
   }
 
   // submit
+  if (kind === 'garage') { const { data: ag } = await db.rpc('partner_agreement_data', { p_garage: partnerId }); if (!ag?.signed) return json(req, { error: 'Please read and sign the agreement first.' }, 400); }
   const counts = countDocs(await loadDocs());
   if (!canSubmit(kind, counts)) return json(req, { error: 'Some documents are still missing.', missing: missing(kind, counts).map((m) => DOC_LABEL[m.type] ?? m.type) }, 400);
   const { error } = await db.rpc('kyc_submit', { p_kind: kind, p_id: partnerId });

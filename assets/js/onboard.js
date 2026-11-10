@@ -47,6 +47,7 @@
     var go1 = next('Start', function () { go(S.i + 1); }, S.agreed);
     cb.addEventListener('change', function () { S.agreed = cb.checked; go1.disabled = !cb.checked; });
     var list = S.me.checklist.map(function (c) { return c.label + (c.min > 1 ? ' (' + c.min + ')' : ''); });
+    if (S.me.kind === 'garage') list.push('Your GSTIN, if you have one', 'Your signature on the partner agreement, right here on this page');
     shell('welcome', [el('h1', { text: 'Hi' + (S.me.name ? ' ' + S.me.name : '') + ', let us verify you' }), el('p', { class: 'o-lead', text: 'Keep these ready. It takes about 5 minutes.' }),
       el('ul', { class: 'o-list' }, list.map(function (t) { return el('li', { text: t }); })),
       el('label', { class: 'o-consent', for: 'oAgree' }, [cb, el('span', { text: CONSENT + ' I agree.' })]), el('div', { style: 'flex:1' }), go1], false);
@@ -56,6 +57,42 @@
     shell('agreement', [el('h1', { text: 'Partner agreement' }),
       el('p', { class: 'o-lead', text: 'Print it, sign every page, scan it as one PDF.' }),
       el('div', { style: 'flex:1' }), el('a', { class: 'o-btn alt', href: mech ? AGREEMENT_M : AGREEMENT, download: mech ? 'Mechanix-Pro-Mechanic-Engagement-Terms.pdf' : 'Mechanix-Pro-Garage-Partner-Agreement.pdf', text: 'Download agreement' }), next('Next', function () { go(S.i + 1); })], true);
+  }
+
+
+  /* A garage reads and signs its agreement here. The text is built with textContent from agreement.js (shared with Admin), never as HTML. */
+  function sign() {
+    shell('sign', [el('h1', { text: 'Partner agreement' }), el('p', { class: 'o-lead', text: 'Loading your agreement' })], true);
+    Promise.all([api('agreement'), import('/assets/js/agreement.js')]).then(function (rs) {
+      var r = rs[0], mod = rs[1]; if (!r.ok) throw new Error(r.data.error || NET);
+      var D = r.data, main = app.querySelector('.o-main'); main.textContent = ''; main.className = 'o-main o-scroll';
+      if (D.signed) { main.appendChild(el('h1', { text: 'Agreement signed' })); main.appendChild(el('p', { class: 'o-lead', text: 'Signed by ' + D.signed.name + ' on ' + new Date(D.signed.at).toLocaleDateString('en-IN') + '. A copy stays with your Mechanix Pro record.' })); main.appendChild(el('div', { style: 'flex:1' })); main.appendChild(next('Next', function () { go(S.i + 1); })); return; }
+      if (!D.ready) { main.appendChild(el('h1', { text: 'Your agreement is being prepared' })); main.appendChild(el('p', { class: 'o-lead', text: 'Mechanix Pro is confirming your plan and commission rate. We will message you when you can sign. You can close this page and come back to the same link.' })); main.appendChild(el('div', { style: 'flex:1' })); main.appendChild(next('Check again', function () { render(); })); return; }
+      var P = mod.agreementParts({ tier: D.tier, garage: D.garage, plan: D.plan, rate: D.rate, terms: D.terms.doc });
+      var dep = Number(D.plan.deposit_amount || 0);
+      var sum = el('div', { class: 'o-sum' }, [el('b', { text: P.tierName + ' plan · ' + P.no }), el('span', { text: 'Commission: ' + D.rate + '% of the bill base price, excluding GST' }), dep ? el('span', { text: 'Deposit: Rs ' + dep.toLocaleString('en-IN') + ', paid by bank transfer before activation. We will send the details.' }) : el('span', { text: 'No deposit.' })]);
+      var box = el('div', { class: 'o-agr', tabindex: '0', role: 'region', 'aria-label': 'Agreement text' });
+      var add = function (h, rows) { box.appendChild(el('h2', { text: h })); rows.forEach(function (c) { box.appendChild(el('p', {}, [el('b', { text: c.n + '. ' + c.title + '. ' }), c.text])); }); };
+      box.appendChild(el('p', { text: 'Between NOVA VENTURES (Mechanix Pro) and ' + P.garageName + (P.owner ? ' (owner: ' + P.owner + ')' : '') + (P.addr ? ', ' + P.addr : '') + '.' }));
+      add('Part A: Standard Terms', P.A); add('Part B: ' + P.tierName + ' Partner Terms (if Part A and Part B conflict, Part B applies)', P.B);
+      var gst = el('input', { id: 'oGst', type: 'text', maxlength: '15', autocomplete: 'off', autocapitalize: 'characters', value: D.garage.gstin || '', placeholder: 'e.g. 29ABCDE1234F1Z5' });
+      var nm = el('input', { id: 'oName', type: 'text', maxlength: '80', autocomplete: 'name', placeholder: 'Type your full name' });
+      var cb = el('input', { type: 'checkbox', id: 'oSign' });
+      var btn = next('Sign agreement', function () {
+        btn.disabled = true; btn.textContent = 'Signing';
+        api('sign', { name: nm.value, gstin: gst.value, consent: true, terms_version: D.terms.version }).then(function (x) {
+          if (x.ok) { return refresh().then(function () { render(); }); }
+          S.err = x.data.error || NET; render();
+        });
+      }, false);
+      var upd = function () { btn.disabled = !(cb.checked && nm.value.trim().length >= 3); };
+      cb.addEventListener('change', upd); nm.addEventListener('input', upd);
+      main.appendChild(errBox(S.err)); main.appendChild(el('h1', { text: 'Read and sign your agreement' })); main.appendChild(sum); main.appendChild(box);
+      main.appendChild(el('label', { class: 'o-fld', for: 'oGst' }, ['GSTIN (optional, leave empty if you have none)', gst]));
+      main.appendChild(el('label', { class: 'o-fld', for: 'oName' }, ['Your full name, as your signature', nm]));
+      main.appendChild(el('label', { class: 'o-consent', for: 'oSign' }, [cb, el('span', { text: 'I have read this agreement and I agree to it. Typing my name above is my signature.' })]));
+      main.appendChild(btn);
+    }).catch(function (e) { var main = app.querySelector('.o-main'); if (main) { main.textContent = ''; main.appendChild(el('h1', { text: 'Partner agreement' })); main.appendChild(errBox((e && e.message) || NET)); main.appendChild(next('Try again', function () { render(); })); } });
   }
 
   function docStep() {
@@ -105,20 +142,22 @@
     }, !!m.can_submit);
     shell('review', [errBox(S.err), el('h1', { text: 'Check and send' }), el('ul', { class: 'o-check' }, m.checklist.map(function (c, k) {
       var ok = c.have >= c.min;
-      return el('li', { onclick: function () { go(2 + k); } }, [el('span', { class: 't' + (ok ? ' ok' : ''), text: ok ? '✓' : '' }), el('span', { text: c.label + (c.min > 1 ? ' (' + c.have + '/' + c.min + ')' : '') })]);
-    })), el('div', { style: 'flex:1' }), busyBtn], true);
+      return el('li', { onclick: function () { S.steps.forEach(function (st, j) { if (st.item && st.item.type === c.type) go(j); }); } }, [el('span', { class: 't' + (ok ? ' ok' : ''), text: ok ? '✓' : '' }), el('span', { text: c.label + (c.min > 1 ? ' (' + c.have + '/' + c.min + ')' : '') })]);
+    }).concat(S.me.kind === 'garage' ? [el('li', { onclick: function () { S.steps.forEach(function (st, k) { if (st.kind === 'sign') go(k); }); } }, [el('span', { class: 't' + (S.me.agreement && S.me.agreement.signed ? ' ok' : ''), text: S.me.agreement && S.me.agreement.signed ? '✓' : '' }), el('span', { text: 'Partner agreement signed' })])] : [])), el('div', { style: 'flex:1' }), busyBtn], true);
   }
   function finished() { shell('done', [el('div', { class: 'o-tick', 'aria-hidden': 'true', text: '✓' }), el('h1', { text: 'Sent' }), el('p', { class: 'o-lead', text: 'We will check your documents and contact you.' })], false); }
   function message(text) { app.textContent = ''; app.appendChild(el('main', { class: 'o-main o-done' }, [el('h1', { text: 'Mechanix Pro' }), el('p', { class: 'o-lead', role: 'alert', text: text })])); }
 
   function render(stay) {
     var st = S.steps[S.i]; if (!st) return;
-    if (st.kind === 'welcome') welcome(); else if (st.kind === 'agreement') agreement(); else if (st.kind === 'doc') docStep(); else if (st.kind === 'review') review(); else finished();
+    if (st.kind === 'welcome') welcome(); else if (st.kind === 'agreement') agreement(); else if (st.kind === 'sign') sign(); else if (st.kind === 'doc') docStep(); else if (st.kind === 'review') review(); else finished();
     var m = app.querySelector('.o-main'); if (m && !stay) try { m.focus({ preventScroll: true }); } catch (e) {}
   }
   function build() {
-    var s = [{ kind: 'welcome' }, { kind: 'agreement' }];
+    var s = [{ kind: 'welcome' }];
+    if (S.me.kind !== 'garage') s.push({ kind: 'agreement' });
     S.me.checklist.forEach(function (c) { s.push({ kind: 'doc', item: c }); });
+    if (S.me.kind === 'garage') s.push({ kind: 'sign' });
     s.push({ kind: 'review' }, { kind: 'done' }); S.steps = s;
   }
   function refresh() {
