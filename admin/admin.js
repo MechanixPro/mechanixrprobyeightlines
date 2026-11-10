@@ -206,6 +206,17 @@ const failed = (name) => { (S.failed ||= []); if (!S.failed.includes(name)) S.fa
 async function loadLeads() {
   const { data, error } = await sb.from('leads').select('*').is('deleted_at', null).order('created_at', { ascending: false }).limit(500);
   if (error) { toast('Could not load bookings'); failed('bookings'); } else { S.leads = data.filter((l) => l.status !== 'junk'); S.junkLeads = data.filter((l) => l.status === 'junk'); S.leads.forEach((l) => applyQuote(l)); }
+  await loadGarageState();
+}
+// Which bookings are with a garage, and the garage list for the board. Owner and admin only; failing quietly leaves the board as before.
+async function loadGarageState() {
+  if (!['owner', 'admin'].includes(S.me?.role)) return;
+  try {
+    const [open, pick] = await Promise.all([adminRpc('admin_garage_open_jobs'), adminRpc('crm_garage_picker')]);
+    const by = new Map((open || []).map((r) => [r.lead_id, r]));
+    S.garagePick = (pick || []).filter((g) => g.status !== 'paused');
+    [S.leads, S.junkLeads || []].forEach((rows) => rows.forEach((l) => { const r = by.get(l.id); l.garage_id = r ? r.garage_id : null; l.garage_name = r ? r.garage : null; }));
+  } catch (e) { console.error('garage state', e); }
 }
 async function loadInvoices() {
   const { data, error } = await sb.from('invoices').select('*').order('issued_at', { ascending: false }).limit(3000);
@@ -259,7 +270,7 @@ document.addEventListener('change', (e) => { const m = { 'df-range': 'range', 'd
 document.addEventListener('click', (e) => { if (e.target.id === 'df-reset') { S.df = { range: '7d', from: '', to: '', src: '', area: '', svc: '' }; render(); } });
 document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-ie=name]')) { const c = catItem(e.target.value), a = e.target.closest('.ie-row').querySelector('[data-ie=amount]'); if (c && a && !a.value.trim()) a.value = c.price; } });
 document.addEventListener('change', (e) => { if (e.target.id === 'il') { const l = S.leads.find((x) => x.id === e.target.value), w = warrantyInfo(l, WARRANTY_DAYS); $('#iw').textContent = l ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''; } if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'ifs') { S.ifilter = e.target.value; render(); } if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'fv') { S.vehicle = e.target.value; renderList(); } if (e.target.id === 'vsel') ACT.setVehicle(e.target.value); if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
-document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-board-mech]')) { ACT.boardMech(e.target); return; } const m = { 'if-period': 'period', 'if-gst': 'gst', 'if-rate': 'rate', 'if-mech': 'mechanic' }[e.target.id]; if (m) { S.ifl[m] = e.target.value; render(); } });
+document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-board-garage]')) { ACT.boardGarage(e.target); return; } const m = { 'if-period': 'period', 'if-gst': 'gst', 'if-rate': 'rate', 'if-mech': 'mechanic' }[e.target.id]; if (m) { S.ifl[m] = e.target.value; render(); } });
 document.addEventListener('input', (e) => { if (e.target.id === 'if-q') { S.ifl.q = e.target.value; const pos = e.target.selectionStart; render(); const q = $('#if-q'); if (q) { q.focus(); q.setSelectionRange(pos, pos); } } });
 document.addEventListener('change', (e) => { const c = e.target.closest && e.target.closest('[data-icsel]'); if (c) { if (c.checked) S.icsel.add(c.dataset.icsel); else S.icsel.delete(c.dataset.icsel); if (S.open) openLead(S.open, true); } });
 document.addEventListener('click', (e) => { const r = e.target.closest('.inv-tr, .inv-row'); if (r && e.target.closest('[data-isel]')) { const id = r.dataset.lead; if (S.isel.has(id)) S.isel.delete(id); else S.isel.add(id); render(); return; } if (r && S.tab === 'invoices') { const l = S.leads.find((x) => x.id === r.dataset.lead); if (l) { if (S.imode) { if (S.isel.has(l.id)) S.isel.delete(l.id); else S.isel.add(l.id); render(); } else openInvoice(withBike(l), { quick: true, edit: true }); } return; } if (r) openLead(r.dataset.lead); const f = e.target.closest('.fin-tr'); if (f) ACT.finOpen(f); });
@@ -595,7 +606,7 @@ function renderList() {
   // Paid bookings stand out: bold green PAID badge, green left border, and paid-but-unassigned ones are pinned first under their own heading.
   const pin = S.status === 'junk' ? [] : rows.filter((l) => paidInfo(l).needsMechanic), rest = pin.length ? rows.filter((l) => !paidInfo(l).needsMechanic) : rows;
   const one = (l) => `<button class="row${paidInfo(l).paid ? ' is-paid' : ''}${S.selMode && S.sel.has(l.id) ? ' picked' : ''}" data-lead="${l.id}"${S.selMode ? ` aria-pressed="${S.sel.has(l.id)}"` : ''}><span class="ref">${S.selMode ? `<span class="chk" aria-hidden="true">${S.sel.has(l.id) ? '\u2611' : '\u2610'}</span> ` : ''}${esc(bid(l))}<br><span class="meta">${l.source === 'whatsapp' ? 'WhatsApp' : 'Website'}</span></span><span>${esc(l.name)} <span class="pill veh-${vehicleOf(l)}">${VEHICLE_LABEL[vehicleOf(l)]}</span> · <span class="meta">${esc(l.phone)}</span><br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')} · ${l.preferred_date ? esc(l.preferred_date) + ' ' + esc(SLOT[l.preferred_slot] ?? '') : ''}</span><br>${stepBar(l, true)}</span><span style="text-align:right">${paidChipHtml(l)} <span class="pill ${l.status}">${LABEL[l.status]}</span><br><span class="meta">${l.est_total ? rupee(l.est_total) : ''} · ${when(l.created_at)}</span></span></button>`;
-  el.innerHTML = rows.length ? (pin.length ? `<h3 class="pin-head">Paid, needs a mechanic <span class="count count-paid">${pin.length}</span></h3>${pin.map(one).join('')}<h3 class="pin-head pin-rest">Everything else <span class="count">${rest.length}</span></h3>` : '') + rest.map(one).join('') : '<p class="muted" style="padding:16px">No bookings here yet.</p>';
+  el.innerHTML = rows.length ? (pin.length ? `<h3 class="pin-head">Paid, needs a garage <span class="count count-paid">${pin.length}</span></h3>${pin.map(one).join('')}<h3 class="pin-head pin-rest">Everything else <span class="count">${rest.length}</span></h3>` : '') + rest.map(one).join('') : '<p class="muted" style="padding:16px">No bookings here yet.</p>';
 }
 
 /* ---------- commission: one simple rule per job ---------- */
@@ -1084,11 +1095,14 @@ const ACT = {
     await audit('board_step', { ref: l.ref, from: l.status, to: n.to }); toast(bid(l) + ': ' + n.label.toLowerCase()); await loadLeads(); render();
     if (n.to === 'completed') { await autoInvoiceFor(l.id); render(); }
   },
-  async boardMech(sel) {
-    const l = S.leads.find((x) => x.id === sel.getAttribute('data-board-mech')); if (!l) return;
-    const { error } = await sb.from('leads').update({ mechanic_id: sel.value || null }).eq('id', l.id);
-    if (error) return toast('Could not assign: ' + error.message);
-    await audit('board_mechanic', { ref: l.ref, mechanic: sel.value || null }); toast(sel.value ? 'Mechanic assigned' : 'Mechanic removed'); await loadLeads(); render();
+  async boardGarage(sel) {
+    const l = S.leads.find((x) => x.id === sel.getAttribute('data-board-garage')); if (!l || !sel.value || sel.disabled) return;
+    sel.disabled = true;   // one pick, one update
+    try {
+      const r = await adminRpc('crm_garage_assign', { p_lead: l.id, p_garage: sel.value, p_note: null, p_eta: null });
+      await audit('board_garage', { ref: l.ref, garage: sel.value });
+      toast((r && r.updated ? 'Updated for ' : 'Sent to ') + ((r && r.garage) || 'the garage') + '.'); await loadLeads(); render();
+    } catch (e) { toast('Could not assign: ' + (e.message || e)); await loadLeads(); render(); }
   },
   async invMissingOpen() {
     if (!isOwner() && !(S.me && S.me.role === 'admin')) return toast('Only an admin can create invoices.');
@@ -1569,7 +1583,7 @@ const ACT = {
   },
   async confirmBooking() {
     const l = S.leads.find((x) => x.id === S.open);
-    if (!l.mechanic_id && !confirm('No mechanic is assigned yet. Confirm without one?')) return;
+    if (!l.mechanic_id && !l.garage_id && !confirm('No garage is assigned yet. Confirm without one?')) return;
     const { data, error } = await sb.functions.invoke('confirm-booking', { body: { lead_id: l.id } });
     if (error || !data || data.error) return toast('Could not confirm: ' + ((data && data.error) || (error && error.message) || 'try again'));
     toast(data.emailed ? 'Confirmed. Email sent to the customer.' : data.has_email ? 'Confirmed. Email could not be sent.' : 'Confirmed. This customer gave no email.');
@@ -1993,7 +2007,7 @@ async function openInvoice(lead, opts = {}) {
 }
 
 /* ---------- today board ---------- */
-function dispatch() { return '<div class="view-head"><div><h1>Dispatch</h1><p>Paid bookings for the next days. Unassigned first, by slot time. Assign or reassign a mechanic here.</p></div></div><div id="dpWrap" aria-live="polite">' + LOADING + '</div>'; }
+function dispatch() { return '<div class="view-head"><div><h1>Dispatch</h1><p>Paid bookings for the next days. Unassigned first, by slot time. Assign or move a garage here.</p></div></div><div id="dpWrap" aria-live="polite">' + LOADING + '</div>'; }
 async function loadCustIssues() {
   const w = $('#ciList'); if (!w) return;
   try { const { data, error } = await sb.rpc('crm_open_issues', { p_status: S.ciFilter || 'open', p_limit: 100 }); if (error) throw error; w.innerHTML = flow.issuesHtml(data || []); document.querySelectorAll('[data-ci]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ci === (S.ciFilter || 'open')))); }
@@ -2009,8 +2023,8 @@ function board() {
   const keys = ['new', 'quoted', 'paid', 'onway', 'done'], pinned = g.paid.filter((l) => paidInfo(l).needsMechanic).length;
   if (!keys.includes(S.bt)) S.bt = pinned ? 'paid' : (keys.find((k) => g[k].length) || 'new');
   if (!S.dispatchRows && !S.boardWay) { S.boardWay = true; sb.rpc('crm_dispatch_list', { p_days: 7 }).then(({ data, error }) => { S.dispatchRows = error ? [] : (data || []); S.boardWayFail = !!error; if (S.tab === 'board') render(); }).catch(() => { S.dispatchRows = []; S.boardWayFail = true; if (S.tab === 'board') render(); }); }
-  const sub = total ? (pinned ? pinned + ' paid ' + (pinned === 1 ? 'booking needs' : 'bookings need') + ' a mechanic. ' : '') + 'Everything that needs you today, by stage.' : 'Nothing needs you right now.';
-  return `<div class="view-head"><div><h1>Today board <span class="count">${total}</span></h1><p>${esc(sub)}</p></div></div>${stageBoardHtml(g, { mechanics: S.mechanics, svcName, active: S.bt, shown: S.bshown || {}, routeChip: (l) => routing.chip(l), onWayKnown: !S.boardWayFail })}`;
+  const sub = total ? (pinned ? pinned + ' paid ' + (pinned === 1 ? 'booking needs' : 'bookings need') + ' a garage. ' : '') + 'Everything that needs you today, by stage.' : 'Nothing needs you right now.';
+  return `<div class="view-head"><div><h1>Today board <span class="count">${total}</span></h1><p>${esc(sub)}</p></div></div>${stageBoardHtml(g, { mechanics: S.mechanics, garages: S.garagePick || [], svcName, active: S.bt, shown: S.bshown || {}, routeChip: (l) => routing.chip(l), onWayKnown: !S.boardWayFail })}`;
 }
 /* ---------- invoice register ---------- */
 const IPERIODS = [['month', 'This month'], ['last', 'Last month'], ['all', 'All time']];

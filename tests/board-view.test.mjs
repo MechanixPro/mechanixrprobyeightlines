@@ -9,16 +9,16 @@ const svcName = () => 'Basic service';
 const many = (n, o) => Array.from({ length: n }, (_, i) => L(i + 1, o));
 
 test('a row is two lines plus one row of actions: name, service, price, area and slot, ONE stage chip, mechanic select, Call, WhatsApp, Open and the next step', () => {
-  const h = boardRow(L(1), { mechanics, svcName });
+  const h = boardRow(L(1, { mechanic_id: 'm1' }), { mechanics, garages: [{ id: 'g1', name: '[Garage Name]', code: 'GR-1' }], svcName });
   assert.match(h, /class="b1"/); assert.match(h, /class="b2"/); assert.match(h, /class="bbtns"/);   // line 1, line 2, then select and one row of buttons
   assert.match(h, /Customer 1/); assert.match(h, /Basic service/); assert.match(h, /₹599/); assert.match(h, /HSR Layout · Morning · Basic service/);
   assert.equal((h.match(/bstage/g) || []).length, 1, 'one stage chip, not a stepper');
   assert.doesNotMatch(h, /class="step|stepper/);
-  assert.match(h, /<select class="bsel" data-board-mech="l1"/); assert.match(h, /\[Mechanic Name\]/);
+  assert.match(h, /<select class="bsel" data-board-garage="l1"/); assert.match(h, /\[Garage Name\]/); assert.doesNotMatch(h, /data-board-mech/);
   for (const s of ['>Call<', '>WhatsApp<', '>Open<', 'data-act="boardNext"', '>Mark quoted<']) assert.ok(h.includes(s), s);
 });
 test('a booking without a name shows (no name)', () => assert.match(boardRow(L(1, { name: '  ' }), { mechanics, svcName }), /\(no name\)/));
-test('the select keeps the assigned mechanic selected', () => assert.match(boardRow(L(1, { mechanic_id: 'm1' }), { mechanics, svcName }), /<option value="m1" selected>/));
+test('the select keeps the assigned garage selected', () => assert.match(boardRow(L(1, { garage_id: 'g1', garage_name: 'G' }), { mechanics, garages: [{ id: 'g1', name: 'G' }], svcName }), /<option value="g1" selected>/));
 test('each column shows its count, and a long column is capped at 20 with a Show more row', () => {
   const g = { needsReply: many(3, { status: 'new' }), quotePay: many(49), visits: [], done: many(1, { status: 'completed' }) };
   const h = boardHtml(g, { mechanics, svcName });
@@ -39,7 +39,7 @@ test('paid and unassigned bookings are pinned under their own heading, left out 
   const assigned = L(8, { status: 'paid', paid_amount: 49, mechanic_id: 'm1' });
   assert.deepEqual(paidNeedsMechanic([paid, assigned, L(9)]).map((l) => l.id), ['l7']);
   const h = boardHtml({ needsReply: [], quotePay: [], visits: [paid, assigned], done: [] }, { pinned: paidNeedsMechanic([paid, assigned]), mechanics, svcName, active: 'pin' });
-  assert.match(h, /Paid, needs a mechanic <span class="count count-paid">1<\/span>/); assert.match(h, /PAID ₹49/);
+  assert.match(h, /Paid, needs a garage <span class="count count-paid">1<\/span>/); assert.match(h, /PAID ₹49/);
   assert.equal((h.match(/data-row="l7"/g) || []).length, 1, 'never shown twice');
   assert.match(h, /class="brow is-paid needs-mech" data-row="l7"/); assert.match(h, /class="brow is-paid" data-row="l8"/);
   assert.ok(h.indexOf('bpin') < h.indexOf('bgrid'), 'pinned first');

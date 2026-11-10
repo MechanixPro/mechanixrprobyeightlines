@@ -42,11 +42,11 @@ test('the Today board is the first page in the Bookings section, and the markup 
   assert.match(read('admin/index.html'), /data-tab="board"/);
 });
 // Changed for the compact board: the row markup moved from admin.js (boardCard) to admin/board-view.js, and the controls are 32px on a mouse and 44px on touch.
-test('each row has WhatsApp, Call, a mechanic menu, the next step and Open, and the actions are logged', () => {
+test('each row has WhatsApp, Call, a garage menu, the next step and Open, and the actions are logged', () => {
   const a = read('admin/admin.js'), v = read('admin/board-view.js');
   // Release A (desk shell): the board is five stage cards, so admin.js now calls stageGroups and stageBoardHtml; boardGroups and boardHtml stay in the modules and are still tested below.
-  for (const s of ['function board()', 'stageGroups', 'stageBoardHtml(', 'boardMech', "audit('board_step'", "audit('board_mechanic'"]) assert.ok(a.includes(s), s);
-  for (const s of ['data-act="boardNext"', 'data-board-mech', 'wa.me/91', 'tel:+91', 'data-lead="${esc(l.id)}"']) assert.ok(v.includes(s), s);
+  for (const s of ['function board()', 'stageGroups', 'stageBoardHtml(', 'boardGarage', "audit('board_step'", "audit('board_garage'"]) assert.ok(a.includes(s), s);
+  for (const s of ['data-act="boardNext"', 'data-board-garage', 'wa.me/91', 'tel:+91', 'data-lead="${esc(l.id)}"']) assert.ok(v.includes(s), s);
 });
 test('the board works on a phone: one group at a time, and every control is 44px on touch', () => {
   const c = read('admin/admin.css');

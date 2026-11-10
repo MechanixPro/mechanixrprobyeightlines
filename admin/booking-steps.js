@@ -43,7 +43,7 @@ export function nextAction(lead) {
   const st = bookingStep(lead);
   if (st.closed || st.index === 5) return null;
   if (st.index === 2 && confirmPending(lead)) return { key: 'resend_link', label: 'Resend payment link' };
-  if (st.index === 3 && confirmPaid(lead) && !lead.mechanic_name && !lead.mechanic_id) return { key: 'assign', label: 'Assign garage' };
+  if (st.index === 3 && confirmPaid(lead) && !lead.mechanic_name && !lead.mechanic_id && !lead.garage_id) return { key: 'assign', label: 'Assign garage' };
   return [{ key: 'call', label: 'Call now' }, { key: 'quote', label: 'Send quote' }, { key: 'confirm', label: 'Confirm booking' }, { key: 'schedule', label: 'Schedule' }, { key: 'done', label: 'Mark done' }][st.index];
 }
 export function stepGuard(lead, target) {
