@@ -37,10 +37,10 @@ test('the mechanic app offers KYC with a Skip, and skipping never blocks the app
   assert.match(h, /action === 'kyc_skip'/); assert.match(h, /action === 'kyc_link'/);
   assert.match(sql, /kyc_skipped_at/);
 });
-test('Admin can assign a booking to a mechanic or a partner garage from the same button', () => {
-  assert.match(read('admin/booking-steps.js'), /Assign mechanic or garage/);
+test('Admin assigns a booking to a partner garage from the one button; mechanics are no longer offered', () => {
+  assert.match(read('admin/booking-steps.js'), /Assign garage/);
   assert.match(read('admin/admin.js'), /flow\.actions\.assignPick\(l\)/);
-  const f = read('crm/flow-core.js'); assert.match(f, /data-pick="mechanic"/); assert.match(f, /data-pick="garage"/);
+  const f = read('crm/flow-core.js'); assert.doesNotMatch(f, /data-pick="mechanic"/); assert.match(f, /actions\.garageAssign\(lead\)/);
   assert.equal(read('admin/flow-core.js'), f);
 });
 test('Admin KYC screen shows plan, deposit and full partner history, and the payout rules are untouched', () => {

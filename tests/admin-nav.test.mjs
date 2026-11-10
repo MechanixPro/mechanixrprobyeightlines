@@ -48,9 +48,19 @@ test('only the sidebar buttons switch the page, so the Partner KYC inner tabs ca
   assert.doesNotMatch(src, /e\.target\.closest\('\[data-tab\]'\)/);
 });
 
-test('the booking Update box lists partner garages next to mechanics and assigns the chosen one on save', () => {
+test('the booking Update box lists partner garages and assigns the chosen one on save', () => {
   const src = read('admin/admin.js');
   assert.match(src, /optgroup/); assert.match(src, /crm_garage_picker/);
   assert.match(src, /startsWith\('g:'\)/); assert.match(src, /crm_garage_assign', \{ p_lead: l\.id, p_garage: gid/);
-  assert.match(src, /Mechanic or partner garage/);
+  assert.match(src, /Partner garage<\/label>/);
+});
+
+test('everything goes to a garage: convert, history, garage-only pick, and a database guard', () => {
+  const sql = read('supabase/migrations/20270139000000_mechanic_to_garage.sql');
+  assert.match(sql, /admin_mechanic_convert/); assert.match(sql, /admin_garage_history/); assert.match(sql, /leads_no_new_mechanic/);
+  assert.match(sql, /kyc_need_admin\(\)/); assert.doesNotMatch(sql, /update public\.leads set mechanic_id/); assert.doesNotMatch(sql, /delete from public\.(mechanics|leads)/);
+  assert.match(read('crm/flow-core.js'), /async assignPick\(lead\) \{ return actions\.garageAssign\(lead\); \}/);
+  assert.equal(read('crm/flow-core.js'), read('admin/flow-core.js'));
+  const a = read('admin/admin.js'); assert.match(a, /convertMechanic/); assert.match(a, /admin_mechanic_convert/); assert.doesNotMatch(a, /data-act="newMechanic"/);
+  assert.match(read('admin/garages-view.js'), /data-hist/); assert.match(read('admin/garages-view.js'), /admin_garage_history/);
 });

@@ -24,7 +24,7 @@ export function listHtml(rows, gone) {
   const list = (rows || []);
   const body = list.length ? `<ul class="kv-list">${list.map((g) => `<li class="kv-row"><div class="kv-open"><span class="kv-name">${esc(g.name)}</span>
       <span class="kv-sub">${esc(g.code || '')} · ${esc(g.owner_name || 'No owner name')} · ${esc(g.mobile || '')} · ${esc(g.pincode || '')} · ${esc(STAGE[g.status] || g.status || '')}</span></div>
-      <div class="kv-big-row"><button type="button" class="btn btn-ghost" data-edit="${esc(g.id)}">Edit</button><button type="button" class="btn btn-ghost" data-agree="${esc(g.id)}">Agreement</button><button type="button" class="btn danger" data-del="${esc(g.id)}" data-name="${esc(g.name)}">Delete</button></div></li>`).join('')}</ul>`
+      <div class="kv-big-row"><button type="button" class="btn btn-ghost" data-edit="${esc(g.id)}">Edit</button><button type="button" class="btn btn-ghost" data-agree="${esc(g.id)}">Agreement</button><button type="button" class="btn btn-ghost" data-hist="${esc(g.id)}">History</button><button type="button" class="btn danger" data-del="${esc(g.id)}" data-name="${esc(g.name)}">Delete</button></div></li>`).join('')}</ul>`
     : emptyState({ title: 'No garages yet.', text: 'Tap Add garage to enter one by hand.' });
   const back = (gone || []).length ? `<details class="gv-gone"><summary>Deleted garages (${gone.length})</summary><ul class="kv-list">${gone.map((g) => `<li class="kv-row"><div class="kv-open"><span class="kv-name">${esc(g.name)}</span><span class="kv-sub">${esc(g.code || '')} · ${esc(g.mobile || '')}</span></div><button type="button" class="btn btn-ghost" data-restore="${esc(g.id)}">Bring back</button></li>`).join('')}</ul></details>` : '';
   return `<div class="kv-tabs"><button type="button" class="btn primary" data-add>Add garage</button><button type="button" class="btn btn-ghost" data-terms>Agreement terms</button></div>${body}${back}`;
@@ -89,12 +89,22 @@ export function createGaragesView({ rpc, dialog, toast }) {
     dialog({ title: 'Delete ' + name + '?', intro: 'The garage disappears from every list and its app access is switched off. Its past jobs and records are kept, and you can bring it back. A garage with an open job cannot be deleted.', submit: 'Delete garage',
       onSubmit: async (f, d) => { await rpc('admin_garage_delete', { p_id: id }); d.close(); toast('Garage deleted.'); load(); } });
   }
+  const jobRows = (rows) => (rows && rows.length ? `<ul class="flow-list">${rows.map((j) => `<li>${esc(j.ref || 'Booking')} · ${esc(j.date || '')} · ${esc(String(j.status || '').replace(/_/g, ' '))}${j.area ? ' · ' + esc(j.area) : ''}</li>`).join('')}</ul>` : '<p class="flow-muted">None.</p>');
+  async function history(id) {
+    try {
+      const h = await rpc('admin_garage_history', { p_garage: id });
+      const m = h.mechanic, since = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB') : '');
+      dialog({ title: 'History: ' + esc(h.garage.name), intro: m ? `Converted from mechanic <b>${esc(m.name)}</b> (with Mechanix Pro since ${esc(since(m.since))}${m.converted_at ? ', converted ' + esc(since(m.converted_at)) : ''}). Amounts stay in Mechanic ledgers.` : 'Garage jobs. This garage was not converted from a mechanic.',
+        body: `<h4>Garage jobs (${(h.garage_jobs || []).length})</h4>${jobRows(h.garage_jobs)}${m ? `<h4>Earlier jobs as a mechanic (${(h.mechanic_jobs || []).length})</h4>${jobRows(h.mechanic_jobs)}` : ''}` });
+    } catch (e) { toast(msg(e), true); }
+  }
   function wire() {
     root.addEventListener('click', async (ev) => {
       const t = ev.target.closest('button'); if (!t || t.disabled) return;
       if (t.hasAttribute('data-add')) return form(null);
       if (t.dataset.edit) return edit(t.dataset.edit);
       if (t.dataset.agree) return agreement(t.dataset.agree);
+      if (t.dataset.hist) return history(t.dataset.hist);
       if (t.hasAttribute('data-terms')) return terms.open();
       if (t.dataset.del) return del(t.dataset.del, t.dataset.name || 'this garage');
       if (t.dataset.restore) { try { await rpc('admin_garage_restore', { p_id: t.dataset.restore }); toast('Garage is back.'); load(); } catch (e) { toast(msg(e), true); } }
