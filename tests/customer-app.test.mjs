@@ -25,3 +25,9 @@ test('the customer app is installable and is part of the site build; it makes no
   const b = read('scripts/build_site.sh'); assert.match(b, /customer\.webmanifest/); assert.match(b, /for d in job garage mechanic onboard customer /);
   assert.doesNotMatch(read('assets/js/customer-app.js'), /loyalty|cashback|live video/i);
 });
+
+test('extra services show a price only when the Prices tab has one, and the rest are quoted after a check', () => {
+  const j = read('assets/js/customer-app.js');
+  assert.match(j, /ADDON_IDS = \['wash', 'chain', 'brake', 'tyre', 'battery'\]/); assert.match(j, /Quoted after a check/); assert.match(j, /Number\(x\.price_inr\) > 0/);
+  assert.doesNotMatch(j, /₹\s?\d{2,}/);
+});

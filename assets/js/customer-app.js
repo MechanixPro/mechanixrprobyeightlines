@@ -12,6 +12,16 @@
     { id: 'full', name: 'Full service', note: '28 checkpoints with an engine oil change, a road test and a foam wash.' },
     { id: 'repair', name: 'Repair or problem check', note: 'We find the cause and send you a quote first. Work starts only after you approve it.' }
   ];
+  /* Extra services, as OkBike lists them. A price shows only where the Prices tab has one (the add-ons); the rest are quoted after a check, as the website already says. */
+  var ADDON_IDS = ['wash', 'chain', 'brake', 'tyre', 'battery'];
+  var CHECKED = [
+    ['Engine oil change and filter', 'Oil and filter fitted. The quote shows the oil and parts you choose.'],
+    ['Brake shoe or disc pad replacement', 'Pads or shoes checked and replaced if needed. The part is shown on the quote.'],
+    ['Carburettor or throttle body cleaning', 'Cleaned and tuned for a smoother idle and better pickup.'],
+    ['Clutch, gear and cable work', 'We check the cause and quote it before any work.'],
+    ['Suspension and steering', 'Fork, shock and bearing check with a quote.'],
+    ['Electrical and starting problems', 'Battery, starter, wiring and lights checked, then quoted.']
+  ];
   var BADGES = ['₹5,000 Mechanix Shield', 'Free pickup and drop', 'Item-wise quote first', 'Redo Promise', 'Genuine parts promise', 'Handover only with your code'];
   var pinOk = function (v) { return /^[0-9]{6}$/.test(String(v || '')); };
   function bookUrl(veh, serviceId, pin) {
@@ -57,6 +67,14 @@
           el('p', { text: p.note + (price ? ' Price excludes GST.' : '') + (price && big ? ' Bigger engines have their own price, shown when you book.' : '') }),
           el('div', { class: 'foot' }, [el('span', { class: 'ca-ok', text: 'Free pickup and drop in our area' }), el('a', { class: 'ca-btn', href: bookUrl(S.veh, p.id, pin), text: 'Book package' })])]));
       });
+      var adds = (S.items || []).filter(function (x) { return ADDON_IDS.indexOf(x.id) > -1 && Number(x.price_inr) > 0; });
+      if (adds.length) {
+        out.push(el('h2', { text: 'Add to your service' }));
+        adds.forEach(function (x) { out.push(el('article', { class: 'ca-card ca-pkg' }, [el('div', { class: 'row' }, [el('h3', { text: x.name }), el('span', { class: 'ca-price', text: '₹' + Number(x.price_inr) })]), el('p', { text: x.description + ' Price excludes GST. Add it when you book.' })])); });
+      }
+      out.push(el('h2', { text: 'Quoted after a check' }));
+      CHECKED.forEach(function (c) { out.push(el('article', { class: 'ca-card ca-pkg' }, [el('div', { class: 'row' }, [el('h3', { text: c[0] }), el('span', { class: 'ca-ok', text: 'Quote first' })]), el('p', { text: c[1] }), el('div', { class: 'foot' }, [el('span', { class: 'ca-muted', text: 'No work starts until you approve the quote.' }), el('a', { class: 'ca-btn ghost', href: bookUrl(S.veh, 'repair', pin), text: 'Get a quote' })])])); });
+      out.push(el('article', { class: 'ca-card ca-pkg' }, [el('div', { class: 'row' }, [el('h3', { text: 'Breakdown or puncture on the road' }), el('span', { class: 'ca-ok', text: 'Roadside' })]), el('p', { text: 'A mechanic comes to you. The visit charge is shown before the visit.' }), el('div', { class: 'foot' }, [el('span', {}), el('a', { class: 'ca-btn ghost', href: '/roadside/', text: 'Get roadside help' })])]));
       out.push(el('h2', { text: 'Why Mechanix Pro' }));
       out.push(el('div', { class: 'ca-badges' }, BADGES.map(function (b) { return el('span', { text: b }); })));
       out.push(el('p', { class: 'ca-hints', text: ' ' }));
