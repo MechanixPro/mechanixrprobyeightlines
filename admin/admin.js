@@ -1192,13 +1192,13 @@ const ACT = {
   newMechanic() { openMechanic('new'); },
   convertMechanic() {
     const m = S.mechanics.find((x) => x.id === S.openMech); if (!m) return;
-    flow.dialog({ title: 'Convert ' + m.name + ' to a garage', intro: 'Makes a garage from this mechanic. Past jobs, ledger and payouts stay where they are and show in the garage History. The mechanic is switched off for new jobs. The garage then completes its details and signs the agreement on its own link.',
+    flow.dialog({ title: 'Convert ' + m.name + ' to a garage', intro: 'Makes a garage from this mechanic. Past jobs, ledger and payouts stay where they are and show in the garage History. The mechanic gets no new jobs, and is switched off once their open jobs finish. The garage then completes its details and signs the agreement on its own link.',
       body: `<label class="flow-label" for="cv-name">Garage name</label><input id="cv-name" name="name" maxlength="80" value="${esc(m.name)}" autocomplete="off">
         <label class="flow-label" for="cv-plan">Plan</label><select id="cv-plan" name="plan"><option value="bronze">Bronze</option><option value="silver">Silver</option><option value="gold">Gold</option></select>
-        <label class="flow-label" for="cv-rate">Bronze commission % (Bronze only)</label><input id="cv-rate" name="rate" inputmode="decimal" maxlength="5" autocomplete="off">`,
+        <label class="flow-label" for="cv-rate">Bronze commission % (Bronze only; can be set later)</label><input id="cv-rate" name="rate" inputmode="decimal" maxlength="5" autocomplete="off">`,
       submit: 'Convert to garage', onSubmit: async (f, d) => {
-        const plan = f.plan.value, rate = plan === 'bronze' ? Number(f.rate.value) : null;
-        if (plan === 'bronze' && !(rate > 0 && rate <= 100)) throw new Error('Enter the Bronze commission, 1 to 100.');
+        const plan = f.plan.value, rate = plan === 'bronze' && f.rate.value.trim() ? Number(f.rate.value) : null;
+        if (f.rate.value.trim() && !(Number(f.rate.value) > 0 && Number(f.rate.value) <= 100)) throw new Error('The Bronze commission must be 1 to 100, or leave it empty for now.');
         const r = await adminRpc('admin_mechanic_convert', { p_mechanic: m.id, p_name: f.name.value.trim() || null, p_plan: plan, p_rate: rate });
         d.close(); closeSheet(); toast('Converted. Garage ' + (r && r.code ? r.code : '') + ' created.'); await loadPeople(); render();
       } });
