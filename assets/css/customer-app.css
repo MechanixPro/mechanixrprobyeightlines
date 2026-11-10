@@ -9,10 +9,10 @@
 .ca-search{margin:16px}.ca-search input{width:100%;padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--tx);font-size:16px}
 .ca-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:0 16px 12px}
 .ca-veh{display:flex;align-items:center;justify-content:space-between;gap:10px}.ca-veh small{display:block;color:var(--acc);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:12px}.ca-veh b{font-size:19px}
-.ca-btn{display:inline-block;border:0;border-radius:12px;padding:12px 18px;background:var(--acc);color:#1b1206;font-weight:700;font-size:16px;text-decoration:none;cursor:pointer}
+.ca-btn{display:inline-block;white-space:nowrap;border:0;border-radius:12px;padding:12px 18px;background:var(--acc);color:#1b1206;font-weight:700;font-size:16px;text-decoration:none;cursor:pointer}
 .ca-btn.ghost{background:transparent;color:var(--tx);border:1px solid var(--line);padding:9px 14px;font-weight:600}
 .ca-pkg{display:flex;flex-direction:column;gap:6px}.ca-pkg .row{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.ca-pkg h3{margin:0;font-size:18px}.ca-price{font-size:20px;font-weight:800;white-space:nowrap}
-.ca-pkg p{margin:0;color:var(--mut);font-size:14px}.ca-pkg .foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;border-top:1px solid var(--line);padding-top:12px}.ca-ok{color:var(--ok);font-weight:600;font-size:14px}
+.ca-pkg p{margin:0;color:var(--mut);font-size:14px}.ca-pkg .foot{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-top:8px;border-top:1px solid var(--line);padding-top:12px}.ca-ok{color:var(--ok);font-weight:600;font-size:14px}
 .ca-badges{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 16px}.ca-badges span{border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;font-weight:600;background:var(--card)}
 .ca-list{list-style:none;margin:0;padding:0 16px}.ca-list li{border-bottom:1px solid var(--line)}.ca-list a{display:block;padding:14px 0;color:var(--tx);text-decoration:none}
 .ca-hints{margin:0 16px 12px;color:var(--mut);font-size:14px}

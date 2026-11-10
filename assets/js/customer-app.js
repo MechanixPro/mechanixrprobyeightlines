@@ -30,19 +30,20 @@
   }
   function priceOf(items, id) { var it = (items || []).filter(function (x) { return x.id === id; })[0]; return it && Number(it.price_inr) > 0 ? Number(it.price_inr) : null; }
   function start(win) {
-    var d = win.document, main = d.getElementById('caMain'), pinIn = d.getElementById('caPin'), S = { tab: 'home', veh: null, items: null, bad: false, hits: [] };
+    var d = win.document, main = d.getElementById('caMain'), pinIn = d.getElementById('caPin'), S = { tab: 'home', veh: null, items: null, bad: false, hits: [], q: '' };
     var all = flat(win.MXP_BIKES), ls = { get: function (k) { try { return win.localStorage.getItem(k); } catch (e) { return null; } }, set: function (k, v) { try { win.localStorage.setItem(k, v); } catch (e) {} } };
     try { S.veh = JSON.parse(ls.get(VEH) || 'null'); } catch (e) { S.veh = null; }
     var pin = ls.get(PIN) || ''; if (pinOk(pin)) pinIn.value = pin;
     pinIn.addEventListener('input', function () { pin = pinIn.value.replace(/\D/g, '').slice(0, 6); pinIn.value = pin; if (pinOk(pin) || !pin) ls.set(PIN, pin); if (S.tab === 'home') render(); });
     function el(tag, props, kids) { var n = d.createElement(tag); Object.keys(props || {}).forEach(function (k) { if (k === 'text') n.textContent = props[k]; else if (k === 'onclick') n.addEventListener('click', props[k]); else if (props[k] != null) n.setAttribute(k, props[k]); }); (kids || []).forEach(function (c) { if (c) n.appendChild(c); }); return n; }
-    function pick(v) { S.veh = v; S.hits = []; ls.set(VEH, JSON.stringify(v)); render(); }
+    function pick(v) { S.veh = v; S.hits = []; S.q = ''; ls.set(VEH, JSON.stringify(v)); render(); }
     function home() {
       var out = [];
       var box = el('div', { class: 'ca-search' }), inp = el('input', { type: 'search', id: 'caVeh', placeholder: 'Type your bike or scooter (Activa, Pulsar, Splendor)', 'aria-label': 'Search your bike or scooter', autocomplete: 'off' });
       var res = el('ul', { class: 'ca-list', id: 'caHits' });
       function paint() { res.textContent = ''; S.hits.forEach(function (v) { var li = el('li'); li.appendChild(el('a', { href: '#', text: v.brand + ' ' + v.model, onclick: function (e) { e.preventDefault(); pick(v); } })); res.appendChild(li); }); var q = inp.value.trim(); if (q.length >= 2) { var li2 = el('li'); li2.appendChild(el('a', { href: '#', text: 'Use "' + q + '" (my bike is not listed)', onclick: function (e) { e.preventDefault(); pick({ brand: '', model: q.slice(0, 60), type: 'm', big: 0 }); } })); res.appendChild(li2); } }
-      inp.addEventListener('input', function () { S.hits = search(all, inp.value, 6); paint(); });
+      inp.value = S.q; S.hits = search(all, S.q, 6); paint();
+      inp.addEventListener('input', function () { S.q = inp.value; S.hits = search(all, inp.value, 6); paint(); });
       box.appendChild(inp); out.push(box); out.push(res);
       if (!S.veh) { out.push(el('p', { class: 'ca-hints', text: 'Choose your vehicle to see the packages and prices for it.' })); }
       else {
