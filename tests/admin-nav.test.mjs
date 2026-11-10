@@ -47,3 +47,10 @@ test('only the sidebar buttons switch the page, so the Partner KYC inner tabs ca
   assert.match(src, /closest\('#side \[data-tab\]'\)/);
   assert.doesNotMatch(src, /e\.target\.closest\('\[data-tab\]'\)/);
 });
+
+test('the booking Update box lists partner garages next to mechanics and assigns the chosen one on save', () => {
+  const src = read('admin/admin.js');
+  assert.match(src, /optgroup/); assert.match(src, /crm_garage_picker/);
+  assert.match(src, /startsWith\('g:'\)/); assert.match(src, /crm_garage_assign', \{ p_lead: l\.id, p_garage: gid/);
+  assert.match(src, /Mechanic or partner garage/);
+});

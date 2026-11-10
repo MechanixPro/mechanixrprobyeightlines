@@ -795,7 +795,18 @@ const flow = createFlow({
 flow.bind($('#sheetPanel'), () => leadOf(S.open), () => S.flow);
 flow.bindDispatch($('#view'), () => S.dispatchRows || [], () => S.dispatchTell || {}, () => { const w = document.getElementById('dpWrap'); if (w) w.innerHTML = flow.dispatchHtml(S.dispatchRows, S.dispatchSeen || {}, S.dispatchTell); });
 flow.bindIssues($('#view'), () => loadCustIssues());
-async function openLead(id, silent) { await openLeadBase(id, silent); await paintFlow(id); }
+async function openLead(id, silent) { await openLeadBase(id, silent); await paintFlow(id); await paintGaragePick(); }
+// Owner and Admin can pick a partner garage in the same Mechanic list. It is added after the sheet opens, from the same list the Send to a garage box uses.
+async function paintGaragePick() {
+  const sel = $('#lm'); if (!sel || !['owner', 'admin'].includes(S.me?.role) || sel.querySelector('optgroup')) return;
+  try {
+    const rows = ((await adminRpc('crm_garage_picker')) || []).filter((g) => g.status !== 'paused');
+    if (!rows.length || !$('#lm') || sel.querySelector('optgroup')) return;
+    const og = document.createElement('optgroup'); og.label = 'Partner garages';
+    rows.forEach((g) => { const o = document.createElement('option'); o.value = 'g:' + g.id; o.textContent = g.name + (g.code ? ' · ' + g.code : '') + (g.available === false ? ' (Not available)' : ''); og.appendChild(o); });
+    sel.appendChild(og);
+  } catch (e) { console.error('garage list', e); }
+}
 async function paintFlow(id) {
   const el = $('#flowCard'), l = leadOf(id); if (!el || !l) return;
   try { S.flow = await flow.load(id); el.innerHTML = flow.card(flow.withFlow(l, S.flow), S.flow); } catch (e) { console.error('paintFlow', e); el.innerHTML = '<div class="alert" role="alert"><b>The paid-confirmation card could not be loaded.</b> ' + esc((e && e.message) || 'Try again.') + ' <button class="btn btn-ghost btn-sm" type="button" data-flow="reloadFlow">Retry</button></div>'; }
@@ -825,7 +836,7 @@ async function openLeadBase(id, silent) {
       <label class="label" for="ls">Status</label><select id="ls">${STATUSES.map((s) => `<option value="${s}"${s === l.status ? ' selected' : ''}>${OPTION_LABEL[s]}</option>`).join('')}</select>
       <div id="lostBox" hidden><label class="label" for="lr">Why was it lost? (required)</label><select id="lr"><option value="">Choose a reason</option>${LOST_REASONS.map((r) => `<option>${esc(r)}</option>`).join('')}</select>
         <label class="label" for="lrn">Note (Other needs at least 5 characters)</label><input id="lrn" maxlength="200"></div>
-      <label class="label" for="lm">Mechanic</label><select id="lm"><option value="">Not assigned</option>${MECH}</select>
+      <label class="label" for="lm">Mechanic or partner garage</label><select id="lm"><option value="">Not assigned</option>${MECH}</select>
       <label class="label" for="la">Garage or outside partner (if not on your mechanic list)</label><input id="la" value="${esc(l.assigned_to || '')}" maxlength="60">
       <label class="label" for="ln">Notes</label><textarea id="ln" rows="3" maxlength="1000">${esc(l.notes || '')}</textarea>
       <label class="check"><input type="checkbox" id="lai"${l.ai_enabled ? ' checked' : ''}><span>AI assistant replies and automatic reminders for this booking</span></label></div>
@@ -1032,7 +1043,7 @@ const ACT = {
   },
   async saveBooking() {
     const l = S.leads.find((x) => x.id === S.open); if (!l) return;
-    const mid = $('#lm').value || null, mech = S.mechanics.find((m) => m.id === mid);
+    const pick = $('#lm').value || '', gid = pick.startsWith('g:') ? pick.slice(2) : null, mid = gid ? null : (pick || null), mech = S.mechanics.find((m) => m.id === mid);
     const toLost = $('#ls').value === 'lost' && l.status !== 'lost', lostNote = (($('#lrn') || {}).value || '').trim();
     if (toLost) { const g = stepGuard(l, 'lost'); if (!g.ok) return toast(g.error); const c = lostReasonCheck(($('#lr') || {}).value, lostNote); if (!c.ok) return toast(c.error); }
     const upd = { status: $('#ls').value, mechanic_id: mid, assigned_to: $('#la').value.trim() || (mech ? mech.name : null), notes: $('#ln').value.trim() || null, ai_enabled: $('#lai').checked };
@@ -1054,12 +1065,13 @@ const ACT = {
     const cv = await saveCustomerVehicle(l, upd); if (cv === false) return;
     const { error } = await sb.from('leads').update(upd).eq('id', l.id);
     if (error) return toast('Could not save: ' + error.message);
+    if (gid) { try { const r = await adminRpc('crm_garage_assign', { p_lead: l.id, p_garage: gid, p_note: null, p_eta: null }); toast('Sent to ' + ((r && r.garage) || 'the garage') + '.'); } catch (e) { toast('Saved, but the garage was not assigned: ' + (e.message || e), 6000); } }
     if (upd.status === 'scheduled' && l.status !== 'scheduled') {
       const { data: cf, error: ce } = await sb.functions.invoke('confirm-booking', { body: { lead_id: l.id } });
       toast(ce || !cf || cf.error ? 'Saved. Confirmation email could not be sent.' : cf.emailed ? 'Saved. Booking confirmation emailed to the customer.' : 'Saved. No customer email, so no confirmation email was sent.');
     }
     if (svc && svc.bike && l.bike_id) await sb.from('bikes').update(svc.bike).eq('id', l.bike_id);
-    await audit('lead_updated', { ref: l.ref, status: upd.status, lost_reason: toLost ? upd.crm_lost_reason : undefined, lost_note: toLost && lostNote ? lostNote : undefined, mechanic_id: upd.mechanic_id, service_changed: !!svc, amount_due: upd.amount_due });
+    await audit('lead_updated', { ref: l.ref, status: upd.status, lost_reason: toLost ? upd.crm_lost_reason : undefined, lost_note: toLost && lostNote ? lostNote : undefined, mechanic_id: upd.mechanic_id, garage_id: gid || undefined, service_changed: !!svc, amount_due: upd.amount_due });
     toast(svc && svc.lead.est_total != null ? 'Saved. New estimate ' + rupee(svc.lead.est_total) : 'Saved'); await Promise.all([loadLeads(), loadPeople()]); if (upd.status === 'completed' && l.status !== 'completed') await autoInvoiceFor(l.id); renderList(); openLead(l.id, true);
   },
   async routeNext(btn) { const id = btn.getAttribute('data-id'), key = btn.getAttribute('data-step'); await openLead(id); if (key && key !== 'call') await ACT.stepNext({ getAttribute: (k) => (k === 'data-key' ? key : null) }); },   // the chip's Next step runs the lead sheet's own step
