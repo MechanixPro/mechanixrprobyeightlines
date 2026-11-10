@@ -24,10 +24,10 @@ export function listHtml(rows, gone) {
   const list = (rows || []);
   const body = list.length ? `<ul class="kv-list">${list.map((g) => `<li class="kv-row"><div class="kv-open"><span class="kv-name">${esc(g.name)}</span>
       <span class="kv-sub">${esc(g.code || '')} · ${esc(g.owner_name || 'No owner name')} · ${esc(g.mobile || '')} · ${esc(g.pincode || '')} · ${esc(STAGE[g.status] || g.status || '')}</span></div>
-      <div class="kv-big-row"><button type="button" class="btn btn-ghost" data-edit="${esc(g.id)}">Edit</button><button type="button" class="btn btn-ghost" data-agree="${esc(g.id)}">Agreement</button><button type="button" class="btn btn-ghost" data-hist="${esc(g.id)}">History</button><button type="button" class="btn danger" data-del="${esc(g.id)}" data-name="${esc(g.name)}">Delete</button></div></li>`).join('')}</ul>`
+      <div class="kv-big-row"><button type="button" class="btn btn-ghost" data-edit="${esc(g.id)}">Edit</button><button type="button" class="btn btn-ghost" data-agree="${esc(g.id)}">Agreement</button><button type="button" class="btn btn-ghost" data-hist="${esc(g.id)}">History</button><button type="button" class="btn btn-ghost" data-pts="${esc(g.id)}" data-name="${esc(g.name)}">Points</button><button type="button" class="btn danger" data-del="${esc(g.id)}" data-name="${esc(g.name)}">Delete</button></div></li>`).join('')}</ul>`
     : emptyState({ title: 'No garages yet.', text: 'Tap Add garage to enter one by hand.' });
   const back = (gone || []).length ? `<details class="gv-gone"><summary>Deleted garages (${gone.length})</summary><ul class="kv-list">${gone.map((g) => `<li class="kv-row"><div class="kv-open"><span class="kv-name">${esc(g.name)}</span><span class="kv-sub">${esc(g.code || '')} · ${esc(g.mobile || '')}</span></div><button type="button" class="btn btn-ghost" data-restore="${esc(g.id)}">Bring back</button></li>`).join('')}</ul></details>` : '';
-  return `<div class="kv-tabs"><button type="button" class="btn primary" data-add>Add garage</button><button type="button" class="btn btn-ghost" data-terms>Agreement terms</button></div>${body}${back}`;
+  return `<div class="kv-tabs"><button type="button" class="btn primary" data-add>Add garage</button><button type="button" class="btn btn-ghost" data-terms>Agreement terms</button><button type="button" class="btn btn-ghost" data-qrmake>Make spare QR codes</button></div>${body}${back}`;
 }
 
 const formBody = (g = {}) => {
@@ -98,6 +98,30 @@ export function createGaragesView({ rpc, dialog, toast }) {
         body: `<h4>Garage jobs (${(h.garage_jobs || []).length})</h4>${jobRows(h.garage_jobs)}${m ? `<h4>Earlier jobs as a mechanic (${(h.mechanic_jobs || []).length})</h4>${jobRows(h.mechanic_jobs)}` : ''}` });
     } catch (e) { toast(msg(e), true); }
   }
+  async function points(id, name) {
+    try {
+      const p = await rpc('admin_garage_points', { p_garage: id });
+      dialog({ title: 'Spare part points: ' + esc(name), intro: `Balance <b>${esc(p.balance)}</b> points (1 point = Rs 1). Earned in total ${esc(p.earned)}. Pay the balance with the garage's payout, then record it here.`,
+        body: `<label class="flow-label" for="gp-n">Record a payout (points)</label><input id="gp-n" name="n" inputmode="numeric" maxlength="6" autocomplete="off"><label class="flow-label" for="gp-note">Note (optional)</label><input id="gp-note" name="note" maxlength="200" autocomplete="off">
+          <h4>Recent</h4>${(p.recent || []).length ? `<ul class="flow-list">${p.recent.map((r) => `<li>${esc(new Date(r.at).toLocaleDateString('en-GB'))} · ${r.kind === 'scan' ? '+' : ''}${esc(r.points)} · ${esc(r.kind === 'scan' ? 'scan' + (r.note ? ' ' + r.note : '') : 'payout' + (r.note ? ' ' + r.note : ''))}</li>`).join('')}</ul>` : '<p class="flow-muted">No scans yet.</p>'}`,
+        submit: 'Record payout', onSubmit: async (f, d) => {
+          const n = parseInt(f.n.value, 10); if (!(n >= 1)) throw new Error('Enter the points paid.');
+          const r = await rpc('admin_garage_points_pay', { p_garage: id, p_points: n, p_note: f.note.value.trim() || null }); d.close(); toast('Recorded. Balance ' + r.balance + ' points.');
+        } });
+    } catch (e) { toast(msg(e), true); }
+  }
+  function qrMake() {
+    dialog({ title: 'Make spare QR codes', intro: 'Each code works once. It is a link the garage opens with the phone camera. Print the code under the QR too. Points are paid with the garage payout, so set them with care. 0 points means the scan earns nothing.',
+      body: `<label class="flow-label" for="qm-c">How many codes (1 to 500)</label><input id="qm-c" name="count" inputmode="numeric" maxlength="3" value="10" autocomplete="off"><label class="flow-label" for="qm-p">Points per scan (1 point = Rs 1)</label><input id="qm-p" name="points" inputmode="numeric" maxlength="4" value="0" autocomplete="off"><label class="flow-label" for="qm-t">Part name (optional)</label><input id="qm-t" name="part" maxlength="80" autocomplete="off">`,
+      submit: 'Make and download list', onSubmit: async (f, d) => {
+        const count = parseInt(f.count.value, 10), points = parseInt(f.points.value, 10);
+        if (!(count >= 1 && count <= 500)) throw new Error('Enter 1 to 500 codes.'); if (!(points >= 0 && points <= 5000)) throw new Error('Points must be 0 to 5000.');
+        const r = await rpc('admin_spare_qr_make', { p_count: count, p_points: points, p_part: f.part.value.trim() || null });
+        const csv = 'code,link,points,part\n' + r.codes.map((c) => [c, 'https://mechanixpro.in/garage/?qr=' + c, points, '"' + (f.part.value || '').replace(/"/g, '""') + '"'].join(',')).join('\n');
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'spare-qr-codes.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        d.close(); toast(count + ' codes made. The list was downloaded.');
+      } });
+  }
   function wire() {
     root.addEventListener('click', async (ev) => {
       const t = ev.target.closest('button'); if (!t || t.disabled) return;
@@ -105,6 +129,8 @@ export function createGaragesView({ rpc, dialog, toast }) {
       if (t.dataset.edit) return edit(t.dataset.edit);
       if (t.dataset.agree) return agreement(t.dataset.agree);
       if (t.dataset.hist) return history(t.dataset.hist);
+      if (t.dataset.pts) return points(t.dataset.pts, t.dataset.name || 'this garage');
+      if (t.hasAttribute('data-qrmake')) return qrMake();
       if (t.hasAttribute('data-terms')) return terms.open();
       if (t.dataset.del) return del(t.dataset.del, t.dataset.name || 'this garage');
       if (t.dataset.restore) { try { await rpc('admin_garage_restore', { p_id: t.dataset.restore }); toast('Garage is back.'); load(); } catch (e) { toast(msg(e), true); } }

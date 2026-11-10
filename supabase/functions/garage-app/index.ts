@@ -26,9 +26,9 @@ import { cleanResults } from '../_shared/pro-check.ts';
 import { liveUploadUrls, liveAdd } from '../_shared/live.ts';
 import { signSession, verifySession, garageJobListItem, garageJobDetail, garageStatement, garageDashboard, cleanLocation, cleanUpload, cleanEstimate, photoPath, photoPathOk, LINK_RE, PIN_RE, UUID_RE, EVENTS, LOGIN_MESSAGE, isOpen, type RawJob } from '../_shared/garage.ts';
 
-const ACTIONS = ['code_issue', 'login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_get', 'check_save', 'leads', 'claim', 'live_upload_url', 'live_add', 'decline', 'cancel_request', 'change_request', 'receiving_save', 'announcements', 'announcement_read', 'profile', 'performance', 'requests'];
+const ACTIONS = ['qr_scan', 'points', 'code_issue', 'login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_get', 'check_save', 'leads', 'claim', 'live_upload_url', 'live_add', 'decline', 'cancel_request', 'change_request', 'receiving_save', 'announcements', 'announcement_read', 'profile', 'performance', 'requests'];
 // A suspended garage can sign in and look at old jobs, payments and reports, but every change is refused (client BRD).
-const WRITE_ACTIONS = ['code_issue', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'location_set', 'open_set', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_save', 'claim', 'live_upload_url', 'live_add', 'decline', 'cancel_request', 'change_request', 'receiving_save', 'selfie_upload_url', 'selfie_record'];
+const WRITE_ACTIONS = ['code_issue', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'location_set', 'open_set', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_save', 'claim', 'live_upload_url', 'live_add', 'decline', 'cancel_request', 'change_request', 'receiving_save', 'selfie_upload_url', 'selfie_record', 'qr_scan'];
 const BAD = 'Could not save. Please try again.', SESSION_OVER = 'Your session has ended. Enter your PIN again.';
 // Jobs accepted before the receiving checklist existed are not sent back to it.
 const RECEIVING_FROM = Date.parse('2026-11-10T00:00:00+05:30');
@@ -112,6 +112,21 @@ Deno.serve(async (req) => {
     return json(req, { ok: true, whatsapp: /^\d{12}$/.test(wa) ? wa : null, call: /^\d{12}$/.test(tel) ? tel : null });
   }
 
+  /* Spare-part QR points: one scan per code, 20 a day. The database decides; the messages here are plain words. */
+  if (action === 'qr_scan') {
+    const code = String(b?.code ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+    if (code.length !== 10) return json(req, { ok: false, error: 'That code does not look right. It has 10 letters and numbers.' }, 400);
+    const r = await rpc('garage_qr_scan', { p_garage: garageId, p_code: code });
+    if (!r) return json(req, { error: BAD }, 500);
+    const msg: Record<string, string> = { unknown: 'This code is not valid.', used: 'This code was already used.', limit: 'You have reached today’s limit of scans. Try again tomorrow.' };
+    if (!r.ok) return json(req, { ok: false, error: msg[String(r.error)] ?? 'Could not add points.' }, 409);
+    return json(req, { ok: true, points: Number(r.points), part: typeof r.part === 'string' ? r.part.slice(0, 80) : null, balance: Number(r.balance) });
+  }
+  if (action === 'points') {
+    const r = await rpc('garage_points_balance', { p_garage: garageId });
+    return json(req, { ok: true, balance: Number(r?.balance ?? 0), scans: Number(r?.scans ?? 0) });
+  }
+
   if (action === 'location_set') {
     const v = cleanLocation(b);
     if (!v.ok) return json(req, { error: 'That location does not look right.' }, 400);
@@ -177,8 +192,12 @@ Deno.serve(async (req) => {
   if (action === 'jobs') {
     const { data: rows, error } = await mine().order('assigned_at', { ascending: false }).limit(200);
     if (error) { console.error('garage-app jobs', error.code); return json(req, { error: 'Could not load your jobs. Please try again.' }, 500); }
-    const c = await context(rows ?? []);
-    return json(req, { ok: true, garage: { name: garageName }, jobs: (rows ?? []).map((a: any) => garageJobListItem(rawOf(a, c))) });
+    // A job the company has paid is no longer shown to the garage (the company keeps the record).
+    const doneIds = (rows ?? []).filter((r: any) => ['ready', 'returned'].includes(r.status)).map((r: any) => r.id);
+    const { data: paidRows } = doneIds.length ? await db.from('garage_settlements').select('assignment_id').eq('settled', true).in('assignment_id', doneIds) : { data: [] };
+    const paidSet = new Set((paidRows ?? []).map((p: any) => p.assignment_id)), shown = (rows ?? []).filter((r: any) => !paidSet.has(r.id));
+    const c = await context(shown);
+    return json(req, { ok: true, garage: { name: garageName }, jobs: shown.map((a: any) => garageJobListItem(rawOf(a, c))) });
   }
 
   if (action === 'statement') {
@@ -186,7 +205,12 @@ Deno.serve(async (req) => {
     const ids = (rows ?? []).map((r: any) => r.id);
     const [c, st] = await Promise.all([context(rows ?? []), ids.length ? db.from('garage_settlements').select('assignment_id,amount,settled,settled_at,note').in('assignment_id', ids) : Promise.resolve({ data: [] })]);
     const S = new Map((st.data ?? []).map((s: any) => [s.assignment_id, s]));
-    return json(req, { ok: true, statement: garageStatement((rows ?? []).map((a: any) => { const r = rawOf(a, c); return { assignment: a, lead: r.lead, vehicle: r.vehicle, settlement: S.get(a.id) ?? null }; })) });
+    // Paid jobs are not listed to the garage: only what is still to be paid, plus one running total. The company keeps every record.
+    const mapped = (rows ?? []).map((a: any) => { const r = rawOf(a, c); return { assignment: a, lead: r.lead, vehicle: r.vehicle, settlement: S.get(a.id) ?? null }; });
+    const paid = mapped.filter((m: any) => m.settlement && m.settlement.settled), open = mapped.filter((m: any) => !(m.settlement && m.settlement.settled));
+    const out: any = garageStatement(open);
+    out.settled = Math.round(paid.reduce((t: number, m: any) => t + Number(m.settlement.amount || 0), 0) * 100) / 100; out.settled_jobs = paid.length;
+    return json(req, { ok: true, statement: out });
   }
 
   /* ---------- BRD additions: decline, cancel request, change requests, announcements, profile, performance ---------- */

@@ -179,12 +179,25 @@
         F().runGate(win, app, { me: r.data, kind: 'garage', api: api, done: function () { openHome(true); } });
       });
     }
+    /* Spare-part QR: the phone camera opens /garage/?qr=CODE, the code waits here until the garage is signed in, then it is added once. */
+    function takeQr() { var c = ''; try { c = win.localStorage.getItem('mxp_g_qr') || ''; } catch (e) {} if (/^[A-Z0-9]{10}$/.test(c)) { try { win.localStorage.removeItem('mxp_g_qr'); } catch (e) {} addQr(c); } }
+    function addQr(code) {
+      S.qrBusy = true; S.qrMsg = null; render();
+      return api('qr_scan', { code: code }).then(function (r) {
+        if (ended(r)) return; S.qrBusy = false;
+        if (r.ok) { S.qrMsg = { ok: true, text: r.data.points > 0 ? '+' + r.data.points + ' points added' + (r.data.part ? ' for ' + r.data.part : '') + '.' : 'Code accepted. No points on this part yet.' }; S.points = { balance: r.data.balance, scans: (S.points && S.points.scans || 0) + 1 }; }
+        else S.qrMsg = { ok: false, text: (r.data && r.data.error) || ERR.gen };
+        if (S.screen === 'home') render();
+      });
+    }
     function openHome(first) { S.screen = 'home'; S.dash = null; render(); fetchJobs(); fetchUnread(); return fetchHome(first); }
     function fetchHome(first) {
       return api('dashboard').then(function (r) {
         if (ended(r)) return;
         S.dash = r.ok ? r.data.dashboard : 'error'; S.dashErr = !r.ok && r.data && r.data.error || ERR.gen;
         if (r.ok && r.data.dashboard.name) S.name = r.data.dashboard.name;
+        api('points').then(function (pr) { if (pr.ok) { S.points = { balance: pr.data.balance, scans: pr.data.scans }; if (S.screen === 'home') render(); } });
+        takeQr();
         S.jobsAt = Date.now(); if (S.screen === 'home') render();
         // The first time on this phone, ask where the shop is. A "no" is remembered and never blocks anything; the Update shop location button stays.
         if (r.ok && first && !r.data.dashboard.location.set && !locAsked(win)) { markLocAsked(win); saveLocation(); }
@@ -226,6 +239,10 @@
         el('button', { class: 'g-btn g-btn-primary g-wide g-step-btn', type: 'button', id: 'dOpenNext', text: nx.status === 'sent' ? 'View offer' : 'Continue job', onclick: function () { buzz(15); openJob(nx.id); } })] : [el('p', { class: 'g-key', id: 'dNextJob', text: Array.isArray(S.jobs) ? 'No open jobs' : 'Checking for jobs' }), el('p', { class: 'g-wiz-l', text: dsh.is_open ? 'New jobs appear here and ring your phone.' : 'Switch Available on to get jobs.' })]));
       body.push(el('div', { class: 'd-two' }, [el('section', { class: 'd-card', 'aria-label': 'Today’s jobs' }, [el('p', { class: 'd-label', text: 'Today’s jobs' }), el('p', { class: 'd-big', id: 'dToday', text: String(dsh.today_jobs) })]), el('section', { class: 'd-card', 'aria-label': 'Open now' }, [el('p', { class: 'd-label', text: 'Open now' }), el('p', { class: 'd-big', id: 'dOpenJobs', text: String(dsh.open_jobs) })])]));
       body.push(el('section', { class: 'd-card', 'aria-label': 'Quick actions' }, [el('p', { class: 'd-label', text: 'Quick actions' }), el('button', { class: 'g-btn g-btn-primary d-xl', type: 'button', id: 'dGet', onclick: function () { S.tab = 'open'; openJobs(); }, text: 'Get my jobs' })]));
+      var qin = el('input', { id: 'gqr', class: 'g-input', type: 'text', inputmode: 'text', autocapitalize: 'characters', autocomplete: 'off', maxlength: 10, 'aria-label': 'Spare part code', placeholder: 'Code under the QR' });
+      body.push(el('section', { class: 'd-card', id: 'dPoints', 'aria-label': 'Spare part points' }, [el('p', { class: 'd-label', text: 'Spare part points' }), el('p', { class: 'd-big', id: 'dPointsBal', text: S.points ? String(S.points.balance) : '–' }), el('p', { class: 'g-hint', text: 'Scan the QR on a spare part with your phone camera, or type the code under it. Each code works once. Points are paid with your payout.' }), qin,
+        el('button', { class: 'g-btn g-btn-primary g-wide', type: 'button', id: 'dQrAdd', disabled: S.qrBusy || null, text: S.qrBusy ? 'Adding…' : 'Add points', onclick: function () { var c = String(qin.value || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (c.length !== 10) { S.qrMsg = { ok: false, text: 'The code has 10 letters and numbers.' }; render(); return; } addQr(c); } }),
+        S.qrMsg ? el('p', { class: S.qrMsg.ok ? 'd-ok' : 'g-err', id: 'dQrMsg', role: 'status', text: S.qrMsg.text }) : null]));
       body.push(el('section', { class: 'd-card', 'aria-label': 'My monthly stats' }, [el('p', { class: 'd-label', text: 'My monthly stats' }), el('div', { class: 'd-stats' }, [
         el('div', {}, [el('b', { text: String(dsh.month.jobs) }), el('span', { text: 'Total jobs' })]), el('div', {}, [el('b', { text: String(dsh.month.completed) }), el('span', { text: 'Completed' })]), el('div', {}, [el('b', { text: dsh.month.avg_ticket == null ? '—' : money(dsh.month.avg_ticket) }), el('span', { text: 'Average ticket' })])])]));
       var lines = dsh.unsettled.map(function (u) {
@@ -624,7 +641,7 @@
       if (s === null) body.push(loading('Loading your statement'));
       else if (s === 'error') body.push(retryCard('We could not load your statement.', openStatement));
       else {
-        body.push(el('div', { class: 'g-sum' }, [el('div', {}, [el('span', { text: 'Pending' }), el('b', { text: money(s.pending) })]), el('div', {}, [el('span', { text: 'Settled' }), el('b', { text: money(s.settled) })])]));
+        body.push(el('div', { class: 'g-sum' }, [el('div', {}, [el('span', { text: 'Pending' }), el('b', { text: money(s.pending) })]), el('div', {}, [el('span', { text: 'Paid so far' + (s.settled_jobs ? ' (' + s.settled_jobs + ' jobs)' : '') }), el('b', { text: money(s.settled) })])]));
         if (!s.items.length) body.push(el('div', { class: 'g-card g-center' }, [el('p', { text: 'Completed jobs appear here once they are ready for return.' })]));
         else body.push(el('ul', { class: 'g-list' }, s.items.map(function (i) {
           var label = { settled: 'Settled' + (i.settled_at ? ' ' + whenText(i.settled_at).split(',').slice(0, 2).join(',') : ''), pending: 'Pending', amount_not_entered: 'Amount not entered yet' }[i.status];
@@ -717,8 +734,11 @@
       d.body.appendChild(box); win.setTimeout(function () { if (box.parentNode) box.parentNode.removeChild(box); }, 1400);
     })();
     /* ---------- boot ---------- */
+    var qm = /(?:^|[?&])qr=([A-Za-z0-9]{10})(?:&|$)/.exec(win.location.search || '');
+    if (qm) { try { win.localStorage.setItem('mxp_g_qr', qm[1].toUpperCase()); } catch (e) {} }
     var fromUrl = linkFromUrl(win.location.search);
-    if (fromUrl) { saveLink(win, fromUrl); try { win.history.replaceState(null, '', '/garage/'); } catch (e) {} }
+    if (fromUrl) saveLink(win, fromUrl);
+    if (fromUrl || qm) { try { win.history.replaceState(null, '', '/garage/'); } catch (e) {} }
     var ses = savedSession(win);
     if (ses && savedLink(win)) { S.session = ses.t; S.name = ses.name || ''; loadTeam(); enter(); } else { go('pin'); }
     d.addEventListener('visibilitychange', function () { if (!d.hidden && S.session && Date.now() - S.jobsAt > 60000) { if (S.screen === 'jobs') fetchJobs(); else if (S.screen === 'home') fetchHome(); } });

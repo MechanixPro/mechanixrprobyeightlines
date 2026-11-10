@@ -67,3 +67,15 @@ test('Crew and Admin: a Requests tab and an Announcements tab in the garage scre
 test('a job accepted before the receiving checklist existed is not sent back to it', () => {
   const f = read('supabase/functions/garage-app/index.ts'); assert.match(f, /RECEIVING_FROM = Date\.parse\('2026-11-10T00:00:00\+05:30'\)/); assert.match(f, /Date\.parse\(a\.received_at\) < RECEIVING_FROM/);
 });
+
+test('paid garage jobs are hidden from the garage and spare-part QR points are one scan, with a daily limit', async () => {
+  const { readFileSync } = await import('node:fs');
+  const r = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
+  const f = r('supabase/functions/garage-app/index.ts');
+  assert.match(f, /A job the company has paid is no longer shown/); assert.match(f, /Paid jobs are not listed to the garage/);
+  const sql = r('supabase/migrations/20270142000000_spare_qr_points.sql');
+  assert.match(sql, /garage_points_code_uq/); assert.match(sql, /today_n >= 20/); assert.match(sql, /kyc_need_admin\(\)/);
+  assert.match(sql, /revoke all on function public\.garage_qr_scan[^;]*from public, anon, authenticated/);
+  assert.match(f, /action === 'qr_scan'/); assert.match(r('assets/js/garage.js'), /mxp_g_qr/);
+  assert.match(r('admin/garages-view.js'), /admin_spare_qr_make/); assert.match(r('admin/garages-view.js'), /admin_garage_points_pay/);
+});
