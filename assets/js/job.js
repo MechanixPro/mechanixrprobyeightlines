@@ -259,7 +259,11 @@
     call(body).then(function (x) { vbusy = false; if (x.ok) { if (wasStart && sharer) sharer.stop('stage'); loadVisit(); loadHand(); return; } msgEl.textContent = (x.d && x.d.error) || 'Something went wrong. Please try again.'; if (x.d && (x.d.locked || x.d.blocked)) loadVisit(); })
       .catch(function () { vbusy = false; msgEl.textContent = 'Could not save. Check your internet and try again.'; });
   });
-  if (!/^[0-9a-f]{64}$/.test(t)) { fail('This link is not valid.'); return; }
+  /* Installed on the phone's home screen it opens /job/ with no link, so the last job opened here is remembered on this phone and reopened. */
+  try { if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/job/sw.js', { scope: '/job/' }).catch(function () {}); } catch (e) { /* install is optional */ }
+  var KEEP = 'mxp_job_t', ok = /^[0-9a-f]{64}$/.test(t);
+  try { if (ok) localStorage.setItem(KEEP, t); else if (!t) { var last = localStorage.getItem(KEEP) || ''; if (/^[0-9a-f]{64}$/.test(last)) { location.replace('/job/?t=' + last); return; } } } catch (e) { /* storage blocked: the link still works */ }
+  if (!ok) { fail(t ? 'This link is not valid.' : 'Open the job link the desk sent you. After that, this app reopens your last job.'); return; }
   if (!C.supabaseUrl || !C.supabaseAnonKey) { fail('This page is not available right now. Message the desk on WhatsApp.'); return; }
   call({ action: 'get', t: t }).then(function (x) {
     if (!x.ok) { fail((x.d && x.d.error) || 'This link is not valid.'); return; }

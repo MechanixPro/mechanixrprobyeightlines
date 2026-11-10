@@ -45,6 +45,9 @@
 /mechanic.webmanifest
   Cache-Control: public, max-age=0, must-revalidate
 
+/job.webmanifest
+  Cache-Control: public, max-age=0, must-revalidate
+
 /admin/*
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-store
