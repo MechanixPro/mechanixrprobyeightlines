@@ -40,3 +40,10 @@ test('a hidden section row and an empty badge really disappear (the display rule
   // Phase 1: ds.css has one global [hidden]{display:none!important} rule, so no display rule can override the hidden attribute.
   assert.match(read('admin/ds.css'), /\[hidden\]\{display:none!important\}/);
 });
+
+test('only the sidebar buttons switch the page, so the Partner KYC inner tabs cannot break the view', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../admin/admin.js', import.meta.url), 'utf8');
+  assert.match(src, /closest\('#side \[data-tab\]'\)/);
+  assert.doesNotMatch(src, /e\.target\.closest\('\[data-tab\]'\)/);
+});

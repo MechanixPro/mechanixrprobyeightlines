@@ -235,7 +235,7 @@ document.addEventListener('input', (e) => { const t = e.target; if (t && t.match
 document.addEventListener('click', (e) => {
   const dt = e.target.closest('[data-dt]'); if (dt) { S.dt = dt.dataset.dt; document.querySelectorAll('.dpanel').forEach((p) => { p.hidden = p.id !== 'dt-' + S.dt; }); document.querySelectorAll('[data-dt]').forEach((b) => b.setAttribute('aria-selected', b.dataset.dt === S.dt)); return; }
   const gb = e.target.closest('[data-group]'); if (gb) { const g = gb.dataset.group; S.tab = S.lastTab[g] || firstTab(g); syncNav(); render(); return; }
-  const t = e.target.closest('[data-tab]'); if (t) { S.tab = t.dataset.tab; syncNav(); render(); return; }
+  const t = e.target.closest('#side [data-tab]'); if (t) { S.tab = t.dataset.tab; syncNav(); render(); return; }
   const r = e.target.closest('[data-lead]'); if (r && (r.classList.contains('inv-tr') || r.classList.contains('inv-row'))) return; if (r) { if (S.selMode) { const id = r.dataset.lead; if (S.sel.has(id)) S.sel.delete(id); else S.sel.add(id); render(); } else openLead(r.dataset.lead); return; }
   const bt = e.target.closest('[data-btab]'); if (bt) { S.bt = bt.dataset.btab; render(); return; }
   const bm = e.target.closest('[data-bmore]'); if (bm) { const k = bm.dataset.bmore; S.bshown = { ...(S.bshown || {}), [k]: ((S.bshown || {})[k] || 20) + 20 }; render(); return; }
