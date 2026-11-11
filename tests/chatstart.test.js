@@ -16,7 +16,7 @@ test('an ad page adds its campaign name so the lead can be traced, and junk is c
   assert.doesNotMatch(m, /<|>/); assert.match(m, /a service/);
 });
 test('the WhatsApp link is built from the configured number, and refuses a bad number', () => {
-  assert.equal(C.waUrl('918042303061', 'Hi there'), 'https://wa.me/918042303061?text=Hi%20there');
+  assert.equal(C.waUrl('918310621498', 'Hi there'), 'https://wa.me/918310621498?text=Hi%20there');
   assert.equal(C.waUrl('83106', 'x'), null);
 });
 test('the chat steps are fixed and a breakdown goes to roadside help, not a quote chat', () => {

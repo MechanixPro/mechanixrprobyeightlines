@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { bookingReceived } from '../supabase/functions/_shared/email-templates.ts';
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
-const SITE = { siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 79652 95649', phoneTel: '+917965295649', whatsappUrl: 'https://wa.me/918042303061', email: 'hello@mechanixpro.in' };
+const SITE = { siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 83106 21498', phoneTel: '+918310621498', whatsappUrl: 'https://wa.me/918310621498', email: 'hello@mechanixpro.in' };
 const base = { ...SITE, name: 'Asha Rao', ref: 'MP-AB12CD', bike: 'Honda Activa 6G', service: 'General service', area: 'HSR Layout', whenText: 'Sat, 11 Oct · 10-11 AM', estimate: 1299 };
 
 test('the one booking email explains the whole journey and how the money is protected', () => {

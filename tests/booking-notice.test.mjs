@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { vehiclePickedUp } from '../supabase/functions/_shared/email-templates.ts';
 
-const site = { siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 79652 95649', phoneTel: '+917965295649', whatsappUrl: 'https://wa.me/918042303061', email: 'hello@mechanixpro.in' };
+const site = { siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 83106 21498', phoneTel: '+918310621498', whatsappUrl: 'https://wa.me/918310621498', email: 'hello@mechanixpro.in' };
 test('pickup email names the vehicle, registration and booking, and promises no extra work without approval', () => {
   const m = vehiclePickedUp({ ...site, name: 'Ravi Kumar', ref: 'MP-26-27-0001', bike: 'Honda Activa 6G', reg: 'KA01AB1234', service: 'General service' });
   assert.equal(m.subject, 'Your Honda Activa 6G has been picked up MP-26-27-0001');

@@ -34,8 +34,8 @@ Deno.serve(async (req) => {
   let emailed = false;
   if (cust?.email) {
     const mail = vehiclePickedUp({
-      siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 79652 95649'), phoneTel: env('PHONE_TEL', '+917965295649'),
-      whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918042303061'), email: 'hello@mechanixpro.in',
+      siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 83106 21498'), phoneTel: env('PHONE_TEL', '+918310621498'),
+      whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918310621498'), email: 'hello@mechanixpro.in',
       name: lead.name, ref: lead.booking_id ?? null, bike: bikeName, reg: bike?.reg_no ?? lead.reg_no ?? null, service: svc?.name ?? 'Service',
       mechanicName: mech ? mech.name + (mech.certified === false ? '' : ' (Mechanix Pro certified)') : null,
     });

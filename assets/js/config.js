@@ -2,9 +2,9 @@
    Only PUBLIC values go here. Never put secret keys in this file:
    it is downloaded by every visitor. Secrets live in Supabase Edge Function secrets. */
 window.MXP = {
-  whatsapp: '918042303061',        // Business WhatsApp number (the desk number on AiSensy): 91 + 10 digits, no spaces or +
-  callNumber: '917965295649',      // Number customers call (91 + 10 digits). Calls go to the IVR; WhatsApp is the AiSensy number above
-  phoneDisplay: '+91 79652 95649', // Shown on the site
+  whatsapp: '918310621498',        // Business WhatsApp number (the desk number on AiSensy): 91 + 10 digits, no spaces or +
+  callNumber: '918310621498',      // Number customers call (91 + 10 digits). Calls go to the IVR; WhatsApp is the AiSensy number above
+  phoneDisplay: '+91 83106 21498', // Shown on the site
   callViaWhatsApp: false,          // true: every Call button and phone link on the site opens a WhatsApp chat instead. Set false to bring phone calls back
   email: 'hello@mechanixpro.in',
 

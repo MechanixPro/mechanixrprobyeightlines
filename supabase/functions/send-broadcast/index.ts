@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
   const v = cleanBroadcast(b);
   if (!v.ok) return json(req, { error: v.error }, 400);
   const siteUrl = env('SITE_URL', 'https://mechanixpro.in'), fnUrl = env('SUPABASE_URL') + '/functions/v1', secret = env('SUPABASE_SERVICE_ROLE_KEY');
-  const site = { siteUrl, phoneDisplay: env('PHONE_DISPLAY', '+91 79652 95649'), phoneTel: env('PHONE_TEL', '+917965295649'), whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918042303061'), email: 'hello@mechanixpro.in' };
+  const site = { siteUrl, phoneDisplay: env('PHONE_DISPLAY', '+91 83106 21498'), phoneTel: env('PHONE_TEL', '+918310621498'), whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918310621498'), email: 'hello@mechanixpro.in' };
   const build = (unsubPage: string) => marketing({ ...site, ...v.value, unsubscribeUrl: unsubPage });
 
   if (b.mode === 'test') {

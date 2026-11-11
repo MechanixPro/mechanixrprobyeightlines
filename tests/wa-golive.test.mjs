@@ -14,7 +14,7 @@ test('secrets script: hidden input for every secret, never echoes a value, npx f
 });
 test('go-live doc: this number, the callback URL, the permissions, the secrets, the test checklist and rollback', () => {
   for (const s of ['+91 83106 21498', 'https://mejdxsbpyscujpvbwvmg.supabase.co/functions/v1/whatsapp-webhook', 'whatsapp_business_messaging', 'whatsapp_business_management', 'System users', 'Phone number ID', 'WABA ID', 'CLOUD_API',
-    'WA_TOKEN', 'WA_PHONE_NUMBER_ID', 'WA_APP_SECRET', 'WA_VERIFY_TOKEN', 'scripts/set_wa_cloud_secrets.sh', 'whatsapp-webhook', 'wa-send', 'wa-media', '20270106000000_wa_inbox.sql', '**messages**', 'Message in', 'Voice note', 'Template', 'Ticks', 'Window closed', 'wa_ai_auto', '+91 80423 03061'])
+    'WA_TOKEN', 'WA_PHONE_NUMBER_ID', 'WA_APP_SECRET', 'WA_VERIFY_TOKEN', 'scripts/set_wa_cloud_secrets.sh', 'whatsapp-webhook', 'wa-send', 'wa-media', '20270106000000_wa_inbox.sql', '**messages**', 'Message in', 'Voice note', 'Template', 'Ticks', 'Window closed', 'wa_ai_auto', '+91 83106 21498'])
     assert.ok(doc.includes(s), s);
   assert.doesNotMatch(doc, /EAA[A-Za-z0-9]{20,}|sbp_[a-z0-9]{20,}/);
 });

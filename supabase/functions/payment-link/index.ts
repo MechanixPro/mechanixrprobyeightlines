@@ -59,8 +59,8 @@ Deno.serve(async (req) => {
       const to = typedOk ? typed : cust?.email;
       if (to) {
         hasEmail = true;
-        const mail = paymentLinkEmail({ siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 79652 95649'), phoneTel: env('PHONE_TEL', '+917965295649'),
-          whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918042303061'), email: 'hello@mechanixpro.in', name: lead.name, ref: lead.booking_id ?? null, amount, payUrl: link.url });
+        const mail = paymentLinkEmail({ siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 83106 21498'), phoneTel: env('PHONE_TEL', '+918310621498'),
+          whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918310621498'), email: 'hello@mechanixpro.in', name: lead.name, ref: lead.booking_id ?? null, amount, payUrl: link.url });
         const r = await sendEmail({ to, subject: mail.subject, html: mail.html, text: mail.text, from: FROM_BOOKING, tags: { template: 'payment_link' } });
         await db.from('email_log').insert({ lead_id: lead.id, to_email: to, template: 'payment_link', status: r.ok ? 'sent' : r.skipped ? 'skipped' : 'failed', provider_id: r.id ?? null, error: r.error ?? null });
         emailed = r.ok;

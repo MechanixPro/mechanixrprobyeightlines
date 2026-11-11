@@ -15,7 +15,7 @@ import { teamGarageMessage } from './garage.ts';
 
 type Db = ReturnType<typeof adminDb>;
 const FROM_DESK = 'Mechanix Pro Desk <no-reply@mechanixpro.in>';
-export const siteInfo = () => ({ siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 79652 95649'), phoneTel: env('PHONE_TEL', '+917965295649'), whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918042303061'), email: 'hello@mechanixpro.in' });
+export const siteInfo = () => ({ siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 83106 21498'), phoneTel: env('PHONE_TEL', '+918310621498'), whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918310621498'), email: 'hello@mechanixpro.in' });
 export const deskUrl = () => env('DESK_URL', 'https://crew.mechanixpro.in/crm/');
 
 export const dbStore = (db: Db): Store => ({

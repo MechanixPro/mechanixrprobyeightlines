@@ -27,7 +27,7 @@ export function buildPublicServices(rows: { id: string; price: unknown; active?:
   return {
     brand: 'Mechanix Pro', city: 'Bengaluru', vehicles: ['bike', 'scooter', 'electric scooter'], hours: 'Open 24/7', currency: 'INR',
     quote_policy: 'A quote is sent on WhatsApp first. Work starts only after the customer approves it.',
-    contact: { website: SITE, whatsapp_url: 'https://wa.me/918042303061', call: '+917965295649' },
+    contact: { website: SITE, whatsapp_url: 'https://wa.me/918310621498', call: '+918310621498' },
     roadside_url: `${SITE}/roadside/?campaign=${source}`, items, updated_at: new Date().toISOString(),
   };
 }

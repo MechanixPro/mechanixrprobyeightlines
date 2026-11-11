@@ -30,7 +30,7 @@ FOOTER = '''<footer class="foot">
     <div class="foot-top">
       <a class="brand" href="/" aria-label="Mechanix Pro home"><img src="/assets/img/logo.svg" alt="" width="26" height="27"><span>Mechanix Pro</span></a>
       <p>Your roadside first responders. Doorstep bike service and breakdown help in Bengaluru.</p>
-      <p><a class="inl" href="#" data-call><span data-phone>+91 79652 95649</span></a> · <a class="inl" href="mailto:hello@mechanixpro.in">hello@mechanixpro.in</a></p>
+      <p><a class="inl" href="#" data-call><span data-phone>+91 83106 21498</span></a> · <a class="inl" href="mailto:hello@mechanixpro.in">hello@mechanixpro.in</a></p>
     </div>
     <div class="foot-cols">
       <div><b>Areas</b>{area_links}<a href="/areas/">All Bengaluru PIN codes</a></div>
@@ -479,7 +479,7 @@ LEGAL = {
 <h2>7A. Parts and our partner Axlio</h2><p>Spare parts for your job are sourced from our partner Axlio (run separately from Mechanix Pro). Parts are OEM or aftermarket and are labelled as such in your quote. You approve the parts and the price before we fit them. Axlio's own website and car services are Axlio's, with their own prices, terms and policies; we are not responsible for them.</p><h2>7B. Roadside help</h2><p>Roadside help is for bikes and scooters in our service areas in Bengaluru. We send the nearest available mechanic, but arrival times depend on traffic and location and are not guaranteed. The roadside visit charge is shown before the visit. Work beyond the visit is quoted first. We cannot attend if the location is unsafe.</p><h2>7C. Availability and offers</h2><p>We take requests 24/7. Slots, mechanics and roadside response depend on availability. Any festive or promotional offer applies only on the terms and dates shown with that offer, and ends when it says so.</p><h2>8. Your responsibilities</h2><p>Give accurate details, provide safe access to the vehicle, and be reachable during your slot. Abuse towards our staff may lead to cancellation.</p>
 <h2>9. Liability</h2><p>We are liable for loss or damage caused by our negligence during service, up to the invoice value of that booking, except where the law does not allow such a limit. We are not liable for pre-existing defects or normal wear.</p>
 <h2>10. Law</h2><p>These terms are governed by Indian law. Courts in Bengaluru, Karnataka have jurisdiction.</p>
-<h2>11. Contact</h2><p>hello@mechanixpro.in · <span data-phone>+91 79652 95649</span></p>'''),
+<h2>11. Contact</h2><p>hello@mechanixpro.in · <span data-phone>+91 83106 21498</span></p>'''),
  'refund-policy': ('Refund & Cancellation Policy', 'How cancellations and refunds work for Mechanix Pro bookings.', '''
 <p class="muted">Last updated: [date].</p>
 <h2>Cancelling a booking</h2><ul><li><b>More than 2 hours before your slot:</b> free. Your confirmation fee is refunded in full.</li><li><b>Less than 2 hours before, or after the mechanic has left:</b> the confirmation fee covers the visit and is not refunded.</li><li><b>Emergency (SOS) visits:</b> cancellable free until a mechanic is assigned.</li></ul>
@@ -490,7 +490,7 @@ LEGAL = {
  'contact': ('Contact Mechanix Pro', 'Contact Mechanix Pro for bookings, support and partnerships in Bengaluru. Call, WhatsApp or email us, and find our address and company details.', '''
 <p class="muted" style="font-size:20px">Fastest: message us on WhatsApp. We are open 24/7.</p>
 <p><a class="btn btn-wa" href="#" data-wa="Contact">Chat on WhatsApp</a></p>
-<div class="card" style="margin-top:20px"><div class="price-row"><span>Phone</span><b data-phone>+91 79652 95649</b></div><div class="price-row"><span>Email</span><b>hello@mechanixpro.in</b></div><div class="price-row"><span>Areas</span><b>All of Bengaluru (560001 to 560110)</b></div></div>
+<div class="card" style="margin-top:20px"><div class="price-row"><span>Phone</span><b data-phone>+91 83106 21498</b></div><div class="price-row"><span>Email</span><b>hello@mechanixpro.in</b></div><div class="price-row"><span>Areas</span><b>All of Bengaluru (560001 to 560110)</b></div></div>
 <!--FINDUS-->
 <h2>Garage partners</h2><p>Run a two-wheeler workshop in Bengaluru and want more jobs? Email us with your garage name, area and number of mechanics.</p>
 <p class="tiny muted">[Registered business name], [registered address], Bengaluru, Karnataka. GSTIN [GSTIN].</p>'''),
@@ -1652,7 +1652,7 @@ def llms_txt():
       '- Do not quote prices other than the ones on this page. Exact quotes are sent by our team after the vehicle is checked.', '',
       '## Business',
       f"- {COMPANY['legalName']}, operating as Mechanix Pro. {_ADDR}. GSTIN {COMPANY['gstin']}.",
-      '- Phone: +91 79652 95649. Email: hello@mechanixpro.in. WhatsApp from the website. Instagram: https://www.instagram.com/themechanixpro/', '',
+      '- Phone: +91 83106 21498. Email: hello@mechanixpro.in. WhatsApp from the website. Instagram: https://www.instagram.com/themechanixpro/', '',
       '## Pages']
     for t, u in (('Services and prices', '/services/'), ('Rate card', '/rate-card/'), ('How it works', '/help/'), ('How we keep your bike safe', '/our-process/'), ('Mechanix Pro on your phone', '/app/'), ('Book a service', '/book/'), ('Track a booking', '/track/'), ('Roadside help', '/roadside/'), ('Car service', '/car-service-bangalore/'), ('Major repairs with pickup and drop', '/major-bike-repair-pickup-and-drop-bangalore/'), ('Verified garages', '/verified-bike-garages-bangalore/'), ('Partner your garage', '/garage-partners/'), ('Join as a garage or mechanic', '/join/'), ('Areas we serve', '/areas/'), ('Guides', '/guides/how-often-to-service-your-bike/'), ('Blog', '/blog/'), ('Refund policy', '/refund-policy/'), ('Terms', '/terms/'), ('Contact', '/contact/')):
         lines.append(f"- [{t}]({SITE}{u})")

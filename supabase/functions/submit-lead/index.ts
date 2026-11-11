@@ -116,8 +116,8 @@ Deno.serve(async (req) => {
       const brand = clean(b.bike_brand, 30), model = clean(b.bike_model, 40), nick = clean(b.bike_nickname, 24);
       const buildQ = new URLSearchParams({ ...(brand && brand !== 'Other' ? { brand } : {}), ...(model ? { model } : {}), ...(nick ? { nick } : {}), service: serviceId }).toString();
       const mail = bookingReceived({ checkupFee: slot || null, newCustomer, nick: nick || null, buildUrl: env('SITE_URL', 'https://mechanixpro.in') + '/book/?' + buildQ,
-        siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 79652 95649'), phoneTel: env('PHONE_TEL', '+917965295649'),
-        whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918042303061'), email: 'hello@mechanixpro.in',
+        siteUrl: env('SITE_URL', 'https://mechanixpro.in'), phoneDisplay: env('PHONE_DISPLAY', '+91 83106 21498'), phoneTel: env('PHONE_TEL', '+918310621498'),
+        whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918310621498'), email: 'hello@mechanixpro.in',
         name, bike: (() => { const base = [brand, model].filter((x) => x && x !== 'Other').join(' ') || 'Your bike'; return nick ? `"${nick}" (${base})` : base; })(),
         service: priced.service.name, area: clean(b.area, 40) || 'Bengaluru', whenText: isCallback ? 'We will call you back soon' : formatWhen(date, slot, extra.preferred_time), estimate: priced.total,
       });

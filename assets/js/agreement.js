@@ -113,5 +113,5 @@ ${row('Email: ' + v('hello@mechanixpro.in', 160), 'Email: ' + v('', 150))}</tabl
 ${tier === 'bronze' ? '' : `<p class="sm"><b>Deposit received:</b> Rs ${v(held ? Number(pl.deposit_amount).toLocaleString('en-IN') : '', 70)} Date ${v(held && g.deposit_received_at ? dmy(new Date(g.deposit_received_at)) : '', 80)} Ref ${v('', 110)}</p>`}
 <p class="sm">Witness 1: Name ${v('', 130)} Signature ${v('', 100)}</p><p class="sm">Witness 2: Name ${v('', 130)} Signature ${v('', 100)}</p>
 <p class="sm">Stamp paper details: [value, serial number, date, purchased in the name of] ${v('', 200)}</p>
-<div class="ft">+91 79652 95649 &nbsp;|&nbsp; hello@mechanixpro.in &nbsp;|&nbsp; mechanixpro.in</div></div></body></html>`;
+<div class="ft">+91 83106 21498 &nbsp;|&nbsp; hello@mechanixpro.in &nbsp;|&nbsp; mechanixpro.in</div></div></body></html>`;
 }

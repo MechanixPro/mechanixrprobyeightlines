@@ -27,7 +27,7 @@ test('a header with several signatures passes if any one matches', async () => {
   const body = 'b';
   assert.equal(await verifyWebhook(SECRET, { id: 'm', timestamp: String(NOW), signature: 'v1,AAAA ' + sign('m', NOW, body) }, body, NOW), true);
 });
-const SITE = { siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 79652 95649', phoneTel: '+917965295649', whatsappUrl: 'https://wa.me/918042303061', email: 'hello@mechanixpro.in' };
+const SITE = { siteUrl: 'https://mechanixpro.in', phoneDisplay: '+91 83106 21498', phoneTel: '+918310621498', whatsappUrl: 'https://wa.me/918310621498', email: 'hello@mechanixpro.in' };
 const SB = 'https://mejdxsbpyscujpvbwvmg.supabase.co';
 test('a password-reset request becomes a mail with the one-time link, built from the hook payload', () => {
   const m = authMailFor({ user: { email: 'hello@mechanixpro.in' }, email_data: { token: '482913', token_hash: 'abc123hash', redirect_to: 'https://admin.mechanixpro.in/', email_action_type: 'recovery' } }, SITE, SB);
