@@ -188,9 +188,10 @@
       var code = v.door_code ? '<div class="card track-card tcode"><h3>Your code</h3><p class="tcode-n" aria-label="Your code is ' + esc(v.door_code.split('').join(' ')) + '">' + esc(v.door_code) + '</p><p><b>' + esc(v.door_line) + '</b></p></div>' : '';
       var next = (v.partner_garage ? '<p class="track-next"><b>' + esc(v.partner_garage.line) + '.</b> ' + esc(v.partner_garage.detail) + '</p>' : '') + (tl && tl.next ? '<p class="track-next"><b>What happens next.</b> ' + esc(tl.next) + '</p>' : '');
       var main = '<div class="card track-card fade" id="trMainCard">' + steps(list, closed) + '<p class="track-note"><b>' + esc(head) + '.</b> ' + esc(note) + '</p>' + next + '<dl class="rcpt-rows track-rows">' + rows + '</dl><div class="row"><a class="btn btn-wa btn-sm" href="#" data-wa="general">Message us on WhatsApp</a></div></div>';
-      if (!tok) { put('trMain', main); return; }
+      var fx = function () { if (!state.fxSteps && win.MXP_FX) { state.fxSteps = 1; win.MXP_FX.play(win, 'steps', doc.getElementById('trMain') || out); } };
+      if (!tok) { put('trMain', main); fx(); return; }
       var J = v.journey || null, I = win.MXP_INSTALL, st = J && J.stage ? J.stage : '';
-      put('trMain', main);
+      put('trMain', main); fx();
       // thank-you right after payment (?paid=1), until the customer hides it
       if (paidMode && T()) put('trThanks', T().html({ bookingId: v.booking_id, token: tok, onTrack: true }) + '<p><button class="btn btn-ghost btn-sm" type="button" data-hide-thanks="1">Hide this</button></p>', 'thanks'); else put('trThanks', '', 'none');
       if (J && J.live && J.live.live && J.live.km != null && J.live.km > state.startKm) state.startKm = J.live.km;

@@ -98,6 +98,7 @@
     function render() {
       main.textContent = ''; (S.tab === 'home' ? home() : S.tab === 'bookings' ? bookings() : profile()).forEach(function (n) { main.appendChild(n); });
       Array.prototype.forEach.call(d.querySelectorAll('.ca-nav button'), function (b) { b.classList.toggle('on', b.getAttribute('data-tab') === S.tab); });
+      var fxKey = S.tab + ':' + (S.items && S.items.length ? 1 : 0); if (S.fxKey !== fxKey) { S.fxKey = fxKey; if (win.MXP_FX) win.MXP_FX.play(win, 'cards', main); }
       if (S.tab === 'home' && S.hits.length) { var h = d.getElementById('caVeh'); if (h) h.focus(); }
     }
     Array.prototype.forEach.call(d.querySelectorAll('.ca-nav button'), function (b) { b.addEventListener('click', function () { S.tab = b.getAttribute('data-tab'); render(); win.scrollTo(0, 0); }); });

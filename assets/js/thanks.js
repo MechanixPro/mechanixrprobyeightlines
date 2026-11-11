@@ -34,6 +34,7 @@
     var slot = el.querySelector('[data-install]'); if (slot && win.MXP_INSTALL) win.MXP_INSTALL.mount(slot, win);
     var h = el.querySelector('#jyThanksH'); if (h && h.focus) h.focus({ preventScroll: true });
     if (el.scrollIntoView) el.scrollIntoView({ block: 'start' });
+    if (win.MXP_FX) win.MXP_FX.play(win, 'thanks', el);
   }
   return { html: html, render: render, NEXT: NEXT };
 });

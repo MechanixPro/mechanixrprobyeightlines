@@ -929,7 +929,7 @@ write('pay/index.html', _pay + '''<h1 style="font-size:40px">Pay for your bookin
 <p class="tiny muted">For a new booking the amount is the small confirmation fee for your vehicle ({{confirmrange}} by engine size), shown before you pay. It is adjusted in your final bill if you go ahead. Other bookings pay what is due on the booking, such as the confirmation fee. We never see your card details. Need help? <a href="#" data-wa="general">Message us on WhatsApp</a>.</p>''' + foot(dock=False))
 
 # Track page: a customer looks up their booking with the reference and the mobile number they booked with.
-_tr = HEAD.format(title='Track Your Booking | Mechanix Pro', desc='Check the progress of your Mechanix Pro booking with your reference and mobile number.', url=f'{SITE}/track/', site=SITE, schema='', scripts=LEGAL_JS + '<link rel="stylesheet" href="/assets/css/book.css"><link rel="stylesheet" href="/assets/css/journey.css"><script src="/assets/js/thanks.js" defer></script><script src="/assets/js/track.js" defer></script>', body='', nav=NAV, main='page')
+_tr = HEAD.format(title='Track Your Booking | Mechanix Pro', desc='Check the progress of your Mechanix Pro booking with your reference and mobile number.', url=f'{SITE}/track/', site=SITE, schema='', scripts=LEGAL_JS + '<link rel="stylesheet" href="/assets/css/book.css"><link rel="stylesheet" href="/assets/css/journey.css"><script src="/assets/js/fx.js" defer></script><script src="/assets/js/thanks.js" defer></script><script src="/assets/js/track.js" defer></script>', body='', nav=NAV, main='page')
 _tr = _tr.replace('</title>', '</title><meta name="robots" content="noindex,nofollow">', 1)
 write('track/index.html', _tr + '''<h1 style="font-size:40px">Track your booking.</h1>
 <p class="muted" style="font-size:18px">Open the link in your confirmation email to see your code, your mechanic and your quote. Or enter the reference from your confirmation (it looks like MP-26-27-0001) and the mobile number you booked with.</p>
@@ -1283,7 +1283,7 @@ def help_journey(content):
 
 HERO_CSS = '<link rel="stylesheet" href="/assets/css/hero.css">\n<link rel="stylesheet" href="/assets/css/home2.css">\n'
 HERO_PRELOAD = '<link rel="preload" as="image" href="/assets/img/hero/hero-quote-1200.webp" fetchpriority="high">\n'   # the bike hero's first picture (the quote scene, eager); home only. The car picture is lazy and is not preloaded.
-BOOK_JS = '<link rel="stylesheet" href="/assets/css/book.css"><link rel="stylesheet" href="/assets/css/journey.css">\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/thanks.js" defer></script>\n<script src="/assets/js/today-slots.js" defer></script>\n<script src="/assets/js/book-pay.js" defer></script>'
+BOOK_JS = '<link rel="stylesheet" href="/assets/css/book.css"><link rel="stylesheet" href="/assets/css/journey.css">\n<script src="/assets/js/bikes.js" defer></script>\n<script src="/assets/js/logic.js" defer></script>\n<script src="/assets/js/fx.js" defer></script><script src="/assets/js/thanks.js" defer></script>\n<script src="/assets/js/today-slots.js" defer></script>\n<script src="/assets/js/book-pay.js" defer></script>'
 def services_catalog():
     """OfferCatalog (the @id the home page's business node points to): every service in src/site.json with its price before GST. The three packages have one Offer per engine-size tier."""
     sv = SITE_DATA['services']; items = []
