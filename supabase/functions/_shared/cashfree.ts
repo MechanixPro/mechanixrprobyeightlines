@@ -33,13 +33,13 @@ function headers(): Record<string, string> {
   return { 'x-client-id': envOf('CASHFREE_APP_ID'), 'x-client-secret': envOf('CASHFREE_SECRET_KEY'), 'x-api-version': envOf('CASHFREE_API_VERSION') || CASHFREE_API_VERSION_DEFAULT, 'Content-Type': 'application/json', Accept: 'application/json' };
 }
 
-export class CashfreeError extends Error { status: number; constructor(msg: string, status = 0) { super(msg); this.status = status; } }
+export class CashfreeError extends Error { status: number; code: string; constructor(msg: string, status = 0, code = '') { super(msg); this.status = status; this.code = code; } }
 
 async function cf(path: string, init: { method?: string; body?: unknown } = {}): Promise<any> {
   const h = headers();   // throws 'Cashfree keys are not configured' before any network call
   const r = await fetch(cashfreeBase() + path, { method: init.method ?? 'GET', headers: h, body: init.body === undefined ? undefined : JSON.stringify(init.body), signal: AbortSignal.timeout(15000) });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new CashfreeError(String(j?.message ?? 'Cashfree error'), r.status);   // the message is shown to staff only; the keys are never in it
+  if (!r.ok) throw new CashfreeError(String(j?.message ?? 'Cashfree error'), r.status, String(j?.code ?? ''));   // the message is shown to staff only; the keys are never in it
   return j;
 }
 
@@ -104,6 +104,21 @@ export async function confirmOrderPayment(orderId: string, expectedRupees?: numb
   if (!ok.cf_payment_id) return { state: 'unpaid', reason: 'no payment id' };
   return { state: 'paid', orderId, paymentId: String(ok.cf_payment_id), amount: paid, fee: 0, tags, order };
 }
+
+/* ---------- refunds (Admin-triggered only, see admin-refund) ---------- */
+/** Cashfree wants an alphanumeric refund_id of 3 to 40 characters: no underscore or dash. */
+export const isRefundId = (id: unknown): boolean => /^[A-Za-z0-9]{3,40}$/.test(String(id ?? ''));
+export type RefundOpts = { orderId: string; refundId: string; rupees: number; note?: string };
+/** The body for POST /orders/{order_id}/refunds. refund_amount is in RUPEES. Pure, so it is tested without a network. */
+export function refundPayload(o: RefundOpts) {
+  const amount = rupees2(o.rupees);
+  if (!(amount > 0)) throw new Error('The refund amount must be above zero');
+  if (!isRefundId(o.refundId)) throw new Error('Invalid refund id');
+  const note = String(o.note ?? 'Mechanix Pro refund').replace(/[^\p{L}\p{N} .,'-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 100);
+  return { refund_amount: amount, refund_id: o.refundId, refund_note: note.length >= 3 ? note : 'Mechanix Pro refund', refund_speed: 'STANDARD' };
+}
+export const createCashfreeRefund = (o: RefundOpts) => cf(`/orders/${encodeURIComponent(o.orderId)}/refunds`, { method: 'POST', body: refundPayload(o) });
+export const getCashfreeRefund = (orderId: string, refundId: string) => cf(`/orders/${encodeURIComponent(orderId)}/refunds/${encodeURIComponent(refundId)}`);
 
 /* ---------- Payment Links ---------- */
 export type LinkOpts = { amount: number; ref: string; leadId: string; name: string; phone: string; description: string; notes?: Record<string, string>; linkId?: string; now?: number };

@@ -81,3 +81,11 @@ New payments use Razorpay again at once. Cashfree links already sent stay payabl
 - Refunds remain a manual Admin ledger record; do the actual refund in the payment gateway dashboard.
 - The gateway fee is recorded as 0 for Cashfree because the payments API does not return it; adjust in the ledger if you want the settled fee.
 - Not verified live (nothing was called): see the assumptions list in the build report.
+
+## Refunds ("Refund to customer now")
+
+- **What it does:** on a cancelled booking (Admin only: the cancelled card and the Cancellations screen) the button asks for an amount (at most what is outstanding) and a reason, then the `admin-refund` function refunds the payment through Cashfree and writes one ledger refund row (method `cashfree`, source gateway, reference = the refund id). Crew never sees the button, and cancelling never refunds by itself. The manual "Record refund" stays for money taken any other way (Razorpay, cash, UPI).
+- **Only Cashfree payments** whose order can be found are refunded automatically; anything else gets a message to refund it manually. Payments recorded before this change are found through the order id in the audit log (confirmation fees and links); final-bill payments only from now on.
+- **Cashfree dashboard:** the Refunds API must be enabled on the account. Add the webhook event **Refund Status** (REFUND_STATUS_WEBHOOK) to the same endpoint. A refund that fails later is reversed in the ledger and a note tells staff to pay it another way.
+- **Deploy (owner-run, after review):** `npx supabase functions deploy admin-refund` (verify_jwt is on) and `npx supabase functions deploy cashfree-webhook --no-verify-jwt`.
+- **Sandbox test:** pay a booking fee with sandbox details, cancel the booking, press Refund to customer now. Cashfree's sandbox decides the outcome from the refund note; the code sends `Mechanix Pro refund <ref>`, so check the status in the sandbox dashboard. Confirm one ledger row, `paid_amount` down by the amount, a second press cannot exceed the rest, and a Razorpay or cash booking shows the manual-refund message.

@@ -15,7 +15,7 @@ const STAGE = { on_the_way: 'On the way', arrived: 'Arrived', started: 'Door cod
 const DOOR = { none: 'No code yet', open: 'Code ready', locked: 'Locked after 5 wrong tries', expired: 'Code expired', verified: 'Verified at the door' };
 const cleanErr = (e) => { const m = String((e && e.message) || e || 'Something went wrong').replace(/^Error:\s*/, ''); const KNOWN = [[/waiting for the confirmation fee/i, 'This booking cannot go to a garage yet: the customer has not paid the confirmation fee. Send the payment link or record the payment on the booking, then assign.'], [/this lead is closed/i, 'This booking is closed (lost or junk). Restore it first.'], [/already started this job/i, 'The garage has already started this job, so it cannot be moved.']]; const known = KNOWN.find((k) => k[0].test(m)); if (known) return known[1]; return /crm_garage_(assign|picker)/.test(m) && /find the function|schema cache|does not exist/i.test(m) ? 'Assign to garage is not available yet.' : m; };
 
-/** deps: { rpc(name, args), invoke(fn, body), toast(msg, bad), can(action), reload(), mechanics?() , openLead?(id) } */
+/** deps: { refundNow?(leadId) (Admin only: called after a refund was sent, reloads), rpc(name, args), invoke(fn, body), toast(msg, bad), can(action), reload(), mechanics?() , openLead?(id) } */
 export function createFlow(deps) {
   const { rpc, invoke, toast } = deps;
   const call = async (fn, body) => { const r = await invoke(fn, body); if (r && r.error) throw new Error(r.error); return r; };
@@ -98,7 +98,7 @@ export function createFlow(deps) {
     let h = `<section class="flow-card" aria-label="Cancelled booking"><h3>Cancelled ${chip('Cancelled', 'warn')}</h3>`;
     if (!c) return h + '<p class="flow-muted">Cancellation details could not be loaded.</p></section>';
     h += `<p>${esc(kind)}${c.reason ? ': ' + esc(c.reason) : ''}${c.at ? ' · ' + esc(when(c.at)) : ''}</p>`;
-    if (c.refund_outstanding > 0) h += `<p><b>Refund due ${inr(c.refund_outstanding)}.</b> ${deps.openRefund ? '' : 'An Admin approves and records it.'}</p>${deps.openRefund ? '<div class="flow-row"><button class="flow-btn flow-primary" type="button" data-flow="refund">Record refund</button></div>' : ''}`;
+    if (c.refund_outstanding > 0) h += `<p><b>Refund due ${inr(c.refund_outstanding)}.</b> ${deps.openRefund ? '' : 'An Admin approves and records it.'}</p>${deps.openRefund ? '<div class="flow-row"><button class="flow-btn flow-primary" type="button" data-flow="refund">Record refund</button>' + (deps.refundNow ? '<button class="flow-btn" type="button" data-flow="refundNow">Refund to customer now</button>' : '') + '</div>' : ''}`;
     else h += `<p class="flow-muted">${c.refund_due > 0 ? 'The refund has been recorded.' : 'No refund is due.'}</p>`;
     return h + '</section>';
   }
@@ -168,6 +168,8 @@ export function createFlow(deps) {
     },
     reloadFlow() { deps.reload(); },
     refund(lead) { return deps.openRefund && deps.openRefund(lead.id); },
+    /** Admin only (the host provides deps.refundNow): refund through the payment gateway in one step. The server checks the Admin again and what can be refunded. */
+    refundNow(lead, flow) { return deps.refundNow && refundDialog({ lead_id: lead.id, label: [lead.booking_id, lead.area].filter(Boolean).join(' · '), outstanding: Number(flow && flow.cancel && flow.cancel.refund_outstanding) || 0 }); },
     /** Cancel a booking: who cancelled, what the refund policy says, a reason. Admin may overrule the refund; the database checks it again. */
     async cancel(lead) {
       const canOver = !!(deps.canOverrideRefund && deps.canOverrideRefund());
@@ -318,5 +320,22 @@ export function createFlow(deps) {
   }
   /** Send the current sent-ready draft quote to the customer (marks it sent, then WhatsApp and email). Used when a garage estimate is approved. */
   const sendQuote = async (leadId) => { const r = await call('booking-notify', { action: 'quote_send', lead_id: leadId }); return r; };
-  return { load, withFlow, card, bind, dispatchHtml, loadTell, bindDispatch, issuesHtml, bindIssues, actions, dialog, sendQuote };
+  /** Confirm dialog for "Refund to customer now". The amount starts at what is outstanding, can be lowered for a partial refund and never raised. */
+  function refundDialog({ lead_id, label, outstanding }) {
+    if (!deps.refundNow) return;
+    const max = Math.max(0, Number(outstanding) || 0);
+    dialog({ title: 'Refund to customer now', intro: esc(label || 'This booking'),
+      body: `<label class="flow-label" for="rn-amt">Amount to refund (₹, at most ${esc(inr(max))})</label><input id="rn-amt" name="amount" inputmode="decimal" autocomplete="off" value="${esc(max)}">
+        <label class="flow-label" for="rn-why">Reason (required)</label><input id="rn-why" name="why" maxlength="200" autocomplete="off">
+        <p class="flow-muted">Money goes back to the customer's original payment method within 5 to 7 working days. This cannot be undone.</p>`,
+      submit: 'Refund now', onSubmit: async (f, d) => {
+        const amount = Math.round(Number(String(f.amount.value).replace(/[^0-9.]/g, '')) * 100) / 100;
+        if (!(amount > 0)) throw new Error('Enter the amount to refund.');
+        if (amount > max) throw new Error('The refund cannot be more than ' + inr(max) + '.');
+        if (f.why.value.trim().length < 3) throw new Error('Write a short reason.');
+        const r = await call('admin-refund', { lead_id, amount, reason: f.why.value.trim() });
+        d.close(); toast(r && r.already ? 'This refund was already sent.' : 'Refund of ' + inr(amount) + ' sent to Cashfree. The customer gets it in 5 to 7 working days.'); await deps.refundNow(lead_id);   // the host reloads the screen
+      } });
+  }
+  return { refundDialog, load, withFlow, card, bind, dispatchHtml, loadTell, bindDispatch, issuesHtml, bindIssues, actions, dialog, sendQuote };
 }

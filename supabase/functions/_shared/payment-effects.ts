@@ -44,7 +44,7 @@ export async function applyFinalPaid(db: Db, p: Paid): Promise<Effect> {
   if (error) { console.error('final insert failed', error.code); return { ok: false, status: 500, error: 'Could not record the payment.' }; }
   await db.from('leads').update({ final_paid_at: new Date().toISOString(), final_paid_method: 'online', final_paid_amount: p.amount }).eq('id', fl.id).is('final_paid_at', null);
   await note(db, fl.id, `Paid online: Rs ${p.amount} (final bill).`);
-  await db.from('audit_log').insert({ actor: null, action: 'final_paid_online', details: { lead: fl.ref, amount: p.amount, payment_id: p.paymentId } });
+  await db.from('audit_log').insert({ actor: null, action: 'final_paid_online', details: { lead: fl.ref, amount: p.amount, payment_id: p.paymentId, order_id: p.orderId } });   // order_id lets admin-refund find the order to refund
   return { ok: true, already: false, amount: p.amount, leadRef: fl.ref };
 }
 

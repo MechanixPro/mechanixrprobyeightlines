@@ -1,9 +1,10 @@
 // Cashfree webhook: confirms Cashfree payments (Checkout orders and Payment Links) even when the customer closed the tab. Deploy with verify_jwt = false (see config.toml).
-// Cashfree Dashboard > Developers > Webhooks: enable PAYMENT_SUCCESS, PAYMENT_FAILED, PAYMENT_USER_DROPPED (and the Payment Link event). See docs/CASHFREE-CUTOVER.md.
+// Cashfree Dashboard > Developers > Webhooks: enable PAYMENT_SUCCESS, PAYMENT_FAILED, PAYMENT_USER_DROPPED (and the Payment Link event) and REFUND_STATUS. See docs/CASHFREE-CUTOVER.md.
 // The signature is checked first; then Cashfree is asked about the order itself, so the webhook body is never trusted for money.
 import { adminDb, env } from '../_shared/util.ts';
 import { webhookValid } from '../_shared/cashfree.ts';
 import { settleCashfreeOrder } from '../_shared/cashfree-settle.ts';
+import { handleRefundWebhook } from '../_shared/admin-refund.ts';
 import { liveDeps } from '../_shared/payment-effects-live.ts';
 
 Deno.serve(async (req) => {
@@ -12,6 +13,11 @@ Deno.serve(async (req) => {
   if (!(await webhookValid(raw, req.headers.get('x-webhook-timestamp'), req.headers.get('x-webhook-signature'), env('CASHFREE_SECRET_KEY')))) return new Response('Bad signature', { status: 401 });
   let evt: any;
   try { evt = JSON.parse(raw); } catch { return new Response('Bad body', { status: 400 }); }
+
+  if (evt?.type === 'REFUND_STATUS_WEBHOOK') {   // a refund we made from admin-refund changed status; only a failure needs action
+    const r = await handleRefundWebhook(adminDb(), evt);
+    return r === 'retry' ? new Response('retry', { status: 500 }) : new Response(r);
+  }
 
   let orderId = '';
   if (evt?.type === 'PAYMENT_SUCCESS_WEBHOOK') orderId = String(evt?.data?.order?.order_id ?? '');

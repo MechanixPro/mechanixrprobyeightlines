@@ -39,6 +39,9 @@ verify_jwt = false
 [functions.payment-link]
 verify_jwt = true
 
+[functions.admin-refund]
+verify_jwt = true
+
 # Sign-in: admins only, by emailed 6-digit code or password. Emails go out through Resend from no-reply@mechanixpro.in.
 # Apply with:  RESEND_API_KEY=<key> npx supabase config push   (only after the Resend domain is verified)
 [auth]
