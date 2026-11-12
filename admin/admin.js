@@ -11,7 +11,7 @@ import { buildInvoice as buildInvoiceRaw, missingDetails } from './invoice.js';
 import { missingInvoiceCandidates, planCandidates, bannerHtml, reviewHtml, createMissing, summaryText, autoInvoice, invoiceProblem, feeUnpaid } from './invoice-auto.js';
 import { buildNewBooking } from './new-booking.js';
 import { buildServiceEdit } from './booking-edit.js';
-import { groupOf, firstTab, navBadges } from './nav.js';
+import { GROUPS, groupOf, firstTab, navBadges } from './nav.js';
 import { boardGroups, stageGroups, WAY_STAGES, nextStep, paidNeedsMechanic, paidInfo } from './board.js';
 import { boardHtml, stageBoardHtml, paidBadge as paidChipHtml } from './board-view.js';
 import { docKey, latestDocs, nextDocKey, combineDocs, mechanicCut, snapshotRow, sameFigures, filterRegister, registerTotals, byMechanic, gstSummary, registerCsv } from './invoice-register.js';
@@ -23,6 +23,7 @@ import { customerSummaries, customerLeads, normPhone, bookingRows, summarize } f
 import { adsConversions } from './ads-export.js';
 import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge } from './booking-steps.js';
 import { createFlow } from './flow-core.js';
+import { isCrewTab, crewView, mountCrew } from './crew-screens.js';
 import { createGarageDesk } from './garage-desk.js';
 import { watchList, watchCard, redCount } from "./watch.js";
 import { createWaDesk } from './wa-desk.js';   // WhatsApp supervision
@@ -312,7 +313,8 @@ function syncNav() {
 }
 function render() { try { renderPage(); } catch (e) { console.error('render', S.tab, e); $('#view').innerHTML = errorHtml('This page could not be shown.', e, 'render'); } }
 const failBanner = () => ((S.failed || []).length ? `<div class="alert" role="alert"><b>Some data could not be loaded:</b> ${esc(S.failed.join(', '))}. What you see may be incomplete. <button class="btn btn-ghost btn-sm" type="button" data-retry="boot">Retry</button></div>` : '');
-function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + ({ dash, watch: watchView, whatsapp, dispatch, board, leads, customers, mechanics, garages, garageapp, kyc, coupons, issues, pins, waitlist, offers, conversion, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity })[S.tab](); if (S.tab === 'whatsapp') waDesk.mount($('#waRoot')); else waDesk.unmount(); if (S.tab === 'conversion') funnelDesk.mount($('#fnRoot')); if (S.tab === "sales") { speedPanel.mount($("#spRoot")); targetsPanel.mount($("#tgRoot")); importPanel.mount($("#ipRoot")); } if (S.tab === 'dispatch') loadDispatch(); if (S.tab === "watch") loadWatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'kyc') kycView.mount($('#kycRoot')); if (S.tab === 'garages') garagesView.mount($('#gvRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); if (S.tab === 'customers') bindDupes(); if (S.tab === 'activity') loadActivity(); }
+const tabTitle = (t) => (GROUPS.flatMap((g) => g.tabs).find((x) => x[0] === t) || [t, t])[1];
+function renderPage() { syncNav(); const v = $('#view'); v.innerHTML = failBanner() + (isCrewTab(S.tab) ? () => crewView(tabTitle(S.tab)) : { dash, watch: watchView, whatsapp, dispatch, board, leads, customers, mechanics, garages, garageapp, kyc, coupons, issues, pins, waitlist, offers, conversion, reports, invoices, sales, mechledger, custbook, prices, homeimgs, settings, activity }[S.tab])(); if (isCrewTab(S.tab)) mountCrew(S.tab, $('#crewRoot'), { sb, me: S.me, openLead: (id) => { S.tab = 'leads'; render(); openLead(id); } }); if (S.tab === 'whatsapp') waDesk.mount($('#waRoot')); else waDesk.unmount(); if (S.tab === 'conversion') funnelDesk.mount($('#fnRoot')); if (S.tab === "sales") { speedPanel.mount($("#spRoot")); targetsPanel.mount($("#tgRoot")); importPanel.mount($("#ipRoot")); } if (S.tab === 'dispatch') loadDispatch(); if (S.tab === "watch") loadWatch(); if (S.tab === 'issues') loadCustIssues(); if (S.tab === 'garageapp') garageDesk.mount($('#gdRoot')); if (S.tab === 'kyc') kycView.mount($('#kycRoot')); if (S.tab === 'garages') garagesView.mount($('#gvRoot')); if (S.tab === 'leads') renderList(); if (S.tab === 'customers' || S.tab === 'custbook') renderCustomers(); if (S.tab === 'customers') bindDupes(); if (S.tab === 'activity') loadActivity(); }
 
 function dash() {
   const L = S.leads, dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;

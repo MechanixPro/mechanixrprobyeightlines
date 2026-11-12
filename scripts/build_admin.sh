@@ -9,6 +9,11 @@ cp -R "$root/admin" "$out/admin"
 cp "$root/assets/css/style.css" "$root/assets/css/minimal.css" "$root/assets/css/theme.css" "$root/assets/css/maxi.css" "$out/assets/css/"
 cp "$root/assets/js/config.js" "$out/assets/js/"
 cp "$root/assets/img/logo.svg" "$root/assets/img/favicon-32.png" "$root/assets/img/apple-touch-icon.png" "$out/assets/img/"
+# Crew Desk screens inside the Admin: the same page files Crew uses, with Crew styles scoped under .crewhost so they cannot alter the Admin.
+mkdir -p "$out/crew"
+cp "$root"/crm/*.js "$out/crew/"; rm -f "$out/crew/crm.js"
+cp -R "$root/crm/pages" "$out/crew/pages"
+{ echo '.crewhost{'; grep -v '^@import' "$root/crm/crm.css"; echo '}'; } > "$out/crew/crew-scoped.css"
 cp "$root/src/company.json" "$out/company.json"
 cat > "$out/index.html" <<'I'
 <!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/admin/"><title>Mechanix Pro Admin</title><a href="/admin/">Open admin</a>
