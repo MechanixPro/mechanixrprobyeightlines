@@ -13,7 +13,7 @@ test('the figure comes from src/site.json and the browser copy agrees', () => {
   assert.match(read('scripts/build_pages.py'), /\{\{visitcharge\}\}/);
 });
 test('every public place that explains fees also states the visiting charge and the decline rule', () => {
-  for (const f of ['terms/index.html', 'refund-policy/index.html', 'help/index.html', 'book/index.html', 'our-process/index.html', 'rate-card/index.html']) {
+  for (const f of ['terms/index.html', 'refund-policy/index.html', 'help/index.html', 'book/index.html', 'our-process/index.html', 'rate-card/index.html', 'services/index.html']) {
     const t = strip(read(f));
     assert.match(t, /visiting charge of ₹349 applies to any doorstep visit|₹349 visiting charge/i, f);
     assert.match(t, /decline to continue|decide not to continue/i, f);
@@ -26,4 +26,11 @@ test('the pay note in the customer app says it too', () => {
 });
 test('the confirmation fee is never described as the visiting charge', () => {
   for (const f of ['terms/index.html', 'refund-policy/index.html', 'book/index.html']) assert.doesNotMatch(strip(read(f)), /confirmation fee is (the )?visiting charge|visiting charge is (the )?confirmation fee/i, f);
+});
+
+test('the Home and Services pages show the visiting charge where customers look first (it was missing there)', () => {
+  const home = strip(read('index.html')), sv = strip(read('services/index.html'));
+  assert.match(home, /Visiting charge: ₹349 for any doorstep visit/); assert.match(home, /₹349 visiting charge applies to any doorstep visit|visiting charge applies to any doorstep visit/i);
+  assert.match(sv, /Visiting charge: ₹349 for any doorstep visit/);
+  assert.match(read('book/index.html'), /class="note bk-visit" id="bk-visit"/);
 });
