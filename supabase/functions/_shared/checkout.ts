@@ -45,3 +45,9 @@ export function paymentState(p: { status?: string }): 'paid' | 'pending' | 'unpa
   if (p?.status === 'authorized') return 'pending';
   return 'unpaid';
 }
+
+// Cashfree: the browser sends only our own order id (unguessable, made by create-order or book-start). Everything else is asked of Cashfree's API.
+export function cleanCashfreeVerify(b: Record<string, unknown>): { ok: true; order_id: string } | { ok: false } {
+  const order_id = String(b?.cashfree_order_id ?? '');
+  return /^mxp_[A-Za-z0-9-]{3,13}_[0-9a-f]{20}$/.test(order_id) ? { ok: true, order_id } : { ok: false };
+}

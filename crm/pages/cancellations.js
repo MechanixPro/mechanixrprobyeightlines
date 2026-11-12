@@ -10,7 +10,7 @@ export async function render(root, ctx) {
   const d = await rpc('crm_cancellations_list'); const reqs = d.requests || [], done = d.cancelled || [];
   const owed = done.filter((c) => c.refund_outstanding > 0), total = owed.reduce((s, c) => s + c.refund_outstanding, 0);
   const canRefund = typeof ctx.openRefund === 'function';
-  root.innerHTML = `${head('Cancellations', 'Customers asking to cancel, cancelled bookings, and refunds still to be paid. A refund is approved and recorded by an Admin; the money goes back through Razorpay or the original method.')}
+  root.innerHTML = `${head('Cancellations', 'Customers asking to cancel, cancelled bookings, and refunds still to be paid. A refund is approved and recorded by an Admin; the money goes back through the payment gateway dashboard or the original method.')}
     <section class="card" style="margin-bottom:12px"><h3 style="margin:0 0 6px">Refunds to pay${owed.length ? ' · ' + inr(total) : ''}</h3>
     ${owed.length ? `<div class="cards">${owed.map((c) => `<article class="lead-card tone-late"><div class="lc-top"><div><h2>${esc(c.booking_id)} · ${esc(c.first_name || '')}</h2><p class="muted small">${esc(KIND[c.kind] || '')} · ${esc(c.reason || '')}</p></div>${tag(inr(c.refund_outstanding) + ' due', 'late')}</div>
       <div class="lc-meta"><button class="btn sm" type="button" data-open="${esc(c.lead_id)}">Open booking</button>${canRefund ? ` <button class="btn sm primary" type="button" data-refund="${esc(c.lead_id)}">Record refund</button>` : '<span class="small muted">Admin records the refund</span>'}</div></article>`).join('')}</div>` : empty('No refunds waiting.')}</section>

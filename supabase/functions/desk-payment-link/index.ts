@@ -2,7 +2,7 @@
 // The database decides who may do this (crm_payment_context). The link is sent from the desk's AiSensy number when it is connected; otherwise the link is returned for the agent to share.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { adminDb, env, json, corsHeaders, rupee } from '../_shared/util.ts';
-import { createPaymentLink, razorpayReady } from '../_shared/razorpay.ts';
+import { createPaymentLink, paymentsReady } from '../_shared/gateway.ts';
 import { sendCampaign } from '../_shared/aisensy-send.ts';
 import { slotFee } from '../_shared/checkout.ts';
 import { isReturningCustomer } from '../_shared/customer.ts';
@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       return json(req, { ok: true, url: c.url, amount: c.amount, suggested: c.amount, whatsapp_sent: sent, whatsapp_note: why, whatsapp_text: linkText(first, c.amount, c.url), fee_line: c.feeLine, call_script: CALL_SCRIPT(c.amount), review: c.review, has_email: c.hasEmail, nudge_minutes: c.nudgeMinutes });
     } catch (e) { return json(req, { error: (e as Error).message }, 400); }
   }
-  if (!razorpayReady()) return json(req, { error: 'Payments are not connected yet' }, 503);
+  if (!paymentsReady()) return json(req, { error: 'Payments are not connected yet' }, 503);
 
   const { data: fees } = await db.from('services').select('id,price').eq('kind', 'fee').eq('active', true);
   const feeOf = (id: string, d: number) => Number((fees ?? []).find((r) => r.id === id)?.price ?? d);

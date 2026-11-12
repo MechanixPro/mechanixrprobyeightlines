@@ -1,5 +1,5 @@
 // POST /functions/v1/book-start  — the /book/ page. Public.
-// Saves the booking details (vehicle, address, slot, contact, email) as a lead, works out the confirmation fee ON THE SERVER, and opens one Razorpay order for it.
+// Saves the booking details (vehicle, address, slot, contact, email) as a lead, works out the confirmation fee ON THE SERVER, and opens one order for it (Razorpay, or Cashfree when PAYMENT_GATEWAY=cashfree).
 // The booking is confirmed only when verify-payment (or the webhook) sees the payment. Idempotent: the same client_key never makes a second lead or a second order.
 import { adminDb, env, json, corsHeaders, sha256Hex, priceBooking } from '../_shared/util.ts';
 import { cleanLeadFields } from '../_shared/lead-fields.ts';
@@ -8,14 +8,19 @@ import { confirmFee, feeLine, FEE_IDS } from '../_shared/confirm-fee.ts';
 import { cleanBooking } from '../_shared/book-form.ts';
 import { vehicleCols } from '../_shared/vehicle.ts';
 import { alertNewLead } from '../_shared/new-lead-alert.ts';
+import { gateway } from '../_shared/gateway.ts';
+import { cashfreeReady, cashfreeMode, createCashfreeOrder, reusableOrder, isCashfreeOrderId, NOT_CONFIGURED } from '../_shared/cashfree.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
   if (req.method !== 'POST') return json(req, { error: 'Method not allowed' }, 405);
   const origin = req.headers.get('origin') ?? '';
   if (origin && corsHeaders(req)['Access-Control-Allow-Origin'] !== origin) return json(req, { error: 'Not allowed' }, 403);
+  let gw: 'razorpay' | 'cashfree';
+  try { gw = gateway(); } catch (e) { console.error((e as Error).message); return json(req, { error: 'Online payment is not available yet. Message us on WhatsApp and we will help you book.' }, 503); }
   const keyId = env('RAZORPAY_KEY_ID'), keySecret = env('RAZORPAY_KEY_SECRET');
-  if (!keyId || !keySecret) return json(req, { error: 'Online payment is not available yet. Message us on WhatsApp and we will help you book.' }, 503);
+  if (gw === 'cashfree' && !cashfreeReady()) { console.error(NOT_CONFIGURED); return json(req, { error: 'Online payment is not available yet. Message us on WhatsApp and we will help you book.' }, 503); }   // never falls back to Razorpay
+  if (gw === 'razorpay' && (!keyId || !keySecret)) return json(req, { error: 'Online payment is not available yet. Message us on WhatsApp and we will help you book.' }, 503);
   let raw: Record<string, unknown>;
   try { raw = await req.json(); } catch { return json(req, { error: 'Invalid request' }, 400); }
   const ip = req.headers.get('cf-connecting-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '';
@@ -36,7 +41,7 @@ Deno.serve(async (req) => {
   const fee = confirmFee({ vehicle: b.vehicle, model: b.model, engine: b.engine_class, rows: feeRows ?? [] });   // never from the browser
 
   // Same form, same lead: a double tap, a refresh or a retry finds the lead made the first time.
-  const { data: existing } = await db.from('leads').select('id,ref,name,phone,status,confirm_fee,confirm_paid_at,rzp_order_id,booking_id').eq('client_key', b.client_key).maybeSingle();
+  const { data: existing } = await db.from('leads').select('id,ref,name,phone,email,status,confirm_fee,confirm_paid_at,rzp_order_id,booking_id').eq('client_key', b.client_key).maybeSingle();
   if (existing && existing.phone !== b.phone) return json(req, { error: 'This form was already used. Reload the page.' }, 409);
   if (existing?.confirm_paid_at) return json(req, { ok: true, status: 'paid', already: true, booking_id: existing.booking_id ?? null });
 
@@ -66,9 +71,9 @@ Deno.serve(async (req) => {
       ref_code: extra.ref_code, campaign: extra.campaign, service_id: serviceId, est_total: est, addons: [], preferred_date: b.preferred_date, preferred_slot: b.preferred_slot,
       source: 'website', page: '/book/', utm: b.utm, consent_whatsapp: b.consent_whatsapp, ip_hash: ipHash, status: 'payment_sent',
       confirm_fee: fee.amount, confirm_fee_review: fee.review, amount_due: fee.amount, client_key: b.client_key,
-    }).select('id,ref,name,phone,status,confirm_fee,confirm_paid_at,rzp_order_id,booking_id').single();
+    }).select('id,ref,name,phone,email,status,confirm_fee,confirm_paid_at,rzp_order_id,booking_id').single();
     if (error) {
-      if (error.code === '23505') { const { data: again } = await db.from('leads').select('id,ref,name,phone,status,confirm_fee,confirm_paid_at,rzp_order_id,booking_id').eq('client_key', b.client_key).maybeSingle(); lead = again; }
+      if (error.code === '23505') { const { data: again } = await db.from('leads').select('id,ref,name,phone,email,status,confirm_fee,confirm_paid_at,rzp_order_id,booking_id').eq('client_key', b.client_key).maybeSingle(); lead = again; }
       else { console.error('book-start lead', error); return json(req, { error: 'Could not save. Please try again.' }, 500); }
     } else {
       lead = ins;
@@ -78,14 +83,25 @@ Deno.serve(async (req) => {
   if (!lead) return json(req, { error: 'Could not save. Please try again.' }, 500);
 
   // One order per lead. A saved order is reused, so a second tap or a reload never creates a second thing to pay.
-  if (lead.rzp_order_id && Number(lead.confirm_fee) === fee.amount) {
-    return json(req, { ok: true, order_id: lead.rzp_order_id, amount: fee.amount * 100, currency: 'INR', key_id: keyId, name: lead.name, fee: fee.amount, fee_line: feeLine(b.vehicle, fee.amount), reused: true });
+  // rzp_order_id holds the gateway's order id for whichever gateway made it; an id from the other gateway is never reused.
+  if (lead.rzp_order_id && Number(lead.confirm_fee) === fee.amount && isCashfreeOrderId(lead.rzp_order_id) === (gw === 'cashfree')) {
+    if (gw === 'razorpay') return json(req, { ok: true, gateway: 'razorpay', order_id: lead.rzp_order_id, amount: fee.amount * 100, currency: 'INR', key_id: keyId, name: lead.name, fee: fee.amount, fee_line: feeLine(b.vehicle, fee.amount), reused: true });
+    const again = await reusableOrder(lead.rzp_order_id, fee.amount);
+    if (again && 'paid' in again) return json(req, { ok: true, status: 'paid', already: true, booking_id: lead.booking_id ?? null });
+    if (again) return json(req, { ok: true, gateway: 'cashfree', payment_session_id: again.payment_session_id, order_id: again.order_id, mode: cashfreeMode(), amount: fee.amount, currency: 'INR', name: lead.name, fee: fee.amount, fee_line: feeLine(b.vehicle, fee.amount), reused: true });
   }
   const o = orderBody({ id: lead.id, ref: lead.ref, amount_due: fee.amount }, fee.amount, Date.now());
   if (!o.ok) return json(req, { error: o.error }, 400);
+  if (gw === 'cashfree') {
+    try {
+      const cf = await createCashfreeOrder({ leadId: lead.id, ref: lead.ref, rupees: o.body.amount / 100, phone: lead.phone, email: lead.email, name: lead.name, note: "Mechanix Pro confirmation fee", returnPath: '/book/' });
+      await db.from('leads').update({ rzp_order_id: cf.order_id, confirm_fee: fee.amount, amount_due: fee.amount, confirm_fee_review: fee.review }).eq('id', lead.id).is('confirm_paid_at', null);
+      return json(req, { ok: true, gateway: 'cashfree', payment_session_id: cf.payment_session_id, order_id: cf.order_id, mode: cashfreeMode(), amount: cf.amount, currency: 'INR', name: lead.name, fee: fee.amount, fee_line: feeLine(b.vehicle, fee.amount) });
+    } catch (e) { console.error('book-start cashfree', (e as Error).message); return json(req, { error: 'Could not start the payment. Please try again.' }, 502); }
+  }
   const r = await fetch('https://api.razorpay.com/v1/orders', { method: 'POST', headers: { Authorization: 'Basic ' + btoa(`${keyId}:${keySecret}`), 'Content-Type': 'application/json' }, body: JSON.stringify(o.body) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok || !j.id) { console.error('book-start razorpay', r.status, j?.error?.description); return json(req, { error: 'Could not start the payment. Please try again.' }, 502); }
   await db.from('leads').update({ rzp_order_id: j.id, confirm_fee: fee.amount, amount_due: fee.amount, confirm_fee_review: fee.review }).eq('id', lead.id).is('confirm_paid_at', null);
-  return json(req, { ok: true, order_id: j.id, amount: j.amount, currency: j.currency, key_id: keyId, name: lead.name, fee: fee.amount, fee_line: feeLine(b.vehicle, fee.amount) });
+  return json(req, { ok: true, gateway: 'razorpay', order_id: j.id, amount: j.amount, currency: j.currency, key_id: keyId, name: lead.name, fee: fee.amount, fee_line: feeLine(b.vehicle, fee.amount) });
 });

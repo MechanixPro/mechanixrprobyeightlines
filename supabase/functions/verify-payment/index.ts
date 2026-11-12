@@ -1,20 +1,41 @@
 // POST /functions/v1/verify-payment  { razorpay_order_id, razorpay_payment_id, razorpay_signature }
+// Also accepts { cashfree_order_id }: the order is then confirmed with Cashfree's API (the browser's result is never trusted). Works for either gateway whenever that gateway's keys exist, so a payment in flight survives a switch.
 // Step 3 of Razorpay Standard Checkout. Marks a booking paid only when the signature is genuine AND Razorpay confirms the payment is captured for that order.
 import { adminDb, env, json, corsHeaders, rupee } from '../_shared/util.ts';
 import { cleanVerify, validSignature, paymentState } from '../_shared/checkout.ts';
 import { sendSmart, TPL } from '../_shared/whatsapp.ts';
 import { bookingId } from '../_shared/booking-id.ts';
 import { afterConfirmationPaid } from '../_shared/after-payment.ts';
+import { cleanCashfreeVerify } from '../_shared/checkout.ts';
+import { cashfreeReady, NOT_CONFIGURED } from '../_shared/cashfree.ts';
+import { settleCashfreeOrder } from '../_shared/cashfree-settle.ts';
+import { liveDeps } from '../_shared/payment-effects-live.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
   if (req.method !== 'POST') return json(req, { error: 'Method not allowed' }, 405);
   const origin = req.headers.get('origin') ?? '';
   if (origin && corsHeaders(req)['Access-Control-Allow-Origin'] !== origin) return json(req, { error: 'Not allowed' }, 403);
+  const body = await req.json().catch(() => ({}));
+  const cf = cleanCashfreeVerify(body);
+  if (cf.ok) {
+    if (!cashfreeReady()) { console.error(NOT_CONFIGURED); return json(req, { error: 'Online payment is not available yet.' }, 503); }
+    const r = await settleCashfreeOrder(adminDb(), cf.order_id, 'checkout', liveDeps);
+    if (r.kind === 'paid') {
+      const e = r.effect;
+      // The payer's own browser holds the unguessable order id, so it gets the private tracking token. Only for confirmation-fee bookings.
+      const { data: sec } = r.purpose === 'booking' ? await adminDb().from('booking_secrets').select('track_token').eq('lead_id', r.leadId).maybeSingle() : { data: null };
+      return json(req, { ok: true, status: 'paid', booking_id: e.bookingId ?? null, amount: e.amount, ...(e.already ? { already: true } : {}), track_token: (sec as { track_token?: string } | null)?.track_token ?? null });
+    }
+    if (r.kind === 'pending') return json(req, { ok: true, status: 'pending', message: 'Your payment is being confirmed. We will message you on WhatsApp.' }, 202);
+    if (r.kind === 'unpaid') return json(req, { error: 'This payment was not completed. Nothing was marked as paid.' }, 400);
+    if (r.kind === 'retry') return json(req, { error: 'Could not confirm this payment with the payment provider. If money was taken, we will confirm your booking and message you.' }, 502);
+    return json(req, { error: 'Could not match this payment to a booking.' }, 400);
+  }
   const keyId = env('RAZORPAY_KEY_ID'), keySecret = env('RAZORPAY_KEY_SECRET');
   if (!keyId || !keySecret) return json(req, { error: 'Online payment is not available yet.' }, 503);
 
-  const v = cleanVerify(await req.json().catch(() => ({})));
+  const v = cleanVerify(body);
   if (!v.ok) return json(req, { error: 'Missing or invalid payment details.' }, 400);
   if (!(await validSignature(v.order_id, v.payment_id, v.signature, keySecret))) return json(req, { error: 'Payment signature did not match. Nothing was marked as paid.' }, 400);
 

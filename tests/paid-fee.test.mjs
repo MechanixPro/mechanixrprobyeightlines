@@ -65,7 +65,7 @@ test('every path that charges uses the one fee function, never an amount from th
   const bs = read('supabase/functions/book-start/index.ts'), cl = read('supabase/functions/_shared/confirm-link.ts'), dp = read('supabase/functions/desk-payment-link/index.ts'), pl = read('supabase/functions/payment-link/index.ts');
   assert.match(bs, /confirmFee\(\{ vehicle: b\.vehicle/); assert.doesNotMatch(bs, /raw\.(fee|amount)|b\.(fee|amount)\b/);
   assert.match(cl, /confirmFee\(/); assert.match(dp, /purpose === 'confirm'[\s\S]*prepareConfirmationLink/); assert.match(pl, /purpose === 'confirm'[\s\S]*prepareConfirmationLink/);
-  assert.doesNotMatch(dp.slice(dp.indexOf("purpose === 'confirm'"), dp.indexOf('razorpayReady()')), /b\.amount/);   // the desk cannot type an amount on this path
+  assert.doesNotMatch(dp.slice(dp.indexOf("purpose === 'confirm'"), dp.indexOf('paymentsReady()')), /b\.amount/);   // the desk cannot type an amount on this path
   const order = read('supabase/functions/create-order/index.ts'); assert.match(order, /confirm_fee && lead\.rzp_order_id/);
   const form = read('assets/js/book-pay.js'); assert.doesNotMatch(book.payload({ vehicle: 'bike', model: 'x' }, 'k'.repeat(16)).toString?.() ?? '', /fee/); assert.equal('fee' in book.payload({ vehicle: 'bike', model: 'x' }, 'k'.repeat(16)), false); assert.ok(form.includes('The fee is not in it'));
 });

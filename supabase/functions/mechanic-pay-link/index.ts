@@ -3,7 +3,7 @@
 // When the mechanic pays, razorpay-webhook records it in the ledger as a remittance for that mechanic and booking.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { adminDb, env, json, corsHeaders } from '../_shared/util.ts';
-import { createPaymentLink } from '../_shared/razorpay.ts';
+import { createPaymentLink } from '../_shared/gateway.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });

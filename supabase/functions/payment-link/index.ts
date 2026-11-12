@@ -1,7 +1,7 @@
 // POST /functions/v1/payment-link  { lead_id, amount }  — called from the admin panel by a signed-in admin.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { adminDb, env, json, corsHeaders, rupee } from '../_shared/util.ts';
-import { createPaymentLink } from '../_shared/razorpay.ts';
+import { createPaymentLink } from '../_shared/gateway.ts';
 import { sendSmart, TPL } from '../_shared/whatsapp.ts';
 import { paymentLinkEmail } from '../_shared/email-templates.ts';
 import { sendEmail, FROM_BOOKING } from '../_shared/resend.ts';

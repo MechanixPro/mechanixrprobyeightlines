@@ -1,6 +1,6 @@
 /* /book/: book a doorstep service and pay a small confirmation fee (Rs 49 to Rs 99 by engine size). No inline script (CSP).
    1) the form is sent to our server (book-start), which saves the booking, works out the fee itself and opens one Razorpay order,
-   2) Razorpay's payment window opens, 3) the result goes to verify-payment. The booking is confirmed only when the payment is verified.
+   2) the payment window opens (Razorpay, or Cashfree when the server says gateway:'cashfree'), 3) the result goes to verify-payment. The booking is confirmed only when the payment is verified.
    The amount shown here is a preview with the same rule; the server's amount is the one charged, and if it differs we ask before charging. */
 (function (root, factory) {
   var api = factory();
@@ -256,6 +256,7 @@
         .catch(function (err) { if ((tries || 0) >= 1) throw err; return new Promise(function (res) { win.setTimeout(res, 1500); }).then(function () { return call(fn, body, (tries || 0) + 1); }); });
     };
     var loadCheckout = function () { return new Promise(function (resolve, reject) { if (win.Razorpay) return resolve(); var s = doc.createElement('script'); s.src = 'https://checkout.razorpay.com/v1/checkout.js'; s.onload = resolve; s.onerror = function () { reject(new Error('load')); }; doc.head.appendChild(s); }); };
+    var loadCashfree = function () { return new Promise(function (resolve, reject) { if (win.Cashfree) return resolve(); var s = doc.createElement('script'); s.src = 'https://sdk.cashfree.com/js/v3/cashfree.js'; s.onload = resolve; s.onerror = function () { reject(new Error('load')); }; doc.head.appendChild(s); }); };
     var msg = $('#bk-msg'), payBtn = $('#bk-pay');
     try { if (/Instagram|FBAN|FBAV|FB_IAB|MicroMessenger|Line\//i.test(win.navigator.userAgent || '')) { var hint = doc.createElement('p'); hint.className = 'tiny muted'; hint.id = 'bk-inapp'; hint.textContent = 'Payment not opening? Tap the three dots and choose "Open in browser", or message us on WhatsApp and we will send you a payment link.'; payBtn.parentNode.insertBefore(hint, payBtn); } } catch (e3) {}
     var free = function () { busy = false; payBtn.disabled = false; showFee(); };
@@ -270,7 +271,7 @@
     };
     var verify = function (resp, email) {
       msg.textContent = 'Confirming your payment…';
-      call('verify-payment', { razorpay_order_id: resp.razorpay_order_id, razorpay_payment_id: resp.razorpay_payment_id, razorpay_signature: resp.razorpay_signature }).then(function (x) {
+      call('verify-payment', resp.cashfree_order_id ? { cashfree_order_id: resp.cashfree_order_id } : { razorpay_order_id: resp.razorpay_order_id, razorpay_payment_id: resp.razorpay_payment_id, razorpay_signature: resp.razorpay_signature }).then(function (x) {
         if (x.ok && x.d.status === 'paid') done(x.d, email);
         else if (x.status === 202) { msg.textContent = x.d.message || 'Your payment is being confirmed. We will email you.'; }
         else { free(); msg.textContent = (x.d && x.d.error) || 'We could not confirm the payment. If money was taken, message us on WhatsApp.'; }
@@ -287,6 +288,16 @@
         if (!x.ok) { free(); if (x.d && x.d.field) markErrors((function (o) { o[x.d.field] = x.d.error; return o; })({})); msg.textContent = (x.d && x.d.error) || 'Something went wrong. Please try again.'; return; }
         if (x.d.status === 'paid') { done(x.d, v.email); return; }
         if (Number(x.d.fee) !== shown.amount) { free(); $('#bk-fee-amt').textContent = 'Pay ₹' + x.d.fee + ' to confirm'; $('#bk-fee-line').textContent = x.d.fee_line || ''; msg.textContent = 'The confirmation fee for your vehicle is ₹' + x.d.fee + '. Tap pay again to continue.'; payBtn.textContent = 'Pay ₹' + x.d.fee + ' to confirm'; return; }
+        if (x.d && x.d.gateway === 'cashfree') {
+          return loadCashfree().then(function () {
+            var o = x.d, cf = win.Cashfree({ mode: o.mode === 'sandbox' ? 'sandbox' : 'production' });
+            msg.textContent = '';
+            return cf.checkout({ paymentSessionId: o.payment_session_id, redirectTarget: '_modal' }).then(function (r) {
+              if (r && r.error) { free(); msg.textContent = 'Payment not completed' + (r.error.message ? ': ' + r.error.message : '') + '. Nothing was charged unless you see a confirmation. Tap pay to try again.'; return; }
+              verify({ cashfree_order_id: o.order_id }, v.email);
+            });
+          }).catch(function () { free(); msg.textContent = 'Could not load the payment window. Check your connection and try again.'; });
+        }
         return loadCheckout().then(function () {
           var o = x.d, rzp = new win.Razorpay({ key: o.key_id, amount: o.amount, currency: o.currency, order_id: o.order_id, name: 'Mechanix Pro', description: 'Confirmation fee, adjusted in your final bill',
             prefill: { name: v.name, email: v.email, contact: '+91' + String(v.phone).replace(/\D/g, '').slice(-10) }, theme: { color: '#F2801F' },

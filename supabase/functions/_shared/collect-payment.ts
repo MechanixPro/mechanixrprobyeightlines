@@ -1,5 +1,5 @@
 // Collect payment at the end of a job. Pure helpers (no Deno APIs, so node --test runs them) plus one server routine shared by tech-job and garage-app.
-// Only Razorpay link ids, urls and amounts are stored. Never card or bank details.
+// Only payment link ids, urls and amounts are stored. Never card or bank details.
 export const r2 = (n: unknown): number => Math.round((Number(n) || 0) * 100) / 100;
 // Visit stages at or after the vehicle reaching the customer's door or the garage (mechanic link).
 export const ARRIVED_STAGES = ['arrived', 'started', 'repair_doorstep', 'picked_up', 'ready', 'returned'];
@@ -35,7 +35,7 @@ export async function dueFor(db: any, lead: any, build: () => Promise<number>): 
 }
 
 type Who = { kind: 'mechanic' | 'garage'; name: string; mechanicId: string | null };
-type Ops = { createLink: (o: any) => Promise<{ id: string; url: string }>; razorpayReady: () => boolean };
+type Ops = { createLink: (o: any) => Promise<{ id: string; url: string }>; paymentsReady?: () => boolean; razorpayReady?: () => boolean };   // paymentsReady is the active gateway; razorpayReady is the old name
 
 // The three actions, identical rules for both apps. `arrived` is worked out by the caller from its own stage data.
 export async function collectAction(db: any, ops: Ops, action: string, lead: any, who: Who, arrived: boolean, body: any, build: () => Promise<number>): Promise<{ status: number; body: any }> {
@@ -53,7 +53,7 @@ export async function collectAction(db: any, ops: Ops, action: string, lead: any
   if (action === 'payment_request') {
     if (paid) return { status: 200, body: { ok: true, paid: true, method: lead.final_paid_method, amount: Number(lead.final_paid_amount) || 0 } };
     if (due < 1) return { status: 409, body: { error: 'There is no amount due yet. Ask the desk.' } };
-    if (!ops.razorpayReady()) return { status: 503, body: { error: 'Payments are not connected yet.' } };
+    if (!(ops.paymentsReady ?? ops.razorpayReady ?? (() => false))()) return { status: 503, body: { error: 'Payments are not connected yet.' } };
     try {
       if (reusable(lead, due)) return { status: 200, body: { ok: true, url: lead.final_link_url, amount: due, reused: true, paid: false } };
       const first = String(lead.name ?? '').split(' ')[0];

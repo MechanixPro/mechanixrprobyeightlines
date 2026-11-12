@@ -7,7 +7,7 @@ import { sendText, whatsappReady } from '../_shared/whatsapp.ts';
 import { aiReady, aiReply, systemPrompt } from '../_shared/ai.ts';
 import { slotFee } from '../_shared/checkout.ts';
 import { isReturningCustomer } from '../_shared/customer.ts';
-import { createPaymentLink, razorpayReady } from '../_shared/razorpay.ts';
+import { createPaymentLink, paymentsReady } from '../_shared/gateway.ts';
 import { REF_IN_TEXT, refFilter } from '../_shared/booking-id.ts';
 import { detectVehicle, upgradeVehicle, vehicleCols } from '../_shared/vehicle.ts';
 
@@ -113,7 +113,7 @@ async function handleMessage(db: ReturnType<typeof adminDb>, m: ParsedMessage) {
 
   let reply = ai.reply;
   if (ai.action === 'handoff') { upd.ai_enabled = false; upd.notes = [upd.notes ?? lead.notes, 'AI handed off to staff'].filter(Boolean).join(' · '); }
-  if (ai.action === 'send_payment_link' && razorpayReady() && !['paid', 'scheduled', 'completed'].includes(lead.status)) {
+  if (ai.action === 'send_payment_link' && paymentsReady() && !['paid', 'scheduled', 'completed'].includes(lead.status)) {
     const merged = { ...lead, ...upd };
     if (merged.service_id && merged.preferred_slot) {
       try {

@@ -1,4 +1,4 @@
-/* Pay for a booking with Razorpay Standard Checkout.
+/* Pay for a booking with Razorpay Standard Checkout, or Cashfree Checkout when the server says gateway:'cashfree'.
    1) ask our server to create an order (create-order), 2) open Razorpay's payment window, 3) send the result to our server to verify the signature (verify-payment).
    Only the public key id ever reaches this page; the secret stays on the server. No inline script (CSP). */
 (function () {
@@ -18,15 +18,25 @@
       var s = document.createElement('script'); s.src = 'https://checkout.razorpay.com/v1/checkout.js'; s.onload = resolve; s.onerror = function () { reject(new Error('load')); }; document.head.appendChild(s);
     });
   }
+  function loadCashfree() {
+    return new Promise(function (resolve, reject) {
+      if (window.Cashfree) return resolve();
+      var s = document.createElement('script'); s.src = 'https://sdk.cashfree.com/js/v3/cashfree.js'; s.onload = resolve; s.onerror = function () { reject(new Error('load')); }; document.head.appendChild(s);
+    });
+  }
   function done(html) { out.innerHTML = '<div class="card track-card fade">' + html + '</div>'; msg.textContent = ''; go.disabled = false; }
   function verify(resp, bid) {
     msg.textContent = 'Confirming your payment…';
-    call('verify-payment', { razorpay_order_id: resp.razorpay_order_id, razorpay_payment_id: resp.razorpay_payment_id, razorpay_signature: resp.razorpay_signature }).then(function (x) {
+    /* Cashfree: only our own order id is sent; the server asks Cashfree whether it was paid. */
+    call('verify-payment', resp.cashfree_order_id ? { cashfree_order_id: resp.cashfree_order_id } : { razorpay_order_id: resp.razorpay_order_id, razorpay_payment_id: resp.razorpay_payment_id, razorpay_signature: resp.razorpay_signature }).then(function (x) {
       if (x.ok && x.d.status === 'paid') done('<h2 style="font-size:28px">Payment received.</h2><p>Thank you. ' + (x.d.booking_id || bid ? 'Your booking <b>' + esc(x.d.booking_id || bid) + '</b>' : 'Your booking') + ' is confirmed. We will message you on WhatsApp with the next steps.</p>');
       else if (x.status === 202) done('<h2 style="font-size:28px">Almost done.</h2><p>' + esc(x.d.message || 'Your payment is being confirmed.') + '</p>');
       else { go.disabled = false; msg.textContent = (x.d && x.d.error) || 'We could not confirm the payment. If money was taken, message us on WhatsApp with your reference.'; }
     }).catch(function () { go.disabled = false; msg.textContent = 'No connection while confirming. If money was taken, message us on WhatsApp with your reference.'; });
   }
+  /* Back from a Cashfree redirect (UPI apps, some banks): ask the server about the order named in the address. */
+  var back = (q.get('cf_order') || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
+  if (back && C.supabaseUrl && C.supabaseAnonKey) { go.disabled = true; verify({ cashfree_order_id: back }, ''); }
   form.addEventListener('submit', function (e) {
     e.preventDefault(); out.innerHTML = '';
     var ref = document.getElementById('pay-ref').value.trim(), phone = document.getElementById('pay-phone').value.trim();
@@ -35,6 +45,16 @@
     go.disabled = true; msg.textContent = 'Starting your payment…';
     call('create-order', { ref: ref, phone: phone }).then(function (x) {
       if (!x.ok) { go.disabled = false; msg.textContent = (x.d && x.d.error) || 'Something went wrong. Please try again.'; return; }
+      if (x.d && x.d.gateway === 'cashfree') {
+        return loadCashfree().then(function () {
+          var o = x.d, cf = window.Cashfree({ mode: o.mode === 'sandbox' ? 'sandbox' : 'production' });
+          msg.textContent = '';
+          return cf.checkout({ paymentSessionId: o.payment_session_id, redirectTarget: '_modal' }).then(function (r) {
+            if (r && r.error) { go.disabled = false; msg.textContent = 'Payment not completed' + (r.error.message ? ': ' + r.error.message : '') + '. Nothing was charged unless you see a confirmation. You can try again.'; return; }
+            verify({ cashfree_order_id: o.order_id }, o.booking_id);
+          });
+        }).catch(function () { go.disabled = false; msg.textContent = 'Could not load the payment window. Check your connection and try again.'; });
+      }
       return loadCheckout().then(function () {
         var o = x.d, rzp = new window.Razorpay({
           key: o.key_id, amount: o.amount, currency: o.currency, order_id: o.order_id, name: 'Mechanix Pro', description: o.booking_id ? 'Booking ' + o.booking_id : 'Mechanix Pro confirmation fee',
