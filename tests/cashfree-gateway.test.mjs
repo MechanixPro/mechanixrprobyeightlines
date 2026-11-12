@@ -272,3 +272,10 @@ test('webhook signature: the dotted form (timestamp + "." + body) is accepted to
   assert.equal(await cf.webhookValid(raw, ts, dotted('other'), SECRET, now), false);
   assert.equal(await cf.webhookValid(raw + ' ', ts, dotted(SECRET), SECRET, now), false, 'a changed body');
 });
+
+test('the site security rules allow the Cashfree checkout window: its frame and its form post both go to api.cashfree.com (a live test showed both blocked)', () => {
+  const h = readFileSync(new URL('../_headers', import.meta.url), 'utf8'); const first = h.split('\n').find((l) => l.includes('Content-Security-Policy') && l.includes('script-src'));
+  const dir = (name) => (first.match(new RegExp('(?:^|[ ;])' + name + ' ([^;]*)')) || [])[1] || '';
+  for (const d of ['frame-src', 'form-action']) { assert.match(dir(d), /https:\/\/api\.cashfree\.com/, d); assert.match(dir(d), /https:\/\/\*\.cashfree\.com/, d); assert.match(dir(d), /https:\/\/sdk\.cashfree\.com/, d); }
+  assert.match(dir('script-src'), /https:\/\/sdk\.cashfree\.com/); assert.match(dir('connect-src'), /https:\/\/api\.cashfree\.com/);
+});
