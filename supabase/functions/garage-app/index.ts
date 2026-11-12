@@ -145,12 +145,12 @@ Deno.serve(async (req) => {
   }
 
   /* ---------- reading jobs: only this garage's own assignments ---------- */
-  const mine = (id?: string) => { let q = db.from('garage_assignments').select('id,lead_id,status,eta,notes,assigned_at,received_at,started_at,ready_at,returned_at,offer_expires_at').eq('garage_id', garageId).neq('status', 'cancelled'); if (id) q = q.eq('id', id); return q; };
+  const mine = (id?: string, withCancelled = false) => { let q = db.from('garage_assignments').select('id,lead_id,status,eta,notes,assigned_at,received_at,started_at,ready_at,returned_at,offer_expires_at').eq('garage_id', garageId); if (!withCancelled) q = q.neq('status', 'cancelled'); if (id) q = q.eq('id', id); return q; };
   // Lead columns: never address, email or phone here (the address of an open job is fetched separately in 'job'). The phone is fetched separately, only after the contact view is allowed.
-  const LEAD_COLS = 'id,name,booking_id,vehicle,service_id,bike_id,status';
+  const LEAD_COLS = 'id,name,booking_id,vehicle,service_id,bike_id,status,delivery_stage,ready_at,delivered_at,closed_at';
   async function context(rows: any[]) {
     const leadIds = [...new Set(rows.map((r) => r.lead_id))];
-    const [leads, quotes] = await Promise.all([db.from('leads').select(LEAD_COLS).in('id', leadIds), db.from('job_quotes').select('lead_id,status,version').in('lead_id', leadIds).in('status', ['sent', 'approved', 'declined']).order('version', { ascending: false })]);
+    const [leads, quotes] = await Promise.all([db.from('leads').select(LEAD_COLS).in('id', leadIds), db.from('job_quotes').select('lead_id,status,version,decided_at,decided_method,decided_via').in('lead_id', leadIds).in('status', ['sent', 'approved', 'declined', 'changes_requested']).order('version', { ascending: false })]);
     const L = new Map((leads.data ?? []).map((l: any) => [l.id, l])), Q = new Map<string, any>();
     for (const q of quotes.data ?? []) if (!Q.has(q.lead_id)) Q.set(q.lead_id, q);
     const sIds = [...new Set([...L.values()].map((l: any) => l.service_id).filter(Boolean))], bIds = [...new Set([...L.values()].map((l: any) => l.bike_id).filter(Boolean))];
@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
     const S = new Map((sv.data ?? []).map((x: any) => [x.id, x.name])), K = new Map((bk.data ?? []).map((x: any) => [x.id, x]));
     return { L, Q, S, K };
   }
-  const rawOf = (a: any, c: Awaited<ReturnType<typeof context>>): RawJob => { const l: any = c.L.get(a.lead_id) ?? {}; return { assignment: a, lead: l, service: c.S.get(l.service_id) ?? null, vehicle: c.K.get(l.bike_id) ?? null, quote: c.Q.get(a.lead_id) ?? null }; };
+  const rawOf = (a: any, c: Awaited<ReturnType<typeof context>>): RawJob => { const l: any = c.L.get(a.lead_id) ?? {}; return { assignment: a, lead: l, service: c.S.get(l.service_id) ?? null, vehicle: c.K.get(l.bike_id) ?? null, quote: c.Q.get(a.lead_id) ?? null, approval: c.Q.get(a.lead_id) ?? null }; };
   const sign = async (bucket: string, paths: string[]) => { const out: string[] = []; for (const p of paths.slice(0, 12)) { const { data } = await db.storage.from(bucket).createSignedUrl(p, 600); if (data?.signedUrl) out.push(data.signedUrl); } return out; };
 
   if (action === 'leads') {
@@ -196,8 +196,12 @@ Deno.serve(async (req) => {
     const doneIds = (rows ?? []).filter((r: any) => ['ready', 'returned'].includes(r.status)).map((r: any) => r.id);
     const { data: paidRows } = doneIds.length ? await db.from('garage_settlements').select('assignment_id').eq('settled', true).in('assignment_id', doneIds) : { data: [] };
     const paidSet = new Set((paidRows ?? []).map((p: any) => p.assignment_id)), shown = (rows ?? []).filter((r: any) => !paidSet.has(r.id));
-    const c = await context(shown);
-    return json(req, { ok: true, garage: { name: garageName }, jobs: shown.map((a: any) => garageJobListItem(rawOf(a, c))) });
+    // Jobs cancelled because the customer cancelled the booking stay visible for 7 days, marked Cancelled (customer_cancelled: true).
+    const { data: cx } = await db.from('garage_assignments').select('id,lead_id,status,eta,notes,assigned_at,received_at,started_at,ready_at,returned_at,offer_expires_at').eq('garage_id', garageId).eq('status', 'cancelled').gte('updated_at', new Date(Date.now() - 7 * 86400_000).toISOString()).order('assigned_at', { ascending: false }).limit(20);
+    const all = [...shown, ...(cx ?? [])];
+    const c = await context(all);
+    const cancelledOk = new Set((cx ?? []).filter((r: any) => (c.L.get(r.lead_id) as any)?.status === 'cancelled').map((r: any) => r.id));
+    return json(req, { ok: true, garage: { name: garageName }, jobs: all.filter((r: any) => r.status !== 'cancelled' || cancelledOk.has(r.id)).map((a: any) => garageJobListItem(rawOf(a, c))) });
   }
 
   if (action === 'statement') {
@@ -254,9 +258,10 @@ Deno.serve(async (req) => {
     const { count } = await db.from('audit_log').select('id', { count: 'exact', head: true }).eq('action', 'garage_detail').eq('details->>access', accessId).gte('created_at', ago(10));
     if ((count ?? 0) >= 60) return json(req, { error: 'Too many opens. Wait a few minutes.' }, 429);
     await db.from('audit_log').insert({ action: 'garage_detail', details: { access: accessId } });
-    const { data: a } = await mine(jobId).maybeSingle();
+    const { data: a } = await mine(jobId, true).maybeSingle();   // a job cancelled because the customer cancelled the booking is still opened (it shows as cancelled); other cancelled jobs are not
     if (!a) return json(req, { error: 'This job is not available.' }, 404);
     const c = await context([a]), raw = rawOf(a, c);
+    if (a.status === 'cancelled' && (raw.lead as any)?.status !== 'cancelled') return json(req, { error: 'This job is not available.' }, 404);
     const [bd, ho, pr, es] = await Promise.all([
       db.from('booking_details').select('issue_text').eq('lead_id', a.lead_id).maybeSingle(),
       db.from('handovers').select('note,photo_paths').eq('lead_id', a.lead_id).eq('kind', 'pickup').order('created_at', { ascending: false }).limit(1).maybeSingle(),

@@ -50,4 +50,9 @@ export const TPL = {
   payment: () => env('WA_TPL_PAYMENT', 'mxp_payment_reminder'),
   paid: () => env('WA_TPL_PAID', 'mxp_payment_received'),
   last: () => env('WA_TPL_LAST', 'mxp_last_reminder'),
+  deliveryReady: () => env('WA_TPL_DELIVERY_READY', 'mxp_delivery_ready'),
+  deliveryDone: () => env('WA_TPL_DELIVERY_DONE', 'mxp_delivery_done'),
+  approval: () => env('WA_TPL_APPROVAL', 'mxp_quote_approved'),
+  garageApproved: () => env('WA_TPL_GARAGE_APPROVED', 'mxp_garage_approved'),
+  garageRejected: () => env('WA_TPL_GARAGE_REJECTED', 'mxp_garage_estimate_rejected'),
 };

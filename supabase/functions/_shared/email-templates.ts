@@ -283,3 +283,18 @@ export function mechanicOnTheWay(d: Site & { name: string; ref?: string | null; 
   const body = `${h1('Your mechanic is on the way')}${p(`Hi ${first(d.name)}, <b>${who}</b> has left for your address. Please keep your code ready: you give it to the mechanic when they arrive, before any work starts.`)}${button('Track live', d.trackUrl, EMBER, '#1F1206')}<p style="margin:18px 0 0;font:13px/1.5 ${FONT};color:${MUTED}">The live distance on the page is an estimate. This link is private to you.</p>`;
   return { subject, html: layout({ preheader: 'Track your mechanic live', title: subject, body, site: d }), text: `Hi ${firstText(d.name)}, ${d.mechanicFirst ?? 'your mechanic'} is on the way to your address. Keep your code ready.\nTrack live: ${d.trackUrl}\n\nThe live distance is an estimate.` };
 }
+
+// Lifecycle emails: the vehicle is ready or delivered, and the quote approval was received. Short, plain, end with the booking ID.
+export function deliveryUpdate(d: Site & { name: string; ref?: string | null; stage: 'ready' | 'delivered'; vehicleName: string; trackUrl: string }): Mail {
+  const ready = d.stage === 'ready', id = d.ref ? ` Booking ${d.ref}.` : '';
+  const subject = ready ? `Your ${d.vehicleName} is ready${d.ref ? ' ' + d.ref : ''}` : `Your ${d.vehicleName} was delivered${d.ref ? ' ' + d.ref : ''}`;
+  const line = ready ? `your <b>${escapeHtml(d.vehicleName)}</b> is ready for delivery. We will hand it over as planned.` : `your <b>${escapeHtml(d.vehicleName)}</b> has been delivered. Thank you for choosing Mechanix Pro.`;
+  const body = `${h1(ready ? 'Ready for delivery' : 'Delivered')}${p(`Hi ${first(d.name)}, ${line}${escapeHtml(id)}`)}${button('Open your booking', d.trackUrl, EMBER, '#1F1206')}`;
+  return { subject, html: layout({ preheader: ready ? 'Your vehicle is ready' : 'Your vehicle was delivered', title: subject, body, site: d }), text: `Hi ${firstText(d.name)}, ${ready ? `your ${d.vehicleName} is ready for delivery. We will hand it over as planned.` : `your ${d.vehicleName} has been delivered. Thank you for choosing Mechanix Pro.`}${id}\n${d.trackUrl}` };
+}
+export function approvalReceived(d: Site & { name: string; ref?: string | null; by: 'customer' | 'admin'; trackUrl: string }): Mail {
+  const subject = `Quote approved${d.ref ? ' ' + d.ref : ''}: the work can start`, id = d.ref ? ` Booking ${d.ref}.` : '';
+  const line = d.by === 'admin' ? 'our team noted your approval of the quote.' : 'we got your approval of the quote.';
+  const body = `${h1('Quote approved')}${p(`Hi ${first(d.name)}, ${line} The work can start now.${escapeHtml(id)}`)}${button('Track your booking', d.trackUrl, EMBER, '#1F1206')}`;
+  return { subject, html: layout({ preheader: 'The work can start now', title: subject, body, site: d }), text: `Hi ${firstText(d.name)}, ${line} The work can start now.${id}\n${d.trackUrl}` };
+}

@@ -1,6 +1,7 @@
 // "Refund to customer now": an Admin refunds a Cashfree payment through Cashfree's Refunds API and the ledger records it.
 // Money code: fails closed, idempotent, never trusts the browser. No Deno-only imports, so Node tests it with a mocked fetch and a fake database.
 // The caller (admin-refund/index.ts) has already proved the user is an Admin through the database (is_admin()). Crew can never reach this.
+import { mapRefundStatus, nextRefundStatus } from './lifecycle.ts';
 import { CashfreeError, createCashfreeRefund, getCashfreeOrderPayments, getCashfreeRefund, isCashfreeOrderId, rupees2 } from './cashfree.ts';
 
 type Db = any;
@@ -32,6 +33,23 @@ export function refundable(rows: Row[], audits: Row[]) {
   const cap = rupees2(Math.max(0, cashfreeTotal - refundsAll));
   const refundRows = rows.filter((r) => r.entry_type === 'refund' && String(r.gateway_txn_id ?? '').startsWith('cfr_')).length;
   return { orders, cap, cashfreeTotal, refundsAll, refundedOn, refundRows };
+}
+
+/** Keeps booking_refunds in step with Cashfree: pending / processing / refunded / failed. The ledger trigger already made the row; this sets the status, the reference (our refund_id) and Cashfree's cf_refund_id.
+ *  Best effort and never throws: the ledger is the record of money, this table is the screen's view of it. A finished status is never undone by a late one. */
+export async function syncBookingRefund(db: Db, o: { leadId: string; refundId: string; cfRefundId?: unknown; cashfreeStatus: unknown; amount?: number; reason?: string; adminId?: string | null }): Promise<void> {
+  try {
+    const status = mapRefundStatus(o.cashfreeStatus), gw = o.cfRefundId != null && String(o.cfRefundId) !== '' ? String(o.cfRefundId).slice(0, 40) : null;
+    const { data: row } = await db.from('booking_refunds').select('id,status').eq('lead_id', o.leadId).eq('reference', o.refundId).maybeSingle();
+    if (row) {
+      const patch: Record<string, unknown> = { status: nextRefundStatus(row.status, status), updated_at: new Date().toISOString() };
+      if (gw) patch.gateway_refund_id = gw;
+      await db.from('booking_refunds').update(patch).eq('id', row.id);
+      return;
+    }
+    const { data: led } = await db.from('ledger_entries').select('id').eq('gateway_txn_id', 'cfr_' + o.refundId).maybeSingle();
+    await db.from('booking_refunds').insert({ lead_id: o.leadId, kind: 'partial', amount: o.amount ?? 0, method: 'cashfree', reference: o.refundId, gateway_refund_id: gw, status, reason: o.reason ?? null, created_by: o.adminId ?? null, ledger_entry_id: led?.id ?? null });
+  } catch (e) { console.error('syncBookingRefund', (e as Error)?.message); }
 }
 
 export async function runRefund(db: Db, i: RefundIn): Promise<Out> {
@@ -93,12 +111,13 @@ export async function runRefund(db: Db, i: RefundIn): Promise<Out> {
   if (!ACCEPTED.includes(st)) return fail(409, `Cashfree has the refund as "${st.toLowerCase() || 'unknown'}" and it is not moving yet. Nothing was recorded. Approve or check it in the Cashfree dashboard.`);
 
   const { error } = await db.from('ledger_entries').insert({ lead_id: leadId, entry_type: 'refund', amount, collected_by: 'company_portal', method: 'cashfree', reference: refundId, source: 'gateway', gateway_txn_id: 'cfr_' + refundId, reason, note: `Cashfree order ${orderId}; refund ${st.toLowerCase()}`, created_by: i.adminId });
-  if (error && error.code === '23505') return { status: 200, body: { ok: true, already: true, refund_id: refundId, status: st, amount } };
+  if (error && error.code === '23505') { await syncBookingRefund(db, { leadId, refundId, cfRefundId: r?.cf_refund_id, cashfreeStatus: st, amount, reason, adminId: i.adminId }); return { status: 200, body: { ok: true, already: true, refund_id: refundId, status: st, amount } }; }
   if (error) {
     console.error('refund ledger insert failed', error.code);
     await db.from('audit_log').insert({ actor: i.adminId, action: 'refund_ledger_failed', details: { lead: lead.ref, refund_id: refundId, amount } }).then(() => {}, () => {});
     return fail(500, 'Cashfree accepted the refund but it could not be written to the ledger. Press the button again: it will record the same refund without refunding twice.');
   }
+  await syncBookingRefund(db, { leadId, refundId, cfRefundId: r?.cf_refund_id, cashfreeStatus: st, amount, reason, adminId: i.adminId });
   await db.from('audit_log').insert({ actor: i.adminId, action: 'refund_to_customer', details: { lead: lead.ref, amount, refund_id: refundId, order_id: orderId, status: st, reason } }).then(() => {}, () => {});
   await db.from('crm_activities').insert({ lead_id: leadId, actor: i.adminId, kind: 'note', body: `Refund Rs ${amount} sent to the customer through Cashfree (${st.toLowerCase()}). It reaches the original payment method in 5 to 7 working days.` }).then(() => {}, () => {});
   return { status: 200, body: { ok: true, already: false, refund_id: refundId, status: st, amount } };
@@ -114,7 +133,8 @@ export async function handleRefundWebhook(db: Db, evt: any): Promise<'ok' | 'ign
   let r: any;
   try { r = await getCashfreeRefund(orderId, refundId); } catch { return 'retry'; }
   const st = String(r?.refund_status ?? '').toUpperCase();
-  if (!FAILED.includes(st)) return 'ok';   // SUCCESS and in-flight states need no change
+  await syncBookingRefund(db, { leadId: row.lead_id, refundId, cfRefundId: r?.cf_refund_id, cashfreeStatus: st, amount: Number(row.amount), reason: row.reason ?? undefined });   // SUCCESS -> refunded, PENDING or ONHOLD -> processing, failure -> failed
+  if (!FAILED.includes(st)) return 'ok';   // SUCCESS and in-flight states need no ledger change
   const amt = Number(row.amount);
   const { error } = await db.from('ledger_entries').insert({ lead_id: row.lead_id, entry_type: 'reversal', reverses_id: row.id, amount: amt, reason: `Refund ${st.toLowerCase()} at the gateway`, source: 'gateway', gateway_txn_id: 'cfx_' + refundId, note: 'Cashfree reported the refund as failed: the money did not go back to the customer' });
   if (error && error.code === '23505') return 'ok';   // already reversed by an earlier delivery

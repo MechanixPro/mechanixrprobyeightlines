@@ -4,6 +4,7 @@ import { REF_RE } from './booking-id.ts';
 import { gstSplit } from './confirm-fee.ts';
 import { etaMinutes, etaLine, mapsPointUrl } from './eta.ts';
 import { partnerGarageLine } from './garage.ts';
+import { approvalState, deliveryView, cancelView, type RefundRow } from './lifecycle.ts';
 export const STAGES = ['Request received', 'Quote shared', 'Slot confirmed', 'Mechanic booked', 'Service done'];
 const BY_STATUS: Record<string, { index: number; note: string; closed?: boolean }> = {
   new: { index: 0, note: 'We have your request. Our expert will message or call you soon.' },
@@ -14,6 +15,7 @@ const BY_STATUS: Record<string, { index: number; note: string; closed?: boolean 
   scheduled: { index: 3, note: 'Your mechanic is booked for your slot.' },
   completed: { index: 4, note: 'Your service is done. Your 30-day service warranty has started.' },
   lost: { index: 0, note: 'This booking is closed. Message us on WhatsApp to start again.', closed: true },
+  cancelled: { index: 0, note: 'This booking was cancelled. Message us on WhatsApp if you need help.', closed: true },
 };
 export function stageFor(status: string) { const s = BY_STATUS[status] ?? BY_STATUS.new; return { index: s.index, note: s.note, closed: !!s.closed }; }
 
@@ -24,8 +26,8 @@ export function cleanLookup(b: Record<string, unknown>): { ok: true; ref: string
   return { ok: true, ref, phone };
 }
 
-type QuoteView = { status: string; version: number; eta_text?: string | null; lines?: { kind: string; name: string; amount: number }[]; subtotal?: number; gst?: number; total?: number; fee_credit?: number; balance?: number; quote_no?: string | null; valid_until?: string | null; terms?: string | null; change_request?: string | null; expired?: boolean };
-type Extra = { quote?: QuoteView | null; service?: string | null; bike?: string | null; nick?: string | null; mechanic?: string | null; certified?: boolean; doorVerified?: boolean; secret?: { code?: string | null; address?: string | null } | null; vehicle?: string | null; garage?: string | null };
+type QuoteView = { status: string; version: number; eta_text?: string | null; lines?: { kind: string; name: string; amount: number }[]; subtotal?: number; gst?: number; total?: number; fee_credit?: number; balance?: number; quote_no?: string | null; valid_until?: string | null; terms?: string | null; change_request?: string | null; expired?: boolean; decided_at?: string | null; decided_method?: string | null };
+type Extra = { quote?: QuoteView | null; service?: string | null; bike?: string | null; nick?: string | null; mechanic?: string | null; certified?: boolean; doorVerified?: boolean; secret?: { code?: string | null; address?: string | null } | null; vehicle?: string | null; garage?: string | null; refunds?: RefundRow[] };
 
 export const DOOR_LINE = 'Give this code to the mechanic when they arrive. Do not share it before.';
 const paidConfirmation = (l: Record<string, any>) => l.confirm_fee != null;
@@ -80,6 +82,8 @@ export function trackView(l: Record<string, any>, x: Extra) {
     service: x.service ?? null, bike, area: l.area ?? null, when,
     mechanic: showMech ? String(x.mechanic).trim().split(/\s+/)[0] : null, certified: showMech ? x.certified !== false : null,
     estimate: l.est_total ?? null,
+    delivery: deliveryView(l),   // { stage: none | ready | delivered | closed, at }
+    cancel: cancelView(l, x.refunds ?? []),   // { cancelled, kind, refund: { status, amount } }: never a gateway id
     partner_garage: partnerGarageLine(x.garage),   // a plain status line while the vehicle is with a partner garage: never the garage's name or address
     ...(paidConfirmation(l) ? confirmationExtras(l, x) : {}),
   };
@@ -91,7 +95,7 @@ function confirmationExtras(l: Record<string, any>, x: Extra) {
   const paid = isPaid(l), showCode = !!x.secret?.code && paid && !x.doorVerified && l.status !== 'completed';
   return {
     visit: v, confirmation: { fee: l.confirm_fee, paid, adjusted: 'Adjusted in your final bill.' }, vehicle: x.vehicle === 'car' ? 'car' : 'bike',
-    quote: x.quote ? (x.secret ? { ...x.quote, can_decide: x.quote.status === 'sent' } : { status: x.quote.status, version: x.quote.version, eta_text: x.quote.eta_text ?? null }) : null,
+    quote: x.quote ? (x.secret ? { ...x.quote, can_decide: x.quote.status === 'sent', approval: approvalState(x.quote as any) } : { status: x.quote.status, version: x.quote.version, eta_text: x.quote.eta_text ?? null }) : null,
     door_code: showCode ? x.secret!.code : null, door_line: showCode ? DOOR_LINE : null, address: x.secret?.address ?? null, secret_link: !!x.secret,
   };
 }
