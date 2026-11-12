@@ -793,7 +793,23 @@ const funnelDesk = createFunnelDesk({ rpc: adminRpc, openLead: (id) => { S.tab =
 const routing = createRouting({ rpc: adminRpc, onReady: () => { if (S.tab === "board") render(); } });   // owner, Next step and late chip on the Today board
 const conversion = () => `<div class="view-head"><h2>Conversion</h2><p class="muted">Lead to quote to booking to visit to invoice. Counts and median times, by period, source, campaign, Crew member and vehicle.</p></div><div id="fnRoot"></div>`;
 const mechanicDesk = createMechanicDesk({ rpc: adminRpc, toast, can: () => isOwner(), dialog: (o) => flow.dialog(o) });
-const garagesView = createGaragesView({ rpc: adminRpc, dialog: (o) => flow.dialog(o), toast });
+// A booking opened from a garage's history: found by the lead id or by the booking ID itself (even an older or cancelled one that is not in the loaded list), shown over the Garages page, with a Back button that reopens the history.
+async function openBookingFromHistory({ ref, leadId, back }) {
+  try {
+    let l = leadId ? leadOf(leadId) : (S.leads.find((x) => (x.booking_id || x.ref) === ref) || (S.junkLeads || []).find((x) => (x.booking_id || x.ref) === ref));
+    if (!l) {
+      const q = sb.from('leads').select('*').is('deleted_at', null);
+      const { data, error } = await (leadId ? q.eq('id', leadId) : q.or(`booking_id.eq.${ref},ref.eq.${ref}`)).limit(1);
+      if (error || !data || !data.length) return toast('Could not find booking ' + ref + '. It may have been deleted.', true);
+      l = data[0]; applyQuote(l); S.leads.push(l);
+    }
+    S.backTo = back || null;
+    await openLead(l.id);
+    const panel = $('#sheetPanel');
+    if (panel && back) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-ghost btn-sm'; b.id = 'sheetBack'; b.textContent = '← Back to garage history'; b.addEventListener('click', () => closeSheet()); panel.prepend(b); }
+  } catch (e) { toast('Could not open the booking: ' + ((e && e.message) || e), true); }
+}
+const garagesView = createGaragesView({ rpc: adminRpc, dialog: (o) => flow.dialog(o), toast, openBooking: openBookingFromHistory });
 const kycView = createKycView({ rpc: adminRpc, invoke: async (fn, body) => { const { data, error } = await sb.functions.invoke(fn, { body }); if (error) { let m = null; try { m = (await error.context.json()).error; } catch (x) { /* no body */ } throw new Error(m || error.message); } if (data && data.error) throw new Error(data.error); return data; }, dialog: (o) => flow.dialog(o), toast });
 const flow = createFlow({
   quoteDoc: createQuoteDoc({ rpc: adminRpc, toast, loadCompany }),
@@ -922,7 +938,7 @@ async function removeBookings(ids, reason) {
   return { erased: hard.length, archived: soft.length };
 }
 const removedMsg = (r) => (r.archived && r.erased ? `${r.erased} erased, ${r.archived} moved to Deleted bookings` : r.archived ? (r.archived === 1 ? 'Moved to Deleted bookings (it has an invoice or payment). The owner can restore it.' : `${r.archived} moved to Deleted bookings (they have invoices or payments)`) : `${r.erased} deleted`);
-function closeSheet() { $('#sheet').hidden = true; S.open = null; S.openCust = null; S.openMech = null; S.openCoupon = null; }
+function closeSheet() { $('#sheet').hidden = true; S.open = null; S.openCust = null; S.openMech = null; S.openCoupon = null; const back = S.backTo; S.backTo = null; if (back) setTimeout(() => { try { back(); } catch (e) { /* history is a convenience */ } }, 0); }
 
 document.addEventListener('input', (e) => { if (e.target.closest && e.target.closest('#esCard')) updateEstimate(); });
 document.addEventListener('change', (e) => { if (e.target.closest && e.target.closest('#esCard')) updateEstimate(); });

@@ -43,7 +43,7 @@ const formBody = (g = {}) => {
 const readForm = (f) => ({ ...Object.fromEntries(['name', 'owner_name', 'mobile', 'address', 'landmark', 'pincode', 'lat', 'lng', 'open_days', 'open_time', 'close_time', 'bays', 'notes'].map((k) => [k, f.querySelector(`[name=${k}]`).value])),
   categories: [...f.querySelectorAll('[name=categories]:checked')].map((x) => x.value) });
 
-export function createGaragesView({ rpc, dialog, toast }) {
+export function createGaragesView({ rpc, dialog, toast, openBooking }) {
   let root = null;
   const terms = createAgreementTerms({ rpc, dialog, toast });
   const msg = (e) => String((e && e.message) || e || 'Something went wrong. Try again.');
@@ -89,13 +89,19 @@ export function createGaragesView({ rpc, dialog, toast }) {
     dialog({ title: 'Delete ' + name + '?', intro: 'The garage disappears from every list and its app access is switched off. Its past jobs and records are kept, and you can bring it back. A garage with an open job cannot be deleted.', submit: 'Delete garage',
       onSubmit: async (f, d) => { await rpc('admin_garage_delete', { p_id: id }); d.close(); toast('Garage deleted.'); load(); } });
   }
-  const jobRows = (rows) => (rows && rows.length ? `<ul class="flow-list">${rows.map((j) => `<li>${esc(j.ref || 'Booking')} · ${esc(j.date || '')} · ${esc(String(j.status || '').replace(/_/g, ' '))}${j.area ? ' · ' + esc(j.area) : ''}</li>`).join('')}</ul>` : '<p class="flow-muted">None.</p>');
+  // Every booking ID in a garage's history opens the full booking sheet (by the booking ID shown here, or the lead id when the database sends it).
+  const jobRows = (rows) => (rows && rows.length ? `<ul class="flow-list">${rows.map((j) => `<li>${j.ref && openBooking ? `<button type="button" class="btn btn-ghost btn-sm" data-booking="${esc(j.ref)}" data-lead="${esc(j.lead_id || '')}" aria-label="Open booking ${esc(j.ref)}">${esc(j.ref)}</button>` : esc(j.ref || 'Booking')} · ${esc(j.date || '')} · ${esc(String(j.status || '').replace(/_/g, ' '))}${j.area ? ' · ' + esc(j.area) : ''}</li>`).join('')}</ul>` : '<p class="flow-muted">None.</p>');
   async function history(id) {
     try {
       const h = await rpc('admin_garage_history', { p_garage: id });
       const m = h.mechanic, since = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB') : '');
-      dialog({ title: 'History: ' + esc(h.garage.name), intro: m ? `Converted from mechanic <b>${esc(m.name)}</b> (with Mechanix Pro since ${esc(since(m.since))}${m.converted_at ? ', converted ' + esc(since(m.converted_at)) : ''}). Amounts stay in Mechanic ledgers.` : 'Garage jobs. This garage was not converted from a mechanic.',
+      const dlg = dialog({ title: 'History: ' + esc(h.garage.name), intro: m ? `Converted from mechanic <b>${esc(m.name)}</b> (with Mechanix Pro since ${esc(since(m.since))}${m.converted_at ? ', converted ' + esc(since(m.converted_at)) : ''}). Amounts stay in Mechanic ledgers.` : 'Garage jobs. This garage was not converted from a mechanic.',
         body: `<h4>Garage jobs (${(h.garage_jobs || []).length})</h4>${jobRows(h.garage_jobs)}${m ? `<h4>Earlier jobs as a mechanic (${(h.mechanic_jobs || []).length})</h4>${jobRows(h.mechanic_jobs)}` : ''}` });
+      if (dlg && dlg.form && openBooking) dlg.form.addEventListener('click', (ev) => {
+        const b = ev.target.closest && ev.target.closest('[data-booking]'); if (!b) return; ev.preventDefault();
+        dlg.close();   // the sheet opens over the Garages page, so the page keeps its place; Back reopens this history
+        openBooking({ ref: b.dataset.booking, leadId: b.dataset.lead || null, back: () => history(id) });
+      });
     } catch (e) { toast(msg(e), true); }
   }
   async function points(id, name) {
