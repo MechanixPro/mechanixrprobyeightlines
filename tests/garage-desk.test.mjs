@@ -20,15 +20,16 @@ const EST = [{ id: 'es-1', assignment_id: 'as-1', lead_id: 'lead-1', booking_id:
 const BOOKINGS = [{ id: 'lead-9', booking_id: 'MP-2611-0009', first_name: '[Customer Name]', area: 'HSR Layout', bike: '[Vehicle]' }];
 
 /** A desk wired to fakes: rpc calls, toasts, dialogs and copied text are recorded. `fail` maps an rpc name to an error message; `can` is the permission set. */
-function desk({ fail = {}, can = ['manage_garages'], settle = false, replies = {}, openLead = true } = {}) {
+function desk({ fail = {}, can = ['manage_garages'], settle = false, replies = {}, openLead = true, sendQuote } = {}) {
+  const sent = [];
   const calls = [], toasts = [], dialogs = [], copied = [];
   const base = { crm_garage_picker: GARAGES, crm_garage_access_list: ACCESS, crm_garage_assignments_list: (a) => (a.p_lead ? ASSIGN.filter((x) => x.lead_id === a.p_lead) : ASSIGN), crm_garage_estimates_inbox: EST, crm_dispatch_list: BOOKINGS,
     crm_garage_access_create: { access_id: 'acc-9', garage: '[Garage Two]', link: LINK }, crm_garage_link_new: { link: LINK }, crm_garage_pin_reset: { ok: true }, crm_garage_revoke: { ok: true }, crm_garage_enable: { ok: true },
     crm_garage_assign: { assignment_id: 'as-9', status: 'sent', garage: '[Garage One]' }, crm_garage_estimate_review: { ok: true, status: 'converted', quote: { version: 2 } }, crm_garage_settlement_set: { ok: true } };
   const rpc = async (name, args) => { calls.push([name, args]); if (fail[name]) throw new Error(fail[name]); const r = name in replies ? replies[name] : base[name]; return typeof r === 'function' ? r(args || {}) : r; };
   const gd = G.createGarageDesk({ rpc, toast: (m, bad) => toasts.push({ m, bad: !!bad }), can: (a) => can.includes(a), canSettle: () => settle, dialog: (o) => { dialogs.push(o); return { form: null, close() {} }; },
-    copy: async (t) => { copied.push(t); }, random: (() => { let i = 0; return () => [4, 8, 2, 9, 1, 5][i++ % 6]; })(), now: () => NOW, openLead: openLead ? () => {} : undefined });
-  return { gd, calls, toasts, dialogs, copied, last: () => dialogs[dialogs.length - 1], names: () => calls.map((c) => c[0]), rpcCalls: (n) => calls.filter((c) => c[0] === n).map((c) => c[1]) };
+    copy: async (t) => { copied.push(t); }, random: (() => { let i = 0; return () => [4, 8, 2, 9, 1, 5][i++ % 6]; })(), now: () => NOW, openLead: openLead ? () => {} : undefined, sendQuote: sendQuote === undefined ? async (id) => { sent.push(id); return { version: 2 }; } : sendQuote });
+  return { gd, sent, calls, toasts, dialogs, copied, last: () => dialogs[dialogs.length - 1], names: () => calls.map((c) => c[0]), rpcCalls: (n) => calls.filter((c) => c[0] === n).map((c) => c[1]) };
 }
 /** A stand-in form: fields are { name: value }, checkboxes { name: true }. querySelectorAll gives the copy buttons found in the dialog body. */
 const form = (fields = {}, body = '') => {
@@ -159,10 +160,15 @@ test('the booking card loads the partner-garage part only for someone who may ma
 });
 
 /* ---------- estimates inbox ---------- */
-test('approving an estimate calls crm_garage_estimate_review and says a DRAFT quote was made', async () => {
-  const d = desk(); d.gd.actions.review(EST[0], true); assert.match(d.last().intro, /draft/i);
+test('approving an estimate makes the quote AND sends it to the customer straight away', async () => {
+  const d = desk(); d.gd.actions.review(EST[0], true); assert.match(d.last().intro, /sends it to the customer/i);
   await submit(d.last(), { note: ' looks fair ' });
-  assert.deepEqual(d.rpcCalls('crm_garage_estimate_review'), [{ p_id: 'es-1', p_approve: true, p_note: 'looks fair' }]); assert.ok(d.toasts.some((t) => /Draft quote v2/.test(t.m)));
+  assert.deepEqual(d.rpcCalls('crm_garage_estimate_review'), [{ p_id: 'es-1', p_approve: true, p_note: 'looks fair' }]);
+  assert.deepEqual(d.sent, ['lead-1']); assert.ok(d.toasts.some((t) => /Quote v2 sent to the customer/.test(t.m) && !t.bad));
+});
+test('if sending fails the draft stays and the toast says it was NOT sent', async () => {
+  const d = desk({ sendQuote: async () => { throw new Error('set the estimated delivery before sending the quote'); } }); d.gd.actions.review(EST[0], true);
+  await submit(d.last(), { note: '' }); assert.ok(d.toasts.some((t) => t.bad && /NOT sent/.test(t.m) && /estimated delivery/.test(t.m)));
 });
 test('rejecting needs a reason, then calls crm_garage_estimate_review with approve false and the reason', async () => {
   const d = desk(); d.gd.actions.review(EST[0], false);
@@ -270,4 +276,10 @@ test('nothing on the screen can show a customer address, email or phone', async 
 });
 test('the shared file follows the shared-file rules: no inline handlers or script tags, no DOM globals at load', () => {
   const t = read('crm/garage-desk.js'); assert.doesNotMatch(t, /\son(click|change|input|submit)\s*=/i); assert.doesNotMatch(t, /<script/i); assert.doesNotMatch(t, /javascript:/i);
+});
+
+test('the unpaid-confirmation-fee refusal is explained in plain words, not repeated as a bare database message', async () => {
+  const fs = await import('node:fs'); const src = fs.readFileSync(new URL('../admin/flow-core.js', import.meta.url), 'utf8');
+  assert.match(src, /KNOWN = \[\[\/waiting for the confirmation fee\//); assert.match(src, /Send the payment link or record the payment/);
+  assert.equal(fs.readFileSync(new URL('../crm/flow-core.js', import.meta.url), 'utf8'), src);
 });

@@ -13,7 +13,7 @@ const when = (d) => (d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', m
 const SLOT = { asap: 'As soon as possible', morning: 'Morning 9 to 12', afternoon: 'Afternoon 12 to 4', evening: 'Evening 4 to 8' };
 const STAGE = { on_the_way: 'On the way', arrived: 'Arrived', started: 'Door code verified', repair_doorstep: 'Repair at the door', picked_up: 'Picked up', ready: 'Ready', returned: 'Delivered' };
 const DOOR = { none: 'No code yet', open: 'Code ready', locked: 'Locked after 5 wrong tries', expired: 'Code expired', verified: 'Verified at the door' };
-const cleanErr = (e) => { const m = String((e && e.message) || e || 'Something went wrong').replace(/^Error:\s*/, ''); return /crm_garage_(assign|picker)/.test(m) && /find the function|schema cache|does not exist/i.test(m) ? 'Assign to garage is not available yet.' : m; };
+const cleanErr = (e) => { const m = String((e && e.message) || e || 'Something went wrong').replace(/^Error:\s*/, ''); const KNOWN = [[/waiting for the confirmation fee/i, 'This booking cannot go to a garage yet: the customer has not paid the confirmation fee. Send the payment link or record the payment on the booking, then assign.'], [/this lead is closed/i, 'This booking is closed (lost or junk). Restore it first.'], [/already started this job/i, 'The garage has already started this job, so it cannot be moved.']]; const known = KNOWN.find((k) => k[0].test(m)); if (known) return known[1]; return /crm_garage_(assign|picker)/.test(m) && /find the function|schema cache|does not exist/i.test(m) ? 'Assign to garage is not available yet.' : m; };
 
 /** deps: { rpc(name, args), invoke(fn, body), toast(msg, bad), can(action), reload(), mechanics?() , openLead?(id) } */
 export function createFlow(deps) {
@@ -283,5 +283,7 @@ export function createFlow(deps) {
       try { if (b.dataset.dispatch === 'open' && deps.openLead) return deps.openLead(id); if (b.dataset.dispatch === 'garage') { if (!deps.garageDesk || !deps.garageDesk.visible()) return; await actions.garageAssign({ id, booking_id: row.booking_id, area: row.area }, null, { dataset: row.garage_id ? { move: row.garage_id } : {} }); return; } if (b.dataset.dispatch === 'tell') { await tellMechanic(row, getTell && getTell()); if (redraw) redraw(); return; } if (b.dataset.dispatch === 'assign') await actions.assign({ id, name: row.first_name, area: row.area, pincode: row.pincode, mechanic_name: row.mechanic_name }); } catch (x) { toast(cleanErr(x), true); }
     });
   }
-  return { load, withFlow, card, bind, dispatchHtml, loadTell, bindDispatch, issuesHtml, bindIssues, actions, dialog };
+  /** Send the current sent-ready draft quote to the customer (marks it sent, then WhatsApp and email). Used when a garage estimate is approved. */
+  const sendQuote = async (leadId) => { const r = await call('booking-notify', { action: 'quote_send', lead_id: leadId }); return r; };
+  return { load, withFlow, card, bind, dispatchHtml, loadTell, bindDispatch, issuesHtml, bindIssues, actions, dialog, sendQuote };
 }

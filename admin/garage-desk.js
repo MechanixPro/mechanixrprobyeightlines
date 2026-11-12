@@ -149,9 +149,16 @@ export function createGarageDesk(deps) {
     },
     review(e, approve) {
       need();
-      if (approve) return deps.dialog({ title: 'Approve this estimate', intro: `${esc(e.garage)} · ${esc(e.booking_id || 'Booking')}. This makes a <b>draft</b> quote on the booking. Nothing reaches the customer until you send the quote from the booking.`,
-        body: '<label class="flow-label" for="gd-rn">Note for the record (optional)</label><input id="gd-rn" name="note" maxlength="300" autocomplete="off">', submit: 'Approve and make draft quote',
-        onSubmit: async (f, d) => { const r = await rpc('crm_garage_estimate_review', { p_id: e.id, p_approve: true, p_note: f.note.value.trim() || null }); d.close(); toast('Draft quote' + (r && r.quote && r.quote.version ? ' v' + r.quote.version : '') + ' made. Open the booking to check and send it.'); await after(); } });
+      if (approve) return deps.dialog({ title: 'Approve this estimate', intro: `${esc(e.garage)} · ${esc(e.booking_id || 'Booking')}. This makes the quote and <b>sends it to the customer now</b> (WhatsApp and email) for their approval.`,
+        body: '<label class="flow-label" for="gd-rn">Note for the record (optional)</label><input id="gd-rn" name="note" maxlength="300" autocomplete="off">', submit: 'Approve and send to customer',
+        onSubmit: async (f, d) => {
+          const r = await rpc('crm_garage_estimate_review', { p_id: e.id, p_approve: true, p_note: f.note.value.trim() || null }); d.close();
+          const v = r && r.quote && r.quote.version ? ' v' + r.quote.version : '';
+          // Approving used to stop at a draft, so the customer never got the estimate. Send it straight away; if the send fails the draft stays and we say so.
+          if (deps.sendQuote && e.lead_id) { try { await deps.sendQuote(e.lead_id); toast('Quote' + v + ' sent to the customer for approval.'); } catch (x) { toast('Draft quote' + v + ' made but NOT sent: ' + String((x && x.message) || x).slice(0, 120) + '. Open the booking and press Send.', true); } }
+          else toast('Draft quote' + v + ' made. Open the booking to check and send it.');
+          await after();
+        } });
       return deps.dialog({ title: 'Reject this estimate', intro: `${esc(e.garage)} · ${esc(e.booking_id || 'Booking')}. The garage sees your reason.`,
         body: '<label class="flow-label" for="gd-rn">Reason (required)</label><input id="gd-rn" name="note" maxlength="300" autocomplete="off">', submit: 'Reject estimate',
         onSubmit: async (f, d) => { const bad = reasonError(f.note.value); if (bad) throw new Error(bad); await rpc('crm_garage_estimate_review', { p_id: e.id, p_approve: false, p_note: f.note.value.trim() }); d.close(); toast('Estimate rejected.'); await after(); } });

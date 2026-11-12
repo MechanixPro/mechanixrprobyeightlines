@@ -777,7 +777,7 @@ function moneyCardBody(l) {
 // The paid-confirmation card (payment link, call script, dispatch, quote, Resend) is the same code as in Crew: admin/flow-core.js. Every admin passes its checks.
 // The partner-garage desk (Garage app tab, Send to a partner garage on a booking) is the same code as in Crew: admin/garage-desk.js. Owner only here, and only the owner enters settlement amounts.
 const adminRpc = async (n, a) => { const { data, error } = await sb.rpc(n, a); if (error) throw error; return data; };
-const garageDesk = createGarageDesk({ rpc: adminRpc, toast, can: () => ['owner', 'admin'].includes(S.me?.role), canSettle: () => isOwner(), dialog: (o) => flow.dialog(o), openLead: (id) => { S.tab = 'leads'; render(); openLead(id); },
+const garageDesk = createGarageDesk({ rpc: adminRpc, toast, can: () => ['owner', 'admin'].includes(S.me?.role), canSettle: () => isOwner(), sendQuote: (id) => flow.sendQuote(id), dialog: (o) => flow.dialog(o), openLead: (id) => { S.tab = 'leads'; render(); openLead(id); },
   reload: async () => { await loadLeads(); render(); if (S.open) openLead(S.open, true); } });
 // The Mechanic app card (on a mechanic's sheet) is the same code as in Crew: admin/mechanic-desk.js. Owner only here.
 // Conversion screen (funnel): admin/funnel.js, counts come from the crm_funnel database function.

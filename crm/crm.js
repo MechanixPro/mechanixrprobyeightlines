@@ -97,7 +97,7 @@ const ctx = {
 // The paid-confirmation screens (payment link, call script, door code, quote, Resend, Dispatch) are shared with the Admin: crm/flow-core.js. Same database functions, same checks.
 const PHOTO_BUCKET = 'booking-updates';   // private storage bucket (not a table); the database decides who may read it
 // The partner-garage desk (Garage app tab and the Send to a partner garage button on a booking) is shared with the Admin: crm/garage-desk.js. Settlement amounts are Admin-only, so Crew shows them read only.
-const garageDesk = createGarageDesk({ rpc, toast, can, canSettle: () => false, dialog: (o) => flow.dialog(o), openLead: (id) => openLead(id), reload: () => afterChange(false) });
+const garageDesk = createGarageDesk({ rpc, toast, can, canSettle: () => false, sendQuote: (id) => flow.sendQuote(id), dialog: (o) => flow.dialog(o), openLead: (id) => openLead(id), reload: () => afterChange(false) });
 // The Mechanic app card (private app access for a mechanic) is shared with the Admin: crm/mechanic-desk.js. Needs Manage technicians; the database refuses everyone else.
 const mechanicDesk = createMechanicDesk({ rpc, toast, can, dialog: (o) => flow.dialog(o) });
 const routing = createRouting({ rpc });   // owner and late chip against the targets (funnel_targets), on the lead sheet
