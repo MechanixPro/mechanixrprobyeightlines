@@ -92,6 +92,7 @@
   }
 
   /* confirm-rule:start (written by scripts/build_pages.py from the tiers in assets/js/book-pay.js; do not edit) */
+  var VISIT_CHARGE = '₹' + 349;   // doorstep visiting charge; same figure as visitCharge in src/site.json (a test checks they match)
   var CONFIRM_RULE = "a small confirmation fee, ₹49 to ₹99 depending on your vehicle's engine size, shown before you pay and adjusted in your final bill";
   /* confirm-rule:end */
   function fee(id, d) { var x = svc(id); return x ? x.price : d; }
@@ -231,7 +232,7 @@
       h += '<label class="check"><input type="checkbox" data-act="reminder"' + (st.reminder ? ' checked' : '') + '><span>Remind me when my next service is due.</span></label>';
       h += '<label class="label" for="f-coupon">Coupon code <span class="muted" style="font-weight:400">(optional)</span></label><input id="f-coupon" data-f="coupon" maxlength="20" autocapitalize="characters" autocomplete="off" placeholder="e.g. MONSOON10" value="' + esc(st.coupon) + '"><p class="tiny muted" style="margin:6px 0 0">Your expert applies it to your quote on WhatsApp.</p>';
       h += '<label class="check"><input type="checkbox" data-act="consent"' + (st.consent ? ' checked' : '') + '><span>Send me my quote, booking updates and reminders on WhatsApp. Reply STOP anytime. See our <a href="/privacy/">Privacy Policy</a>.</span></label>';
-      h += '<p class="note pay-note" style="margin-top:14px"><b>Payment and cancellation:</b> nothing is charged now. After you approve the quote, you pay ' + CONFIRM_RULE + ' to lock your visit. Cancel more than 2 hours before your slot for a full refund. <a href="/refund-policy/">Read the refund policy</a>.</p>';
+      h += '<p class="note pay-note" style="margin-top:14px"><b>Payment and cancellation:</b> nothing is charged now. After you approve the quote, you pay ' + CONFIRM_RULE + ' to lock your visit. Cancel more than 2 hours before your slot for a full refund. A visiting charge of ' + VISIT_CHARGE + ' applies to any doorstep visit; if you decline to continue once a technician is assigned, it is payable and your confirmation fee counts towards it. <a href="/refund-policy/">Read the refund policy</a>.</p>';
       h += '<p class="note" style="margin-top:14px"><b>What happens next:</b> you send this on WhatsApp. Our expert calls or messages you, checks what is needed, and sends your quote. Work starts only after you approve it.</p>';
       if (C.turnstileSiteKey) h += '<div id="ts" style="margin-top:12px"></div>';
     }

@@ -176,6 +176,7 @@ def _confirm_tiers():
     fm = re.search(r'DEFAULTS = \{ confirm_std: (\d+), confirm_mid: (\d+), confirm_big: (\d+), confirm_car: (\d+) \}', bp)
     return dict(zip(('std', 'mid', 'big', 'car'), map(int, fm.groups())))
 CONFIRM_TIERS = _confirm_tiers()
+VISIT_CHARGE = f"₹{SITE_DATA['visitCharge']}"   # the doorstep visiting charge, from src/site.json (not the confirmation fee)
 CONFIRM_RANGE = f"₹{min(CONFIRM_TIERS.values())} to ₹{max(CONFIRM_TIERS.values())}"
 CONFIRM_RULE = f"a small confirmation fee, {CONFIRM_RANGE} depending on your vehicle's engine size, shown before you pay and adjusted in your final bill"
 CONFIRM_TIERS_TEXT = f"₹{CONFIRM_TIERS['std']} up to 149cc, ₹{CONFIRM_TIERS['mid']} for 150 to 250cc, ₹{CONFIRM_TIERS['big']} for 251cc and above and for cars"
@@ -200,7 +201,7 @@ def tok(s):
         if kind == 'includes_li': return ''.join(f'<li>{html.escape(x)}</li>' for x in SITE_DATA['services'][key]['includes'])
         return m.group(0)
     s = re.sub(r'\{\{(price|text|num|fee|feetext|includes_li|carprice):([a-z0-9]+)\}\}', rep, s)
-    return s.replace('{{confirmrule}}', CONFIRM_RULE).replace('{{confirmrange}}', CONFIRM_RANGE).replace('{{confirmtiers}}', CONFIRM_TIERS_TEXT).replace('{{days}}', str(SITE_DATA['warrantyDays'])).replace('{{pincount}}', str(_PIN_N)).replace('{{vidcode}}', VID_CODE)
+    return s.replace('{{confirmrule}}', CONFIRM_RULE).replace('{{confirmrange}}', CONFIRM_RANGE).replace('{{confirmtiers}}', CONFIRM_TIERS_TEXT).replace('{{visitcharge}}', VISIT_CHARGE).replace('{{days}}', str(SITE_DATA['warrantyDays'])).replace('{{pincount}}', str(_PIN_N)).replace('{{vidcode}}', VID_CODE)
 def faq_from_html(src):
     """(question, answer) pairs read from the visible <details><summary>Q</summary><p>A</p></details> blocks of a source page, as plain text with price tokens turned into text tokens. The FAQPage JSON-LD of / and /help/ is built from this, so it always equals the visible FAQ."""
     plain = lambda s: re.sub(r'\{\{price:(\w+)\}\}', r'{{text:\1}}', re.sub(r'\{\{fee:(\w+)\}\}', r'{{feetext:\1}}', re.sub(r'<[^>]+>', '', s))).strip()
@@ -471,6 +472,7 @@ LEGAL = {
 <p class="muted">Last updated: [date]. Draft — to be reviewed by a lawyer before launch.</p>
 <h2>1. Service</h2><p>Mechanix Pro, operated by [Registered business name] (GSTIN [GSTIN]), provides two-wheeler service and repair at your location in our service areas in Bengaluru, through trained mechanics from our partner workshops.</p>
 <h2>2. Booking</h2><p>You can request a booking on our website or WhatsApp. A booking is confirmed when you pay the confirmation fee and we confirm your slot. The confirmation fee is a small amount, {{confirmrange}} depending on your vehicle's engine size ({{confirmtiers}}), shown before you pay. It is adjusted in your final bill if you go ahead with the service.</p>
+<h2>2A. Visiting charge</h2><p>A visiting charge of {{visitcharge}} applies to any doorstep visit. It covers the technician's travel and time to your place. The confirmation fee is not the visiting charge: it confirms your slot. If, after a technician has been assigned, you decline to continue with the service or the quote, the {{visitcharge}} visiting charge is payable, and the confirmation fee you have already paid counts towards it.</p>
 <h2>3. Prices and extra work</h2><p>Listed prices are before GST (18% GST is added on your invoice) and cover the labour and items described for each package. Parts are OEM or aftermarket, sourced from our partner Axlio, and each part is labelled in your quote so you can choose. Parts, oil above standard grade and work outside the package are charged only after you approve an itemised estimate. Packages are priced by engine size (up to 149cc, 150 to 250cc and 251 to 500cc). Engine oil is replaced in Full service for bikes up to 250cc, and in Standard and Full service for 251 to 500cc. Air and oil filters are checked, and replacing them is not included. Minor repairs are limited to basic adjustments and small fixes. Pickup and drop is free in our serviceable area.</p>
 <h2>4. Payment</h2><p>The confirmation fee and final payments are made through Razorpay (UPI, cards, wallets, net banking) or as agreed with us. Invoices show GST separately.</p>
 <h2>5. Cancellation</h2><p>See our <a href="/refund-policy/">Refund & Cancellation Policy</a>.</p>
@@ -483,6 +485,7 @@ LEGAL = {
  'refund-policy': ('Refund & Cancellation Policy', 'How cancellations and refunds work for Mechanix Pro bookings.', '''
 <p class="muted">Last updated: [date].</p>
 <h2>Cancelling a booking</h2><ul><li><b>More than 2 hours before your slot:</b> free. Your confirmation fee is refunded in full.</li><li><b>Less than 2 hours before, or after the mechanic has left:</b> the confirmation fee covers the visit and is not refunded.</li><li><b>Emergency (SOS) visits:</b> cancellable free until a mechanic is assigned.</li></ul>
+<h2>Visiting charge</h2><p>A visiting charge of {{visitcharge}} applies to any doorstep visit. It covers the technician's travel and time to your place. The confirmation fee is separate: it confirms your slot. If, once a technician has been assigned, you decline to continue with the service or the quote, the {{visitcharge}} visiting charge is payable and the confirmation fee you have already paid counts towards it.</p>
 <h2>If we cancel</h2><p>If we cannot reach you in your slot, we offer another slot or a full refund — your choice.</p>
 <h2>Service issues</h2><p>If something we fixed fails within {{days}} days, we redo that work free (the Redo Promise: ask from your tracking page or message us with your booking ID). If we cannot fix it, we refund the charge for that item. Parts are covered by the limited warranty of the part's manufacturer or supplier, as shown on your invoice.</p>
 <h2>How refunds are paid</h2><p>Refunds go to your original payment method through Razorpay within 5–7 working days of approval.</p>
@@ -968,7 +971,7 @@ def rate_card_page():
     write('rate-card/index.html', page + f'''<section class="page-head"><div class="wrap"><p class="breadcrumb"><a href="/">Home</a> &rsaquo; Rate card</p><h1>Bangalore bike rate card.</h1><p class="lead">Every price is shown <b>excluding GST</b>. GST at 18% is added on your final invoice, and your mechanic or our team will tell you the total before any work starts.</p></div></section>
 <section><div class="wrap">{body}<h3>Other services</h3><div class="scroll"><table class="rate-table">{head}<tbody>{other}</tbody></table></div>
 <h3>Add-ons</h3><div class="scroll"><table class="rate-table">{head}<tbody>{adds}</tbody></table></div>{reps}
-<p class="tiny muted" style="margin-top:14px">Parts and consumables are charged separately after you approve them, and are OEM or aftermarket as labelled in your quote. Pickup and drop is free in our serviceable area. The confirmation fee ({{{{confirmrange}}}}, by engine size) is adjusted in your final bill if you go ahead.</p>
+<p class="tiny muted" style="margin-top:14px">Parts and consumables are charged separately after you approve them, and are OEM or aftermarket as labelled in your quote. Pickup and drop is free in our serviceable area. The confirmation fee ({{{{confirmrange}}}}, by engine size) is adjusted in your final bill if you go ahead. A visiting charge of {{{{visitcharge}}}} applies to any doorstep visit; if you decline to continue once a technician is assigned, it is payable and your confirmation fee counts towards it.</p>
 <div class="row" style="margin-top:14px"><a class="btn btn-primary" href="/book/">Build your service</a><a class="btn btn-wa" href="#" data-wa="general">Get a quote on WhatsApp</a></div></div></section>''' + foot())
     urls.append(('/rate-card/', '0.8'))
 rate_card_page()
@@ -1627,7 +1630,7 @@ def llms_txt():
       f"| {sv['basic']['name']} | {tier('basic')} |", f"| {sv['general']['name']} | {tier('general')} |", f"| {sv['full']['name']} | {tier('full')} |", '',
       f"- {sv['repair']['name']}: from {_inr(_price('repair'))}. The repair itself is quoted after the check.",
       f"- Puncture {_inr(_price('puncture'))}, roadside emergency visit {_inr(_price('sos'))}.",
-      f"- Confirmation fee: {CONFIRM_TIERS_TEXT}. It is adjusted in your final bill.",
+      f"- Confirmation fee: {CONFIRM_TIERS_TEXT}. It is adjusted in your final bill.", f"- Visiting charge: Rs {SITE_DATA['visitCharge']} for any doorstep visit. If the customer declines to continue once a technician is assigned, it is payable and the confirmation fee paid counts towards it.",
       '- Parts, oil above standard grade and work outside the package are quoted first and charged only after you approve.',
       f"- Full rate card with GST: {SITE}/rate-card/. Service packages: {SITE}/services/", '',
       '## Services',

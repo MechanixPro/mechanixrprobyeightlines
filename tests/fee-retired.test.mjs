@@ -29,7 +29,8 @@ test('no public page or llms.txt mentions the checkup and quote fee, the new-cus
     const t = read(f);
     assert.doesNotMatch(t, /checkup and quote fee/i, f);
     assert.doesNotMatch(t, /new customers? (pay|fee)|for new customers|slot fee/i, f);
-    if (!ALLOWED[f]) assert.doesNotMatch(t, /(^|[^0-9.,])349([^0-9]|$)/, f + ' shows 349');
+    // Changed on purpose 2026-11-12 (owner): Rs 349 is now the doorstep VISITING CHARGE. Every 349 must sit next to the words "visiting charge"; it is never again a checkup, quote, advance or booking fee.
+    for (const m of t.matchAll(/(^|[^0-9.,])349([^0-9]|$)/g)) { const near = t.slice(Math.max(0, m.index - 140), m.index + 140); assert.match(near, /visiting charge/i, f + ' shows 349 outside the visiting charge wording'); }
   }
 });
 test('the terms, refund policy, help, home and llms.txt carry the new rule', () => {

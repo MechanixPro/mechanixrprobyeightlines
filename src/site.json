@@ -1,6 +1,7 @@
 {
   "warrantyDays": 30,
   "advance": 349,
+  "visitCharge": 349,
   "newCustomerFee": 99,
   "bigBike": 300,
   "carPrices": {

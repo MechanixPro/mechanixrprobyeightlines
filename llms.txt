@@ -22,6 +22,7 @@ Cancellation: cancel more than 2 hours before your slot and the confirmation fee
 - Repair or problem check: from ₹499. The repair itself is quoted after the check.
 - Puncture ₹499, roadside emergency visit ₹1,299.
 - Confirmation fee: ₹49 up to 149cc, ₹69 for 150 to 250cc, ₹99 for 251cc and above and for cars. It is adjusted in your final bill.
+- Visiting charge: Rs 349 for any doorstep visit. If the customer declines to continue once a technician is assigned, it is payable and the confirmation fee paid counts towards it.
 - Parts, oil above standard grade and work outside the package are quoted first and charged only after you approve.
 - Full rate card with GST: https://mechanixpro.in/rate-card/. Service packages: https://mechanixpro.in/services/
 
