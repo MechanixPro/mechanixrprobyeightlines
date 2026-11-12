@@ -203,3 +203,11 @@ test('the new shared file is copied byte for byte and uses no inline handlers', 
   assert.equal(read('admin/manage-rules.js'), read('crm/manage-rules.js')); assert.equal(read('admin/flow-core.js'), read('crm/flow-core.js')); assert.match(read('scripts/shared-files.txt'), /manage-rules\.js/);
   assert.doesNotMatch(read('crm/flow-core.js'), /\bon(click|change)="/);
 });
+
+test('Edit estimate approves a waiting garage estimate first, then the edited lines overwrite the draft; the Dispatch heading says garage or partner', () => {
+  const core = read('crm/flow-core.js'); assert.equal(read('admin/flow-core.js'), core);
+  const i = core.indexOf("if (ge && ge.status === 'submitted')"), j = core.indexOf("await rpc('crm_quote_save'", i);
+  assert.ok(i > 0 && j > i, 'approval comes before the quote save');
+  assert.match(core.slice(i, j), /crm_garage_estimate_review', \{ p_id: ge\.id, p_approve: true/); assert.match(core.slice(i, j), /already reviewed\|already a draft quote/);
+  assert.match(core, /head\('Paid, needs a garage or partner'/); assert.doesNotMatch(core, /Paid, needs a mechanic/);
+});

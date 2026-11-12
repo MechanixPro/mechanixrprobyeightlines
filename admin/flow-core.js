@@ -320,6 +320,8 @@ export function createFlow(deps) {
         body: `<div id="fl-lines">${seed.map(rowHtml).join('')}</div><button class="flow-btn flow-sm" type="button" id="fl-add">Add a line</button><div class="flow-sum" id="fl-sum" aria-live="polite"></div>${etaFields(z || {})}`,
         submit: 'Save and send to the customer', onSubmit: async (f, d) => {
           const lines = readLines(f), eta = readEta(f), g = quoteCheck(lines, eta); if (!g.ok) throw new Error(g.error);
+          // Edit estimate on a garage estimate that is still waiting: approving it comes first (so it is no longer 'submitted' and cannot be approved twice); then the edited lines overwrite that draft.
+          if (ge && ge.status === 'submitted') { try { await rpc('crm_garage_estimate_review', { p_id: ge.id, p_approve: true, p_note: 'Approved with edits' }); } catch (x) { if (!/already reviewed|already a draft quote/i.test(String((x && x.message) || x))) throw x; } }
           await rpc('crm_quote_save', { p_lead: lead.id, p_lines: lines.map((x) => (x.kind === 'parts' ? { kind: x.kind, name: x.name.trim(), amount: Number(x.amount), part_type: x.part_type } : { kind: x.kind, name: x.name.trim(), amount: Number(x.amount) })), p_eta: eta });
           const r = await call('booking-notify', { action: 'quote_send', lead_id: lead.id }); toast('Quote v' + r.version + ' sent.'); d.close(); deps.reload();
         },
@@ -425,7 +427,7 @@ export function createFlow(deps) {
       <div>${r.mechanic_name ? `Mechanic: <b>${esc(r.mechanic_name)}</b>${r.visit_stage ? ' · ' + esc(STAGE[r.visit_stage] || r.visit_stage) : ''}` : (r.garage_id ? '' : '<b class="flow-bad">Unassigned</b>')}</div>${garageRow(r)}${seenRow(seen && seen[r.id])}${tellBlock(r, tell)}
       <div class="flow-row">${gdOk ? `<button class="flow-btn ${isHandled(r) ? '' : 'flow-primary'}" type="button" data-dispatch="garage">${isHandled(r) ? 'Reassign' : 'Assign'}</button>` : ''}<button class="flow-btn flow-ghost" type="button" data-dispatch="open">Open</button></div></li>`;
     const head = (t, n, cls) => `<h3 class="flow-dhead ${cls}">${t} <span class="flow-dcount">${n}</span></h3>`;
-    return `${un.length ? head('Paid, needs a mechanic', un.length, 'flow-dhead-paid') + `<ul class="flow-dispatch">${un.map(li).join('')}</ul>` : ''}${on.length ? (un.length ? head('Assigned', on.length, '') : '') + `<ul class="flow-dispatch">${on.map(li).join('')}</ul>` : ''}`;
+    return `${un.length ? head('Paid, needs a garage or partner', un.length, 'flow-dhead-paid') + `<ul class="flow-dispatch">${un.map(li).join('')}</ul>` : ''}${on.length ? (un.length ? head('Assigned', on.length, '') : '') + `<ul class="flow-dispatch">${on.map(li).join('')}</ul>` : ''}`;
   }
   /* ----- Issues: what customers reported, open first, with who resolved the others ----- */
   function issuesHtml(rows) {

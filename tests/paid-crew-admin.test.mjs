@@ -74,10 +74,10 @@ test('Crew and the Admin run the same code: the shared files are identical copie
   assert.doesNotMatch(read('crm/flow-core.js'), /<script|innerHTML = .*on(click|change)=|\bon(click|change)="/);   // strict CSP: no inline handlers
 });
 test('every database function the shared screens call lets an admin through (flow_ checks) and keeps agents and technicians to their rights', () => {
-  const core = read('crm/flow-core.js'), sql = read('supabase/migrations/20261228000000_paid_confirmation.sql') + read('supabase/migrations/20261229000000_customer_updates.sql') + read('supabase/migrations/20261230000000_tech_location.sql') + read('supabase/migrations/20270143000000_cancellations.sql') + read('supabase/migrations/20270128000000_job_check_flow.sql');   // the journey migrations add crm_booking_updates, crm_issue_resolve, crm_tech_location (same flow_ guards)
+  const core = read('crm/flow-core.js'), sql = read('supabase/migrations/20261228000000_paid_confirmation.sql') + read('supabase/migrations/20261229000000_customer_updates.sql') + read('supabase/migrations/20261230000000_tech_location.sql') + read('supabase/migrations/20270143000000_cancellations.sql') + read('supabase/migrations/20270144000000_booking_lifecycle.sql') + read('supabase/migrations/20270128000000_job_check_flow.sql');   // the journey migrations add crm_booking_updates, crm_issue_resolve, crm_tech_location (same flow_ guards)
   // changed on purpose: the lifecycle functions are defined by the lifecycle migration (built beside this change), whose guards are checked there
   const LIFECYCLE = ['crm_booking_state', 'crm_assignment_info', 'crm_booking_estimates', 'crm_booking_refunds', 'crm_booking_timeline', 'crm_quote_admin_approve', 'crm_delivery_set'];
-  const names = [...new Set([...core.matchAll(/rpc\('([a-z_]+)'/g)].map((m) => m[1]))].filter((n) => !LIFECYCLE.includes(n));
+  const names = [...new Set([...core.matchAll(/rpc\('([a-z_]+)'/g)].map((m) => m[1]))];   // changed on purpose: the lifecycle migration is now part of the checked SQL, so those functions are guard-checked too
   const viaOldRpc = ['crm_mechanic_picker', 'crm_lead', 'crm_log'];   // crm_lead and crm_log: Tell mechanic reads the phone and the told note, and logs the note, with the existing Crew functions (no new RPC); a failure there never blocks the card or WhatsApp   // admin supplies its own mechanic list instead (deps.mechanics), checked below
   assert.ok(names.length >= 10, names.join());
   // crm_assign_technician is the existing function; it checks through crm_move_guard, which this migration re-creates with the admin-aware checks.
@@ -86,7 +86,7 @@ test('every database function the shared screens call lets an admin through (flo
   for (const n of names.filter((x) => !viaOldRpc.includes(x) && x !== 'crm_assign_technician')) {
     const body = sql.slice(sql.indexOf(`function public.${n}(`)); assert.ok(sql.includes(`function public.${n}(`), n + ' is defined in the migration');
     const fn = body.slice(0, body.indexOf('end; $$') > 0 ? body.indexOf('end; $$') : 3000);
-    assert.match(fn, /flow_need\(\)|quote_guard\(|crm_move_guard\(|flow_require\(/, n + ' has an admin-aware guard');
+    assert.match(fn, /flow_need\(\)|quote_guard\(|crm_move_guard\(|flow_require\(|garage_staff_need\(\)/, n + ' has an admin-aware guard');   // garage_staff_need: the garage desk's own admin-aware guard (crm_garage_estimate_review)
     assert.doesNotMatch(fn, /crm_need_role\(\)|public\.crm_can\(|crm_require\(/, n + ' must not use the Crew-only checks');
   }
   assert.match(read('admin/admin.js'), /mechanics: async \(\) => \{ const \{ data \} = await sb\.from\('mechanics'\)/);
