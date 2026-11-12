@@ -8,8 +8,8 @@ const base = { ...SITE, name: 'Asha Rao', ref: 'MP-AB12CD', bike: 'Honda Activa 
 
 test('the one booking email explains the whole journey and how the money is protected', () => {
   const m = bookingReceived({ ...base, checkupFee: 99, newCustomer: true });
-  for (const re of [/quote first/i, /only after you approve/i, /2 hours/i, /refunded in full/i, /adjusted in your final bill/i, /Cashfree/i, /never ask for your card/i]) assert.match(m.html, re, String(re));
-  assert.match(m.text, /2 hours/); assert.match(m.text, /Cashfree/);
+  for (const re of [/quote first/i, /only after you approve/i, /2 hours/i, /refunded in full/i, /adjusted in your final bill/i, /Razorpay/i, /never ask for your card/i]) assert.match(m.html, re, String(re));
+  assert.match(m.text, /2 hours/); assert.match(m.text, /Razorpay/);
 });
 test('the email lists the service promises and only true claims', () => {
   const m = bookingReceived({ ...base, checkupFee: 99, newCustomer: true });
