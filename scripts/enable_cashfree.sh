@@ -11,7 +11,7 @@ if command -v supabase >/dev/null; then SB="supabase"; elif command -v npx >/dev
 sha() { printf '%s' "$1" | shasum -a 256 | cut -d' ' -f1; }
 
 if [ "$1" = "rollback" ]; then
-  $SB secrets set PAYMENT_GATEWAY=razorpay --project-ref "$REF" >/dev/null 2>&1 && echo "Done. Payments are back on Razorpay." || { echo "Could not set it. Check you are logged in (supabase login)."; exit 1; }
+  $SB secrets set PAYMENT_GATEWAY=razorpay --project-ref "$REF" --yes >/dev/null 2>&1 && echo "Done. Payments are back on Razorpay." || { echo "Could not set it. Check you are logged in (supabase login)."; exit 1; }
   exit 0
 fi
 
@@ -31,6 +31,6 @@ if [ "$gw" = "$(sha cashfree)" ]; then echo "NOTE  PAYMENT_GATEWAY is already ca
 echo
 echo "Live payments will go through Cashfree for every customer, the website, desk links, technician and garage links."
 printf "Switch now? Type yes: "; read -r yes; [ "$yes" = "yes" ] || { echo "Cancelled. Nothing changed."; exit 1; }
-$SB secrets set PAYMENT_GATEWAY=cashfree --project-ref "$REF" >/dev/null 2>&1 && echo "Done. Payments now use Cashfree (production)." || { echo "Could not set it. Check you are logged in (supabase login)."; exit 1; }
+$SB secrets set PAYMENT_GATEWAY=cashfree --project-ref "$REF" --yes >/dev/null 2>&1 && echo "Done. Payments now use Cashfree (production)." || { echo "Could not set it. Check you are logged in (supabase login)."; exit 1; }
 echo "If anything looks wrong:  bash scripts/enable_cashfree.sh rollback"
 echo "Now make your own small test booking and tell Claude."
