@@ -76,7 +76,7 @@ export function dispatchOrder(rows) {
 }
 
 /* ----- Customer journey (added details, issues, mechanic last seen) ----- */
-export const ISSUE_TYPES = { late: 'Running late', mechanic: 'About the mechanic', payment: 'Payment', safety: 'Safety', other: 'Other' };
+export const ISSUE_TYPES = { late: 'Running late', mechanic: 'About the mechanic', payment: 'Payment', safety: 'Safety', cancel: 'Cancel request', other: 'Other' };
 /** "Mechanic last seen 3 min ago": age in seconds in, words out. Over 10 minutes it says the point is old. */
 export function seenLine(ageSeconds) {
   const a = ageSeconds == null ? NaN : Number(ageSeconds); if (!Number.isFinite(a) || a < 0) return null;

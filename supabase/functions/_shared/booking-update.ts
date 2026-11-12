@@ -1,5 +1,5 @@
 // What a customer may add to their booking from the private tracking page. Pure (no Deno APIs), so Node can test it. The database cleans and limits the same fields again.
-export const ISSUE_TYPES = ['late', 'mechanic', 'payment', 'safety', 'other'] as const;
+export const ISSUE_TYPES = ['late', 'mechanic', 'payment', 'safety', 'other', 'cancel'] as const;
 export const MAX_PHOTOS = 3, MAX_PHOTO_BYTES = 1_572_864;
 export const PHOTO_TYPES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 const text = (v: unknown, max: number) => String(v ?? '').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);

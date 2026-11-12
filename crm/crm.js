@@ -19,6 +19,7 @@ import * as followups from './pages/followups.js';
 import * as watch from './pages/watch.js';
 import { redCount } from "./watch.js";
 import * as playbooks from './pages/playbooks.js';
+import * as cancellations from './pages/cancellations.js';
 import { myRows } from './targets.js';
 import { missedCallQueue } from './speed.js';
 import { myTargetsHtml } from './targets-view.js';
@@ -60,6 +61,7 @@ const SCREENS = [
   { id: 'dispatch', title: 'Dispatch', page: 'leads', tech: true, mod: dispatch },
   { id: 'watch', title: 'Service Watch', page: 'leads', tech: true, mod: watch },
   { id: 'issues', title: 'Issues', page: 'leads', mod: issues },
+  { id: 'cancellations', title: 'Cancellations', page: 'leads', mod: cancellations },
   { id: 'dupes', title: 'Duplicates', page: 'leads', action: 'assign_leads', mod: dupes },
   { id: 'unassigned', title: 'Unassigned', page: 'leads', action: 'take_leads' },
   { id: 'leads', title: 'Leads', page: 'leads', mod: leads },

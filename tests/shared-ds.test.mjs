@@ -94,7 +94,7 @@ test('ds.css has no dark-mode block yet (light only for now)', () => assert.does
 const ds = await import(new URL('../crm/ds.js', import.meta.url));
 
 test('ds.js: one vocabulary for the stored statuses, values unchanged', () => {
-  const want = { new: 'New', contacted: 'Contacted', quoted: 'Quote sent', payment_sent: 'Advance link sent', paid: 'Booked', scheduled: 'Booked', completed: 'Done', lost: 'Lost', junk: 'Junk' };
+  const want = { new: 'New', contacted: 'Contacted', quoted: 'Quote sent', payment_sent: 'Advance link sent', paid: 'Booked', scheduled: 'Booked', completed: 'Done', lost: 'Lost', junk: 'Junk', cancelled: 'Cancelled' };   // changed on purpose: cancelled bookings
   assert.deepEqual(Object.keys(ds.STATUS).sort(), Object.keys(want).sort());
   for (const [k, v] of Object.entries(want)) assert.equal(ds.statusLabel(k), v, k);
   assert.equal(ds.statusLabel('something_new'), 'something_new');

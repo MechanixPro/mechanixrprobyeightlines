@@ -18,7 +18,7 @@ for f in $(ls "$mig"/*.sql | sort); do
   [ -n "$out" ] && { echo "MIGRATION PROBLEM in $(basename "$f"): $out"; exit 1; }
 done
 # run the paid confirmation and journey migrations a second time: they must be safe to repeat
-for f in 20261228000000_paid_confirmation 20261229000000_customer_updates 20261230000000_tech_location 20261231000000_customer_documents 20270101000000_garage_app 20270102000000_desk_actions_technician_lead_restore 20270103000000_mechanic_app 20270104000000_duplicate_merge 20270105000000_funnel_quote 20270106000000_wa_inbox; do
+for f in 20261228000000_paid_confirmation 20261229000000_customer_updates 20261230000000_tech_location 20261231000000_customer_documents 20270101000000_garage_app 20270102000000_desk_actions_technician_lead_restore 20270103000000_mechanic_app 20270104000000_duplicate_merge 20270105000000_funnel_quote 20270106000000_wa_inbox 20270143000000_cancellations; do
   out="$($P -d t -f "$mig/$f.sql" 2>&1 | grep -i error || true)"; [ -n "$out" ] && { echo "NOT IDEMPOTENT ($f): $out"; exit 1; }
 done
 $P -d t -v ON_ERROR_STOP=1 -f "$here/paid-confirmation.sql"
@@ -29,3 +29,4 @@ $P -d t -v ON_ERROR_STOP=1 -f "$here/mechanic-app.sql"
 $P -d t -v ON_ERROR_STOP=1 -f "$here/merge.sql"
 $P -d t -v ON_ERROR_STOP=1 -f "$here/funnel.sql"
 $P -d t -v ON_ERROR_STOP=1 -f "$here/wa-inbox.sql"
+$P -d t -v ON_ERROR_STOP=1 -f "$here/cancellations.sql"

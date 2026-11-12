@@ -7,7 +7,7 @@ export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&a
 /** stored status -> words and colour. Scheduled shows as Booked, completed as Done. */
 export const STATUS = {
   new: { label: 'New', tone: 'info' }, contacted: { label: 'Contacted', tone: 'info' }, quoted: { label: 'Quote sent', tone: 'warn' }, payment_sent: { label: 'Advance link sent', tone: 'warn' },
-  paid: { label: 'Booked', tone: 'good' }, scheduled: { label: 'Booked', tone: 'good' }, completed: { label: 'Done', tone: 'good' }, lost: { label: 'Lost', tone: 'bad' }, junk: { label: 'Junk', tone: 'neutral' },
+  paid: { label: 'Booked', tone: 'good' }, scheduled: { label: 'Booked', tone: 'good' }, completed: { label: 'Done', tone: 'good' }, lost: { label: 'Lost', tone: 'bad' }, junk: { label: 'Junk', tone: 'neutral' }, cancelled: { label: 'Cancelled', tone: 'warn' },
 };
 export const statusInfo = (v) => STATUS[v] || { label: String(v ?? '—'), tone: 'neutral' };
 export const statusLabel = (v) => statusInfo(v).label;

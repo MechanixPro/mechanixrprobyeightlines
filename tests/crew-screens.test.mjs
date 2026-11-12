@@ -6,12 +6,12 @@ import { ALL_TABS, groupOf } from '../admin/nav.js';
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 
 test('every Crew screen missing from Admin now has exactly one Admin tab', () => {
-  assert.deepEqual([...CREW_TABS].sort(), ['callnow', 'followups', 'knowledge', 'playbooks', 'rsa', 'team', 'tickets', 'visits', 'webleads']);
+  assert.deepEqual([...CREW_TABS].sort(), ['callnow', 'cancellations', 'followups', 'knowledge', 'playbooks', 'rsa', 'team', 'tickets', 'visits', 'webleads']);
   for (const t of CREW_TABS) { assert.equal(ALL_TABS.filter((x) => x === t).length, 1, t); assert.ok(isCrewTab(t)); assert.ok(existsSync(new URL(`../crm/pages/${t}.js`, import.meta.url)), t); }
   assert.equal(isCrewTab('dash'), false);
 });
 test('tabs are grouped where people look for them', () => {
-  for (const t of ['callnow', 'followups', 'playbooks', 'webleads']) assert.equal(groupOf(t), 'bookings');
+  for (const t of ['callnow', 'cancellations', 'followups', 'playbooks', 'webleads']) assert.equal(groupOf(t), 'bookings');
   for (const t of ['rsa', 'tickets', 'visits']) assert.equal(groupOf(t), 'team');
   for (const t of ['knowledge', 'team']) assert.equal(groupOf(t), 'more');
 });

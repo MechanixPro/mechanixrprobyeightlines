@@ -2,7 +2,7 @@
 // Five sections instead of fifteen tabs: the daily work comes first and the rarely used pages sit under More.
 export const GROUPS = [
   { id: 'today', label: 'Today', tabs: [['dash', 'Dashboard'], ['watch', 'Service Watch']] },
-  { id: 'bookings', label: 'Bookings', tabs: [['board', 'Today board'], ['dispatch', 'Dispatch'], ['leads', 'Bookings'], ['customers', 'Customers'], ['custbook', 'Customer bookings'], ['issues', 'Issues'], ['whatsapp', 'WhatsApp'], ['callnow', 'Call now'], ['followups', 'Follow-ups'], ['playbooks', 'Playbooks'], ['webleads', 'Web leads']] },
+  { id: 'bookings', label: 'Bookings', tabs: [['board', 'Today board'], ['dispatch', 'Dispatch'], ['leads', 'Bookings'], ['customers', 'Customers'], ['custbook', 'Customer bookings'], ['issues', 'Issues'], ['cancellations', 'Cancellations'], ['whatsapp', 'WhatsApp'], ['callnow', 'Call now'], ['followups', 'Follow-ups'], ['playbooks', 'Playbooks'], ['webleads', 'Web leads']] },
   { id: 'money', label: 'Money', tabs: [['sales', 'Sales and collections'], ['mechledger', 'Mechanic ledgers'], ['invoices', 'Invoices'], ['conversion', 'Conversion'], ['reports', 'Reports'], ['coupons', 'Coupons'], ['prices', 'Prices']] },
   { id: 'team', label: 'Team and areas', tabs: [['mechanics', 'Mechanics'], ['garages', 'Garages'], ['garageapp', 'Garage app'], ['kyc', 'Partner KYC'], ['pins', 'PIN codes'], ['rsa', 'RSA cases'], ['tickets', 'Tickets'], ['visits', 'Garage visits']] },
   { id: 'more', label: 'More', tabs: [['offers', 'Offers'], ['waitlist', 'Waitlist'], ['homeimgs', 'Home images'], ['settings', 'Settings'], ['activity', 'Activity'], ['knowledge', 'Knowledge'], ['team', 'Team']] },

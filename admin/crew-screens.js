@@ -1,7 +1,7 @@
 // Crew Desk screens inside the Admin: Call now, Follow-ups, Playbooks, Web leads, RSA Cases, Tickets, Garage Visits, Knowledge, Team.
 // The pages are the SAME files Crew uses (copied to /crew/ by scripts/build_admin.sh) and every call still goes through the database's own permission checks.
 // Crew styles are scoped under .crewhost (generated at build time) so they cannot change how the rest of the Admin looks.
-export const CREW_TABS = ['callnow', 'followups', 'playbooks', 'webleads', 'rsa', 'tickets', 'visits', 'knowledge', 'team'];
+export const CREW_TABS = ['cancellations', 'callnow', 'followups', 'playbooks', 'webleads', 'rsa', 'tickets', 'visits', 'knowledge', 'team'];
 export const isCrewTab = (t) => CREW_TABS.includes(t);
 export const crewView = (title) => `<div class="view-head"><div><h1>${title}</h1></div></div><div class="crewhost" id="crewRoot" aria-live="polite"><p class="muted">Loading…</p></div>`;
 
@@ -18,6 +18,7 @@ export async function mountCrew(tab, root, deps) {
       me, can: () => true, page: () => true,
       reload: () => mountCrew(tab, root, deps), go: () => {},
       openLead: (id) => deps.openLead && deps.openLead(id),
+      openRefund: deps.openRefund,
       users: async () => { try { return await loaded.ui.rpc('crm_users_list'); } catch (e) { return []; } },
       showPlaybook: async (id) => { const k = await import('/crew/pages/knowledge.js'); return k.showPlaybook && k.showPlaybook(id); },
     };

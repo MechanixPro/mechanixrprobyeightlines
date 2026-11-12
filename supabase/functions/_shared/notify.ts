@@ -48,7 +48,7 @@ export function dueKinds(rows: { kind: string; status: string; attempts?: number
 /** True when the minutes since `since` have passed. */
 export const olderThan = (since: string | null | undefined, minutes: number, now: number | Date = Date.now()) => !!since && new Date(now).getTime() - Date.parse(since) >= minutes * 60_000;
 
-export const ISSUE_LABEL: Record<string, string> = { late: 'Running late', mechanic: 'About the mechanic', payment: 'Payment', safety: 'Safety', other: 'Other' };
+export const ISSUE_LABEL: Record<string, string> = { late: 'Running late', mechanic: 'About the mechanic', payment: 'Payment', safety: 'Safety', cancel: 'Cancel request', other: 'Other' };
 /** The staff alert for a new customer issue. Booking ID, vehicle tag, area and the type only: the customer's own words stay in the desk (Issues), not in email. */
 export function teamIssueMessage(d: { bookingId?: string | null; vehicle: string; area?: string | null; category: string; deskUrl: string }): { subject: string; text: string; html: string } {
   const type = ISSUE_LABEL[d.category] ?? 'Other';

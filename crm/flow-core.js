@@ -44,10 +44,10 @@ export function createFlow(deps) {
     // A part that fails is NOT shown as "none yet": its name goes into `failed`, and the card says so with a Retry button.
     const failed = [], safe = (name, p) => p.then((x) => x, () => { failed.push(name); return null; });
     const gd = deps.garageDesk && deps.garageDesk.visible();   // partner garage: only for people who may manage garages
-    const [conf, notes, quote, updates, seen, garage, check] = await Promise.all([safe('payment status', rpc('crm_confirmation', { p_lead: leadId })), safe('messages', rpc('crm_notifications', { p_lead: leadId })), safe('quote', rpc('crm_quote_get', { p_lead: leadId })),
+    const [conf, notes, quote, updates, seen, garage, check, cancel] = await Promise.all([safe('payment status', rpc('crm_confirmation', { p_lead: leadId })), safe('messages', rpc('crm_notifications', { p_lead: leadId })), safe('quote', rpc('crm_quote_get', { p_lead: leadId })),
       safe('customer details', rpc('crm_booking_updates', { p_lead: leadId })), safe('mechanic location', rpc('crm_tech_location', { p_lead: leadId })),
-      gd ? safe('partner garage', deps.garageDesk.forLead(leadId)) : Promise.resolve(null), safe('Pro Check', rpc('crm_job_check', { p_lead: leadId }))]);
-    return { conf, notes: notes || [], quote, updates, seen, garage, check, failed };
+      gd ? safe('partner garage', deps.garageDesk.forLead(leadId)) : Promise.resolve(null), safe('Pro Check', rpc('crm_job_check', { p_lead: leadId })), safe('cancellation', rpc('crm_cancel_info', { p_lead: leadId }))]);
+    return { conf, notes: notes || [], quote, updates, seen, garage, check, cancel, failed };
   }
   /** Fold the confirmation fields into the lead the step bar reads. */
   const withFlow = (lead, flow) => (flow && flow.conf ? { ...lead, confirm_fee: flow.conf.fee, confirm_paid_at: flow.conf.paid ? (flow.conf.paid_at || 'paid') : null, visit_stage: flow.conf.stage, quote_state: flow.conf.quote ? flow.conf.quote.status : null } : lead);
@@ -56,6 +56,7 @@ export function createFlow(deps) {
   function card(lead, flow) {
     const l = withFlow(lead, flow), c = flow && flow.conf, can = deps.can;
     if (['lost', 'junk'].includes(l.status)) return '';
+    if (l.status === 'cancelled') return cancelledCard(flow && flow.cancel);
     const badge = paidBadge(l), sub = visitSub(l), bt = [];
     const open = !confirmPaid(l) && !['completed'].includes(l.status);
     const amount = c && c.fee != null ? c.fee : null;
@@ -86,8 +87,22 @@ export function createFlow(deps) {
     if (flow && flow.notes && flow.notes.length) {
       h += `<h4>Messages</h4><ul class="flow-list">${flow.notes.map((n) => { const k = String(n.kind).split(':'); return `<li>${chip(n.status, NOTICE_TONE[n.status] || '')} ${esc(NOTICE_LABEL[k[0]] || n.kind)}${k[1] ? ' v' + esc(k[1]) : ''} <small class="flow-muted">${esc(when(n.at))}${n.error ? ' · ' + esc(n.error) : ''}</small>${rs.includes(n) ? ` <button class="flow-btn flow-sm" type="button" data-flow="resend" data-kind="${esc(k[0])}" data-n="${esc(k[1] || '')}">Resend</button>` : ''}</li>`; }).join('')}</ul>`;
     }
+    if ((confirmPaid(l) || ['paid', 'scheduled'].includes(l.status)) && l.status !== 'completed') h += '<div class="flow-row"><button class="flow-btn flow-ghost" type="button" data-flow="cancel">Cancel booking</button></div>';
     return h + '</section>';
   }
+  const CANCEL_KIND = [['customer', 'The customer cancelled'], ['company', 'We cancelled'], ['unreachable', 'We could not reach the customer']];
+  const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
+  /** The booking is cancelled: why, and whether a refund is still to be paid (only the Admin records it). */
+  function cancelledCard(c) {
+    const kind = (CANCEL_KIND.find((k) => k[0] === (c && c.kind)) || [0, ''])[1];
+    let h = `<section class="flow-card" aria-label="Cancelled booking"><h3>Cancelled ${chip('Cancelled', 'warn')}</h3>`;
+    if (!c) return h + '<p class="flow-muted">Cancellation details could not be loaded.</p></section>';
+    h += `<p>${esc(kind)}${c.reason ? ': ' + esc(c.reason) : ''}${c.at ? ' · ' + esc(when(c.at)) : ''}</p>`;
+    if (c.refund_outstanding > 0) h += `<p><b>Refund due ${inr(c.refund_outstanding)}.</b> ${deps.openRefund ? '' : 'An Admin approves and records it.'}</p>${deps.openRefund ? '<div class="flow-row"><button class="flow-btn flow-primary" type="button" data-flow="refund">Record refund</button></div>' : ''}`;
+    else h += `<p class="flow-muted">${c.refund_due > 0 ? 'The refund has been recorded.' : 'No refund is due.'}</p>`;
+    return h + '</section>';
+  }
+  const outcomeHtml = (o) => `<b>${esc(o.reason)}</b><br>${o.refundable && o.amount > 0 ? 'Refund due: <b>' + inr(o.amount) + '</b>. An Admin approves and records it.' : o.paid > 0 ? 'No refund. ' + inr(o.paid) + ' is kept.' : 'Nothing was paid, so no refund.'}<br><small>The slot start is estimated from the slot name (morning 9:00, afternoon 12:00, evening 16:00).</small>`;
   /* Pro Check 20 result: counts, the points that need attention and the test ride. Read only; the mechanic or garage fills it in the app. */
   const CHK_RIDE = { done_fine: 'Test ride done, all fine', done_note: 'Test ride done, something to note', not_done: 'Test ride not done' };
   function checkBlock(flow) {
@@ -152,6 +167,24 @@ export function createFlow(deps) {
         } });
     },
     reloadFlow() { deps.reload(); },
+    refund(lead) { return deps.openRefund && deps.openRefund(lead.id); },
+    /** Cancel a booking: who cancelled, what the refund policy says, a reason. Admin may overrule the refund; the database checks it again. */
+    async cancel(lead) {
+      const canOver = !!(deps.canOverrideRefund && deps.canOverrideRefund());
+      const first = await rpc('cancel_outcome', { p_lead: lead.id, p_kind: 'customer' });
+      dialog({ title: 'Cancel this booking', intro: esc([lead.booking_id, lead.area].filter(Boolean).join(' · ') || 'This booking'),
+        body: `<label class="flow-label" for="cx-kind">Who cancelled</label><select id="cx-kind" name="kind">${CANCEL_KIND.map((k) => `<option value="${k[0]}">${esc(k[1])}</option>`).join('')}</select>
+          <p class="flow-muted" id="cx-out" aria-live="polite">${outcomeHtml(first)}</p>
+          ${canOver ? '<label class="flow-label" for="cx-refund">Refund decision</label><select id="cx-refund" name="refund"><option value="">Follow the policy above</option><option value="yes">Refund the fee in full</option><option value="no">No refund</option></select>' : ''}
+          <label class="flow-label" for="cx-why">Reason (required)</label><input id="cx-why" name="why" maxlength="200" autocomplete="off">`,
+        submit: 'Cancel booking',
+        onOpen: (f) => { f.kind.addEventListener('change', async () => { try { f.querySelector('#cx-out').innerHTML = outcomeHtml(await rpc('cancel_outcome', { p_lead: lead.id, p_kind: f.kind.value })); } catch (e) { /* keep the last text */ } }); },
+        onSubmit: async (f, d) => {
+          if (f.why.value.trim().length < 3) throw new Error('Write a short reason.');
+          const r = await rpc('crm_cancel_booking', { p_lead: lead.id, p_kind: f.kind.value, p_reason: f.why.value.trim(), p_refund: canOver && f.refund && f.refund.value ? f.refund.value === 'yes' : null });
+          d.close(); toast(r && r.refund_due > 0 ? 'Booking cancelled. Refund due ' + inr(r.refund_due) + ': an Admin records it.' : 'Booking cancelled. No refund due.'); deps.reload();
+        } });
+    },
     garageAssign(lead, flow, btn) { return deps.garageDesk.assignDialog({ lead, moveFrom: (btn && btn.dataset && btn.dataset.move) || undefined }); },
     copyScript(lead, flow, btn) { copy(callScript(btn.dataset.amount || '49 to 99')); },
     /* Every job goes to a partner garage. Individual mechanics are no longer picked. */

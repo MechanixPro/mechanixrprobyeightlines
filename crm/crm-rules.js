@@ -4,7 +4,7 @@ export * from './flow-rules.js';
 // so an agent sees the problem before saving, and the database still refuses anything that slips past.
 export const OPEN = ['new', 'contacted', 'quoted', 'payment_sent'];
 export const BOOKED = ['paid', 'scheduled', 'completed'];
-export const STATUS_LABEL = { new: 'New', contacted: 'Contacted', quoted: 'Quote sent', payment_sent: 'Advance link sent', paid: 'Booked', scheduled: 'Booked', completed: 'Done', lost: 'Lost', junk: 'Junk' };
+export const STATUS_LABEL = { new: 'New', contacted: 'Contacted', quoted: 'Quote sent', payment_sent: 'Advance link sent', paid: 'Booked', scheduled: 'Booked', completed: 'Done', lost: 'Lost', junk: 'Junk', cancelled: 'Cancelled' };
 /** The fixed list of reasons a lead can be lost for. The same list is in crm_lost_reasons() in the database (20261227000000_crew_conversion.sql). Old leads keep the wording they were saved with. */
 export const LOST_REASONS = ['Price too high', 'No answer (after 3 tries)', 'Wrong area', 'Bought elsewhere', 'Not now / later', 'Not a real enquiry', 'Other'];
 export const LOST_NOTE_MIN = 5;

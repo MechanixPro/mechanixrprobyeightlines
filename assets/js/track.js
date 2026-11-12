@@ -10,7 +10,7 @@
   var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var inr = function (n) { return '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
   var KIND = { parts: 'Parts', labour: 'Labour', other: 'Other' };
-  var ISSUE = [['late', 'The mechanic is late or has not come'], ['mechanic', 'About the mechanic'], ['payment', 'A payment problem'], ['safety', 'A safety concern'], ['other', 'Something else']];
+  var ISSUE = [['late', 'The mechanic is late or has not come'], ['mechanic', 'About the mechanic'], ['payment', 'A payment problem'], ['safety', 'A safety concern'], ['cancel', 'I want to cancel this booking'], ['other', 'Something else']];
   var STATUS = { paid: 'Confirmed', scheduled: 'Scheduled', completed: 'Completed', lost: 'Closed' };
   var GOOGLE_OK = /^https:\/\/[^\s"'<>]+$/;
 
@@ -49,7 +49,7 @@
       var t = (ISSUE.filter(function (x) { return x[0] === i.category; })[0] || [0, 'Other'])[1];
       return '<li><b>' + esc(t) + '</b><span class="jy-chip' + (i.status === 'resolved' ? ' good' : '') + '">' + (i.status === 'resolved' ? 'Resolved' : 'Open') + '</span><br>' + esc(i.body) + '</li>'; }).join('') + '</ul>' : '';
     var report = '<div class="jy-issue"><h4>Report a problem with my booking</h4><form class="jy-form" id="jyIssue" novalidate><label for="jyCat">What is it about?</label><select id="jyCat" name="category">' + ISSUE.map(function (x) { return '<option value="' + x[0] + '">' + esc(x[1]) + '</option>'; }).join('') + '</select>'
-      + '<label for="jyBody">Tell us what went wrong</label><textarea id="jyBody" name="body" rows="3" maxlength="500"></textarea><button class="btn btn-ghost wide" type="submit">Report a problem</button><p class="jy-meta" id="jyIssueMsg" role="status" aria-live="polite"></p></form>' + issues + '</div>';
+      + '<p class="jy-meta">Choosing &ldquo;I want to cancel this booking&rdquo; sends us a request. Cancelling more than 2 hours before your slot is free, and your confirmation fee is refunded. We confirm it before anything is refunded.</p><label for="jyBody">Tell us what went wrong</label><textarea id="jyBody" name="body" rows="3" maxlength="500"></textarea><button class="btn btn-ghost wide" type="submit">Report a problem</button><p class="jy-meta" id="jyIssueMsg" role="status" aria-live="polite"></p></form>' + issues + '</div>';
     return '<div class="card track-card" id="trDetailsCard"><h3 id="trDetailsH">Add details or report an issue</h3><p class="jy-meta">' + (ed ? 'You can add or change these until the work starts. Only you, our team and your mechanic can see them.' : 'Saved with your booking.') + '</p>' + form + photos + report + '</div>';
   }
   function rateHtml(r, done, google) {
@@ -209,7 +209,7 @@
         put('trHist', histHtml(J), JSON.stringify([J.history, J.again]));
         var slot = doc.getElementById('trInstall');
         if (slot && !sigs.trInstall) { sigs.trInstall = 1; slot.innerHTML = '<div class="card track-card"><h3>Keep this on your phone</h3><p class="jy-meta">Add Mechanix Pro to your home screen to open your booking in one tap.</p><div data-install></div></div>'; if (I) I.mount(slot.querySelector('[data-install]'), win); }
-        if (I) { if (v.status === 'lost' || v.status === 'junk' || v.closed) I.clearBooking(win); else I.saveBooking(win, { t: tok, id: v.booking_id }); }
+        if (I) { if (v.status === 'lost' || v.status === 'junk' || v.status === 'cancelled' || v.closed) I.clearBooking(win); else I.saveBooking(win, { t: tok, id: v.booking_id }); }
       }
     }
     var T = function () { return win.MXP_THANKS; };
