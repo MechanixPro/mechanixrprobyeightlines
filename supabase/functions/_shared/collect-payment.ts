@@ -61,7 +61,7 @@ export async function collectAction(db: any, ops: Ops, action: string, lead: any
       await db.from('leads').update({ final_link_id: link.id, final_link_url: link.url, final_link_amount: due }).eq('id', lead.id);
       await note(`Payment link for Rs ${due} created by ${who.name}.`);
       return { status: 200, body: { ok: true, url: link.url, amount: due, reused: false, paid: false, first } };
-    } catch (e) { console.error('collect-payment link', (e as Error).message); return { status: 502, body: { error: 'Could not make the link. Try again.' } }; }
+    } catch (e) { const m = String((e as Error).message ?? '').replace(/[^\x20-\x7E]/g, ' ').trim().slice(0, 160); console.error('collect-payment link', m); return { status: 502, body: { error: m ? `Could not make the link: ${m}` : 'Could not make the link. Try again.' } }; }   // the gateway message holds no keys; only technicians and garages see this
   }
   // payment_cash: the rule is enforced here, not only in the screen.
   if (paid) return { status: 409, body: { error: 'This job is already paid.' } };
