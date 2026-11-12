@@ -41,7 +41,7 @@ test('the page is phone first, has no inline script, saves progress on the phone
   const html = read('book/index.html'), js = read('assets/js/book-pay.js');
   assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)[^>]*>[^<]/); assert.doesNotMatch(html, /\son(click|change|input|submit)=/); assert.match(html, /book\.css/); assert.match(html, /book-pay\.js/);
   assert.match(html, /id="bkForm"/); assert.match(html, /name="email"[^>]*type="email"|type="email"[^>]*name="email"/);
-  for (const l of ['The fee is adjusted in your final bill', 'itemised quote before any work', 'Nothing starts without your OK and your code', 'one-time code protects your vehicle', 'confirmation by email and WhatsApp', 'Secure payment with Razorpay']) assert.ok(html.includes(l), l);
+  for (const l of ['The fee is adjusted in your final bill', 'itemised quote before any work', 'Nothing starts without your OK and your code', 'one-time code protects your vehicle', 'confirmation by email and WhatsApp', 'Secure payment with Cashfree Payments']) assert.ok(html.includes(l), l);
   assert.doesNotMatch(html, /10,000|1,300|rating|★|stars|\bavg\b/i);   // the two owner-confirmed claims are added by the script, for bikes only
   assert.match(js, /bike-proof/); assert.match(js, /if \(!car\) trust\.insertAdjacentHTML/); assert.match(js, /localStorage/);
   assert.match(read('assets/css/book.css'), /min-height:4[48]px/);
