@@ -230,7 +230,7 @@ export function garageDashboard(inp: DashboardInput) {
       completed_at: r.assignment.returned_at ?? r.assignment.ready_at ?? null, amount: Math.round(Number(r.settlement!.amount) * 100) / 100, direction: 'we_owe_you' as const, label: 'We owe you' };
   });
   return {
-    name: String(inp.garage.name ?? '').slice(0, 80), city: inp.garage.city ? String(inp.garage.city).slice(0, 40) : null, is_open: inp.garage.is_open !== false,
+    name: String(inp.garage.name ?? '').slice(0, 80), city: inp.garage.city ? String(inp.garage.city).slice(0, 40) : null, plan: ['bronze', 'silver', 'gold'].includes(String((inp.garage as any).plan ?? '')) ? String((inp.garage as any).plan) : null, is_open: inp.garage.is_open !== false,
     today_jobs: live.filter((r) => istDay(r.assignment.assigned_at) === inp.today).length, open_jobs: live.filter((r) => isOpen(r.assignment.status)).length,
     month: { jobs: live.filter((r) => (istDay(r.assignment.assigned_at) ?? '').startsWith(month)).length, completed: doneRows.length, avg_ticket: amounts.length ? Math.round((amounts.reduce((t, n) => t + n, 0) / amounts.length) * 100) / 100 : null },
     unsettled, unsettled_total: Math.round(unsettled.reduce((t, u) => t + u.amount, 0) * 100) / 100,

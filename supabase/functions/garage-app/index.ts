@@ -180,13 +180,13 @@ Deno.serve(async (req) => {
     return json(req, { ok: true, id: data.assignment_id });
   }
   if (action === 'dashboard') {
-    const [{ data: rows, error }, { data: g }] = await Promise.all([mine().order('assigned_at', { ascending: false }).limit(500), db.from('garages').select('name,city,is_open,shop_loc_at').eq('id', garageId).maybeSingle()]);
+    const [{ data: rows, error }, { data: g }] = await Promise.all([mine().order('assigned_at', { ascending: false }).limit(500), db.from('garages').select('name,city,is_open,shop_loc_at,plan').eq('id', garageId).maybeSingle()]);
     if (error) { console.error('garage-app dashboard', error.code); return json(req, { error: 'Could not load your dashboard. Please try again.' }, 500); }
     const done = (rows ?? []).filter((r: any) => ['ready', 'returned'].includes(r.status)), ids = done.map((r: any) => r.id);
     const [c, st] = await Promise.all([context(done), ids.length ? db.from('garage_settlements').select('assignment_id,amount,settled,settled_at,note').in('assignment_id', ids.slice(0, 200)) : Promise.resolve({ data: [] })]);
     const S = new Map((st.data ?? []).map((s: any) => [s.assignment_id, s]));
     const all = (rows ?? []).map((a: any) => ({ assignment: a, lead: ((c.L.get(a.lead_id) as any) ?? {}), vehicle: ((c.K.get(((c.L.get(a.lead_id) as any) ?? {}).bike_id) as any) ?? null), settlement: (S.get(a.id) as any) ?? null }));
-    return json(req, { ok: true, dashboard: garageDashboard({ today: new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 10), garage: { name: g?.name ?? garageName, city: g?.city, is_open: g?.is_open, shop_loc_at: g?.shop_loc_at }, rows: all }) });
+    return json(req, { ok: true, dashboard: garageDashboard({ today: new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 10), garage: { name: g?.name ?? garageName, city: g?.city, is_open: g?.is_open, shop_loc_at: g?.shop_loc_at, plan: g?.plan }, rows: all }) });
   }
 
   if (action === 'jobs') {

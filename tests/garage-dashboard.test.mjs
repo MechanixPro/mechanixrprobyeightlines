@@ -29,7 +29,7 @@ test('dashboard: an empty garage, a closed shop, no location and no amounts ente
 test('dashboard: never a phone, address, email or customer name, whatever the lead row holds', () => {
   const d = garageDashboard({ today: '2026-11-07', garage: { name: 'Test Garage' }, rows: [row(4, 'ready', { ready_at: '2026-11-06T12:00:00Z' }, { amount: 100, settled: false, note: `call ${PHONE}` })] }), out = JSON.stringify(d);
   for (const bad of [PHONE, ADDRESS, EMAIL, 'Secret Lane', 'Asha Rao']) assert.ok(!out.includes(bad), bad);
-  assert.deepEqual(Object.keys(d).sort(), ['city', 'is_open', 'location', 'month', 'name', 'open_jobs', 'today_jobs', 'unsettled', 'unsettled_total']);
+  assert.deepEqual(Object.keys(d).sort(), ['city', 'is_open', 'location', 'month', 'name', 'open_jobs', 'plan', 'today_jobs', 'unsettled', 'unsettled_total']);   // changed on purpose 2026-11-12: the partner plan (bronze, silver, gold) is shown in the banner
 });
 test('IST day and location cleaning', () => {
   assert.equal(istDay('2026-11-07T20:00:00Z'), '2026-11-08'); assert.equal(istDay('x'), null); assert.equal(istDay(null), null);
@@ -58,4 +58,12 @@ test('garage app: Home first, Open/Closed, monthly figures, shop location, never
 test('css: the shared dashboard classes exist and use no inline or external resource', () => {
   const c = read('assets/css/garage.css'); for (const k of ['.d-banner', '.d-card', '.d-toggle', '.d-opt', '.d-stats', '.d-fold', '.d-fig', '.d-qr', '.g-tabs-4', '.g-tabs-2']) assert.ok(c.includes(k), k);
   assert.ok(!/@import|url\(http/.test(c));
+});
+
+test('the partner plan (Bronze, Silver or Gold) reaches the garage dashboard and shows as a badge; anything else shows no badge', () => {
+  for (const p of ['bronze', 'silver', 'gold']) assert.equal(garageDashboard({ today: '2026-11-07', garage: { name: 'G', plan: p }, rows: [] }).plan, p);
+  assert.equal(garageDashboard({ today: '2026-11-07', garage: { name: 'G', plan: 'platinum' }, rows: [] }).plan, null);
+  assert.equal(garageDashboard({ today: '2026-11-07', garage: { name: 'G' }, rows: [] }).plan, null);
+  const js = read('assets/js/garage.js'); assert.match(js, /g-plan g-plan-' \+ dsh\.plan/); assert.match(js, /bronze: 'Bronze', silver: 'Silver', gold: 'Gold'/);
+  assert.match(read('supabase/functions/garage-app/index.ts'), /select\('name,city,is_open,shop_loc_at,plan'\)/);
 });

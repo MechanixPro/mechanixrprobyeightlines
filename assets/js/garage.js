@@ -226,7 +226,7 @@
     }
     function renderHome() {
       var dsh = S.dash, body = [];
-      body.push(el('div', { class: 'd-banner' }, [el('div', {}, [el('h1', { text: 'Hello, ' + (S.name || 'garage') }), dsh && dsh !== 'error' && dsh.city ? el('p', { text: dsh.city }) : null]), el('button', { class: 'd-out', type: 'button', id: 'dLogout', onclick: function () { lock('You are signed out.'); }, text: 'Logout' })]));
+      body.push(el('div', { class: 'd-banner' }, [el('div', {}, [el('h1', { text: 'Hello, ' + (S.name || 'garage') }), dsh && dsh !== 'error' && dsh.plan ? el('span', { class: 'g-plan g-plan-' + dsh.plan, text: ({ bronze: 'Bronze', silver: 'Silver', gold: 'Gold' })[dsh.plan] + ' partner' }) : null, dsh && dsh !== 'error' && dsh.city ? el('p', { text: dsh.city }) : null]), el('button', { class: 'd-out', type: 'button', id: 'dLogout', onclick: function () { lock('You are signed out.'); }, text: 'Logout' })]));
       if (dsh === null) { body.push(loading('Loading your day')); shell(body, 'home', true); return; }
       if (dsh === 'error') { body.push(retryCard(S.dashErr || ERR.gen, function () { S.dash = null; render(); fetchHome(); })); shell(body, 'home', true); return; }
       var av = availabilityText(!!dsh.is_open);

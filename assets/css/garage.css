@@ -284,3 +284,7 @@ body.g-dark-bg{background:var(--navy)}
 .g-unread{border-left:4px solid #F2801F}
 .g-cancel-ask{display:block;margin:18px auto 0;color:inherit;opacity:.75;text-decoration:underline}
 .g-err{color:#b3261e;font-weight:600;margin:8px 0}
+/* Partner plan badge in the dashboard banner: Bronze, Silver or Gold, as set in Admin for this garage. */
+.g-plan{display:inline-block;margin:6px 0 0;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.02em;color:#1b1206;background:#cd7f32}
+.g-plan-silver{background:#cfd5de}
+.g-plan-gold{background:#f6c62a}
