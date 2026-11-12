@@ -147,7 +147,7 @@ export async function createCashfreeLink(o: LinkOpts): Promise<{ id: string; url
 /* ---------- webhook signature ---------- */
 const b64 = (b: ArrayBuffer): string => { let s = ''; for (const x of new Uint8Array(b)) s += String.fromCharCode(x); return btoa(s); };
 export const WEBHOOK_MAX_AGE_MS = 10 * 60_000;
-/** x-webhook-signature = base64(HMAC-SHA256(secret, x-webhook-timestamp + rawBody)). Constant-time compare; a timestamp more than 10 minutes from now is rejected (replay). */
+/** x-webhook-signature = base64(HMAC-SHA256(secret, x-webhook-timestamp + rawBody)), or with a "." between them (both accepted). Constant-time compare; a timestamp more than 10 minutes from now is rejected (replay). */
 export async function webhookValid(rawBody: string, timestamp: string | null, signature: string | null, secret: string, nowMs = Date.now()): Promise<boolean> {
   if (!secret || !timestamp || !signature) return false;
   let t = Number(timestamp);
@@ -156,8 +156,9 @@ export async function webhookValid(rawBody: string, timestamp: string | null, si
   if (t < 1e12) t *= 1000;   // seconds
   if (Math.abs(nowMs - t) > WEBHOOK_MAX_AGE_MS) return false;
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const want = b64(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(timestamp + rawBody)));
-  if (want.length !== signature.length) return false;
-  let diff = 0; for (let i = 0; i < want.length; i++) diff |= want.charCodeAt(i) ^ signature.charCodeAt(i);
-  return diff === 0;
+  // Cashfree's docs show the signed text both as timestamp + body and as timestamp + "." + body. Either form needs the secret key, so both are accepted.
+  const same = (a: string, b: string): boolean => { if (a.length !== b.length) return false; let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0; };
+  const sign = async (text: string) => b64(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(text)));
+  const a = same(await sign(timestamp + rawBody), signature), b = same(await sign(timestamp + '.' + rawBody), signature);
+  return a || b;
 }

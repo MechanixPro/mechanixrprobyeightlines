@@ -264,3 +264,11 @@ test('no Cashfree secret value is written in the project files, and the owner wo
   assert.doesNotMatch(read('admin/admin.js'), /Refund (it )?in Razorpay/); assert.match(read('admin/admin.js'), /Refund it in the payment gateway dashboard/);
   assert.doesNotMatch(read('crm/pages/cancellations.js'), /Razorpay/);
 });
+
+test('webhook signature: the dotted form (timestamp + "." + body) is accepted too, a wrong secret still is not', async () => {
+  const now = Date.now(), ts = String(now), raw = '{"type":"PAYMENT_SUCCESS_WEBHOOK"}';
+  const dotted = (secret) => createHmac('sha256', secret).update(ts + '.' + raw).digest('base64');
+  assert.equal(await cf.webhookValid(raw, ts, dotted(SECRET), SECRET, now), true);
+  assert.equal(await cf.webhookValid(raw, ts, dotted('other'), SECRET, now), false);
+  assert.equal(await cf.webhookValid(raw + ' ', ts, dotted(SECRET), SECRET, now), false, 'a changed body');
+});
