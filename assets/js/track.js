@@ -317,7 +317,7 @@
         // Rejecting asks once more, so a stray tap never ends the quote.
         if (b.getAttribute('data-q') === 'decline' && !b.getAttribute('data-sure')) { b.setAttribute('data-sure', '1'); b.textContent = 'Yes, reject this quote'; m.textContent = 'Reject this quote? Tap the button again to confirm. We will not start the work.'; return; }
         Array.prototype.forEach.call(out.querySelectorAll('[data-q]'), function (x) { x.disabled = true; }); m.textContent = 'Saving…';
-        post('quote-decision', { t: tok, version: Number(b.getAttribute('data-v')), decision: b.getAttribute('data-q'), reason: why ? why.value : '' }).then(function (x) {
+        post('quote-decision', { t: tok, version: Number(b.getAttribute('data-v')), decision: b.getAttribute('data-q'), reason: why ? why.value : '', source: 'track' }).then(function (x) {
           if (x.ok) load(true); else { m.textContent = (x.d && x.d.error) || 'Could not save. Please try again.'; if (x.d && x.d.superseded) load(true); Array.prototype.forEach.call(out.querySelectorAll('[data-q]'), function (y) { y.disabled = false; }); }
         }).catch(function () { m.textContent = 'No connection. Please try again.'; Array.prototype.forEach.call(out.querySelectorAll('[data-q]'), function (y) { y.disabled = false; }); });
         return;
