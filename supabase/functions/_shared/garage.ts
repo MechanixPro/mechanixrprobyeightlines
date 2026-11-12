@@ -23,6 +23,8 @@ export const NEXT_EVENT: Record<string, { event: string; label: string } | null>
 };
 export const TAB_OF = (status: string): 'open' | 'ready' | 'done' => (status === 'ready' ? 'ready' : isOpen(status) ? 'open' : 'done');
 
+import { approvalState, deliveryView } from './lifecycle.ts';
+
 /* ---------- text safety ---------- */
 /** Free text that came from a customer or staff may hold a number or email by accident: remove them before a garage sees the text. */
 export function scrubText(s: unknown, max = 500): string | null {
@@ -78,6 +80,7 @@ export type RawJob = {
   progress?: { event: string; at: string; note?: string | null; photos?: string[] }[];
   estimates?: Record<string, any>[];
   quote?: { status?: string | null } | null;
+  approval?: { status?: string | null; version?: number | null; decided_at?: string | null; decided_method?: string | null; decided_via?: string | null } | null;   // the latest sent, approved, declined or changes_requested quote
 };
 const gst = (sub: number) => Math.round(sub * 18) / 100;
 export function estimateView(e: Record<string, any>) {
@@ -92,7 +95,7 @@ export function estimateView(e: Record<string, any>) {
 function base(raw: RawJob) {
   const a = raw.assignment, l = raw.lead ?? {}, status = String(a.status);
   const v = raw.vehicle ?? {}, model = [v.brand && v.brand !== 'Other' ? v.brand : '', v.model].filter(Boolean).join(' ');
-  const qs = String(raw.quote?.status ?? 'none');
+  const qs = String(raw.quote?.status ?? 'none'), ap = approvalState(raw.approval ?? (raw.quote?.status ? { status: raw.quote.status } : null));
   return {
     id: String(a.id), status, status_label: STATUS_LABEL[status] ?? status, tab: TAB_OF(status), open: isOpen(status),
     booking_id: typeof l.booking_id === 'string' ? l.booking_id.slice(0, 24) : null,
@@ -101,7 +104,10 @@ function base(raw: RawJob) {
     work: raw.service ? String(raw.service).slice(0, 120) : l.vehicle === 'car' ? 'Car service or problem check' : 'Bike service',
     return_by: a.eta ?? null, assigned_at: a.assigned_at ?? null,
     offer_expires_at: status === 'sent' && typeof a.offer_expires_at === 'string' ? a.offer_expires_at : null,
-    quote: { status: QUOTE_LABEL[qs] ? qs : 'none', label: QUOTE_LABEL[qs] ?? QUOTE_LABEL.none },
+    quote: { status: QUOTE_LABEL[qs] ? qs : 'none', label: ap.status === 'approved_admin' ? 'Approved by admin on behalf of the customer' : QUOTE_LABEL[qs] ?? QUOTE_LABEL.none },
+    approval: { status: ap.status, by: ap.by, at: ap.at, version: ap.version, label: ap.label },   // enum: none | pending | approved_self | approved_admin | rejected | changes_requested
+    delivery: deliveryView(l),
+    customer_cancelled: l.status === 'cancelled',
     next: NEXT_EVENT[status] ?? null,
   };
 }

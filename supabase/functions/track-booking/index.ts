@@ -9,7 +9,7 @@ import { customerView, isComplete } from '../_shared/pro-check.ts';
 import { refFilter } from '../_shared/booking-id.ts';
 import { doorState } from '../_shared/handover.ts';
 
-const COLS = 'id,booking_id,status,phone,area,pincode,address,service_id,preferred_date,preferred_slot,preferred_time,est_total,bike_id,mechanic_id,confirm_fee,confirm_paid_at,visit_stage,job_place,vehicle,lat,lng';
+const COLS = 'id,booking_id,status,phone,area,pincode,address,service_id,preferred_date,preferred_slot,preferred_time,est_total,bike_id,mechanic_id,confirm_fee,confirm_paid_at,visit_stage,job_place,vehicle,lat,lng,delivery_stage,ready_at,delivered_at,closed_at,cancel_kind,cancelled_at,refund_due';
 const NOT_FOUND = 'We could not find that booking. Check the reference and the number you booked with.';
 
 Deno.serve(async (req) => {
@@ -42,13 +42,14 @@ Deno.serve(async (req) => {
     lead = data;
     if (!lead) return json(req, { error: NOT_FOUND }, 404);
   }
-  const [svc, bike, mech, hand, quote, garage] = await Promise.all([
+  const [svc, bike, mech, hand, quote, garage, refunds] = await Promise.all([
     lead.service_id ? db.from('services').select('name').eq('id', lead.service_id).maybeSingle() : Promise.resolve({ data: null }),
     lead.bike_id ? db.from('bikes').select('brand,model,nickname').eq('id', lead.bike_id).maybeSingle() : Promise.resolve({ data: null }),
     lead.mechanic_id ? db.from('mechanics').select('name,certified').eq('id', lead.mechanic_id).maybeSingle() : Promise.resolve({ data: null }),
     lead.confirm_fee != null ? db.from('handovers').select('kind,verified_at,locked_at,attempts,code_expires_at').eq('lead_id', lead.id).order('created_at', { ascending: false }) : Promise.resolve({ data: [] }),
-    lead.confirm_fee != null ? db.from('job_quotes').select('status,version,eta_text,lines,subtotal,gst,total,fee_credit,balance,quote_no,valid_until,terms,change_request').eq('lead_id', lead.id).in('status', ['sent', 'approved', 'declined', 'changes_requested']).order('version', { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null }),
+    lead.confirm_fee != null ? db.from('job_quotes').select('status,version,eta_text,lines,subtotal,gst,total,fee_credit,balance,quote_no,valid_until,terms,change_request,decided_at,decided_method,decided_via').eq('lead_id', lead.id).in('status', ['sent', 'approved', 'declined', 'changes_requested']).order('version', { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null }),
     db.from('garage_assignments').select('status').eq('lead_id', lead.id).in('status', ['sent', 'received', 'in_work', 'ready']).maybeSingle(),   // status only: never the garage's name
+    lead.status === 'cancelled' ? db.from('booking_refunds').select('status,amount').eq('lead_id', lead.id) : Promise.resolve({ data: [] }),   // status and amount only: never the gateway id or reference
   ]);
   const b = bike.data as { brand?: string; model?: string; nickname?: string } | null;
   const doorVerified = doorState((hand.data ?? []) as any[]) === 'verified';
@@ -56,7 +57,7 @@ Deno.serve(async (req) => {
     service: (svc.data as { name?: string } | null)?.name ?? null,
     bike: b ? [b.brand && b.brand !== 'Other' ? b.brand : '', b.model].filter(Boolean).join(' ') : null, nick: b?.nickname ?? null,
     mechanic: (mech.data as { name?: string } | null)?.name ?? null, certified: (mech.data as { certified?: boolean } | null)?.certified,
-    doorVerified, secret, vehicle: lead.vehicle, quote: quote.data ? { ...(quote.data as any), expired: (quote.data as any).status === 'sent' && !!(quote.data as any).valid_until && Date.parse((quote.data as any).valid_until) < Date.now() } as any : null, garage: (garage.data as { status?: string } | null)?.status ?? null,
+    doorVerified, secret, vehicle: lead.vehicle, quote: quote.data ? { ...(quote.data as any), expired: (quote.data as any).status === 'sent' && !!(quote.data as any).valid_until && Date.parse((quote.data as any).valid_until) < Date.now() } as any : null, garage: (garage.data as { status?: string } | null)?.status ?? null, refunds: (refunds.data ?? []) as any,
   });
   if (!token) return json(req, out);
   // After payment: the pieces only the holder of the private link gets (see journeyView).

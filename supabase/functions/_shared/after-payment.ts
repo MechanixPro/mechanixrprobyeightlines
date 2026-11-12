@@ -12,6 +12,9 @@ import { formatWhen } from './when.ts';
 import { idParam } from './booking-id.ts';
 import { deliver, deliverAll, dueKinds, olderThan, teamPaidMessage, teamNudgeMessage, teamIssueMessage, type Kind, type Result, type Store } from './notify.ts';
 import { teamGarageMessage } from './garage.ts';
+import { deliveryUpdate, approvalReceived } from './email-templates.ts';
+import { sendSmart, sendTemplate, whatsappReady, TPL } from './whatsapp.ts';
+import { deliveryText, approvalText, approvalState } from './lifecycle.ts';
 
 type Db = ReturnType<typeof adminDb>;
 const FROM_DESK = 'Mechanix Pro Desk <no-reply@mechanixpro.in>';
@@ -198,4 +201,77 @@ export async function notifyTeamGarage(db: Db, leadId: string, kind: 'estimate' 
     const k = (kind === 'ready' ? 'team_garage_ready' : `team_garage_estimate:${Math.max(1, Math.min(999, n || 1))}`) as Kind;
     return await deliver(dbStore(db), leadId, k, () => mailTeam(db, teamGarageMessage(kind, { bookingId: lead.booking_id, vehicle: lead.vehicle ?? 'bike', garageName, total, deskUrl: deskUrl() }), 'team_garage'));
   } catch (e) { console.error('notifyTeamGarage', (e as Error).message); return 'failed'; }
+}
+
+/* ---------- lifecycle messages (booking-notify delivery_update, approval_notice, estimate_rejected; quote-decision on a customer approval) ---------- */
+/** WhatsApp through the Meta Cloud API with the existing sendSmart pattern: plain text inside the 24 hour window, the approved template outside it. Needs the customer's WhatsApp consent. Never throws. */
+async function waNotice(db: Db, lead: any, text: string, template: { name: string; params: string[] }): Promise<Result> {
+  if (!lead.consent_whatsapp || lead.opted_out) return { ok: false, skipped: true, error: 'customer did not agree to WhatsApp updates' };
+  if (!whatsappReady()) return { ok: false, skipped: true, error: 'WhatsApp is not connected' };
+  const phone = String(lead.phone ?? '').replace(/\D/g, '').slice(-10);
+  if (!/^[6-9]\d{9}$/.test(phone)) return { ok: false, skipped: true, error: 'no valid phone number' };
+  const id = await sendSmart(db as any, { id: lead.id, phone, last_customer_msg_at: lead.last_customer_msg_at ?? null }, text, template);
+  return id ? { ok: true } : { ok: false, error: `WhatsApp did not accept the message. Outside the 24 hour window it needs the approved template ${template.name}.` };
+}
+const firstOf = (n: unknown) => String(n ?? '').trim().split(/\s+/)[0] || 'there';
+
+/** The vehicle is ready or delivered: one email and one WhatsApp to the customer, once per stage (booking_notifications delivery_*_email / _whatsapp). Needs the stage to be set in the database first. Never throws. */
+export async function sendDeliveryUpdate(db: Db, leadId: string, stage: 'ready' | 'delivered', force = false): Promise<Record<string, string>> {
+  try {
+    const { data: lead } = await db.from('leads').select('*').eq('id', leadId).is('deleted_at', null).maybeSingle();
+    if (!lead) return { error: 'not found' };
+    const reached = stage === 'ready' ? ['ready', 'delivered', 'closed'] : ['delivered', 'closed'];
+    if (!reached.includes(String(lead.delivery_stage ?? ''))) return { error: stage === 'ready' ? 'the vehicle is not marked ready yet' : 'the vehicle is not marked delivered yet' };
+    const c = await contextOf(db, lead), s = stage === 'ready' ? 'delivery_ready' : 'delivery_done', text = deliveryText(stage, lead, c.vehicleName);
+    const tpl = stage === 'ready' ? TPL.deliveryReady() : TPL.deliveryDone();
+    return await deliverAll(dbStore(db), leadId, {
+      [`${s}_email`]: async () => mailTo(db, leadId, c.email, s, deliveryUpdate({ ...siteInfo(), name: lead.name, ref: lead.booking_id ?? null, stage, vehicleName: c.vehicleName, trackUrl: c.trackUrl })),
+      [`${s}_whatsapp`]: () => waNotice(db, lead, text, { name: tpl, params: [firstOf(lead.name), c.vehicleName, lead.booking_id ?? 'request'] }),
+    } as any, force);
+  } catch (e) { console.error('sendDeliveryUpdate', (e as Error).message); return { error: 'failed' }; }
+}
+
+/** An approved quote (by the customer or by an admin on their behalf): the customer gets an email and a WhatsApp, the assigned partner garage gets a notice. Once per quote version. Never throws. */
+export async function sendApprovalNotice(db: Db, leadId: string, force = false): Promise<Record<string, string>> {
+  try {
+    const { data: lead } = await db.from('leads').select('*').eq('id', leadId).is('deleted_at', null).maybeSingle();
+    if (!lead) return { error: 'not found' };
+    const { data: q } = await db.from('job_quotes').select('version,status,decided_at,decided_method,decided_via').eq('lead_id', leadId).eq('status', 'approved').order('version', { ascending: false }).limit(1).maybeSingle();
+    if (!q) return { error: 'there is no approved quote' };
+    const ap = approvalState(q), by = ap.by === 'admin' ? 'admin' : 'customer', n = Number(q.version);
+    const c = await contextOf(db, lead), text = approvalText(by, lead);
+    const jobs: Record<string, () => Promise<Result>> = {
+      [`approval_email:${n}`]: async () => mailTo(db, leadId, c.email, 'quote_approved', approvalReceived({ ...siteInfo(), name: lead.name, ref: lead.booking_id ?? null, by, trackUrl: c.trackUrl })),
+      [`approval_whatsapp:${n}`]: () => waNotice(db, lead, text, { name: TPL.approval(), params: [firstOf(lead.name), lead.booking_id ?? 'request'] }),
+      [`garage_approved:${n}`]: async () => {
+        const { data: a } = await db.from('garage_assignments').select('garage_id').eq('lead_id', leadId).in('status', ['sent', 'received', 'in_work', 'ready']).maybeSingle();
+        if (!a) return { ok: false, skipped: true, error: 'no partner garage on this booking' };
+        const { data: g } = await db.from('garages').select('name,mobile').eq('id', a.garage_id).maybeSingle();
+        const mob = String((g as any)?.mobile ?? '').replace(/\D/g, '').slice(-10);
+        if (!/^[6-9]\d{9}$/.test(mob)) return { ok: false, skipped: true, error: 'the garage has no valid mobile' };
+        if (!whatsappReady()) return { ok: false, skipped: true, error: 'WhatsApp is not connected' };
+        const id = await sendTemplate(mob, TPL.garageApproved(), [firstOf((g as any)?.name), lead.booking_id ?? 'request']);   // template only: the garage app also shows the approval on the job
+        return id ? { ok: true } : { ok: false, error: `WhatsApp did not accept the garage notice (template ${TPL.garageApproved()})` };
+      },
+    };
+    return await deliverAll(dbStore(db), leadId, jobs as any, force);
+  } catch (e) { console.error('sendApprovalNotice', (e as Error).message); return { error: 'failed' }; }
+}
+
+/** The desk rejected a garage estimate with a remark: the garage gets a WhatsApp notice (the remark is also on the job in the garage app). Once per estimate number. Never throws. */
+export async function notifyGarageEstimateRejected(db: Db, leadId: string, estimateId: string): Promise<string> {
+  try {
+    const { data: e } = await db.from('garage_estimates').select('id,status,review_note,assignment_id').eq('id', estimateId).maybeSingle();
+    if (!e || e.status !== 'rejected') return 'the estimate is not rejected';
+    const { data: a } = await db.from('garage_assignments').select('garage_id,lead_id').eq('id', e.assignment_id).maybeSingle();
+    if (!a || a.lead_id !== leadId) return 'not found';
+    const [{ data: g }, { data: lead }, { data: all }] = await Promise.all([db.from('garages').select('mobile').eq('id', a.garage_id).maybeSingle(), db.from('leads').select('booking_id').eq('id', leadId).maybeSingle(), db.from('garage_estimates').select('id,created_at').eq('assignment_id', e.assignment_id).order('created_at')]);
+    const n = Math.max(1, Math.min(999, ((all ?? []).findIndex((x: any) => x.id === estimateId) + 1) || 1)), mob = String((g as any)?.mobile ?? '').replace(/\D/g, '').slice(-10);
+    return await deliver(dbStore(db), leadId, `garage_estimate_rejected:${n}` as Kind, async () => {
+      if (!/^[6-9]\d{9}$/.test(mob)) return { ok: false, skipped: true, error: 'the garage has no valid mobile' };
+      if (!whatsappReady()) return { ok: false, skipped: true, error: 'WhatsApp is not connected' };
+      const id = await sendTemplate(mob, TPL.garageRejected(), [lead?.booking_id ?? 'request', String(e.review_note ?? '').slice(0, 160)]);
+      return id ? { ok: true } : { ok: false, error: `WhatsApp did not accept the garage notice (template ${TPL.garageRejected()})` };
+    });
+  } catch (err) { console.error('notifyGarageEstimateRejected', (err as Error).message); return 'failed'; }
 }
