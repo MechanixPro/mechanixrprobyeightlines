@@ -52,6 +52,20 @@
       + '<p class="jy-meta">Choosing &ldquo;I want to cancel this booking&rdquo; sends us a request. Cancelling more than 2 hours before your slot is free, and your confirmation fee is refunded. We confirm it before anything is refunded.</p><label for="jyBody">Tell us what went wrong</label><textarea id="jyBody" name="body" rows="3" maxlength="500"></textarea><button class="btn btn-ghost wide" type="submit">Report a problem</button><p class="jy-meta" id="jyIssueMsg" role="status" aria-live="polite"></p></form>' + issues + '</div>';
     return '<div class="card track-card" id="trDetailsCard"><h3 id="trDetailsH">Add details or report an issue</h3><p class="jy-meta">' + (ed ? 'You can add or change these until the work starts. Only you, our team and your mechanic can see them.' : 'Saved with your booking.') + '</p>' + form + photos + report + '</div>';
   }
+  /* After the service: ready for delivery, delivered, closed. d = { stage: 'none'|'ready'|'delivered'|'closed', at }. */
+  function deliveryHtml(d) {
+    if (!d || !d.stage || d.stage === 'none') return '';
+    var when = d.at ? new Date(d.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '';
+    var t = d.stage === 'ready' ? 'Your vehicle is ready for delivery' : d.stage === 'delivered' ? 'Delivered' + (when ? ' on ' + when : '') : d.stage === 'closed' ? 'Booking closed' : '';
+    return t ? '<div class="card track-card fade" data-delivery="' + esc(d.stage) + '"><h3>' + esc(t) + '</h3>' + (d.stage === 'ready' ? '<p>We will bring it to you, or tell you when to collect it.</p>' : d.stage === 'closed' ? '<p>Thank you for choosing Mechanix Pro.</p>' : '') + '</div>' : '';
+  }
+  /* A cancelled booking: a clear card and the refund in plain words. Never a gateway id. c = { cancelled, kind, refund: { status, amount } }. */
+  var REFUND_WORDS = { none: 'No refund is due for this booking.', pending: 'Your refund is being arranged. We will update this page.', processing: 'Your refund has been sent and is on its way. It reaches your original payment method in 5 to 7 working days.', refunded: 'Your refund has been paid back to your original payment method.', failed: 'Your refund could not be completed yet. Our team is fixing it and will contact you. You do not need to do anything.' };
+  function cancelHtml(c) {
+    if (!c || !c.cancelled) return '';
+    var r = c.refund || { status: 'none' }, amt = Number(r.amount) > 0 && r.status !== 'none' ? '<p><b>Refund amount: ' + esc(inr(r.amount)) + '</b></p>' : '';
+    return '<div class="card track-card fade" data-cancelled="1"><h3>This booking was cancelled' + (c.kind === 'customer' ? ' at your request' : '') + '</h3>' + amt + '<p data-refund="' + esc(r.status) + '">' + esc(REFUND_WORDS[r.status] || REFUND_WORDS.none) + '</p></div>';
+  }
   function rateHtml(r, done, google) {
     if (!r || !r.can_rate) return '';
     if (r.done || done) {
@@ -103,7 +117,7 @@
       return win.fetch(C.supabaseUrl + '/functions/v1/' + fn, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey }, body: JSON.stringify(body) })
         .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); });
     };
-    var SECTIONS = ['trThanks', 'trMain', 'trLive', 'trCode', 'trQuote', 'trCheck', 'trRedo', 'trShield', 'trClips', 'trDetails', 'trRate', 'trDocs', 'trHist', 'trInstall'];
+    var SECTIONS = ['trThanks', 'trMain', 'trLive', 'trCode', 'trQuote', 'trDelivery', 'trCancel', 'trCheck', 'trRedo', 'trShield', 'trClips', 'trDetails', 'trRate', 'trDocs', 'trHist', 'trInstall'];
     var sigs = {}, state = { msg: '', issueMsg: '', rated: 0, fetchedAt: 0, startKm: 0, last: null, rateMsg: '' };
     if (tok) { out.innerHTML = SECTIONS.map(function (id) { return '<div id="' + id + '"></div>'; }).join(''); }
     // A part of the page is redrawn only when its data changed and the person is not typing in it.
@@ -174,7 +188,7 @@
       var badge = z.expired ? 'Expired' : z.status === 'approved' ? 'Approved' : z.status === 'declined' ? 'Declined' : asked ? 'Changes requested' : 'Sent';
       var act = open || asked
         ? '<div class="tq-act">' + (open ? '<button class="btn btn-primary wide" type="button" data-q="approve" data-v="' + z.version + '">Approve the quote</button>' : '<p>You asked for changes' + (z.change_request ? ': “' + esc(z.change_request) + '”' : '') + '. We will send a revised quote. You can still approve this one below.</p><button class="btn btn-primary wide" type="button" data-q="approve" data-v="' + z.version + '">Approve this quote</button>')
-          + '<label class="label" for="tq-why">If you decline, tell us why (optional)</label><input id="tq-why" maxlength="200" autocomplete="off"><button class="btn btn-ghost wide" type="button" data-q="decline" data-v="' + z.version + '">Decline</button>'
+          + '<label class="label" for="tq-why">If you reject it, tell us why (optional)</label><input id="tq-why" maxlength="200" autocomplete="off"><button class="btn btn-ghost wide" type="button" data-q="decline" data-v="' + z.version + '">Reject the quote</button>'
           + (open ? '<label class="label" for="tq-chg">Want something changed? Tell us what.</label><textarea id="tq-chg" maxlength="500" rows="2" autocomplete="off"></textarea><button class="btn btn-ghost wide" type="button" data-q="changes" data-v="' + z.version + '">Ask for changes</button>' : '') + '</div>'
         : '<p><b>' + (z.expired ? 'This quote has expired. Ask us for a fresh one.' : z.status === 'approved' ? 'You approved this quote.' : z.status === 'declined' ? 'You declined this quote.' : '') + '</b></p>';
       return '<div class="card track-card tq"><h3>' + (z.version > 1 ? 'Revised quote' : 'Your quote') + ' <small>' + esc(badge) + '</small></h3>' + (z.quote_no ? '<p class="tq-no"><small>' + esc(z.quote_no) + (until ? ' · ' + (z.expired ? 'expired on ' : 'valid until ') + esc(until) : '') + '</small></p>' : '') + '<table class="tq-t"><tbody>' + items + sum + '</tbody></table><p><b>Estimated delivery:</b> ' + esc(z.eta_text || 'to be confirmed') + '</p>' + (z.terms ? '<p class="tq-terms"><small>' + esc(z.terms) + '</small></p>' : '') + act + '<p class="tq-msg" id="tqMsg" role="status" aria-live="polite"></p></div>';
@@ -198,6 +212,8 @@
       put('trLive', liveHtml(J && J.live, st, 0, state.startKm), JSON.stringify([st, J && J.live && [J.live.eta_line, J.live.age_s, J.live.maps_url]]));
       put('trCode', code, code);
       put('trQuote', quoteCard(v), JSON.stringify(v.quote || null));
+      put('trDelivery', deliveryHtml(v.delivery), JSON.stringify(v.delivery || null));
+      put('trCancel', cancelHtml(v.cancel), JSON.stringify(v.cancel || null));
       put('trCheck', proCheckCard(v.pro_check), JSON.stringify(v.pro_check || null));
       put('trRedo', redoCard(v.redo), JSON.stringify(v.redo || null));
       put('trShield', shieldCard(v.shield), JSON.stringify(v.shield || null));
@@ -298,6 +314,8 @@
       if (b && tok) {
         var m = doc.getElementById('tqMsg'), why = doc.getElementById(b.getAttribute('data-q') === 'changes' ? 'tq-chg' : 'tq-why');
         if (b.getAttribute('data-q') === 'changes' && !(why && why.value.trim())) { m.textContent = 'Tell us what you would like changed.'; return; }
+        // Rejecting asks once more, so a stray tap never ends the quote.
+        if (b.getAttribute('data-q') === 'decline' && !b.getAttribute('data-sure')) { b.setAttribute('data-sure', '1'); b.textContent = 'Yes, reject this quote'; m.textContent = 'Reject this quote? Tap the button again to confirm. We will not start the work.'; return; }
         Array.prototype.forEach.call(out.querySelectorAll('[data-q]'), function (x) { x.disabled = true; }); m.textContent = 'Saving…';
         post('quote-decision', { t: tok, version: Number(b.getAttribute('data-v')), decision: b.getAttribute('data-q'), reason: why ? why.value : '' }).then(function (x) {
           if (x.ok) load(true); else { m.textContent = (x.d && x.d.error) || 'Could not save. Please try again.'; if (x.d && x.d.superseded) load(true); Array.prototype.forEach.call(out.querySelectorAll('[data-q]'), function (y) { y.disabled = false; }); }
@@ -330,5 +348,5 @@
       go.disabled = true; msg.textContent = 'Checking…'; load(false);
     });
   }
-  return { init: init, liveHtml: liveHtml, detailsHtml: detailsHtml, rateHtml: rateHtml, docsHtml: docsHtml, docView: docView, histHtml: histHtml, againUrl: againUrl, ago: ago };
+  return { init: init, liveHtml: liveHtml, detailsHtml: detailsHtml, rateHtml: rateHtml, docsHtml: docsHtml, docView: docView, histHtml: histHtml, deliveryHtml: deliveryHtml, cancelHtml: cancelHtml, againUrl: againUrl, ago: ago };
 });

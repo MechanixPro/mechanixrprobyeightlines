@@ -54,6 +54,7 @@ textarea.g-input{min-height:84px;resize:vertical}
 .g-pin{text-align:center;font-size:24px;letter-spacing:.35em;min-height:60px}
 .g-note{margin:10px 0;padding:12px 14px;border-radius:var(--radius-field);font-size:14px}
 .g-note-err{background:var(--bad-bg);color:var(--bad-text)}
+.g-note-ok{background:var(--good-bg);color:var(--good-text)}
 .g-note-warn{background:var(--accent-bg);color:var(--accent-text)}
 .g-note-info{background:var(--info-bg);color:var(--info-text)}
 .g-chip{display:inline-flex;align-items:center;min-height:24px;padding:2px 12px;border-radius:999px;font-size:12px;font-weight:650;white-space:nowrap}

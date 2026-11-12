@@ -48,11 +48,11 @@ test('only the sidebar buttons switch the page, so the Partner KYC inner tabs ca
   assert.doesNotMatch(src, /e\.target\.closest\('\[data-tab\]'\)/);
 });
 
-test('the booking Update box lists partner garages and assigns the chosen one on save', () => {
+// changed on purpose (one booking, one screen): the Update box no longer has its own Partner garage select or outside text. The garage or partner is assigned in the one 'Garage or partner' section (crm_assign_booking through the shared dialog).
+test('the booking Update box has no second assignment control; assigning goes through the one shared dialog', () => {
   const src = read('admin/admin.js');
-  assert.match(src, /optgroup/); assert.match(src, /crm_garage_picker/);
-  assert.match(src, /startsWith\('g:'\)/); assert.match(src, /crm_garage_assign', \{ p_lead: l\.id, p_garage: gid/);
-  assert.match(src, /Partner garage<\/label>/);
+  assert.doesNotMatch(src, /id="lm"/); assert.doesNotMatch(src, /id="la"/); assert.doesNotMatch(src, /startsWith\('g:'\)/); assert.doesNotMatch(src, /Garage or outside partner \(if not on your mechanic list\)/);
+  assert.match(read('crm/garage-desk.js'), /crm_assign_booking/); assert.match(read('crm/flow-core.js'), /<h4>Garage or partner<\/h4>/);
 });
 
 test('everything goes to a garage: convert, history, garage-only pick, and a database guard', () => {

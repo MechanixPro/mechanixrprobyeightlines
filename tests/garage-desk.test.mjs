@@ -25,7 +25,7 @@ function desk({ fail = {}, can = ['manage_garages'], settle = false, replies = {
   const calls = [], toasts = [], dialogs = [], copied = [];
   const base = { crm_garage_picker: GARAGES, crm_garage_access_list: ACCESS, crm_garage_assignments_list: (a) => (a.p_lead ? ASSIGN.filter((x) => x.lead_id === a.p_lead) : ASSIGN), crm_garage_estimates_inbox: EST, crm_dispatch_list: BOOKINGS,
     crm_garage_access_create: { access_id: 'acc-9', garage: '[Garage Two]', link: LINK }, crm_garage_link_new: { link: LINK }, crm_garage_pin_reset: { ok: true }, crm_garage_revoke: { ok: true }, crm_garage_enable: { ok: true },
-    crm_garage_assign: { assignment_id: 'as-9', status: 'sent', garage: '[Garage One]' }, crm_garage_estimate_review: { ok: true, status: 'converted', quote: { version: 2 } }, crm_garage_settlement_set: { ok: true } };
+    crm_assign_booking: { assignment_id: 'as-9', status: 'sent', garage: '[Garage One]' }, crm_garage_estimate_review: { ok: true, status: 'converted', quote: { version: 2 } }, crm_garage_settlement_set: { ok: true } };
   const rpc = async (name, args) => { calls.push([name, args]); if (fail[name]) throw new Error(fail[name]); const r = name in replies ? replies[name] : base[name]; return typeof r === 'function' ? r(args || {}) : r; };
   const gd = G.createGarageDesk({ rpc, toast: (m, bad) => toasts.push({ m, bad: !!bad }), can: (a) => can.includes(a), canSettle: () => settle, dialog: (o) => { dialogs.push(o); return { form: null, close() {} }; },
     copy: async (t) => { copied.push(t); }, random: (() => { let i = 0; return () => [4, 8, 2, 9, 1, 5][i++ % 6]; })(), now: () => NOW, openLead: openLead ? () => {} : undefined, sendQuote: sendQuote === undefined ? async (id) => { sent.push(id); return { version: 2 }; } : sendQuote });
@@ -120,12 +120,13 @@ test('revoke and switch-on call crm_garage_revoke and crm_garage_enable, and say
 });
 
 /* ---------- jobs: assign, list, move ---------- */
-test('assigning from a booking card calls crm_garage_assign with lead, garage, note and the return time', async () => {
+// changed on purpose: assignment goes through crm_assign_booking (p_garage xor p_outside)
+test('assigning from a booking card calls crm_assign_booking with lead, garage, outside, note and the return time', async () => {
   const d = desk(); await d.gd.assignDialog({ lead: { id: 'lead-9', booking_id: 'MP-2611-0009', area: 'HSR Layout' } });
   assert.match(d.last().body, /\[Garage One\]/); assert.match(d.last().body, /\[Garage Two\]/); assert.doesNotMatch(d.last().body, /Garage Three/, 'a paused garage is not offered'); assert.doesNotMatch(d.last().body, /id="gd-lead"/);
   assert.equal(await submit(d.last(), { garage: 'g-1', note: ' brake noise ', eta: '2026-11-08T17:30' }), 1);
-  const a = d.rpcCalls('crm_garage_assign')[0]; assert.equal(a.p_lead, 'lead-9'); assert.equal(a.p_garage, 'g-1'); assert.equal(a.p_note, 'brake noise'); assert.equal(a.p_eta, new Date('2026-11-08T17:30').toISOString());
-  const b = (await submit(d.last(), { garage: 'g-1', note: '', eta: '' }), d.rpcCalls('crm_garage_assign')[1]); assert.equal(b.p_note, null); assert.equal(b.p_eta, null);
+  const a = d.rpcCalls('crm_assign_booking')[0]; assert.equal(a.p_lead, 'lead-9'); assert.equal(a.p_garage, 'g-1'); assert.equal(a.p_outside, null); assert.equal(a.p_note, 'brake noise'); assert.equal(a.p_eta, new Date('2026-11-08T17:30').toISOString());
+  const b = (await submit(d.last(), { garage: 'g-1', note: '', eta: '' }), d.rpcCalls('crm_assign_booking')[1]); assert.equal(b.p_note, null); assert.equal(b.p_eta, null);
   assert.ok(d.toasts.some((t) => /Sent to/.test(t.m)));
 });
 test('assigning from the Garages screen picks the booking from the paid bookings, by booking id, first name and area only', async () => {
@@ -133,12 +134,12 @@ test('assigning from the Garages screen picks the booking from the paid bookings
   assert.deepEqual(d.rpcCalls('crm_dispatch_list'), [{ p_days: 7 }]); assert.match(d.last().body, /MP-2611-0009 · \[Customer Name\] · HSR Layout/); assert.match(d.last().body, /<option value="g-1" selected>/);
   await assert.rejects(() => submit(d.last(), { lead: '', garage: 'g-1', note: '', eta: '' }), /Choose a booking/);
   await assert.rejects(() => submit(d.last(), { lead: 'lead-9', garage: '', note: '', eta: '' }), /Choose a garage/);
-  assert.equal(d.rpcCalls('crm_garage_assign').length, 0);
-  await submit(d.last(), { lead: 'lead-9', garage: 'g-1', note: '', eta: '' }); assert.equal(d.rpcCalls('crm_garage_assign')[0].p_lead, 'lead-9');
+  assert.equal(d.rpcCalls('crm_assign_booking').length, 0);
+  await submit(d.last(), { lead: 'lead-9', garage: 'g-1', note: '', eta: '' }); assert.equal(d.rpcCalls('crm_assign_booking')[0].p_lead, 'lead-9');
 });
 test('moving a job to another garage leaves out the current garage, and a server refusal is shown in the dialog', async () => {
-  const d = desk({ fail: { crm_garage_assign: 'the garage has already started this job' } }); await d.gd.assignDialog({ lead: { id: 'lead-1' }, moveFrom: 'g-1', screen: true });
-  assert.doesNotMatch(d.last().body, /\[Garage One\]/); assert.match(d.last().title, /Move/);
+  const d = desk({ fail: { crm_assign_booking: 'the garage has already started this job' } }); await d.gd.assignDialog({ lead: { id: 'lead-1' }, moveFrom: 'g-1', screen: true });
+  assert.doesNotMatch(d.last().body, /\[Garage One\]/); assert.match(d.last().title, /Reassign/);
   await assert.rejects(() => submit(d.last(), { garage: 'g-2', note: '', eta: '' }), /already started/);
 });
 test('a booking card shows where the job is, offers a move only before the garage starts, and offers Send when there is no job', () => {
@@ -154,7 +155,7 @@ test('the booking card loads the partner-garage part only for someone who may ma
   const a = mk(['manage_garages']); const flow = await a.fl.load('lead-1'); assert.deepEqual(a.d.rpcCalls('crm_garage_assignments_list'), [{ p_status: null, p_lead: 'lead-1' }]);
   const lead = { id: 'lead-1', status: 'paid', booking_id: 'MP-2611-0001', confirm_fee: 49, confirm_paid_at: 'x', name: '[Customer Name]' };
   assert.match(a.fl.card(lead, flow), /data-flow="garageAssign"/);
-  await a.fl.actions.garageAssign(lead, flow, { dataset: { move: 'g-1' } }); assert.match(a.d.last().title, /Move/);
+  await a.fl.actions.garageAssign(lead, flow, { dataset: { move: 'g-1' } }); assert.match(a.d.last().title, /Reassign/);
   const b = mk([]); const flow2 = await b.fl.load('lead-1'); assert.equal(b.d.rpcCalls('crm_garage_assignments_list').length, 0);
   assert.doesNotMatch(b.fl.card(lead, flow2), /Partner garage|garageAssign/);
 });
@@ -216,8 +217,8 @@ test('buttons on the list start the right action with the right access', async (
   await click(root, { gd: 'onboard', id: 'g-2' }); assert.match(d.last().title, /Create garage app access/);
   await click(root, { gd: 'pinReset', id: 'g-1' }); await submit(d.last(), { pin: PIN, reason: 'lost phone' }); assert.equal(d.rpcCalls('crm_garage_pin_reset')[0].p_access, 'acc-1');
   await click(root, { gd: 'revoke', id: 'g-1' }); await submit(d.last(), { reason: 'closed shop' }); assert.equal(d.rpcCalls('crm_garage_revoke')[0].p_access, 'acc-1');
-  await click(root, { gd: 'tab', id: 'jobs' }); await click(root, { gd: 'move', id: 'as-1' }); assert.match(d.last().title, /Move/);
-  await click(root, { gd: 'assignTo', id: 'g-1' }); assert.match(d.last().title, /Send to a partner garage/);
+  await click(root, { gd: 'tab', id: 'jobs' }); await click(root, { gd: 'move', id: 'as-1' }); assert.match(d.last().title, /Reassign/);
+  await click(root, { gd: 'assignTo', id: 'g-1' }); assert.match(d.last().title, /Assign a garage or partner/);
 });
 
 /* ---------- errors are shown, never swallowed ---------- */

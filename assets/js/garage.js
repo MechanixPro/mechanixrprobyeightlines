@@ -37,6 +37,17 @@
   var LINK_KEY = 'mxp_garage_link', SESSION_KEY = 'mxp_garage_session', LOC_KEY = 'mxp_garage_loc_asked', LINK_RE = /^[0-9a-f]{48}$/, MAX_PHOTOS = 4;
 
   /* ---------- pure helpers ---------- */
+  /* What the customer and Mechanix Pro have decided, shown as short lines on the job (approval, cancellation, delivery). Pure: returns [{ tone, text }]. Showing only; nothing here blocks the garage flow. */
+  function lifecycleNotes(j) {
+    var out = [], ap = j && j.approval, dl = j && j.delivery;
+    if (j && j.customer_cancelled) out.push({ tone: 'err', text: 'Booking cancelled by the customer' });
+    if (ap && ap.status === 'approved') out.push({ tone: 'ok', text: ap.by === 'admin' ? 'Approved by Mechanix Pro on behalf of the customer' : 'Customer approved the estimate' });
+    else if (ap && ap.status === 'pending') out.push({ tone: 'warn', text: 'Waiting for the customer to approve' });
+    if (dl && dl.stage === 'ready') out.push({ tone: 'ok', text: 'Vehicle marked ready for delivery' });
+    else if (dl && dl.stage === 'delivered') out.push({ tone: 'ok', text: 'Vehicle delivered' });
+    else if (dl && dl.stage === 'closed') out.push({ tone: 'ok', text: 'Booking closed' });
+    return out;
+  }
   function money(n) { n = Number(n) || 0; return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
   function totals(lines) {
     var sub = 0; (lines || []).forEach(function (l) { var a = Number(l.amount); if (isFinite(a) && a > 0) sub += a; });
@@ -346,11 +357,12 @@
       var j = S.job, body = [];
       if (j === null) { body.push(loading('Loading the job')); shell(body, 'jobs'); return; }
       if (j === 'error') { body.push(S.jobGone ? el('div', { class: 'g-card g-center' }, [el('p', { text: 'This job is not available any more.' })]) : retryCard(S.jobErr || ERR.gen, function () { S.job = null; render(); fetchJob(); })); shell(body, 'jobs'); return; }
+      var lc = lifecycleNotes(j).map(function (n) { return notice(n.tone, n.text); });
       var page = jobPage(j, flowOf(j.id));
-      if (page === 'estimate') { body.push(wizTop(j, page), el('h1', { text: 'Send estimate' }), estimateCard(j)); shell(body, 'jobs'); app.classList.remove('g-wiz'); return; }
-      if (page === 'pay') { body.push(payPage(j)); shell(body, 'jobs'); app.classList.add('g-wiz'); return; }
+      if (page === 'estimate') { body.push(wizTop(j, page), el('h1', { text: 'Send estimate' }), estimateCard(j)); shell(lc.concat(body), 'jobs'); app.classList.remove('g-wiz'); return; }
+      if (page === 'pay') { body.push(payPage(j)); shell(lc.concat(body), 'jobs'); app.classList.add('g-wiz'); return; }
       body.push(wizPage(j, page));
-      shell(body, 'jobs'); app.classList.add('g-wiz');
+      shell(lc.concat(body), 'jobs'); app.classList.add('g-wiz');
     }
     /* Pro Check 20: a full-screen set of screens over the job (shared module assets/js/pro-check-ui.js). */
     var chkOverlay = null;
@@ -743,5 +755,5 @@
     if (ses && savedLink(win)) { S.session = ses.t; S.name = ses.name || ''; loadTeam(); enter(); } else { go('pin'); }
     d.addEventListener('visibilitychange', function () { if (!d.hidden && S.session && Date.now() - S.jobsAt > 60000) { if (S.screen === 'jobs') fetchJobs(); else if (S.screen === 'home') fetchHome(); } });
   }
-  return { jobPage: jobPage, waitText: waitText, cleanCode: cleanCode, isCode: isCode, STEP_EVENT: STEP_EVENT, PAGES: PAGES, start: start, locText: locText, locAsked: locAsked, markLocAsked: markLocAsked, LOC_KEY: LOC_KEY, money: money, totals: totals, whenText: whenText, telHref: telHref, navigateUrl: navigateUrl, availabilityText: availabilityText, phoneShow: phoneShow, teamLinks: teamLinks, saveLink: saveLink, savedLink: savedLink, linkFromUrl: linkFromUrl, saveSession: saveSession, savedSession: savedSession, clearSession: clearSession, LINK_KEY: LINK_KEY, SESSION_KEY: SESSION_KEY };
+  return { lifecycleNotes: lifecycleNotes, jobPage: jobPage, waitText: waitText, cleanCode: cleanCode, isCode: isCode, STEP_EVENT: STEP_EVENT, PAGES: PAGES, start: start, locText: locText, locAsked: locAsked, markLocAsked: markLocAsked, LOC_KEY: LOC_KEY, money: money, totals: totals, whenText: whenText, telHref: telHref, navigateUrl: navigateUrl, availabilityText: availabilityText, phoneShow: phoneShow, teamLinks: teamLinks, saveLink: saveLink, savedLink: savedLink, linkFromUrl: linkFromUrl, saveSession: saveSession, savedSession: savedSession, clearSession: clearSession, LINK_KEY: LINK_KEY, SESSION_KEY: SESSION_KEY };
 });

@@ -104,7 +104,7 @@ const garageDesk = createGarageDesk({ rpc, toast, can, canSettle: () => false, s
 const mechanicDesk = createMechanicDesk({ rpc, toast, can, dialog: (o) => flow.dialog(o) });
 const routing = createRouting({ rpc });   // owner and late chip against the targets (funnel_targets), on the lead sheet
 const flow = createFlow({
-  rpc, toast, can, garageDesk, quoteDoc: { copyLink: createQuoteDoc({ rpc, toast }).copyLink },   // Crew copies the customer link; the printable page is Admin only
+  rpc, toast, can, me: () => S.me, garageDesk, quoteDoc: { copyLink: createQuoteDoc({ rpc, toast }).copyLink },   // Crew copies the customer link; the printable page is Admin only
   invoke: async (fn, body) => { const { data, error } = await sb.functions.invoke(fn, { body }); if (error) { let m = null; try { m = (await error.context.json()).error; } catch (x) { /* no body */ } throw new Error(m || error.message); } return data; },
   reload: () => afterChange(false), openLead: (id) => openLead(id),
   photoUrl: async (path) => { const { data, error } = await sb.storage.from(PHOTO_BUCKET).createSignedUrl(path, 600); if (error) throw error; return data.signedUrl; },   // customer photos: private bucket, 10-minute links, only for the roles the database allows

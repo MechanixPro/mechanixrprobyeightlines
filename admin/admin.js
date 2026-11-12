@@ -23,6 +23,7 @@ import { customerSummaries, customerLeads, normPhone, bookingRows, summarize } f
 import { adsConversions } from './ads-export.js';
 import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge } from './booking-steps.js';
 import { createFlow } from './flow-core.js';
+import { statusOptions, stateFromLead, PLAIN_STATES } from './manage-rules.js';
 import { isCrewTab, crewView, mountCrew } from './crew-screens.js';
 import { createGarageDesk } from './garage-desk.js';
 import { watchList, watchCard, redCount } from "./watch.js";
@@ -266,7 +267,20 @@ document.addEventListener('click', (e) => {
 document.addEventListener('input', (e) => {
   if (e.target.id === 'cu-q') { S.cb.q = e.target.value; S.cb.cap = 0; clearTimeout(S.cbT); S.cbT = setTimeout(() => { renderCustomers(); const q = $('#cu-q'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 200); return; }
   if (e.target.id === 'cc-q') { const n = e.target.value.trim().toLowerCase(), res = $('#cc-res'); if (!res) return; const lead = S.leads.find((x) => x.id === S.open); res.innerHTML = n.length < 2 ? '' : S.customers.filter((c) => (!lead || c.id !== lead.customer_id) && (String(c.name).toLowerCase().includes(n) || String(c.phone).includes(n))).slice(0, 6).map((c) => `<button class="row" type="button" data-act="moveBooking" data-id="${c.id}" style="border-radius:10px;width:100%;margin-bottom:6px"><span>${esc(c.name)}</span><span class="meta">+91 ${esc(c.phone)}</span></button>`).join('') || '<p class="tiny muted">No customer found. Add them under Customers first.</p>'; return; } if (e.target.id === 'mr-range' || e.target.id === 'mr') { const v = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)); if (e.target.id === 'mr-range') $('#mr').value = v; else $('#mr-range').value = v; updateSplitPreview(); }  if (e.target.id === 'q') { S.q = e.target.value; renderList(); } if (e.target.id === 'wq') { S.wq = e.target.value; render(); const again = $('#wq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } if (e.target.id === 'pq') { S.pq = e.target.value; const l = $('#pinlist'); if (l) { const keep = e.target; render(); const again = $('#pq'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } } } if (e.target.id === 'cq') { S.cq = e.target.value; renderCustomers(); } });
-document.addEventListener('change', (e) => { if (e.target.id === 'ls') { const lb = $('#lostBox'); if (lb) lb.hidden = e.target.value !== 'lost'; } });
+// The Status list: plain statuses save with the bar; statuses with side effects (cancel, done, ready, delivered, closed) open their dialog instead, and a jump that makes no sense is explained under the list.
+document.addEventListener('change', (e) => {
+  if (e.target.id !== 'ls') return;
+  const sel = e.target, cur = sel.dataset.state || sel.value, lb = $('#lostBox'), msg = $('#lsMsg'), j = flow.statusJump(cur, sel.value);
+  if (msg) msg.textContent = '';
+  if (!j.ok) { if (msg) msg.textContent = j.error; sel.value = cur; if (lb) lb.hidden = cur !== 'lost'; return; }
+  if (j.action) {
+    sel.value = cur; if (lb) lb.hidden = cur !== 'lost';
+    const l = leadOf(S.open); if (!l) return;
+    Promise.resolve(j.action === 'cancel' ? flow.actions.cancel(l) : flow.deliveryDialog(l, j.action)).catch((err) => toast((err && err.message) || String(err), true));
+    return;
+  }
+  if (lb) lb.hidden = sel.value !== 'lost';
+});
 document.addEventListener('change', (e) => { const m = { 'df-range': 'range', 'df-from': 'from', 'df-to': 'to', 'df-src': 'src', 'df-area': 'area', 'df-svc': 'svc' }[e.target.id]; if (m) { S.df[m] = e.target.value; render(); } });
 document.addEventListener('click', (e) => { if (e.target.id === 'df-reset') { S.df = { range: '7d', from: '', to: '', src: '', area: '', svc: '' }; render(); } });
 document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-ie=name]')) { const c = catItem(e.target.value), a = e.target.closest('.ie-row').querySelector('[data-ie=amount]'); if (c && a && !a.value.trim()) a.value = c.price; } });
@@ -816,6 +830,10 @@ const flow = createFlow({
   garageDesk,
   rpc: adminRpc,
   invoke: async (fn, body) => { const { data, error } = await sb.functions.invoke(fn, { body }); if (error) { let m = null; try { m = (await error.context.json()).error; } catch (x) { /* no body */ } throw new Error(m || error.message); } return data; },
+  adminView: true, me: () => S.me,
+  recordRefund: async ({ lead_id, amount, reference, reason }) => { const l = leadOf(lead_id), a = l && salesModel().accounts.find((x) => x.lead_id === lead_id); if (!l || !a) throw new Error('The money record for this booking could not be found. Open the Money sheet.'); const r = buildEntry('refund', { amount, by: 'company_manual', method: 'Manual', reference, on: todayIST(), reason, note: '' }, { today: todayIST(), lead: l, collectedBy: a.byChannel, outstanding: a.outstanding }); if (!r.ok) throw new Error(r.error); const { error } = await sb.from('ledger_entries').insert({ ...r.entry, created_by: S.me.user_id }); if (error) throw new Error('Could not save: ' + error.message); await audit('ledger_' + r.entry.entry_type, { ref: l.ref, amount: r.entry.amount, by: r.entry.collected_by }); await Promise.all([loadLedger(), loadLeads()]); },
+  afterDelivery: async (id, stage) => { await loadLeads(); if (stage === 'done') await autoInvoiceFor(id); },
+  timelineFallback: async (id) => { const d = await adminRpc('crm_lead', { p_id: id }); return (d && d.activities) || []; },
   toast, can: () => true, paymentFn: 'payment-link', openRefund: (id) => openRefundSheet(id), refundNow: async () => { await loadLeads(); render(); if (S.open) openLead(S.open, true); }, canOverrideRefund: () => true,
   reload: async () => { await loadLeads(); if (S.tab === 'dispatch') loadDispatch(); else render(); if (S.open) openLead(S.open, true); },
   openLead: (id) => { S.tab = 'leads'; render(); openLead(id); },
@@ -826,21 +844,17 @@ const flow = createFlow({
 flow.bind($('#sheetPanel'), () => leadOf(S.open), () => S.flow);
 flow.bindDispatch($('#view'), () => S.dispatchRows || [], () => S.dispatchTell || {}, () => { const w = document.getElementById('dpWrap'); if (w) w.innerHTML = flow.dispatchHtml(S.dispatchRows, S.dispatchSeen || {}, S.dispatchTell); });
 flow.bindIssues($('#view'), () => loadCustIssues());
-async function openLead(id, silent) { await openLeadBase(id, silent); await paintFlow(id); await paintGaragePick(); }
-// Owner and Admin can pick a partner garage in the same Mechanic list. It is added after the sheet opens, from the same list the Send to a garage box uses.
-async function paintGaragePick() {
-  const sel = $('#lm'); if (!sel || !['owner', 'admin'].includes(S.me?.role) || sel.querySelector('optgroup')) return;
-  try {
-    const rows = ((await adminRpc('crm_garage_picker')) || []).filter((g) => g.status !== 'paused');
-    if (!rows.length || !$('#lm') || sel.querySelector('optgroup')) return;
-    const og = document.createElement('optgroup'); og.label = 'Partner garages';
-    rows.forEach((g) => { const o = document.createElement('option'); o.value = 'g:' + g.id; o.textContent = g.name + (g.code ? ' · ' + g.code : '') + (g.available === false ? ' (Not available)' : ''); og.appendChild(o); });
-    sel.appendChild(og);
-  } catch (e) { console.error('garage list', e); }
+async function openLead(id, silent) { await openLeadBase(id, silent); await paintFlow(id); }
+// The Status list shows the state the database reports (crm_booking_state). Before that answers, it shows the stored status.
+function paintStatus(id) {
+  const sel = $('#ls'), l = leadOf(id); if (!sel || !l) return;
+  const cur = (S.flow && S.flowFor === id && S.flow.state && S.flow.state.state) || stateFromLead(l);
+  sel.innerHTML = statusOptions(cur).map((o) => `<option value="${o.value}"${o.value === cur ? ' selected' : ''}${o.disabled ? ' disabled' : ''}>${esc(o.label)}</option>`).join(''); sel.value = cur; sel.dataset.state = cur;
+  const lb = $('#lostBox'); if (lb) lb.hidden = true;
 }
 async function paintFlow(id) {
   const el = $('#flowCard'), l = leadOf(id); if (!el || !l) return;
-  try { S.flow = await flow.load(id); el.innerHTML = flow.card(flow.withFlow(l, S.flow), S.flow); } catch (e) { console.error('paintFlow', e); el.innerHTML = '<div class="alert" role="alert"><b>The paid-confirmation card could not be loaded.</b> ' + esc((e && e.message) || 'Try again.') + ' <button class="btn btn-ghost btn-sm" type="button" data-flow="reloadFlow">Retry</button></div>'; }
+  try { S.flow = await flow.load(id); S.flowFor = id; el.innerHTML = flow.card(flow.withFlow(l, S.flow), S.flow); paintStatus(id); flow.mountTimeline($('#histCard'), id); } catch (e) { console.error('paintFlow', e); el.innerHTML = '<div class="alert" role="alert"><b>The paid-confirmation card could not be loaded.</b> ' + esc((e && e.message) || 'Try again.') + ' <button class="btn btn-ghost btn-sm" type="button" data-flow="reloadFlow">Retry</button></div>'; }
 }
 async function openLeadBase(id, silent) {
   if (!silent && S.open !== id) S.dt = 'booking';
@@ -850,6 +864,7 @@ async function openLeadBase(id, silent) {
   const DETAILS = `<div class="card"><dl class="kv"><dt>Customer</dt><dd>${esc(l.name)}<br><a href="tel:+91${esc(l.phone)}">+91 ${esc(l.phone)}</a></dd><dt>Service</dt><dd>${esc(svcName(l.service_id))}${(l.addons || []).length ? ' + ' + l.addons.map((a) => esc(svcName(a))).join(', ') : ''}</dd><dt>Estimate</dt><dd>${l.est_total ? rupee(l.est_total) : '—'}</dd><dt>Vehicle</dt><dd><select id="vsel" aria-label="Vehicle">${['bike', 'car', 'parts'].map((v) => `<option value="${v}"${v === vehicleOf(l) ? ' selected' : ''}>${VEHICLE_LABEL[v]}</option>`).join('')}</select>${l.vehicle_source === 'desk' ? ' <span class="tiny muted">set by the desk</span>' : ''}</dd><dt>Area</dt><dd>${esc(l.area || '—')}</dd><dt>When</dt><dd>${esc(l.preferred_date || '—')} · ${esc(l.preferred_time || SLOT[l.preferred_slot] || '—')}</dd>${leadDetailRows(l).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${k === 'Map pin' ? `<a href="${esc(v)}" target="_blank" rel="noopener">Open in Google Maps</a>` : esc(v)}</dd>`).join('')}<dt>Source</dt><dd>${esc(l.source)}${l.utm?.utm_campaign ? ' · ' + esc(l.utm.utm_campaign) : ''}</dd><dt>Created</dt><dd>${when(l.created_at)}</dd><dt>Reminders</dt><dd>${l.next_followup_at ? 'Next ' + when(l.next_followup_at) + ' (step ' + (l.followup_step + 1) + ' of 4)' : 'None scheduled'}</dd></dl>
   <div class="row-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">Open WhatsApp chat</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a></div></div>`, MECH = `${S.mechanics.filter((m) => m.id === l.mechanic_id).map((m) => `<option value="${m.id}"${m.id === l.mechanic_id ? ' selected' : ''}>${esc(m.name)} (earlier assignment)</option>`).join('')}`, CONV = `<div class="card"><h3>WhatsApp conversation</h3><div class="chat">${(msgs ?? []).map((m) => `<div class="bubble ${m.direction}">${esc(m.body)}<small>${m.direction === 'in' ? 'Customer' : m.sender === 'ai' ? 'AI assistant' : m.sender === 'staff' ? 'Team' : 'Automatic'} · ${when(m.created_at)}</small></div>`).join('') || '<p class="muted small">No messages yet. The conversation appears here once WhatsApp automation is connected.</p>'}</div></div>`;
   S.dt = S.dt || 'booking';
+  const curState = (S.flow && S.flowFor === id && S.flow.state && S.flow.state.state) || stateFromLead(l);
   const dtab = (id, label) => `<button type="button" role="tab" data-dt="${id}" aria-selected="${S.dt === id}">${label}</button>`;
   const panel = (id, inner) => `<section class="dpanel" id="dt-${id}"${S.dt === id ? '' : ' hidden'}>${inner}</section>`;
   const linkBlock = l.payment_link ? `<p class="small">Payment link: <a href="${esc(l.payment_link)}" target="_blank" rel="noopener">${esc(l.payment_link)}</a> (${rupee(l.amount_due)})</p><p><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="https://wa.me/91${esc(l.phone)}?text=${encodeURIComponent('Hi ' + String(l.name).split(' ')[0] + ', here is your secure link to pay ' + rupee(l.amount_due) + ' for ' + (l.booking_id ? 'booking ' + l.booking_id : 'your request') + ': ' + l.payment_link)}">Send link on WhatsApp</a></p>` : '';
@@ -864,14 +879,14 @@ async function openLeadBase(id, silent) {
   ${panel('booking', `${DETAILS}
     ${customerVehicleCard(l)}
     <div class="card" style="margin-top:12px"><h3>Update</h3>
-      <label class="label" for="ls">Status</label><select id="ls">${STATUSES.map((s) => `<option value="${s}"${s === l.status ? ' selected' : ''}>${OPTION_LABEL[s]}</option>`).join('')}</select>
+      <label class="label" for="ls">Status</label><select id="ls" data-state="${esc(curState)}">${statusOptions(curState).map((o) => `<option value="${o.value}"${o.value === curState ? ' selected' : ''}${o.disabled ? ' disabled' : ''}>${esc(o.label)}</option>`).join('')}</select><p class="tiny muted" id="lsMsg" role="status" aria-live="polite" style="margin:4px 0 0"></p>
       <div id="lostBox" hidden><label class="label" for="lr">Why was it lost? (required)</label><select id="lr"><option value="">Choose a reason</option>${LOST_REASONS.map((r) => `<option>${esc(r)}</option>`).join('')}</select>
         <label class="label" for="lrn">Note (Other needs at least 5 characters)</label><input id="lrn" maxlength="200"></div>
-      <label class="label" for="lm">Partner garage</label><select id="lm"><option value="">Not assigned</option>${MECH}</select>
-      <label class="label" for="la">Garage or outside partner (if not on your mechanic list)</label><input id="la" value="${esc(l.assigned_to || '')}" maxlength="60">
+      <p class="tiny muted" style="margin:10px 0 0">The garage or outside partner is set in the Garage or partner section above.</p>
       <label class="label" for="ln">Notes</label><textarea id="ln" rows="3" maxlength="1000">${esc(l.notes || '')}</textarea>
       <label class="check"><input type="checkbox" id="lai"${l.ai_enabled ? ' checked' : ''}><span>AI assistant replies and automatic reminders for this booking</span></label></div>
     ${serviceEditCard(l)}
+    <div class="card" style="margin-top:12px" id="histCard"><h3>Booking history</h3><p class="tiny muted">Loading…</p></div>
     ${isOwner() ? '<div class="card" style="margin-top:12px"><h3>Delete this booking</h3><p class="tiny muted" style="margin:0 0 8px">A booking with no invoice or payment is erased. One that has either is moved to Deleted bookings, where you can restore it.</p><button class="btn btn-ghost btn-sm" type="button" data-act="deleteLead">Delete booking</button></div>' : ''}`)}
   ${panel('money', `${moneyCard(l)}
     <div class="card" style="margin-top:12px"><h3>Take a payment</h3>
@@ -1074,10 +1089,10 @@ const ACT = {
   },
   async saveBooking() {
     const l = S.leads.find((x) => x.id === S.open); if (!l) return;
-    const pick = $('#lm').value || '', gid = pick.startsWith('g:') ? pick.slice(2) : null, mid = gid ? null : (pick || null), mech = S.mechanics.find((m) => m.id === mid);
-    const toLost = $('#ls').value === 'lost' && l.status !== 'lost', lostNote = (($('#lrn') || {}).value || '').trim();
+    const sv = $('#ls').value, toLost = sv === 'lost' && l.status !== 'lost', lostNote = (($('#lrn') || {}).value || '').trim();
     if (toLost) { const g = stepGuard(l, 'lost'); if (!g.ok) return toast(g.error); const c = lostReasonCheck(($('#lr') || {}).value, lostNote); if (!c.ok) return toast(c.error); }
-    const upd = { status: $('#ls').value, mechanic_id: mid, assigned_to: $('#la').value.trim() || (mech ? mech.name : null), notes: $('#ln').value.trim() || null, ai_enabled: $('#lai').checked };
+    // Only the plain statuses are saved by this bar. Cancel, Done, Vehicle ready, Delivered and Closed have their own dialogs (see the Status list handler), so they never change the status here. The garage or partner is assigned in its own section.
+    const upd = { status: PLAIN_STATES.includes(sv) ? sv : l.status, notes: $('#ln').value.trim() || null, ai_enabled: $('#lai').checked };
     if (toLost) upd.crm_lost_reason = $('#lr').value;
     // the service section is only applied when something in it was changed, so saving never reworks an old estimate by accident
     const bike = S.bikes.find((b) => b.id === l.bike_id);
@@ -1096,13 +1111,12 @@ const ACT = {
     const cv = await saveCustomerVehicle(l, upd); if (cv === false) return;
     const { error } = await sb.from('leads').update(upd).eq('id', l.id);
     if (error) return toast('Could not save: ' + error.message);
-    if (gid) { try { const r = await adminRpc('crm_garage_assign', { p_lead: l.id, p_garage: gid, p_note: null, p_eta: null }); toast('Sent to ' + ((r && r.garage) || 'the garage') + '.'); } catch (e) { toast('Saved, but the garage was not assigned: ' + (e.message || e), 6000); } }
     if (upd.status === 'scheduled' && l.status !== 'scheduled') {
       const { data: cf, error: ce } = await sb.functions.invoke('confirm-booking', { body: { lead_id: l.id } });
       toast(ce || !cf || cf.error ? 'Saved. Confirmation email could not be sent.' : cf.emailed ? 'Saved. Booking confirmation emailed to the customer.' : 'Saved. No customer email, so no confirmation email was sent.');
     }
     if (svc && svc.bike && l.bike_id) await sb.from('bikes').update(svc.bike).eq('id', l.bike_id);
-    await audit('lead_updated', { ref: l.ref, status: upd.status, lost_reason: toLost ? upd.crm_lost_reason : undefined, lost_note: toLost && lostNote ? lostNote : undefined, mechanic_id: upd.mechanic_id, garage_id: gid || undefined, service_changed: !!svc, amount_due: upd.amount_due });
+    await audit('lead_updated', { ref: l.ref, status: upd.status, lost_reason: toLost ? upd.crm_lost_reason : undefined, lost_note: toLost && lostNote ? lostNote : undefined, service_changed: !!svc, amount_due: upd.amount_due });
     toast(svc && svc.lead.est_total != null ? 'Saved. New estimate ' + rupee(svc.lead.est_total) : 'Saved'); await Promise.all([loadLeads(), loadPeople()]); if (upd.status === 'completed' && l.status !== 'completed') await autoInvoiceFor(l.id); renderList(); openLead(l.id, true);
   },
   async routeNext(btn) { const id = btn.getAttribute('data-id'), key = btn.getAttribute('data-step'); await openLead(id); if (key && key !== 'call') await ACT.stepNext({ getAttribute: (k) => (k === 'data-key' ? key : null) }); },   // the chip's Next step runs the lead sheet's own step
@@ -1564,7 +1578,8 @@ const ACT = {
     if (key === 'assign') return flow.actions.assignPick(l);
     if (key === 'confirm') return ACT.giveId();
     if (key === 'schedule') return ACT.confirmBooking();
-    const upd = key === 'quote' ? { status: 'quoted' } : { status: 'completed', completed_at: new Date().toISOString() };
+    if (key === 'done') return flow.deliveryDialog(l, 'done');   // the same dialog and database function as Delivery management
+    const upd = { status: 'quoted' };
     if (!l.crm_first_contact_at) upd.crm_first_contact_at = new Date().toISOString();
     const { error } = await sb.from('leads').update(upd).eq('id', l.id);
     if (error) return toast('Could not update: ' + error.message);
