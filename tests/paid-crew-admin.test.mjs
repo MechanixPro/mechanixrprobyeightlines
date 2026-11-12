@@ -75,7 +75,9 @@ test('Crew and the Admin run the same code: the shared files are identical copie
 });
 test('every database function the shared screens call lets an admin through (flow_ checks) and keeps agents and technicians to their rights', () => {
   const core = read('crm/flow-core.js'), sql = read('supabase/migrations/20261228000000_paid_confirmation.sql') + read('supabase/migrations/20261229000000_customer_updates.sql') + read('supabase/migrations/20261230000000_tech_location.sql') + read('supabase/migrations/20270143000000_cancellations.sql') + read('supabase/migrations/20270128000000_job_check_flow.sql');   // the journey migrations add crm_booking_updates, crm_issue_resolve, crm_tech_location (same flow_ guards)
-  const names = [...new Set([...core.matchAll(/rpc\('([a-z_]+)'/g)].map((m) => m[1]))];
+  // changed on purpose: the lifecycle functions are defined by the lifecycle migration (built beside this change), whose guards are checked there
+  const LIFECYCLE = ['crm_booking_state', 'crm_assignment_info', 'crm_booking_estimates', 'crm_booking_refunds', 'crm_booking_timeline', 'crm_quote_admin_approve', 'crm_delivery_set'];
+  const names = [...new Set([...core.matchAll(/rpc\('([a-z_]+)'/g)].map((m) => m[1]))].filter((n) => !LIFECYCLE.includes(n));
   const viaOldRpc = ['crm_mechanic_picker', 'crm_lead', 'crm_log'];   // crm_lead and crm_log: Tell mechanic reads the phone and the told note, and logs the note, with the existing Crew functions (no new RPC); a failure there never blocks the card or WhatsApp   // admin supplies its own mechanic list instead (deps.mechanics), checked below
   assert.ok(names.length >= 10, names.join());
   // crm_assign_technician is the existing function; it checks through crm_move_guard, which this migration re-creates with the admin-aware checks.
@@ -96,8 +98,9 @@ test('every database function the shared screens call lets an admin through (flo
 });
 test('the admin can do everything Crew does in this flow: each Crew action also exists in the admin screens', () => {
   const core = read('admin/flow-core.js');
-  for (const a of ['payLink', 'assign', 'jobLink', 'doorCode', 'newDoorCode', 'markReady', 'markDelivered', 'resend', 'phoneApprove', 'eta', 'quote']) assert.ok(new RegExp(`async ${a}\\(|${a}\\(lead`).test(core), a);
-  const adm = read('admin/admin.js'); for (const w of ['flow.card(', 'flow.dispatchHtml(', 'crm_dispatch_list', 'flow.bind(', 'flow.actions.assign', 'flow.actions.payLink']) assert.ok(adm.includes(w), 'admin.js ' + w);
+  // changed on purpose: 'assign' (mechanic) is retired in favour of garageAssign; 'phoneApprove' became approveOnBehalf
+  for (const a of ['payLink', 'garageAssign', 'jobLink', 'doorCode', 'newDoorCode', 'markReady', 'markDelivered', 'resend', 'approveOnBehalf', 'eta', 'quote']) assert.ok(new RegExp(`async ${a}\\(|${a}\\(lead`).test(core), a);
+  const adm = read('admin/admin.js'); for (const w of ['flow.card(', 'flow.dispatchHtml(', 'crm_dispatch_list', 'flow.bind(', 'flow.actions.assignPick', 'flow.actions.payLink']) assert.ok(adm.includes(w), 'admin.js ' + w);
   assert.match(read('admin/nav.js'), /\['dispatch', 'Dispatch'\]/);
 });
 test('on a real local Postgres: admin passes every step, strangers and agents do not, gating and idempotency hold (skipped when no Postgres tools are installed)', (t) => {

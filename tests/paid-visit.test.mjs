@@ -78,7 +78,7 @@ test('quote lines are checked: parts, labour or other, named, 0 to 1,00,000, no 
 test('Crew can record a phone approval and it is audited with the name of who recorded it', () => {
   const sql = read('supabase/migrations/20261228000000_paid_confirmation.sql');
   assert.match(sql, /'Quote v' \|\| q\.version \|\| ' approved by phone, recorded by ' \|\| who/); assert.match(sql, /'quote_approved_phone'[\s\S]{0,120}'recorded_by', auth\.uid\(\)/); assert.match(sql, /decided_via = 'phone'/);
-  assert.match(read('crm/flow-core.js'), /Your name goes on the record/);
+  assert.match(read('crm/flow-core.js'), /recorded with your name/);   // changed on purpose: the dialog is now Approve on behalf of the customer (crm_quote_admin_approve), still with the name recorded
 });
 test('the /job/ page walks the visit: on the way, arrived, code, then repair or pick-up, ready, delivered; cars get the car photo list', () => {
   const js = read('assets/js/job.js'), html = read('job/index.html'), f = read('supabase/functions/tech-job/index.ts');

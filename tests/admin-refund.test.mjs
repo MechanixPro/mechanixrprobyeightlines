@@ -221,9 +221,10 @@ test('Crew has no refund button: crm.js never references refundNow; only the Adm
   assert.doesNotMatch(read('crm/crm.js'), /refundNow|admin-refund/);
   assert.match(read('admin/admin.js'), /refundNow:/);
   const core = read('crm/flow-core.js'); assert.equal(read('admin/flow-core.js'), core);
-  assert.match(core, /deps\.refundNow \?/); assert.match(core, /Refund to customer now/);
+  // changed on purpose: the card's two refund buttons became one Refund button (Admin host only) opening the dialog, which keeps the Cashfree path and adds Full / Partial
+  assert.match(core, /if \(!deps\.refundNow\) return;/); assert.match(core, /Refund to customer now/);
   assert.match(core, /Money goes back to the customer's original payment method within 5 to 7 working days\. This cannot be undone\./);
-  assert.match(core, /amount > max/);
+  assert.match(core, /refundCheck\(/);   // changed on purpose: the cap is checked by refundCheck (manage-rules.js)
   const page = read('crm/pages/cancellations.js'); assert.match(page, /typeof ctx\.refundNow === 'function'/); assert.match(page, /Refund to customer now/);
 });
 test('cancelling never triggers a refund call; the manual Record refund button stays', () => {

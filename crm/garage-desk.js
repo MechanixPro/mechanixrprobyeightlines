@@ -129,22 +129,29 @@ export function createGarageDesk(deps) {
 
     /* ----- jobs ----- */
     /** Send a booking to a garage. Give { lead } from a booking, or { garageId } from the Garages screen (then pick the booking from the paid bookings). */
-    async assign({ lead, garageId, moveFrom, screen } = {}) {
+    async assign({ lead, garageId, moveFrom, screen, reassign: re } = {}) {
       need();
       const [garages, bookings] = await Promise.all([rpc('crm_garage_picker'), lead ? Promise.resolve(null) : rpc('crm_dispatch_list', { p_days: 7 })]);
       const list = (garages || []).filter((g) => g.status !== 'paused' && g.id !== moveFrom);
       const access = (S.data && S.data.access) || [];
       const opt = (g) => `<option value="${esc(g.id)}"${g.id === garageId ? ' selected' : ''}>${esc(g.name)}${g.code ? ' · ' + esc(g.code) : ''}${access.length && !access.some((x) => x.garage_id === g.id && x.active) ? ' (no app access)' : ''}${g.available === false ? ' (Not available)' : ''}</option>`;
       const pick = lead ? '' : `<label class="flow-label" for="gd-lead">Booking</label><select id="gd-lead" name="lead"><option value="">Choose</option>${(bookings || []).map((b) => `<option value="${esc(b.id)}">${esc(b.booking_id || 'Booking')} · ${esc(b.first_name || '')} · ${esc(b.area || 'No area')}${b.bike ? ' · ' + esc(b.bike) : ''}</option>`).join('')}</select>`;
-      return deps.dialog({ title: moveFrom ? 'Move to another garage' : 'Send to a partner garage', intro: lead ? esc([lead.booking_id, lead.area].filter(Boolean).join(' · ') || 'This booking') : 'Pick the booking and the garage. The garage sees the vehicle, the work and the first name only.',
-        body: `${pick}<label class="flow-label" for="gd-garage">Garage</label><select id="gd-garage" name="garage"><option value="">Choose</option>${list.map(opt).join('')}</select>
+      const OTHER = '__other__', reassign = !!(moveFrom || re);
+      return deps.dialog({ title: reassign ? 'Reassign this booking' : 'Assign a garage or partner', intro: lead ? esc([lead.booking_id, lead.area].filter(Boolean).join(' · ') || 'This booking') : 'Pick the booking and the garage. The garage sees the vehicle, the work and the first name only.',
+        body: `${pick}<label class="flow-label" for="gd-garage">Garage or partner</label><select id="gd-garage" name="garage"><option value="">Choose</option>${list.map(opt).join('')}<option value="${OTHER}">Other / outside partner</option></select>
+          <div data-gd-outside hidden><label class="flow-label" for="gd-out">Outside partner (name and area)</label><input id="gd-out" name="outside" maxlength="80" autocomplete="off"></div>
           <label class="flow-label" for="gd-note">What was found and what is needed (optional)</label><input id="gd-note" name="note" maxlength="500" autocomplete="off">
           <label class="flow-label" for="gd-eta">Return expected (optional)</label><input id="gd-eta" name="eta" type="datetime-local">`,
-        submit: moveFrom ? 'Move job' : 'Send to garage', onSubmit: async (f, d) => {
-          const leadId = lead ? lead.id : f.lead.value; if (!leadId) throw new Error('Choose a booking.'); if (!f.garage.value) throw new Error('Choose a garage.');
+        submit: reassign ? 'Reassign' : 'Assign',
+        onOpen: (f) => { f.garage.addEventListener('change', () => { f.querySelector('[data-gd-outside]').hidden = f.garage.value !== OTHER; }); },
+        onSubmit: async (f, d) => {
+          const leadId = lead ? lead.id : f.lead.value; if (!leadId) throw new Error('Choose a booking.');
+          const other = f.garage.value === OTHER; if (!f.garage.value) throw new Error('Choose a garage or Other / outside partner.');
+          const outside = other ? f.outside.value.trim() : null; if (other && outside.length < 2) throw new Error('Write the name of the outside partner.');
           let eta = null; if (f.eta.value) { const t = new Date(f.eta.value); if (Number.isNaN(t.getTime())) throw new Error('Enter a valid return time.'); eta = t.toISOString(); }
-          const r = await rpc('crm_garage_assign', { p_lead: leadId, p_garage: f.garage.value, p_note: f.note.value.trim() || null, p_eta: eta });
-          d.close(); toast(r && r.updated ? 'Job updated for ' + r.garage + '.' : 'Sent to ' + ((r && r.garage) || 'the garage') + '.'); await after(!!lead && !screen);
+          // Exactly one of garage or outside goes to the database; the database also checks the confirmation fee is paid and says so in plain words.
+          const r = await rpc('crm_assign_booking', { p_lead: leadId, p_garage: other ? null : f.garage.value, p_outside: outside, p_note: f.note.value.trim() || null, p_eta: eta });
+          d.close(); toast(other ? 'Assigned to ' + outside + '.' : r && r.updated ? 'Job updated for ' + r.garage + '.' : 'Sent to ' + ((r && r.garage) || 'the garage') + '.'); await after(!!lead && !screen);
         } });
     },
     review(e, approve) {
