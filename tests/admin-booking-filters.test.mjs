@@ -31,3 +31,11 @@ test('lead capture: every source has a label, Instagram can be added by hand, un
   assert.match(src, /l\.status !== 'new' \|\| l\.crm_first_contact_at/);
   assert.match(readFileSync(new URL('../admin/new-booking.js', import.meta.url), 'utf8'), /'walk_in', 'instagram'\]/);
 });
+test('lead owner name: read-only admin function, shown on the card, tolerant when not installed', () => {
+  const sql = readFileSync(new URL('../supabase/migrations/20270147000000_admin_lead_owners.sql', import.meta.url), 'utf8');
+  assert.match(sql, /kyc_need_admin\(\)/);
+  assert.match(sql, /revoke all on function public\.admin_lead_owners\(\) from public, anon/);
+  assert.doesNotMatch(sql, /\b(insert|update|delete|drop table|alter table)\b/i);
+  assert.match(src, /adminRpc\('admin_lead_owners'\)/);
+  assert.match(src, /With \$\{esc\(l\.owner_name\)\}/);
+});
