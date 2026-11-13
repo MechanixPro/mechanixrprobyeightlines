@@ -23,7 +23,7 @@ export async function sendEmail(m: OutMail, deps: Deps = {}): Promise<{ ok: bool
   if (!apiKey) return { ok: false, skipped: true, error: 'Email is not set up yet.' };
   try {
     const res = await (deps.fetch ?? fetch)('https://api.resend.com/emails', {
-      method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(buildEmailPayload({ ...m, to })),
+      method: 'POST', signal: AbortSignal.timeout(15000), headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(buildEmailPayload({ ...m, to })),
     });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) return { ok: false, error: String(j.message ?? `Resend error ${res.status}`) };

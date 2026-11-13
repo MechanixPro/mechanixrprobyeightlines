@@ -11,7 +11,8 @@ Deno.serve(async (req) => {
   const expected = await hmacSha256Hex(env('RAZORPAY_WEBHOOK_SECRET'), raw);
   if (!env('RAZORPAY_WEBHOOK_SECRET') || !safeEqual(req.headers.get('x-razorpay-signature') ?? '', expected)) return new Response('Bad signature', { status: 401 });
 
-  const evt = JSON.parse(raw);
+  let evt: any;
+  try { evt = JSON.parse(raw); } catch { return new Response('Bad body', { status: 400 }); }
   // A closed browser tab after paying must still confirm the booking: Standard Checkout orders are confirmed here too (idempotent with verify-payment).
   if (evt.event === 'order.paid' || evt.event === 'payment.captured') return await orderPaid(evt);
   if (evt.event !== 'payment_link.paid') return new Response('ignored');

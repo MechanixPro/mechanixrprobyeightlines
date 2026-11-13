@@ -11,9 +11,10 @@ async function post(payload: Record<string, unknown>): Promise<string | null> {
     method: 'POST',
     headers: { Authorization: `Bearer ${env('WA_TOKEN')}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ messaging_product: 'whatsapp', ...payload }),
+    signal: AbortSignal.timeout(15000),   // a hung Meta call must not stall the cron run or a payment webhook
   });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) { console.error('WhatsApp send failed', r.status, JSON.stringify(j)); return null; }
+  if (!r.ok) { console.error('WhatsApp send failed', r.status, j?.error?.code ?? '', String(j?.error?.message ?? '').slice(0, 120));   // codes only: the full body can echo the customer's number return null; }
   return j?.messages?.[0]?.id ?? null;
 }
 

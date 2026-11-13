@@ -9,6 +9,7 @@ export async function createPaymentLink(opts: { amount: number; ref: string; lea
   const r = await fetch('https://api.razorpay.com/v1/payment_links', {
     method: 'POST',
     headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
+    signal: AbortSignal.timeout(15000),
     body: JSON.stringify({
       amount: Math.round(opts.amount * 100), currency: 'INR', accept_partial: false,
       description: opts.description.slice(0, 2048),
