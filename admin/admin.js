@@ -72,7 +72,7 @@ if (!C.supabaseUrl || !C.supabaseAnonKey) {
   throw new Error('Supabase not configured');
 }
 const sb = createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
-const S = { catalog: [], invNo: {}, icsel: new Set(), imode: false, isel: new Set(), me: null, tab: 'dash', lastTab: {}, invoices: [], invoicesAll: [], cb: { q: '', id: null }, ledger: [], sf: { period: 'month', mechanic: '', status: '', q: '', channel: '', gst: '', from: '', to: '' }, finJob: null, finKind: 'payment', mlOpen: null, ifl: { gst: '', rate: '', mechanic: '', period: 'month', q: '' }, leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', waitlist: [], wi: '', wq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', df: { range: '7d', from: '', to: '', src: '', area: '', svc: '' }, cq: '', q: '', status: 'open', open: null, openCust: null, channel: null };
+const S = { catalog: [], invNo: {}, icsel: new Set(), imode: false, isel: new Set(), me: null, tab: 'dash', lastTab: {}, invoices: [], invoicesAll: [], cb: { q: '', id: null }, ledger: [], sf: { period: 'month', mechanic: '', status: '', q: '', channel: '', gst: '', from: '', to: '' }, finJob: null, finKind: 'payment', mlOpen: null, ifl: { gst: '', rate: '', mechanic: '', period: 'month', q: '' }, leads: [], services: [], settings: {}, customers: [], bikes: [], mechanics: [], coupons: [], homeimgs: [], issues: [], pins: [], pq: '', waitlist: [], wi: '', wq: '', ifilter: 'open', selMode: false, sel: new Set(), range: '30d', df: { range: '7d', from: '', to: '', src: '', area: '', svc: '' }, cq: '', q: '', status: 'open', fFrom: '', fTo: '', assign: 'all', open: null, openCust: null, channel: null };
 
 // A failed action that nobody caught must still tell the person, never fail silently.
 window.addEventListener('unhandledrejection', (e) => { const r = e.reason; console.error('unhandled', r); toast('That did not work: ' + String((r && r.message) || r || 'something went wrong').replace(/^Error:\s*/, '').slice(0, 140)); });
@@ -284,7 +284,7 @@ document.addEventListener('change', (e) => {
 document.addEventListener('change', (e) => { const m = { 'df-range': 'range', 'df-from': 'from', 'df-to': 'to', 'df-src': 'src', 'df-area': 'area', 'df-svc': 'svc' }[e.target.id]; if (m) { S.df[m] = e.target.value; render(); } });
 document.addEventListener('click', (e) => { if (e.target.id === 'df-reset') { S.df = { range: '7d', from: '', to: '', src: '', area: '', svc: '' }; render(); } });
 document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-ie=name]')) { const c = catItem(e.target.value), a = e.target.closest('.ie-row').querySelector('[data-ie=amount]'); if (c && a && !a.value.trim()) a.value = c.price; } });
-document.addEventListener('change', (e) => { if (e.target.id === 'il') { const l = S.leads.find((x) => x.id === e.target.value), w = warrantyInfo(l, WARRANTY_DAYS); $('#iw').textContent = l ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''; } if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'ifs') { S.ifilter = e.target.value; render(); } if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'fv') { S.vehicle = e.target.value; renderList(); } if (e.target.id === 'vsel') ACT.setVehicle(e.target.value); if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
+document.addEventListener('change', (e) => { if (e.target.id === 'il') { const l = S.leads.find((x) => x.id === e.target.value), w = warrantyInfo(l, WARRANTY_DAYS); $('#iw').textContent = l ? (w.active ? `Warranty is active until ${w.endsOn} (${w.daysLeft} days left).` : 'No active warranty on this booking (needs a completed job within 30 days).') : ''; } if (e.target.id === 'hf') ACT.uploadHome(e.target); if (e.target.id === 'ifs') { S.ifilter = e.target.value; render(); } if (e.target.id === 'fs') { S.status = e.target.value; renderList(); } if (e.target.id === 'fv') { S.vehicle = e.target.value; renderList(); } if (e.target.id === 'fa') { S.assign = e.target.value; renderList(); } if (e.target.id === 'fd1' || e.target.id === 'fd2') { S[e.target.id === 'fd1' ? 'fFrom' : 'fTo'] = e.target.value; render(); } if (e.target.id === 'vsel') ACT.setVehicle(e.target.value); if (e.target.id === 'rr') { S.range = e.target.value; render(); } });
 document.addEventListener('change', (e) => { if (e.target.matches && e.target.matches('[data-board-garage]')) { ACT.boardGarage(e.target); return; } const m = { 'if-period': 'period', 'if-gst': 'gst', 'if-rate': 'rate', 'if-mech': 'mechanic' }[e.target.id]; if (m) { S.ifl[m] = e.target.value; render(); } });
 document.addEventListener('input', (e) => { if (e.target.id === 'if-q') { S.ifl.q = e.target.value; const pos = e.target.selectionStart; render(); const q = $('#if-q'); if (q) { q.focus(); q.setSelectionRange(pos, pos); } } });
 document.addEventListener('change', (e) => { const c = e.target.closest && e.target.closest('[data-icsel]'); if (c) { if (c.checked) S.icsel.add(c.dataset.icsel); else S.icsel.delete(c.dataset.icsel); if (S.open) openLead(S.open, true); } });
@@ -383,10 +383,18 @@ function sourcesCard(week, rl = 'Last 7 days') {
   return `<div class="card" style="margin-top:16px"><h3>Sources (${esc(rl)})</h3><div class="split2"><div><h4>Source</h4>${rows(r.source)}</div><div><h4>Campaign</h4>${rows(r.campaign)}</div><div><h4>Referrer</h4>${rows(r.referrer)}</div><div><h4>Vehicle</h4>${rows(r.vehicle)}</div></div></div>`;
 }
 
+const addDays = (iso, n) => new Date(new Date(iso + 'T00:00:00Z').getTime() + n * 864e5).toISOString().slice(0, 10);
+const dateRange = () => { const f = S.fFrom || '', t = S.fTo || ''; return f || t ? { from: f || '0000-01-01', to: t || (f ? f : '9999-12-31') } : null; };   // one date chosen = that day only
+const filtersOn = () => !!(S.fFrom || S.fTo || S.vehicle || S.assign !== 'all' || S.status !== 'open' || S.q);
+const isAssigned = (l) => !!(l.mechanic_id || l.garage_id);   // from the real assignment data, not the booking status
 function leads() {
-  return `<div class="toolbar"><input id="q" type="search" placeholder="Search name, phone or booking ID" value="${esc(S.q)}" aria-label="Search bookings">
+  const tdy = todayIST(), tmr = addDays(tdy, 1), single = (d) => S.fFrom === d && S.fTo === d;
+  return `<div class="toolbar" id="fbar" role="group" aria-label="Booking filters"><input id="q" type="search" placeholder="Search name, phone or booking ID" value="${esc(S.q)}" aria-label="Search bookings">
+  <div class="fdates" style="flex:1 1 100%;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn btn-sm ${single(tdy) ? 'btn-primary' : 'btn-ghost'}" type="button" data-act="dateToday" aria-pressed="${single(tdy)}">Today</button><button class="btn btn-sm ${single(tmr) ? 'btn-primary' : 'btn-ghost'}" type="button" data-act="dateTomorrow" aria-pressed="${single(tmr)}">Tomorrow</button><input id="fd1" type="date" value="${esc(S.fFrom)}" aria-label="Service date, from" style="flex:1 1 130px"><span class="tiny muted">to</span><input id="fd2" type="date" value="${esc(S.fTo)}" aria-label="Service date, to (leave empty for one day)" style="flex:1 1 130px">${S.fFrom || S.fTo ? '<button class="btn btn-ghost btn-sm" type="button" data-act="dateClear">Clear dates</button>' : ''}</div>
   <select id="fv" aria-label="Filter by vehicle"><option value="">All vehicles</option>${['bike', 'car', 'parts'].map((v) => `<option value="${v}"${S.vehicle === v ? ' selected' : ''}>${VEHICLE_LABEL[v]}</option>`).join('')}</select>
-  <select id="fs" aria-label="Filter by status"><option value="open"${S.status === 'open' ? ' selected' : ''}>Open (needs action)</option><option value="all"${S.status === 'all' ? ' selected' : ''}>All</option><option value="junk"${S.status === 'junk' ? ' selected' : ''}>Junk (${(S.junkLeads || []).length})</option>${STATUSES.map((s) => `<option value="${s}"${S.status === s ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
+  <select id="fa" aria-label="Filter by garage assignment">${[['all', 'All'], ['assigned', 'Assigned'], ['tba', 'To be assigned']].map(([v, t]) => `<option value="${v}"${S.assign === v ? ' selected' : ''}>${t}</option>`).join('')}</select>
+  <select id="fs" aria-label="Filter by status"><option value="open"${S.status === 'open' ? ' selected' : ''}>Open (needs action)</option><option value="all"${S.status === 'all' ? ' selected' : ''}>All</option><option value="junk"${S.status === 'junk' ? ' selected' : ''}>Junk (${(S.junkLeads || []).length})</option>${STATUSES.filter((s) => s !== 'scheduled').map((s) => `<option value="${s}"${S.status === s ? ' selected' : ''}>${LABEL[s]}</option>`).join('')}</select>
+  ${filtersOn() ? '<button class="btn btn-ghost btn-sm" type="button" data-act="filtersReset">Reset filters</button>' : ''}
   <button class="btn btn-ghost btn-sm" type="button" data-act="csv">Export CSV</button><button class="btn btn-primary btn-sm" type="button" data-act="newLead">Add booking</button>${isOwner() ? '<button class="btn btn-ghost btn-sm" type="button" data-act="showDeleted">Deleted bookings</button>' : ''}
   ${isOwner() ? (S.selMode ? `<button class="btn btn-ghost btn-sm" type="button" data-act="selectAll">Select all shown</button><button class="btn btn-dark btn-sm" type="button" data-act="deleteSelected"${S.sel.size ? '' : ' disabled'}>Delete selected (${S.sel.size})</button><button class="btn btn-ghost btn-sm" type="button" data-act="selectDone">Done</button>` : '<button class="btn btn-ghost btn-sm" type="button" data-act="selectMode">Select to delete</button>') : ''}</div><div class="list" id="list"></div>`;
 }
@@ -613,16 +621,19 @@ function reports() {
 }
 
 function filtered() {
-  const q = S.q.trim().toLowerCase();
-  return (S.status === 'junk' ? S.junkLeads || [] : S.leads).filter((l) => (S.status === 'all' || (S.status === 'open' ? ['new', 'contacted', 'quoted', 'payment_sent'].includes(l.status) : l.status === S.status)) &&
+  const q = S.q.trim().toLowerCase(), dr = dateRange();
+  const statusOk = (l) => S.status === 'all' || (S.status === 'open' ? ['new', 'contacted', 'quoted', 'payment_sent'].includes(l.status) : S.status === 'paid' ? ['paid', 'scheduled'].includes(l.status) : l.status === S.status);   // "Booked" covers both stored values
+  return (S.status === 'junk' ? S.junkLeads || [] : S.leads).filter((l) => statusOk(l) &&
     (!S.vehicle || vehicleOf(l) === S.vehicle) &&
+    (!dr || (l.preferred_date && l.preferred_date >= dr.from && l.preferred_date <= dr.to)) &&
+    (S.assign === 'all' || (S.assign === 'assigned') === isAssigned(l)) &&
     (!q || [l.name, l.phone, l.booking_id, l.ref, l.area].some((v) => String(v ?? '').toLowerCase().includes(q))));
 }
 function renderList() {
   const el = $('#list'); if (!el) return; const rows = filtered();
   // Paid bookings stand out: bold green PAID badge, green left border, and paid-but-unassigned ones are pinned first under their own heading.
   const pin = S.status === 'junk' ? [] : rows.filter((l) => paidInfo(l).needsMechanic), rest = pin.length ? rows.filter((l) => !paidInfo(l).needsMechanic) : rows;
-  const one = (l) => `<button class="row${paidInfo(l).paid ? ' is-paid' : ''}${S.selMode && S.sel.has(l.id) ? ' picked' : ''}" data-lead="${l.id}"${S.selMode ? ` aria-pressed="${S.sel.has(l.id)}"` : ''}><span class="ref">${S.selMode ? `<span class="chk" aria-hidden="true">${S.sel.has(l.id) ? '\u2611' : '\u2610'}</span> ` : ''}${esc(bid(l))}<br><span class="meta">${l.source === 'whatsapp' ? 'WhatsApp' : 'Website'}</span></span><span>${esc(l.name)} <span class="pill veh-${vehicleOf(l)}">${VEHICLE_LABEL[vehicleOf(l)]}</span> · <span class="meta">${esc(l.phone)}</span><br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')} · ${l.preferred_date ? esc(l.preferred_date) + ' ' + esc(SLOT[l.preferred_slot] ?? '') : ''}</span><br>${stepBar(l, true)}</span><span style="text-align:right">${paidChipHtml(l)} <span class="pill ${l.status}">${LABEL[l.status]}</span><br><span class="meta">${l.est_total ? rupee(l.est_total) : ''} · ${when(l.created_at)}</span></span></button>`;
+  const one = (l) => `<button class="row${paidInfo(l).paid ? ' is-paid' : ''}${S.selMode && S.sel.has(l.id) ? ' picked' : ''}" data-lead="${l.id}"${S.selMode ? ` aria-pressed="${S.sel.has(l.id)}"` : ''}><span class="ref">${S.selMode ? `<span class="chk" aria-hidden="true">${S.sel.has(l.id) ? '\u2611' : '\u2610'}</span> ` : ''}${esc(bid(l))}<br><span class="meta">${l.source === 'whatsapp' ? 'WhatsApp' : 'Website'}</span></span><span>${esc(l.name)} <span class="pill veh-${vehicleOf(l)}">${VEHICLE_LABEL[vehicleOf(l)]}</span> · <span class="meta">${esc(l.phone)}</span><br><span class="meta">${esc(svcName(l.service_id))} · ${esc(l.area || '')} · ${l.preferred_date ? esc(l.preferred_date) + ' ' + esc(SLOT[l.preferred_slot] ?? '') : ''}</span><br>${isAssigned(l) ? `<span class="pill p-ok">Assigned: ${esc(l.garage_name || S.mechanics.find((x) => x.id === l.mechanic_id)?.name || 'Technician')}</span>` : `<span class="pill p-warn">To be assigned</span>`}<br>${stepBar(l, true)}</span><span style="text-align:right">${paidChipHtml(l)} <span class="pill ${l.status}">${LABEL[l.status]}</span><br><span class="meta">${l.est_total ? rupee(l.est_total) : ''} · ${when(l.created_at)}</span></span></button>`;
   el.innerHTML = rows.length ? (pin.length ? `<h3 class="pin-head">Paid, needs a garage <span class="count count-paid">${pin.length}</span></h3>${pin.map(one).join('')}<h3 class="pin-head pin-rest">Everything else <span class="count">${rest.length}</span></h3>` : '') + rest.map(one).join('') : '<p class="muted" style="padding:16px">No bookings here yet.</p>';
 }
 
@@ -1654,6 +1665,10 @@ const ACT = {
     await audit('marked_paid_manually', { ref: l.ref, amount }); toast('Payment recorded'); await Promise.all([loadLedger(), loadLeads()]); openLead(l.id, true);
   },
   newLead() { openNewBooking(); },
+  dateToday() { const d = todayIST(); const on = S.fFrom === d && S.fTo === d; S.fFrom = S.fTo = on ? '' : d; render(); },
+  dateTomorrow() { const d = addDays(todayIST(), 1); const on = S.fFrom === d && S.fTo === d; S.fFrom = S.fTo = on ? '' : d; render(); },
+  dateClear() { S.fFrom = S.fTo = ''; render(); },
+  filtersReset() { S.fFrom = S.fTo = ''; S.vehicle = ''; S.assign = 'all'; S.status = 'open'; S.q = ''; render(); },
   newBookingForCustomer() { const c = S.customers.find((x) => x.id === S.openCust); if (c) openNewBooking(c); },
   async saveNewBooking() {
     const v = (id) => ($('#' + id)?.value ?? '');
@@ -1675,7 +1690,7 @@ const ACT = {
     toast('Booking added'); await loadLeads(); S.tab === 'leads' ? renderList() : render(); openLead(data.id);
   },
   csv() {
-    const rows = [['Booking ID', 'Created', 'Name', 'Phone', 'Source', 'Area', 'Service', 'Estimate', 'Date', 'Slot', 'Status', 'Paid', 'UTM source', 'UTM campaign']].concat(filtered().map((l) => [l.booking_id || '', l.created_at, l.name, l.phone, l.source, l.area, svcName(l.service_id), l.est_total, l.preferred_date, l.preferred_slot, LABEL[l.status], l.paid_amount, l.utm?.utm_source, l.utm?.utm_campaign]));
+    const rows = [['Booking ID', 'Created', 'Name', 'Phone', 'Source', 'Area', 'Service', 'Estimate', 'Date', 'Slot', 'Status', 'Assigned to', 'Paid', 'UTM source', 'UTM campaign']].concat(filtered().map((l) => [l.booking_id || '', l.created_at, l.name, l.phone, l.source, l.area, svcName(l.service_id), l.est_total, l.preferred_date, l.preferred_slot, LABEL[l.status], isAssigned(l) ? (l.garage_name || S.mechanics.find((x) => x.id === l.mechanic_id)?.name || 'Technician') : 'To be assigned', l.paid_amount, l.utm?.utm_source, l.utm?.utm_campaign]));
     const csv = rows.map((r) => r.map((c) => { c = String(c ?? ''); return /[",\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(',')).join('\n');
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'mechanixpro-bookings-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
     audit('exported_csv', { rows: rows.length - 1 });
