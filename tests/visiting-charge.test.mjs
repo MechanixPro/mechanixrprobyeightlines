@@ -34,3 +34,14 @@ test('the Home and Services pages show the visiting charge where customers look 
   assert.match(sv, /Visiting charge: ₹349 for any doorstep visit/);
   assert.match(read('book/index.html'), /class="note bk-visit" id="bk-visit"/);
 });
+
+test('owner 2026-11-13: when the customer goes ahead, no visiting charge is added to the bill (stated where the decline rule is)', () => {
+  for (const f of ['terms/index.html', 'refund-policy/index.html', 'help/index.html', 'book/index.html', 'services/index.html']) {
+    assert.match(strip(read(f)), /If you go ahead with the service, no visiting charge is added to your bill/, f);
+  }
+});
+test('the booking page and Services page show the GST total and the tracking and Redo Promise lines', () => {
+  const b = strip(read('book/index.html')), s = strip(read('services/index.html'));
+  assert.match(b, /Follow your job on a private page/); assert.match(b, /Redo Promise/);
+  assert.match(s, /₹588\.82 in total/);
+});
