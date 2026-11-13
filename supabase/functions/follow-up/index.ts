@@ -8,7 +8,8 @@ import { bookingId, idParam } from '../_shared/booking-id.ts';
 const NEXT_DELAY_H = [3, 21, 48]; // step0 → +3h, step1 → +21h (≈24h), step2 → +48h (≈72h), step3 → stop
 
 Deno.serve(async (req) => {
-  if (!safeEqual(req.headers.get('x-cron-secret') ?? '', env('CRON_SECRET', '__unset__'))) return new Response('Forbidden', { status: 403 });
+  const cronSecret = env('CRON_SECRET');   // unset means closed, never a guessable default
+  if (!cronSecret || !safeEqual(req.headers.get('x-cron-secret') ?? '', cronSecret)) return new Response('Forbidden', { status: 403 });
   if (!whatsappReady()) return new Response(JSON.stringify({ skipped: 'whatsapp not configured' }));
   const db = adminDb();
   if (!(await getSetting(db, 'ai_enabled', true))) return new Response(JSON.stringify({ skipped: 'automation off' }));

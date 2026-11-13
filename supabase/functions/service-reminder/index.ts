@@ -7,7 +7,8 @@ import { isReminderDue, DUE_DAYS } from '../_shared/service-due.ts';
 import { unsubLinks } from '../_shared/unsub.ts';
 
 Deno.serve(async (req) => {
-  if (!safeEqual(req.headers.get('x-cron-secret') ?? '', env('CRON_SECRET', '__unset__'))) return new Response('Forbidden', { status: 403 });
+  const cronSecret = env('CRON_SECRET');   // unset means closed, never a guessable default
+  if (!cronSecret || !safeEqual(req.headers.get('x-cron-secret') ?? '', cronSecret)) return new Response('Forbidden', { status: 403 });
   const db = adminDb(), now = new Date();
   const siteUrl = env('SITE_URL', 'https://mechanixpro.in'), fnUrl = env('SUPABASE_URL') + '/functions/v1', secret = env('SUPABASE_SERVICE_ROLE_KEY');
   const site = { siteUrl, phoneDisplay: env('PHONE_DISPLAY', '+91 83106 21498'), phoneTel: env('PHONE_TEL', '+918310621498'), whatsappUrl: env('WHATSAPP_URL', 'https://wa.me/918310621498'), email: 'hello@mechanixpro.in' };
