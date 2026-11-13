@@ -251,6 +251,12 @@ def seo_fit(page):
                 else: items.append({"@type": "ListItem", "position": i, "name": html.unescape(re.sub('<[^>]+>', '', x)).strip(), "item": can.group(1)})
             ld = '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": items}, ensure_ascii=False) + '</script>'
             page = page.replace('</head>', ld + '</head>', 1)
+    if 'application/ld+json' not in page and 'noindex' not in page:   # every indexable page carries some structured data; this is the plain fallback
+        t = re.search(r'<title>(.*?)</title>', page, re.S); can = re.search(r'rel="canonical" href="(.*?)"', page); dsc = re.search(r'<meta name="description" content="(.*?)"', page)
+        if t and can:
+            wp = {"@context": "https://schema.org", "@type": "WebPage", "name": html.unescape(t.group(1)).strip(), "url": html.unescape(can.group(1)), "isPartOf": {"@type": "WebSite", "url": SITE + '/', "name": "Mechanix Pro"}, "publisher": {"@id": BUSINESS_ID}}
+            if dsc: wp["description"] = html.unescape(dsc.group(1)).strip()
+            page = page.replace('</head>', '<script type="application/ld+json">' + json.dumps(wp, ensure_ascii=False) + '</script></head>', 1)
     return page
 OG_BY_PAGE = {'services/index.html': 'services', 'roadside/index.html': 'roadside', 'join/index.html': 'join', 'partners/axlio/index.html': 'axlio', 'offers/diwali-ready/index.html': 'diwali', 'areas/index.html': 'areas', 'help/index.html': 'how'}
 # ---- Page shape: every inner page gets the same two-tone layout. A navy stage (breadcrumb, H1, lead, actions) and a light sheet with the rest. Text, links and structured data are not touched; only wrappers and classes are added. ----
