@@ -35,7 +35,7 @@
     }).catch(function () { go.disabled = false; msg.textContent = 'No connection while confirming. If money was taken, message us on WhatsApp with your reference.'; });
   }
   /* Back from a Cashfree redirect (UPI apps, some banks): ask the server about the order named in the address. */
-  var back = (q.get('cf_order') || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
+  var back = (q.get('cf_order') || (function () { try { var o = JSON.parse(window.sessionStorage.getItem('mxp_priv') || '{}').cf_order; window.sessionStorage.removeItem('mxp_priv'); return o; } catch (e) { return ''; } })() || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
   if (back && C.supabaseUrl && C.supabaseAnonKey) { go.disabled = true; verify({ cashfree_order_id: back }, ''); }
   form.addEventListener('submit', function (e) {
     e.preventDefault(); out.innerHTML = '';

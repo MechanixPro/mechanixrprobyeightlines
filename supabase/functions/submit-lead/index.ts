@@ -8,7 +8,7 @@ import { sendEmail, FROM_BOOKING } from '../_shared/resend.ts';
 import { alertNewLead } from '../_shared/new-lead-alert.ts';
 import { bookingReceived } from '../_shared/email-templates.ts';
 import { slotFee } from '../_shared/checkout.ts';
-import { isReturningCustomer } from '../_shared/customer.ts';
+import { isReturningCustomer, findOrCreateCustomer } from '../_shared/customer.ts';
 import { formatWhen } from '../_shared/when.ts';
 import { NEUTRAL_ID } from '../_shared/booking-id.ts';
 import { cleanVehicle, detectVehicle, vehicleCols } from '../_shared/vehicle.ts';
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
   if (!priced) return json(req, { error: 'Choose a valid service' }, 400);
 
   // 5) Customer + bike (shared with the future app)
-  const { data: cust, error: cErr } = await db.from('customers').upsert({ phone, name }, { onConflict: 'phone' }).select('id, blocked').single();
+  const { data: cust, error: cErr } = await findOrCreateCustomer(db, { phone, name });
   if (cErr) { console.error(cErr); return json(req, { error: 'Could not save. Please message us on WhatsApp.' }, 500); }
   // A blocked customer's booking is not saved. They still reach WhatsApp from the website, so nobody is left stuck.
   if (cust.blocked) return json(req, { ok: true, ref: null, total: priced.total });
@@ -105,9 +105,12 @@ Deno.serve(async (req) => {
   // Confirmation email (optional, only when the customer gave an address). It can never block or fail the booking.
   if (extra.email) {
     try {
-      const upd: Record<string, unknown> = { email: extra.email };
-      if (extra.email_marketing) { upd.email_marketing_consent = true; upd.email_unsubscribed_at = null; }
-      await db.from('customers').update(upd).eq('id', cust.id);
+      // the saved email is never replaced by a public form; marketing consent is recorded only when this email is the one on file
+      const { data: onFile } = await db.from('customers').select('email').eq('id', cust.id).maybeSingle();
+      const upd: Record<string, unknown> = {};
+      if (!onFile?.email) upd.email = extra.email;
+      if (extra.email_marketing && (!onFile?.email || String(onFile.email).toLowerCase() === String(extra.email).toLowerCase())) { upd.email_marketing_consent = true; upd.email_unsubscribed_at = null; }
+      if (Object.keys(upd).length) await db.from('customers').update(upd).eq('id', cust.id);
       const { data: feeRows } = await db.from('services').select('id,price').in('id', ['advance', 'newfee']);
       const feeOf = (id: string) => Number(feeRows?.find((f: { id: string }) => f.id === id)?.price ?? 0);
       const returning = await isReturningCustomer(db, { id: lead.id, phone });

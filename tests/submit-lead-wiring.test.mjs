@@ -16,7 +16,7 @@ test('submit-lead stores every validated field on the lead row', () => {
 });
 
 test('submit-lead does not save a booking for a blocked customer', () => {
-  assert.match(src, /\.select\('id, blocked'\)/);
+  assert.match(src, /findOrCreateCustomer\(db, \{ phone, name \}\)/);
   assert.match(src, /if \(cust\.blocked\)/);
   assert.ok(src.indexOf('if (cust.blocked)') < src.indexOf("from('leads').insert("), 'block check must come before the lead is saved');
 });

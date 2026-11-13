@@ -3,6 +3,14 @@
 (function () {
   'use strict';
   var C = window.MXP || {}, doc = window.document;
+  // Private keys in the address (the booking link's t=, the payment order's cf_order=) are moved to this tab's session storage and removed from the address BEFORE any tag starts, so Google and Meta never receive them with the page URL.
+  try {
+    if (/^\/(track|pay|book)\//.test(window.location.pathname)) {
+      var pu = new URL(window.location.href), keep = {}, hit = false;
+      ['t', 'cf_order'].forEach(function (k) { if (pu.searchParams.has(k)) { keep[k] = pu.searchParams.get(k); pu.searchParams.delete(k); hit = true; } });
+      if (hit) { try { var old = JSON.parse(window.sessionStorage.getItem('mxp_priv') || '{}'); window.sessionStorage.setItem('mxp_priv', JSON.stringify(Object.assign(old, keep))); } catch (e) {} window.history.replaceState(null, '', pu.pathname + pu.search + pu.hash); }
+    }
+  } catch (e) {}
   // Keep what the ad click brought, so the booking page can save it with the request.
   try {
     var p = new URLSearchParams(window.location.search), o = JSON.parse(window.sessionStorage.getItem('mxp_utm') || '{}'), any = false;

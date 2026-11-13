@@ -109,7 +109,7 @@
   function init(win) {
     var doc = win.document, C = win.MXP || {}, form = doc.getElementById('trackForm'), msg = doc.getElementById('trMsg'), out = doc.getElementById('trResult'), go = doc.getElementById('trGo');
     if (!form) return;
-    var q = new URLSearchParams(win.location.search), preRef = (q.get('ref') || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 13), tok = (q.get('t') || '').toLowerCase();
+    var q = new URLSearchParams(win.location.search), preRef = (q.get('ref') || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 13), tok = (q.get('t') || (function () { try { return JSON.parse(win.sessionStorage.getItem('mxp_priv') || '{}').t; } catch (e) { return ''; } })() || '').toLowerCase();
     if (!/^[0-9a-f]{32}$/.test(tok)) tok = '';
     var paidMode = !!tok && q.get('paid') === '1';
     if (preRef) doc.getElementById('tr-ref').value = preRef;

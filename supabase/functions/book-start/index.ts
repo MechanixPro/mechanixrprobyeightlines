@@ -4,6 +4,7 @@
 import { adminDb, env, json, corsHeaders, sha256Hex, priceBooking } from '../_shared/util.ts';
 import { cleanLeadFields } from '../_shared/lead-fields.ts';
 import { orderBody } from '../_shared/checkout.ts';
+import { findOrCreateCustomer } from '../_shared/customer.ts';
 import { confirmFee, feeLine, FEE_IDS } from '../_shared/confirm-fee.ts';
 import { cleanBooking } from '../_shared/book-form.ts';
 import { vehicleCols } from '../_shared/vehicle.ts';
@@ -60,7 +61,7 @@ Deno.serve(async (req) => {
       if (!priced) return json(req, { error: 'Choose what your bike needs.' }, 400);
       est = priced.total; serviceId = priced.service.id; serviceName = priced.service.name;
     }
-    const { data: cust, error: cErr } = await db.from('customers').upsert({ phone: b.phone, name: b.name, email: b.email }, { onConflict: 'phone' }).select('id,blocked').single();
+    const { data: cust, error: cErr } = await findOrCreateCustomer(db, { phone: b.phone, name: b.name, email: b.email });
     if (cErr) { console.error('book-start customer', cErr); return json(req, { error: 'Could not save. Please try again.' }, 500); }
     if (cust.blocked) return json(req, { error: 'We could not take this booking online. Please call us.' }, 403);
     const { data: bike } = await db.from('bikes').insert({ customer_id: cust.id, brand: b.brand, model: b.model, big_bike: b.engine_class === 'big', engine_class: b.vehicle === 'bike' ? b.engine_class : null }).select('id').single();
