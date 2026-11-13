@@ -1,5 +1,5 @@
 // admin/new-booking.js — turns the "Add booking" form into rows to save (no DOM, no Supabase), so it can be tested in Node.
-const SOURCES = ['phone', 'whatsapp', 'walk_in'];
+const SOURCES = ['phone', 'whatsapp', 'walk_in', 'instagram'];
 const STATUSES = ['new', 'contacted', 'quoted', 'payment_sent', 'paid', 'scheduled', 'completed'];
 const SLOTS = ['morning', 'afternoon', 'evening', 'asap'];
 const KM = ['new', 'lt3', 'mid', 'gt6', 'unsure'];

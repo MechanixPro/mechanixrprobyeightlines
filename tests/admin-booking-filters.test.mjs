@@ -25,3 +25,9 @@ test('Booked filter covers paid and scheduled; assignment uses garage or mechani
 test('CSV export uses filtered() so it respects every active filter', () => {
   assert.match(src.slice(src.indexOf('  csv() {'), src.indexOf('  csv() {') + 400), /concat\(filtered\(\)/);
 });
+test('lead capture: every source has a label, Instagram can be added by hand, uncontacted new leads show waiting time', () => {
+  for (const k of ['website', 'whatsapp', 'phone', 'walk_in', 'app', 'instagram']) assert.match(src, new RegExp(`${k}: '`));
+  assert.match(src, /\['instagram', 'Instagram'\]/);
+  assert.match(src, /l\.status !== 'new' \|\| l\.crm_first_contact_at/);
+  assert.match(readFileSync(new URL('../admin/new-booking.js', import.meta.url), 'utf8'), /'walk_in', 'instagram'\]/);
+});
