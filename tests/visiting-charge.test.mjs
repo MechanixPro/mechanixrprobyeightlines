@@ -45,3 +45,10 @@ test('the booking page and Services page show the GST total and the tracking and
   assert.match(b, /Follow your job on a private page/); assert.match(b, /Redo Promise/);
   assert.match(s, /₹588\.82 in total/);
 });
+
+test('owner 2026-11-13: the visiting charge is waived on a first booking, and the confirmation fee then follows the cancellation rules', () => {
+  for (const f of ['terms/index.html', 'refund-policy/index.html', 'help/index.html', 'book/index.html', 'services/index.html', 'our-process/index.html']) {
+    assert.match(strip(read(f)), /On your first booking with us, the visiting charge is waived and your confirmation fee follows the cancellation rules/, f);
+  }
+  assert.match(read('llms.txt'), /first booking the visiting charge is waived/);
+});
