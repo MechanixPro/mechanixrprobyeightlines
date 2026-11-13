@@ -214,7 +214,7 @@ async function loadLeads() {
 async function loadGarageState() {
   if (!['owner', 'admin'].includes(S.me?.role)) return;
   try {
-    const [open, pick] = await Promise.all([adminRpc('admin_garage_open_jobs'), adminRpc('crm_garage_picker')]);
+    const [open, pick] = await Promise.all([adminRpc('admin_garage_job_map').catch(() => adminRpc('admin_garage_open_jobs')), adminRpc('crm_garage_picker')]);
     const by = new Map((open || []).map((r) => [r.lead_id, r]));
     S.garagePick = (pick || []).filter((g) => g.status !== 'paused');
     [S.leads, S.junkLeads || []].forEach((rows) => rows.forEach((l) => { const r = by.get(l.id); l.garage_id = r ? r.garage_id : null; l.garage_name = r ? r.garage : null; }));
