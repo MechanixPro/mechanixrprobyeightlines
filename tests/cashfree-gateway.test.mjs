@@ -279,3 +279,17 @@ test('the site security rules allow the Cashfree checkout window: its frame and 
   for (const d of ['frame-src', 'form-action']) { assert.match(dir(d), /https:\/\/api\.cashfree\.com/, d); assert.match(dir(d), /https:\/\/\*\.cashfree\.com/, d); assert.match(dir(d), /https:\/\/sdk\.cashfree\.com/, d); }
   assert.match(dir('script-src'), /https:\/\/sdk\.cashfree\.com/); assert.match(dir('connect-src'), /https:\/\/api\.cashfree\.com/);
 });
+
+test('garage and technician Collect payment stay on Razorpay unless COLLECT_GATEWAY=cashfree', async () => {
+  const g = await import('../supabase/functions/_shared/gateway.ts');
+  const keep = { c: process.env.COLLECT_GATEWAY, p: process.env.PAYMENT_GATEWAY };
+  try {
+    process.env.PAYMENT_GATEWAY = 'cashfree';
+    delete process.env.COLLECT_GATEWAY;
+    assert.equal(g.collectGateway(), 'razorpay');
+    process.env.COLLECT_GATEWAY = 'cashfree';
+    assert.equal(g.collectGateway(), 'cashfree');
+    process.env.COLLECT_GATEWAY = 'anything else';
+    assert.equal(g.collectGateway(), 'razorpay');
+  } finally { for (const [k, v] of [['COLLECT_GATEWAY', keep.c], ['PAYMENT_GATEWAY', keep.p]]) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } }
+});

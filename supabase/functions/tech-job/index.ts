@@ -4,7 +4,7 @@
 // Journey actions on the same link: my_jobs (this mechanic's other open jobs), my_job_open (a link for one of them), location_update (live location, only while On the way or Arrived).
 // Pickup jobs also take handover_state (which steps are open: no prices, no customer details), handover_upload_url (signed upload URLs for the photos) and handover_verify (photos + the code the customer gave).
 import { adminDb, env, json, corsHeaders, sha256Hex as ipHashOf, getSetting } from '../_shared/util.ts';
-import { createPaymentLink, paymentsReady } from '../_shared/gateway.ts';
+import { createCollectLink, collectReady } from '../_shared/gateway.ts';
 import { sha256Hex, techPct, companyShare, cleanReport } from '../_shared/tech-job.ts';
 import { formatWhen } from '../_shared/when.ts';
 import { navigateUrl } from '../_shared/eta.ts';
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
     let payUrl: string | null = null;
     if (share.company >= 1 && mech) {
       try {
-        const pl = await createPaymentLink({ amount: share.company, ref: lead.ref, leadId: lead.id, name: mech.name, phone: String(mech.phone ?? '').replace(/\D/g, '').slice(-10), description: `Company share for ${lead.booking_id ? 'booking ' + lead.booking_id : 'a job'}`, notes: { purpose: 'remittance', mechanic_id: link.mechanic_id } });
+        const pl = await createCollectLink({ amount: share.company, ref: lead.ref, leadId: lead.id, name: mech.name, phone: String(mech.phone ?? '').replace(/\D/g, '').slice(-10), description: `Company share for ${lead.booking_id ? 'booking ' + lead.booking_id : 'a job'}`, notes: { purpose: 'remittance', mechanic_id: link.mechanic_id } });
         payUrl = pl.url;
         await db.from('tech_job_links').update({ pay_link_url: payUrl }).eq('id', link.id);
       } catch (e) { console.error('tech-job pay link', (e as Error).message); }
@@ -240,7 +240,7 @@ async function collect(req: Request, db: ReturnType<typeof adminDb>, link: any, 
     const [{ data: services }, { data: bike }] = await Promise.all([db.from('services').select('id,kind,name,price'), lead.bike_id ? db.from('bikes').select('big_bike,engine_class').eq('id', lead.bike_id).maybeSingle() : Promise.resolve({ data: null })]);
     return buildInvoice({ ...lead, big_bike: (bike as any)?.big_bike ?? false, engine_class: (bike as any)?.engine_class ?? null }, (services ?? []) as any).total;
   };
-  const r = await collectAction(db, { createLink: createPaymentLink, paymentsReady }, action, lead, { kind: 'mechanic', name: (mech as any)?.name ?? 'the technician', mechanicId: link.mechanic_id }, isArrived(lead.visit_stage), body, build);
+  const r = await collectAction(db, { createLink: createCollectLink, paymentsReady: collectReady }, action, lead, { kind: 'mechanic', name: (mech as any)?.name ?? 'the technician', mechanicId: link.mechanic_id }, isArrived(lead.visit_stage), body, build);
   return json(req, r.body, r.status);
 }
 

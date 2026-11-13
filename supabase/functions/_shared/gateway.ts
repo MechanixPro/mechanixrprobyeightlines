@@ -24,6 +24,19 @@ export function paymentsReady(): boolean {
 
 export type LinkOpts = { amount: number; ref: string; leadId: string; name: string; phone: string; description: string; notes?: Record<string, string> };
 
+/** Collect payment from the garage and technician apps (the final bill, as a link and QR). It stays on Razorpay while Cashfree Payment Links is not approved for the account.
+ *  COLLECT_GATEWAY=cashfree makes these follow Cashfree once that is approved; unset or anything else means Razorpay. The website checkout is not affected: it follows PAYMENT_GATEWAY. */
+export const collectGateway = (): Gateway => (envOf('COLLECT_GATEWAY').toLowerCase() === 'cashfree' ? 'cashfree' : 'razorpay');
+export function collectReady(): boolean {
+  if (collectGateway() === 'cashfree') return cashfreeReady();
+  return Boolean(envOf('RAZORPAY_KEY_ID') && envOf('RAZORPAY_KEY_SECRET'));
+}
+export async function createCollectLink(opts: LinkOpts): Promise<{ id: string; url: string }> {
+  if (collectGateway() === 'cashfree') return await createCashfreeLink(opts);
+  const m = await import('./razorpay.ts');
+  return await m.createPaymentLink(opts);
+}
+
 /** One Payment Link on the active gateway. Same return shape for both: { id, url }. */
 export async function createPaymentLink(opts: LinkOpts): Promise<{ id: string; url: string }> {
   if (gateway() === 'cashfree') return await createCashfreeLink(opts);

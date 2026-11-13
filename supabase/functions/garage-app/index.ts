@@ -17,7 +17,7 @@
 // Every response is built in _shared/garage.ts from a whitelist. Customer address and email are never selected from the database at all.
 import { adminDb, env, json, corsHeaders, sha256Hex } from '../_shared/util.ts';
 import { notifyTeamGarage } from '../_shared/after-payment.ts';
-import { createPaymentLink, paymentsReady } from '../_shared/gateway.ts';
+import { createCollectLink, collectReady } from '../_shared/gateway.ts';
 import { collectAction, cashAllowed, isArrived } from '../_shared/collect-payment.ts';
 import { buildInvoice } from '../_shared/invoice.ts';
 import { selfieFresh, checkSelfie, selfiePath, selfiePathOk, TERMS_VERSION, SELFIE_NEEDED } from '../_shared/partner-avail.ts';
@@ -396,7 +396,7 @@ Deno.serve(async (req) => {
       const [{ data: services }, { data: bike }] = await Promise.all([db.from('services').select('id,kind,name,price'), lead.bike_id ? db.from('bikes').select('big_bike,engine_class').eq('id', lead.bike_id).maybeSingle() : Promise.resolve({ data: null })]);
       return buildInvoice({ ...lead, big_bike: (bike as any)?.big_bike ?? false, engine_class: (bike as any)?.engine_class ?? null }, (services ?? []) as any).total;
     };
-    const r = await collectAction(db, { createLink: createPaymentLink, paymentsReady }, action, lead, { kind: 'garage', name: garageName, mechanicId: (m as any)?.id ?? null }, isArrived(null, a.status), b, build);
+    const r = await collectAction(db, { createLink: createCollectLink, paymentsReady: collectReady }, action, lead, { kind: 'garage', name: garageName, mechanicId: (m as any)?.id ?? null }, isArrived(null, a.status), b, build);
     return json(req, r.body, r.status);
   }
 
