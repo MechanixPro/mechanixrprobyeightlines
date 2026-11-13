@@ -50,6 +50,7 @@
       if (S.view === 'inspect') { paintInspect(kids); root.appendChild(el(d, 'div', { class: 'cp-in' }, kids)); return; }
       kids.push(el(d, 'p', { class: 'cp-lab', text: 'Amount due' }));
       kids.push(el(d, 'p', { class: 'cp-amt', id: 'cpAmt', text: S.amount != null ? inr(S.amount) : '…' }));
+      kids.push(el(d, 'p', { class: 'cp-hint', id: 'cpParts', text: 'Before the customer pays: show them every part you replaced, and add a photo of the old parts to the job.' }));
       if (S.err) kids.push(el(d, 'p', { class: 'cp-err', role: 'alert', text: S.err }), btn('Try again', 'cp-ghost', request, 'cpRetry'));
       else if (S.link) {
         var qr = null; try { qr = w.MXP_QR ? w.MXP_QR.svg(d, S.link, 168) : null; } catch (e) { qr = null; }

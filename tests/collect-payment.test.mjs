@@ -103,3 +103,7 @@ test('source patterns: no card fields, rule server-side, wired in both functions
   assert.match(src('supabase/functions/_shared/collect-payment.ts'), /collected_by: 'mechanic'[^]*source: 'technician'/);
   assert.match(src('garage/index.html'), /collect-pay\.js/); assert.match(src('garage/index.html'), /qr\.js/); assert.match(src('job/index.html'), /collect-pay\.js/);
 });
+
+test('the Collect payment screen reminds technicians and garages to show the replaced parts before the customer pays', () => {
+  assert.match(src('assets/js/collect-pay.js'), /show them every part you replaced/);
+});
