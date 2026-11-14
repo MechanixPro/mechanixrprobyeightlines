@@ -654,16 +654,33 @@
 
     /* ---------- statement ---------- */
     function openStatement() { S.screen = 'statement'; S.statement = null; render(); api('statement').then(function (r) { if (ended(r)) return; S.statement = r.ok ? r.data.statement : 'error'; if (S.screen === 'statement') render(); }); }
+    var BD_STATUS = { settled: 'Settled', pending: 'Pending', awaiting_payment: 'Awaiting customer payment' };
+    /** Booking revenue breakdown for one completed job: the saved commission split, and who collected the money. Only this garage's own job. */
+    function breakdownEl(b) {
+      var r = function (k, v) { return el('div', { class: 'g-rj-top' }, [el('span', { text: k }), el('b', { text: v })]); };
+      return el('details', { class: 'g-bd', style: 'width:100%' }, [el('summary', { text: 'Booking revenue breakdown (' + (BD_STATUS[b.status] || b.status) + ')' }),
+        r('Customer invoice amount', money(b.invoice_total)), r('Service amount (before GST)', money(b.service_amount)), r('Commission percentage', (100 - Math.round(b.service_amount ? (b.garage_earnings / b.service_amount) * 100 : 0)) + '% to Mechanix Pro'),
+        r('Mechanix Pro commission', money(b.commission)), r('Your earnings', money(b.garage_earnings)), r('Collected from customer', money(b.collected_from_customer)),
+        r('Received by you', money(b.received_by_garage)), r('You must pay Mechanix Pro', money(b.payable_to_mx)), r('Mechanix Pro must pay you', money(b.payable_to_garage)),
+        el('span', { class: 'g-chip g-chip-' + (b.status === 'settled' ? 'done' : 'work'), text: BD_STATUS[b.status] || b.status })]);
+    }
     function renderStatement() {
       var s = S.statement, body = [el('div', { class: 'g-h' }, [el('h1', { text: 'Statement' })])];
       if (s === null) body.push(loading('Loading your statement'));
       else if (s === 'error') body.push(retryCard('We could not load your statement.', openStatement));
       else {
         body.push(el('div', { class: 'g-sum' }, [el('div', {}, [el('span', { text: 'Pending' }), el('b', { text: money(s.pending) })]), el('div', {}, [el('span', { text: 'Paid so far' + (s.settled_jobs ? ' (' + s.settled_jobs + ' jobs)' : '') }), el('b', { text: money(s.settled) })])]));
+        var E = s.earnings;
+        if (E && E.with_breakdown) {
+          var row2 = function (k, v) { return el('div', { class: 'g-rj-top' }, [el('span', { text: k }), el('b', { text: money(v) })]); };
+          body.push(el('div', { class: 'g-card g-earn', id: 'gEarnings' }, [el('h2', { text: 'Earnings' }), row2('Today', E.today), row2('This week (last 7 days)', E.week), row2('This month', E.month), row2('All completed jobs', E.total),
+            el('p', { class: 'g-muted', text: E.jobs + (E.jobs === 1 ? ' completed booking' : ' completed bookings') + ' · ' + E.with_breakdown + ' with a commission breakdown' }),
+            row2('Mechanix Pro commission', E.commission), row2('You collected from customers', E.received_by_garage), row2('You must pay Mechanix Pro', E.payable_to_mx), row2('Mechanix Pro must pay you', E.outstanding_from_mx)]));
+        }
         if (!s.items.length) body.push(el('div', { class: 'g-card g-center' }, [el('p', { text: 'Completed jobs appear here once they are ready for return.' })]));
         else body.push(el('ul', { class: 'g-list' }, s.items.map(function (i) {
           var label = { settled: 'Settled' + (i.settled_at ? ' ' + whenText(i.settled_at).split(',').slice(0, 2).join(',') : ''), pending: 'Pending', amount_not_entered: 'Amount not entered yet' }[i.status];
-          return el('li', { class: 'g-card g-st' }, [el('div', { class: 'g-rj-top' }, [el('b', { text: i.vehicle }), el('b', { text: i.amount == null ? '—' : money(i.amount) })]), el('span', { class: 'g-muted', text: (i.booking_id || '') + (i.completed_at ? ' · ' + (whenText(i.completed_at) || '') : '') }), el('span', { class: 'g-chip g-chip-' + (i.status === 'settled' ? 'done' : i.status === 'pending' ? 'work' : 'new'), text: label }), i.customer_paid != null ? el('span', { class: 'g-muted', text: 'Customer has paid ' + money(i.customer_paid) + (i.customer_paid_method === 'cash' ? ' (cash)' : i.customer_paid_method === 'upi' ? ' (UPI)' : i.customer_paid_method === 'online' ? ' (online)' : '') + '. Your payout amount is entered by the team.' }) : null, i.note ? el('p', { class: 'g-muted', text: i.note }) : null]);
+          return el('li', { class: 'g-card g-st' }, [el('div', { class: 'g-rj-top' }, [el('b', { text: i.vehicle }), el('b', { text: i.amount == null ? '—' : money(i.amount) })]), el('span', { class: 'g-muted', text: (i.booking_id || '') + (i.completed_at ? ' · ' + (whenText(i.completed_at) || '') : '') }), el('span', { class: 'g-chip g-chip-' + (i.status === 'settled' ? 'done' : i.status === 'pending' ? 'work' : 'new'), text: label }), i.breakdown ? breakdownEl(i.breakdown) : null, i.customer_paid != null ? el('span', { class: 'g-muted', text: 'Customer has paid ' + money(i.customer_paid) + (i.customer_paid_method === 'cash' ? ' (cash)' : i.customer_paid_method === 'upi' ? ' (UPI)' : i.customer_paid_method === 'online' ? ' (online)' : '') + '. Your payout amount is entered by the team.' }) : null, i.note ? el('p', { class: 'g-muted', text: i.note }) : null]);
         })));
         body.push(el('p', { class: 'g-hint', text: 'Amounts are entered by Mechanix Pro for each job. If something looks wrong, tap Help and message the team.' }));
       }

@@ -20,6 +20,7 @@ import { notifyTeamGarage } from '../_shared/after-payment.ts';
 import { createCollectLink, collectReady } from '../_shared/gateway.ts';
 import { collectAction, cashAllowed, isArrived, dueFor } from '../_shared/collect-payment.ts';
 import { buildInvoice } from '../_shared/invoice.ts';
+import { garageBreakdown, r2 as money2 } from '../_shared/commission.ts';
 import { selfieFresh, checkSelfie, selfiePath, selfiePathOk, TERMS_VERSION, SELFIE_NEEDED } from '../_shared/partner-avail.ts';
 import { isCode, handoverHash, sameHash, afterWrongTry, doorState, MAX_ATTEMPTS, DOOR_KIND } from '../_shared/handover.ts';
 import { cleanResults } from '../_shared/pro-check.ts';
@@ -213,10 +214,20 @@ Deno.serve(async (req) => {
     const lids = [...new Set((rows ?? []).map((r: any) => r.lead_id))];
     const { data: pl } = lids.length ? await db.from('leads').select('id,paid_amount,final_paid_amount,final_paid_method').in('id', lids) : { data: [] };
     const PAID = new Map((pl ?? []).map((x: any) => [x.id, x]));
+    // Commission snapshot and who collected the money, for this garage's own jobs only (the rows above are this garage's assignments). Missing table or rows: the job simply has no breakdown yet.
+    const [jcR, leR] = lids.length ? await Promise.all([db.from('job_commission').select('*').in('lead_id', lids), db.from('ledger_entries').select('id,lead_id,entry_type,collected_by,amount,reverses_id').in('lead_id', lids)]) : [{ data: [] }, { data: [] }];
+    const JC = new Map(((jcR as any).data ?? []).map((x: any) => [x.lead_id, x])), LE = new Map<string, any[]>();
+    for (const e of ((leR as any).data ?? [])) (LE.get(e.lead_id) ?? LE.set(e.lead_id, []).get(e.lead_id)!).push(e);
     // Paid jobs are not listed to the garage: only what is still to be paid, plus one running total. The company keeps every record.
-    const mapped = (rows ?? []).map((a: any) => { const r = rawOf(a, c); return { assignment: a, lead: { ...r.lead, ...(PAID.get(a.lead_id) ?? {}) }, vehicle: r.vehicle, settlement: S.get(a.id) ?? null }; });
+    const mapped = (rows ?? []).map((a: any) => { const r = rawOf(a, c); const snap: any = JC.get(a.lead_id); return { assignment: a, lead: { ...r.lead, ...(PAID.get(a.lead_id) ?? {}) }, vehicle: r.vehicle, settlement: S.get(a.id) ?? null, breakdown: snap ? garageBreakdown(snap, LE.get(a.lead_id) ?? [], S.get(a.id) ?? null) : null }; });
     const paid = mapped.filter((m: any) => m.settlement && m.settlement.settled), open = mapped.filter((m: any) => !(m.settlement && m.settlement.settled));
     const out: any = garageStatement(open);
+    // Earnings page: today, this week, this month (India time), over every completed job with a saved commission, listed or already settled.
+    const ist = (d: Date) => new Date(d.getTime() + 330 * 60000).toISOString().slice(0, 10), day = ist(new Date()), wk = ist(new Date(Date.now() - 6 * 864e5)), mo = day.slice(0, 7);
+    const withB = mapped.filter((m: any) => m.breakdown), sumB = (f: (b: any) => number, pick: (m: any) => boolean = () => true) => money2(withB.filter(pick).reduce((t: number, m: any) => t + f(m.breakdown), 0));
+    const when = (m: any) => { const d = m.assignment.returned_at ?? m.assignment.ready_at; return d ? ist(new Date(d)) : ''; };
+    out.earnings = { today: sumB((b) => b.garage_earnings, (m) => when(m) === day), week: sumB((b) => b.garage_earnings, (m) => when(m) >= wk), month: sumB((b) => b.garage_earnings, (m) => when(m).startsWith(mo)), total: sumB((b) => b.garage_earnings),
+      jobs: mapped.length, with_breakdown: withB.length, commission: sumB((b) => b.commission), payable_to_mx: sumB((b) => b.payable_to_mx), received_by_garage: sumB((b) => b.received_by_garage), outstanding_from_mx: sumB((b) => b.payable_to_garage) };
     out.settled = Math.round(paid.reduce((t: number, m: any) => t + Number(m.settlement.amount || 0), 0) * 100) / 100; out.settled_jobs = paid.length;
     return json(req, { ok: true, statement: out });
   }

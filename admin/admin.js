@@ -120,7 +120,7 @@ $('#signOut').addEventListener('click', async () => { await sb.auth.signOut(); l
 
 const LOADING = skeleton();
 const errorHtml = (title, e, retry) => errorState({ title, detail: (e && e.message) || e || 'Something went wrong', retry: { label: 'Retry', attr: `data-retry="${retry}"` } });
-const LOADERS = [['bookings', () => loadLeads()], ['services', () => loadServices()], ['settings', () => loadSettings()], ['customers and mechanics', () => loadPeople()], ['home images', () => loadHome()], ['issues', () => loadIssues()], ['PIN codes', () => loadPins()], ['waitlist', () => loadWaitlist()], ['invoices', () => loadInvoices()], ['money ledger', () => loadLedger()]];
+const LOADERS = [['bookings', () => loadLeads()], ['services', () => loadServices()], ['settings', () => loadSettings()], ['customers and mechanics', () => loadPeople()], ['home images', () => loadHome()], ['issues', () => loadIssues()], ['PIN codes', () => loadPins()], ['waitlist', () => loadWaitlist()], ['invoices', () => loadInvoices()], ['money ledger', () => loadLedger()], ['commission records', () => loadCommissions()]];
 // Load everything the panel needs. Bookings are essential: without them the page shows an error and Retry. Another table that fails shows a notice above the page.
 async function bootData() {
   $('#view').innerHTML = LOADING; S.failed = [];
@@ -129,6 +129,7 @@ async function bootData() {
     r.forEach((x, i) => { if (x.status === 'rejected') failed(LOADERS[i][0]); });
     if (S.failed.includes('bookings')) throw new Error('Bookings could not be loaded. Check your connection.');
     render();
+    syncCommissionSnapshots();
   } catch (e) { console.error('boot', e); $('#view').innerHTML = errorHtml('The admin panel could not load.', e, 'boot'); }
 }
 $('#view').addEventListener('click', (e) => { const b = e.target.closest('[data-retry]'); if (!b) return; if (b.dataset.retry === 'render') render(); else bootData(); });
@@ -552,7 +553,7 @@ function mechDetail(id, st) {
   if (!acct) return `<div class="card" style="margin-top:12px"><h3>Jobs and split</h3><p class="small muted" style="margin:0">${open}. The split appears here once a job has an invoice or a payment.</p></div>`;
   const jobs = [...acct.jobAccounts].sort((x, y) => new Date(y.issuedAt) - new Date(x.issuedAt));
   const sum = (f) => jobs.reduce((t, j) => t + f(j), 0);
-  const rows = jobs.map((j) => `<tr class="inv-tr" data-lead="${j.lead_id}" tabindex="0"><td>${esc(new Date(j.issuedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }))}<br><span class="tiny muted mono">${esc(j.ref)}</span></td><td>${j.jobPlace === 'garage' ? 'In garage' : 'Doorstep'}</td><td class="num">${rupee2(j.service)}${j.gst ? '<br><span class="tiny muted">+ GST ' + rupee2(j.gst) + '</span>' : ''}</td><td class="num">${j.mechanicPct}%${j.commissionAdjust ? '<br><span class="tiny muted">' + (j.commissionAdjust > 0 ? '+' : '−') + rupee2(Math.abs(j.commissionAdjust)) + '</span>' : ''}</td><td class="num"><b>${rupee2(j.earningsTotal)}</b></td><td class="num">${rupee2(j.companyShareTotal)}</td><td>${[j.byChannel.company_manual ? 'Company' : '', j.byChannel.company_portal ? 'Online' : '', j.byChannel.mechanic ? 'Mechanic' : ''].filter(Boolean).join(', ') || '<span class="muted">Unpaid</span>'}</td><td class="num">${j.payoutDue > 0.005 ? 'We owe ' + rupee2(j.payoutDue) : ''}${j.remitDue > 0.005 ? (j.payoutDue > 0.005 ? '<br>' : '') + 'Owes us ' + rupee2(j.remitDue) : ''}${j.payoutDue <= 0.005 && j.remitDue <= 0.005 ? '<span class="muted">Clear</span>' : ''}</td></tr>`).join('');
+  const rows = jobs.map((j) => `<tr class="inv-tr" data-lead="${j.lead_id}" tabindex="0"><td>${esc(new Date(j.issuedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }))}<br><span class="tiny muted mono">${esc(j.ref)}</span><br><span class="tiny">${esc(j.customer || '')}</span><br><span class="tiny muted">${esc((S.leads.find((x) => x.id === j.lead_id) || {}).vehicle || '')}</span></td><td>${j.jobPlace === 'garage' ? 'In garage' : 'Doorstep'}</td><td class="num">${rupee2(j.service)}${j.gst ? '<br><span class="tiny muted">+ GST ' + rupee2(j.gst) + '</span>' : ''}</td><td class="num">${j.mechanicPct}%${j.commissionAdjust ? '<br><span class="tiny muted">' + (j.commissionAdjust > 0 ? '+' : '−') + rupee2(Math.abs(j.commissionAdjust)) + '</span>' : ''}</td><td class="num"><b>${rupee2(j.earningsTotal)}</b></td><td class="num">${rupee2(j.companyShareTotal)}</td><td>${[j.byChannel.company_manual ? 'Company ' + rupee2(j.byChannel.company_manual) : '', j.byChannel.company_portal ? 'Online ' + rupee2(j.byChannel.company_portal) : '', j.byChannel.mechanic ? 'Mechanic ' + rupee2(j.byChannel.mechanic) : ''].filter(Boolean).join('<br>') || '<span class="muted">Unpaid</span>'}</td><td class="num">${j.payoutDue > 0.005 ? 'We owe ' + rupee2(j.payoutDue) : ''}${j.remitDue > 0.005 ? (j.payoutDue > 0.005 ? '<br>' : '') + 'Owes us ' + rupee2(j.remitDue) : ''}${j.payoutDue <= 0.005 && j.remitDue <= 0.005 ? '<span class="muted">Clear</span>' : ''}</td></tr>`).join('');
   const text = statementShareText({ mechanicName: m ? m.name : acct.mechanic.name, rows: jobs.map((j) => ({ ref: j.ref, date: new Date(j.issuedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }), place: j.jobPlace, earnings: j.earningsTotal })), totals: { earnings: acct.earnings, remitDue: acct.remitRemaining, payoutDue: acct.payoutRemaining, net: acct.net, netLabel: acct.netLabel } });
   const kpi = (v, l) => `<div class="kpi"><b>${rupee2(v)}</b><span>${l}</span></div>`;
   return `<div class="card" style="margin-top:12px"><h3>Jobs and split</h3><p class="tiny muted" style="margin:0 0 10px">${open}. Tap a job to open it and correct the commission.</p>
@@ -653,6 +654,63 @@ function jobFacts(l) {
   const dd = new Date(l.completed_at || l.paid_at || l.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   const bc = a ? a.byChannel : { company_manual: 0, company_portal: 0, mechanic: 0 };
   return { inv, rate, sp, a, job: { ref: bid(l), date: dd, place: rate.place, service: sp.base, gst: sp.gst, total: inv.total, pct: sp.pct, adjust: sp.adjust, adjustNote: l.commission_note || '', earnings: sp.earnings, company: sp.company, collected: a ? a.collected : 0, byChannel: bc, remitDue: a ? a.remitDue : 0, payoutDue: a ? a.payoutDue : 0 } };
+}
+/* ---------- Commission & Revenue Sharing: one section per booking for a mechanic OR a garage, kept after completion ---------- */
+async function loadCommissions() {
+  try { const rows = await adminRpc('admin_commission_list'); S.commission = new Map((rows || []).map((r) => [r.lead_id, r])); S.commissionReady = true; }
+  catch (e) { S.commission = new Map(); S.commissionReady = false; }   // the database function is not installed yet: the card still works, from the live figures
+}
+// Who shares the money: the garage when the job went to a garage, else the mechanic.
+function cmParty(l) {
+  if (l.garage_id) return { kind: 'garage', id: l.garage_id, name: l.garage_name || 'the garage' };
+  const m = S.mechanics.find((x) => x.id === l.mechanic_id);
+  return m ? { kind: 'mechanic', id: m.id, name: m.name } : null;
+}
+// The split: the saved snapshot when there is one, otherwise worked out now from the same rule (admin/commission.js). Collections are always live from the ledger.
+function cmFacts(l) {
+  const party = cmParty(l); if (!party) return null;
+  const snap = S.commission && S.commission.get(l.id), inv = (() => { try { return invoiceFor(l); } catch (e) { return null; } })();
+  if (!snap && !inv) return null;
+  let sp, rate, total;
+  if (snap) { sp = { base: Number(snap.service_base), gst: Number(snap.gst), pct: Number(snap.pct), adjust: Number(snap.adjust), earnings: Number(snap.earnings), company: Number(snap.company) }; rate = { place: snap.place, source: snap.rate_source || 'job' }; total = Number(snap.total); }
+  else {
+    rate = effectiveRate({ lead: { ...l, job_place: party.kind === 'garage' ? 'garage' : l.job_place }, mechanic: S.mechanics.find((x) => x.id === l.mechanic_id) || null, settings: defaults() });
+    sp = jobSplit({ service: inv.taxable, gst: inv.total - inv.taxable, pct: rate.pct, adjust: l.commission_adjust }); total = inv.total;
+  }
+  const entries = S.ledger.filter((e) => e.lead_id === l.id), ex = salesModel().accounts.find((x) => x.lead_id === l.id);
+  const sum = (t) => entries.filter((e) => e.entry_type === t && !S.ledger.some((r) => r.entry_type === 'reversal' && r.reverses_id === e.id)).reduce((n, e) => n + (Number(e.amount) || 0), 0);
+  const allocated = ex && ex.mechanicId ? { remit: ex.remitAllocated, payout: ex.payoutAllocated } : { remit: sum('remittance'), payout: sum('payout') };
+  const acct = jobAccount({ invoice: { ...(inv || {}), lead_id: l.id, ref: bid(l), number: inv ? inv.number : '', issued_at: (inv && inv.issued_at) || l.completed_at || l.created_at, customer_name: l.name, total, taxable: sp.base, mechanic_id: party.id, mechanic_rate: sp.pct, commission_adjust: sp.adjust, commission_note: l.commission_note || '', job_place: rate.place }, entries, mechanic: { id: party.id, name: party.name, payout_rate: sp.pct }, allocated });
+  return { party, sp, rate, total, acct, frozen: !!snap, snapshotRow: { lead_id: l.id, garage_id: party.kind === 'garage' ? party.id : null, mechanic_id: party.kind === 'mechanic' ? party.id : (l.mechanic_id || null), place: rate.place, service_base: sp.base, gst: sp.gst, total, pct: sp.pct, rate_source: rate.source, adjust: sp.adjust, adjust_note: l.commission_note || null, earnings: sp.earnings, company: sp.company } };
+}
+function commissionCard(l) {
+  try { return commissionCardBody(l); } catch (e) { console.error('commissionCard', e); return '<div class="card" style="margin-top:12px"><h3>Commission &amp; Revenue Sharing</h3><p class="small muted" style="margin:0">Could not work out the split for this booking.</p></div>'; }
+}
+function commissionCardBody(l) {
+  const f = cmFacts(l);
+  if (!f) return `<div class="card" style="margin-top:12px"><h3>Commission &amp; Revenue Sharing</h3><p class="small muted" style="margin:0">${cmParty(l) ? 'The split appears once the service is chosen and an invoice can be made.' : 'Assign a mechanic or a garage to see how the money is shared.'}</p></div>`;
+  const { party, sp, rate, total, acct: a } = f, who = party.kind === 'garage' ? 'Garage' : 'Mechanic', row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
+  const overdue = a.remitDue > 0.005 && Date.now() - new Date(a.issuedAt).getTime() > 7 * 864e5;
+  const status = a.collected <= 0.005 ? ['Awaiting payment', 'p-info'] : a.remitDue > 0.005 || a.payoutDue > 0.005 ? (overdue ? ['Overdue remittance', 'lost'] : ['Pending', 'p-warn']) : ['Settled', 'p-ok'];
+  const earnPct = sp.base ? Math.round((sp.earnings / sp.base) * 100) : 0;
+  const basis = `${sp.pct}% of the service amount before GST${sp.adjust ? ` ${sp.adjust > 0 ? '+' : '−'} ${rupee2(Math.abs(sp.adjust))} adjustment` : ''} (${SRC[rate.source] || rate.source})`;
+  return `<div class="card" style="margin-top:12px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><h3 style="margin:0">Commission &amp; Revenue Sharing</h3><span class="pill ${status[1]}">${status[0]}</span></div>
+    <div class="split-bar" role="img" aria-label="${who} ${earnPct} percent, Mechanix Pro ${100 - earnPct} percent" style="margin-top:10px"><span class="sb-mech" style="width:${earnPct}%">${earnPct >= 14 ? earnPct + '%' : ''}</span><span class="sb-co" style="width:${100 - earnPct}%">${100 - earnPct >= 14 ? (100 - earnPct) + '%' : ''}</span></div>
+    <dl class="kv" style="margin-top:10px">${row('Customer invoice total', '<b>' + rupee2(total) + '</b>')}${row('Service amount (before GST)', rupee2(sp.base) + (sp.gst ? ` <span class="tiny muted">+ GST ${rupee2(sp.gst)} kept aside</span>` : ''))}
+    ${row('Commission percentage', `<b>${100 - earnPct}%</b> <span class="tiny muted">for Mechanix Pro · ${who.toLowerCase()} ${earnPct}%</span>`)}${row('Calculation basis', esc(basis))}
+    ${row('Mechanix Pro commission', '<b style="color:var(--navy,#14295A)">' + rupee2(sp.company) + '</b>')}${row(esc(party.name) + ' earns', '<b style="color:#B45309">' + rupee2(sp.earnings) + '</b>')}
+    ${row('Collected by Mechanix Pro', rupee2(a.byChannel.company_manual + a.byChannel.company_portal) + (a.byChannel.company_portal ? ` <span class="tiny muted">(${rupee2(a.byChannel.company_portal)} online)</span>` : ''))}${row('Collected by the ' + who.toLowerCase(), rupee2(a.byChannel.mechanic))}
+    ${row(who + ' must pay Mechanix Pro', a.remitDue > 0.005 ? '<b>' + rupee2(a.remitDue) + '</b>' : rupee2(0))}${row('Mechanix Pro must pay the ' + who.toLowerCase(), a.payoutDue > 0.005 ? '<b>' + rupee2(a.payoutDue) + '</b>' : rupee2(0))}
+    ${row('Settlement status', `<span class="pill ${status[1]}">${status[0]}</span>${a.remitAllocated || a.payoutAllocated ? ` <span class="tiny muted">already settled: ${rupee2(a.remitAllocated)} sent to us, ${rupee2(a.payoutAllocated)} paid out</span>` : ''}`)}</dl>
+    <p class="tiny muted" style="margin:8px 0 0">${f.frozen ? 'Commission figures are saved for this job and do not change when the standard rate changes. ' : 'Commission figures follow the current rate until the job is completed and saved. '}Collections are live from the payment ledger.${S.commissionReady === false ? ' (The saved-commission table is not installed yet.)' : ''}</p></div>`;
+}
+// Save the first snapshot for completed jobs that have none (never overwrites). Owner and admin only; runs quietly after the data loads.
+async function syncCommissionSnapshots() {
+  if (!S.commissionReady || !['owner', 'admin'].includes(S.me?.role)) return;
+  const rows = [];
+  for (const l of S.leads) { if (rows.length >= 300) break; if (l.status !== 'completed' || (S.commission && S.commission.has(l.id))) continue; try { const f = cmFacts(l); if (f) rows.push(f.snapshotRow); } catch (e) { /* skip this one */ } }
+  if (!rows.length) return;
+  try { await adminRpc('admin_commission_sync', { p_rows: rows }); await loadCommissions(); } catch (e) { console.error('commission sync', e); }
 }
 const waLink = (phone, text) => 'https://wa.me/91' + String(phone || '').replace(/\D/g, '').slice(-10) + '?text=' + encodeURIComponent(text);
 function payoutCard(l) {
@@ -903,7 +961,7 @@ async function openLeadBase(id, silent) {
     ${serviceEditCard(l)}
     <div class="card" style="margin-top:12px" id="histCard"><h3>Booking history</h3><p class="tiny muted">Loading…</p></div>
     ${isOwner() ? '<div class="card" style="margin-top:12px"><h3>Delete this booking</h3><p class="tiny muted" style="margin:0 0 8px">A booking with no invoice or payment is erased. One that has either is moved to Deleted bookings, where you can restore it.</p><button class="btn btn-ghost btn-sm" type="button" data-act="deleteLead">Delete booking</button></div>' : ''}`)}
-  ${panel('money', `${moneyCard(l)}
+  ${panel('money', `${moneyCard(l)}${commissionCard(l)}
     <div class="card" style="margin-top:12px"><h3>Take a payment</h3>
       <label class="label" for="pa">Amount (₹) <span class="muted" style="font-weight:400">(${S.leads.some((x) => x.phone === l.phone && x.id !== l.id && x.status === 'completed') ? 'returning customer' : 'new customer'} slot fee by default; saved as the amount due)</span></label><input id="pa" inputmode="numeric" value="${esc(l.amount_due || slotFeeFor(l))}" data-init="${esc(l.amount_due || slotFeeFor(l))}">
       <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px"><b>Money received already</b>
@@ -1041,7 +1099,10 @@ const ACT = {
     if (!r.ok) return toast(r.error);
     const { error } = await sb.from('leads').update(r.value).eq('id', l.id);
     if (error) return toast('Could not save: ' + error.message);
-    await audit('commission_edited', { ref: l.ref, ...r.value }); toast('Commission saved'); await Promise.all([loadLeads(), loadLedger()]); openLead(l.id, true);
+    await audit('commission_edited', { ref: l.ref, ...r.value }); toast('Commission saved'); await Promise.all([loadLeads(), loadLedger()]);
+    // An edit on a finished job (one with a saved split) updates the saved split too, and the audit log records who did it.
+    try { const l2 = S.leads.find((x) => x.id === l.id), keep = S.commission && S.commission.get(l.id); if (S.commissionReady && l2 && (keep || l2.status === 'completed')) { S.commission.delete(l.id); const f = cmFacts(l2); if (f) await adminRpc('admin_commission_set', { p_row: f.snapshotRow }); else if (keep) S.commission.set(l.id, keep); await loadCommissions(); } } catch (e) { console.error('commission snapshot', e); }
+    openLead(l.id, true);
   },
   async copyText(btn) {
     const t = btn.getAttribute('data-text') || '';
