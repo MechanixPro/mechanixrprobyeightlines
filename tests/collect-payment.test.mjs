@@ -107,3 +107,16 @@ test('source patterns: no card fields, rule server-side, wired in both functions
 test('the Collect payment screen reminds technicians and garages to show the replaced parts before the customer pays', () => {
   assert.match(src('assets/js/collect-pay.js'), /show them every part you replaced/);
 });
+
+test('too-high cash says what is due, and money the desk recorded counts as already paid', async () => {
+  const bad = cleanCash({ amount: 9000, method: 'cash' }, 8260);
+  assert.equal(bad.ok, false); assert.match(bad.error, /amount due \(Rs 8,260\)/);
+  const { dueFor } = await import('../supabase/functions/_shared/collect-payment.ts');
+  const { db } = fake(lead({ paid_amount: 1180 }), { total: 1180 });
+  const d = await dueFor(db, lead({ paid_amount: 1180 }), async () => 0);
+  assert.equal(d.due, 0);                       // the desk recorded the full bill
+  const r = await collectAction(db, ops([]), 'payment_request', lead({ paid_amount: 1180 }), who, true, {}, async () => 0);
+  assert.equal(r.status, 200); assert.equal(r.body.paid, true); assert.equal(r.body.method, 'desk');
+  const c = await collectAction(db, ops([]), 'payment_cash', lead({ paid_amount: 1180, inspect_first: true }), who, true, { amount: 100, method: 'cash' }, async () => 0);
+  assert.equal(c.status, 409);
+});

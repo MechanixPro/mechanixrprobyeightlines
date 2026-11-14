@@ -16,7 +16,7 @@ export const cleanCash = (b: any, due: number): { ok: true; amount: number; meth
   if (!METHODS.includes(method)) return { ok: false, error: 'Choose cash or UPI.' };
   const amount = r2(b?.amount);
   if (!(amount >= 1 && amount <= 100000)) return { ok: false, error: 'Enter the amount you received.' };
-  if (due > 0 && amount > due + 0.5) return { ok: false, error: 'That is more than the amount due.' };
+  if (due > 0 && amount > due + 0.5) return { ok: false, error: `That is more than the amount due (Rs ${due.toLocaleString('en-IN', { maximumFractionDigits: 2 })}). Enter ${due.toLocaleString('en-IN', { maximumFractionDigits: 2 })} or less.` };
   return { ok: true, amount, method: method as 'cash' | 'upi' };
 };
 export const linkMessage = (first: string, amount: number, url: string): string =>
@@ -28,9 +28,12 @@ export const reusable = (lead: { final_link_id?: string | null; final_link_url?:
 export async function dueFor(db: any, lead: any, build: () => Promise<number>): Promise<{ bill: number; feePaid: number; due: number }> {
   const { data: q } = await db.from('job_quotes').select('total').eq('lead_id', lead.id).eq('status', 'approved').order('version', { ascending: false }).limit(1).maybeSingle();
   let bill = Number(q?.total) || 0;
+  // No approved quote yet (the customer has not tapped approve, but the garage estimate was approved and is out as a quote): use that live quote, not the catalogue price, so the amount due matches the real bill.
+  if (!bill) { const { data: lq } = await db.from('job_quotes').select('total').eq('lead_id', lead.id).in('status', ['sent', 'draft', 'changes_requested']).order('version', { ascending: false }).limit(1).maybeSingle(); bill = Number(lq?.total) || 0; }
   if (!bill) { const { data: inv } = await db.from('invoices').select('total').eq('lead_id', lead.id).is('voided_at', null).order('revision', { ascending: false }).limit(1).maybeSingle(); bill = Number(inv?.total) || 0; }
   if (!bill) bill = await build().catch(() => 0);
-  const feePaid = lead.confirm_paid_at ? Number(lead.confirm_fee) || 0 : 0;
+  // Already paid = the larger of the confirmation fee and the ledger total (leads.paid_amount), so money the desk recorded in Admin counts and is never taken twice.
+  const feePaid = Math.max(lead.confirm_paid_at ? Number(lead.confirm_fee) || 0 : 0, Number(lead.paid_amount) || 0);
   return { bill, feePaid, due: amountDue(bill, feePaid) };
 }
 
@@ -49,7 +52,10 @@ export async function collectAction(db: any, ops: Ops, action: string, lead: any
     await db.from('audit_log').insert({ action: 'inspect_first_set', details: { lead: lead.ref, on: body.on, by: who.kind } });
     return { status: 200, body: { ok: true, inspect_first: body.on, cash_available: cashAllowed({ arrived, inspectFirst: body.on }) } };
   }
-  const { due } = await dueFor(db, lead, build);
+  const { bill, due } = await dueFor(db, lead, build);
+  // The desk recorded the payment in Admin (ledger) and it covers the bill: the job is settled even though no app tapped "collected".
+  const deskSettled = !paid && bill >= 1 && due < 1;
+  if (deskSettled && action !== 'inspect_first_set') return action === 'payment_request' ? { status: 200, body: { ok: true, paid: true, method: 'desk', amount: Number(lead.paid_amount) || bill } } : { status: 409, body: { error: 'The desk has already recorded this payment.' } };
   if (action === 'payment_request') {
     if (paid) return { status: 200, body: { ok: true, paid: true, method: lead.final_paid_method, amount: Number(lead.final_paid_amount) || 0 } };
     if (due < 1) return { status: 409, body: { error: 'There is no amount due yet. Ask the desk.' } };

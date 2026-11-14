@@ -43,7 +43,7 @@
       while (root.firstChild) root.removeChild(root.firstChild);
       var st = S.state, kids = [];
       if (st.paid) {
-        var how = st.method === 'online' ? 'Paid online' : st.method === 'upi' ? 'UPI collected' : 'Cash collected';
+        var how = st.method === 'desk' ? 'Recorded by the Mechanix Pro desk' : st.method === 'online' ? 'Paid online' : st.method === 'upi' ? 'UPI collected' : 'Cash collected';
         kids.push(el(d, 'div', { class: 'cp-tick', id: 'cpPaid' }, [el(d, 'span', { class: 'cp-tickmark', 'aria-hidden': 'true', text: '✓' }), el(d, 'h2', { class: 'cp-h', text: 'Paid' }), el(d, 'p', { class: 'cp-amt', text: inr(st.amount) }), el(d, 'p', { class: 'cp-line', text: how })]));
         root.appendChild(el(d, 'div', { class: 'cp-in' }, kids)); return;
       }

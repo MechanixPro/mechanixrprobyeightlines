@@ -18,7 +18,7 @@
 import { adminDb, env, json, corsHeaders, sha256Hex } from '../_shared/util.ts';
 import { notifyTeamGarage } from '../_shared/after-payment.ts';
 import { createCollectLink, collectReady } from '../_shared/gateway.ts';
-import { collectAction, cashAllowed, isArrived } from '../_shared/collect-payment.ts';
+import { collectAction, cashAllowed, isArrived, dueFor } from '../_shared/collect-payment.ts';
 import { buildInvoice } from '../_shared/invoice.ts';
 import { selfieFresh, checkSelfie, selfiePath, selfiePathOk, TERMS_VERSION, SELFIE_NEEDED } from '../_shared/partner-avail.ts';
 import { isCode, handoverHash, sameHash, afterWrongTry, doorState, MAX_ATTEMPTS, DOOR_KIND } from '../_shared/handover.ts';
@@ -209,8 +209,12 @@ Deno.serve(async (req) => {
     const ids = (rows ?? []).map((r: any) => r.id);
     const [c, st] = await Promise.all([context(rows ?? []), ids.length ? db.from('garage_settlements').select('assignment_id,amount,settled,settled_at,note').in('assignment_id', ids) : Promise.resolve({ data: [] })]);
     const S = new Map((st.data ?? []).map((s: any) => [s.assignment_id, s]));
+    // What the customer has paid on each job (collected in the app, online, or recorded by the desk), shown next to the job. Not the garage payout.
+    const lids = [...new Set((rows ?? []).map((r: any) => r.lead_id))];
+    const { data: pl } = lids.length ? await db.from('leads').select('id,paid_amount,final_paid_amount,final_paid_method').in('id', lids) : { data: [] };
+    const PAID = new Map((pl ?? []).map((x: any) => [x.id, x]));
     // Paid jobs are not listed to the garage: only what is still to be paid, plus one running total. The company keeps every record.
-    const mapped = (rows ?? []).map((a: any) => { const r = rawOf(a, c); return { assignment: a, lead: r.lead, vehicle: r.vehicle, settlement: S.get(a.id) ?? null }; });
+    const mapped = (rows ?? []).map((a: any) => { const r = rawOf(a, c); return { assignment: a, lead: { ...r.lead, ...(PAID.get(a.lead_id) ?? {}) }, vehicle: r.vehicle, settlement: S.get(a.id) ?? null }; });
     const paid = mapped.filter((m: any) => m.settlement && m.settlement.settled), open = mapped.filter((m: any) => !(m.settlement && m.settlement.settled));
     const out: any = garageStatement(open);
     out.settled = Math.round(paid.reduce((t: number, m: any) => t + Number(m.settlement.amount || 0), 0) * 100) / 100; out.settled_jobs = paid.length;
@@ -274,7 +278,8 @@ Deno.serve(async (req) => {
     raw.estimates = es.data ?? [];
     // The customer's one-time code: only its state is sent (never the code or the hash). Needed when the booking was paid-confirmed or a code was made.
     const { data: dr } = await db.from('handovers').select('kind,verified_at,locked_at,code_expires_at,attempts').eq('lead_id', a.lead_id).eq('kind', DOOR_KIND).order('created_at', { ascending: false });
-    const { data: cf } = await db.from('leads').select('confirm_fee,inspect_first,final_paid_at,final_paid_method,final_paid_amount').eq('id', a.lead_id).maybeSingle();
+    const { data: cf } = await db.from('leads').select('id,confirm_fee,confirm_paid_at,paid_amount,inspect_first,final_paid_at,final_paid_method,final_paid_amount').eq('id', a.lead_id).maybeSingle();
+    const dd = cf ? await dueFor(db, cf, async () => 0) : null, deskPaid = !!dd && dd.bill >= 1 && dd.due < 1;   // the desk recorded the payment in Admin
     const code = doorState(dr ?? []), codeNeeded = code !== 'none' || (cf as any)?.confirm_fee != null;
     // The number: only for an open assignment, and only after the view is logged (the database also refuses a closed lead, a switched-off access and more than 40 views in 10 minutes).
     let contact = false, limited = false;
@@ -288,7 +293,7 @@ Deno.serve(async (req) => {
     }
     const receiving = (await rpc('garage_receiving_get', { p_assignment: a.id })) ?? { done: false };
     return json(req, { ok: true, job: { ...garageJobDetail(raw, contact), contact_limited: limited, code, code_needed: codeNeeded, receiving: { done: !!receiving.done || (!!a.received_at && Date.parse(a.received_at) < RECEIVING_FROM), odometer_km: receiving.odometer_km ?? null, damage: receiving.damage ? String(receiving.damage).slice(0, 300) : null },
-      pay: { inspect_first: (cf as any)?.inspect_first === true, paid: !!(cf as any)?.final_paid_at, method: (cf as any)?.final_paid_method ?? null, amount: (cf as any)?.final_paid_amount ?? null, arrived: isArrived(null, a.status), cash_available: cashAllowed({ arrived: isArrived(null, a.status), inspectFirst: (cf as any)?.inspect_first === true }) } } });
+      pay: { inspect_first: (cf as any)?.inspect_first === true, paid: !!(cf as any)?.final_paid_at || deskPaid, method: (cf as any)?.final_paid_method ?? (deskPaid ? 'desk' : null), amount: (cf as any)?.final_paid_amount ?? (deskPaid ? Number((cf as any)?.paid_amount) || null : null), arrived: isArrived(null, a.status), cash_available: cashAllowed({ arrived: isArrived(null, a.status), inspectFirst: (cf as any)?.inspect_first === true }) } } });
   }
 
   if (action === 'photo_upload_url') {

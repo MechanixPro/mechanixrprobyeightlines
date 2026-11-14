@@ -155,7 +155,8 @@ export function garageStatement(rows: RawStatementRow[]) {
     const v = r.vehicle ?? {}, s = r.settlement;
     return { id: String(r.assignment.id), booking_id: typeof r.lead?.booking_id === 'string' ? r.lead.booking_id.slice(0, 24) : null, vehicle: [v.brand && v.brand !== 'Other' ? v.brand : '', v.model].filter(Boolean).join(' ') || 'Vehicle',
       completed_at: r.assignment.returned_at ?? r.assignment.ready_at ?? null, amount: s ? Number(s.amount) : null, settled: s ? !!s.settled : false, settled_at: s?.settled_at ?? null, note: s ? scrubText(s.note, 200) : null,
-      status: s ? (s.settled ? 'settled' : 'pending') : 'amount_not_entered' };
+      status: s ? (s.settled ? 'settled' : 'pending') : 'amount_not_entered',
+      customer_paid: Number(r.lead?.paid_amount) > 0 ? Number(r.lead.paid_amount) : null, customer_paid_method: typeof r.lead?.final_paid_method === 'string' ? r.lead.final_paid_method : null };
   });
   const sum = (f: (i: any) => boolean) => Math.round(items.filter(f).reduce((t, i) => t + (i.amount ?? 0), 0) * 100) / 100;
   return { items, pending: sum((i) => i.status === 'pending'), settled: sum((i) => i.status === 'settled') };
