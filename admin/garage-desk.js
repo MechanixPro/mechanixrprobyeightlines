@@ -258,7 +258,7 @@ export function createGarageDesk(deps) {
         <table class="gd-lines"><tbody>${(e.lines || []).map((l) => `<tr><td>${esc(KIND_LABEL[l.kind] || l.kind)}</td><td>${esc(l.name)}</td><td class="gd-n">${esc(inr(l.amount))}</td></tr>`).join('')}</tbody></table>
         <div>Before GST ${esc(inr(t.subtotal))} · GST 18% ${esc(inr(t.gst))} · <b>Total ${esc(inr(t.subtotal + t.gst))}</b></div>
         <div class="flow-muted">${e.hours ? 'About ' + esc(e.hours) + ' hours' : e.return_day ? 'Return on ' + esc(e.return_day) : 'No time given'} · sent ${esc(when(e.submitted_at))}</div>${e.notes ? `<div>${esc(e.notes)}</div>` : ''}${e.review_note ? `<div class="flow-muted">Review note: ${esc(e.review_note)}</div>` : ''}
-        ${e.status === 'submitted' ? `<div class="flow-row"><button class="flow-btn flow-primary" type="button" data-gd="approve" data-id="${esc(e.id)}">Approve</button><button class="flow-btn flow-ghost" type="button" data-gd="reject" data-id="${esc(e.id)}">Reject</button></div>` : ''}
+        ${e.status === 'submitted' ? `<div class="flow-row"><button class="flow-btn flow-primary" type="button" data-gd="approve" data-id="${esc(e.id)}">Approve</button><button class="flow-btn flow-ghost" type="button" data-gd="reject" data-id="${esc(e.id)}">Reject</button>${deps.editEstimate ? `<button class="flow-btn" type="button" data-gd="editEst" data-id="${esc(e.id)}">Edit estimate</button>` : ''}</div>` : ''}
         ${e.status === 'converted' && deps.openLead ? `<div class="flow-row"><button class="flow-btn flow-ghost" type="button" data-gd="openLead" data-id="${esc(e.lead_id)}">Open booking</button></div>` : ''}</li>`;
     }).join('')}</ul>`;
   };
@@ -314,6 +314,7 @@ export function createGarageDesk(deps) {
           case 'assignTo': await actions.assign({ garageId: id }); break;
           case 'move': { const a = (d.assignments || []).find((x) => x.id === id); await actions.assign({ lead: { id: a.lead_id, booking_id: a.booking_id }, moveFrom: a.garage_id, screen: true }); break; }
           case 'approve': case 'reject': await actions.review((d.estimates || []).find((x) => x.id === id), b.dataset.gd === 'approve'); break;
+          case 'editEst': { const e = (d.estimates || []).find((x) => x.id === id); if (e && deps.editEstimate) await deps.editEstimate(e); await after(); break; }
           case 'reqApprove': case 'reqDecline': await actions.requestDecide(b.dataset.type, id, b.dataset.gd === 'reqApprove'); break;
           case 'annNew': await actions.announce(); break;
           case 'annArchive': await rpc('crm_announcement_archive', { p_id: id }); toast('Archived.'); await mount(root); break;

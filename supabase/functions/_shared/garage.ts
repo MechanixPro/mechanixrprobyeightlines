@@ -250,3 +250,13 @@ export function cleanLocation(b: any): { ok: true; lat: number; lng: number; acc
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 6 || lat > 38 || lng < 68 || lng > 98) return { ok: false };
   return { ok: true, lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6, acc: acc != null && Number.isFinite(acc) && acc >= 0 && acc <= 100000 ? Math.round(acc) : null };
 }
+
+/** Cancel requests: the garage picks a ready-made reason, or "Other" and writes the issue (at least 10 characters). Same list as the garage app screen. */
+export const CANCEL_REASONS = ['Parts are not available', 'Workshop is full, no free bay', 'Vehicle needs work we cannot do', 'Customer is not reachable', 'Customer asked to cancel', 'Price not agreed with the customer'];
+export function cleanCancelReason(raw: unknown): { ok: true; value: string } | { ok: false; error: string } {
+  const t = String(raw ?? '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 200);
+  if (CANCEL_REASONS.includes(t)) return { ok: true, value: t };
+  const m = /^Other:\s*(.*)$/s.exec(t);
+  if (m && m[1].trim().length >= 10) return { ok: true, value: 'Other: ' + m[1].trim() };
+  return { ok: false, error: m ? 'Write the issue in at least 10 characters.' : 'Choose a reason, or choose Other and write the issue.' };
+}

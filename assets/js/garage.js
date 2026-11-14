@@ -560,12 +560,18 @@
       if (['navigate', 'phone', 'receive', 'code', 'inspect', 'ready'].indexOf(page) >= 0 && (j.status === 'received' || j.status === 'in_work') && !S.suspended) {
         var ask = el('button', { class: 'g-link g-cancel-ask', type: 'button', id: 'gCancelAsk', text: 'Ask to cancel this job' });
         ask.onclick = function () {
-          var cw = el('textarea', { class: 'g-input', id: 'gCancelWhy', rows: 2, maxlength: 200, placeholder: 'Why can you not do this job?', 'aria-label': 'Reason for cancelling' }), cm = el('div', { 'aria-live': 'polite' });
+          var REASONS = ['Parts are not available', 'Workshop is full, no free bay', 'Vehicle needs work we cannot do', 'Customer is not reachable', 'Customer asked to cancel', 'Price not agreed with the customer', 'Other'], picked = null;
+          var cm = el('div', { 'aria-live': 'polite' }), cw = el('textarea', { class: 'g-input', id: 'gCancelWhy', rows: 3, maxlength: 190, placeholder: 'Write the issue (at least 10 characters)', 'aria-label': 'Describe the issue' });
+          cw.hidden = true;
+          var list = el('div', { role: 'radiogroup', 'aria-label': 'Reason for cancelling', id: 'gCancelReasons' }, REASONS.map(function (t) {
+            return el('label', { class: 'g-card g-reason', style: 'display:flex;gap:8px;align-items:center;cursor:pointer;margin:6px 0' }, [el('input', { type: 'radio', name: 'gCancelReason', value: t, onchange: function () { picked = t; cw.hidden = t !== 'Other'; if (t === 'Other') cw.focus(); } }), el('span', { text: t })]);
+          }));
           var cg = el('button', { class: 'g-btn g-btn-primary g-wide', type: 'button', id: 'gCancelGo', text: 'Send to the team', onclick: function () {
-            clear(cm); var r0 = cw.value.trim(); if (r0.length < 5) { cm.appendChild(notice('err', 'Tell us why, in a few words.')); return; }
-            cg.disabled = true; api('cancel_request', { id: j.id, reason: r0 }).then(function (r) { if (ended(r)) return; cg.disabled = false; if (!r.ok) { cm.appendChild(notice('err', r.data && r.data.error || ERR.gen)); return; } clear(cm); cm.appendChild(notice('ok', 'Sent. The team will reply. Until they approve, the job stays yours.')); cg.hidden = true; cw.hidden = true; });
+            clear(cm); if (!picked) { cm.appendChild(notice('err', 'Choose a reason.')); return; }
+            var r0 = picked; if (picked === 'Other') { var t0 = cw.value.trim(); if (t0.length < 10) { cm.appendChild(notice('err', 'Write the issue in at least 10 characters.')); return; } r0 = 'Other: ' + t0; }
+            cg.disabled = true; api('cancel_request', { id: j.id, reason: r0 }).then(function (r) { if (ended(r)) return; cg.disabled = false; if (!r.ok) { cm.appendChild(notice('err', r.data && r.data.error || ERR.gen)); return; } clear(cm); cm.appendChild(notice('ok', 'Sent. The team will reply. Until they approve, the job stays yours.')); cg.hidden = true; cw.hidden = true; list.hidden = true; });
           } });
-          ask.replaceWith(el('div', { class: 'g-card' }, [el('p', { class: 'g-hint', text: 'A cancel request needs the team to approve it.' }), cw, cm, cg]));
+          ask.replaceWith(el('div', { class: 'g-card' }, [el('p', { class: 'g-hint', text: 'Why can you not do this job? A cancel request needs the team to approve it.' }), list, cw, cm, cg]));
         };
         kids.push(ask);
       }

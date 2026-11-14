@@ -24,7 +24,7 @@ import { selfieFresh, checkSelfie, selfiePath, selfiePathOk, TERMS_VERSION, SELF
 import { isCode, handoverHash, sameHash, afterWrongTry, doorState, MAX_ATTEMPTS, DOOR_KIND } from '../_shared/handover.ts';
 import { cleanResults } from '../_shared/pro-check.ts';
 import { liveUploadUrls, liveAdd } from '../_shared/live.ts';
-import { signSession, verifySession, garageJobListItem, garageJobDetail, garageStatement, garageDashboard, cleanLocation, cleanUpload, cleanEstimate, photoPath, photoPathOk, LINK_RE, PIN_RE, UUID_RE, EVENTS, LOGIN_MESSAGE, isOpen, type RawJob } from '../_shared/garage.ts';
+import { signSession, verifySession, garageJobListItem, garageJobDetail, garageStatement, garageDashboard, cleanCancelReason, cleanLocation, cleanUpload, cleanEstimate, photoPath, photoPathOk, LINK_RE, PIN_RE, UUID_RE, EVENTS, LOGIN_MESSAGE, isOpen, type RawJob } from '../_shared/garage.ts';
 
 const ACTIONS = ['qr_scan', 'points', 'code_issue', 'login', 'me', 'jobs', 'job', 'progress', 'photo_upload_url', 'estimate_save', 'estimate_submit', 'statement', 'team_contact', 'dashboard', 'location_set', 'open_set', 'selfie_upload_url', 'selfie_record', 'terms_accept', 'verify_code', 'payment_request', 'payment_cash', 'inspect_first_set', 'check_get', 'check_save', 'leads', 'claim', 'live_upload_url', 'live_add', 'decline', 'cancel_request', 'change_request', 'receiving_save', 'announcements', 'announcement_read', 'profile', 'performance', 'requests'];
 // A suspended garage can sign in and look at old jobs, payments and reports, but every change is refused (client BRD).
@@ -407,6 +407,7 @@ Deno.serve(async (req) => {
 
   if (action === 'decline' || action === 'cancel_request') {
     const reason = String(b?.reason ?? '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 200);
+    if (action === 'cancel_request') { const cr = cleanCancelReason(reason); if (!cr.ok) return json(req, { error: cr.error }, 400); }
     const r = await rpc(action === 'decline' ? 'garage_decline' : 'garage_cancel_request', { p_access: accessId, p_assignment: jobId, p_reason: reason });
     if (!r) return json(req, { error: BAD }, 500);
     if (!r.ok) return json(req, { error: r.error }, 400);
