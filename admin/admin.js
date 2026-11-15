@@ -246,6 +246,7 @@ async function loadSettings() { const { data, error } = await sb.from('settings'
 const svcName = (id) => S.services.find((s) => s.id === id)?.name ?? id ?? '—';
 
 /* ---------- views ---------- */
+document.addEventListener('input', (e) => { if (e.target.id === 'cc-co') ACT.ccCoSync(); else if (e.target.id === 'cc-gp') ACT.ccGpSync(); });
 document.addEventListener('input', (e) => { const t = e.target; if (t && t.matches && t.matches('.ptable [data-k=price]')) { const tr = t.closest('tr'), g = gstOf(parseInt(t.value, 10) || 0), a = tr.querySelector('.gstc'), b = tr.querySelector('.totc'); if (a) a.textContent = g.gst; if (b) b.innerHTML = '<b>' + g.total + '</b>'; } });
 document.addEventListener('click', (e) => {
   const dt = e.target.closest('[data-dt]'); if (dt) { S.dt = dt.dataset.dt; document.querySelectorAll('.dpanel').forEach((p) => { p.hidden = p.id !== 'dt-' + S.dt; }); document.querySelectorAll('[data-dt]').forEach((b) => b.setAttribute('aria-selected', b.dataset.dt === S.dt)); return; }
@@ -683,6 +684,16 @@ function cmFacts(l) {
   const acct = jobAccount({ invoice: { ...(inv || {}), lead_id: l.id, ref: bid(l), number: inv ? inv.number : '', issued_at: (inv && inv.issued_at) || l.completed_at || l.created_at, customer_name: l.name, total, taxable: sp.base, mechanic_id: party.id, mechanic_rate: sp.pct, commission_adjust: sp.adjust, commission_note: l.commission_note || '', job_place: rate.place }, entries, mechanic: { id: party.id, name: party.name, payout_rate: sp.pct }, allocated });
   return { party, sp, rate, total, acct, frozen: !!snap, snapshotRow: { lead_id: l.id, garage_id: party.kind === 'garage' ? party.id : null, mechanic_id: party.kind === 'mechanic' ? party.id : (l.mechanic_id || null), place: rate.place, service_base: sp.base, gst: sp.gst, total, pct: sp.pct, rate_source: rate.source, adjust: sp.adjust, adjust_note: l.commission_note || null, earnings: sp.earnings, company: sp.company } };
 }
+// Save one job's commission: the booking row first, then the saved split with who/why in the history. Other bookings and the default rate are never touched.
+async function applyCommission(l, value, historyReason) {
+  const had = S.commission && S.commission.get(l.id), changesPct = had && Number(had.pct) !== (value.commission_pct == null ? jobRate({ ...l, ...value }).pct : value.commission_pct);
+  if ((had || l.status === 'completed') && (changesPct || (Number(l.commission_adjust) || 0) !== (value.commission_adjust || 0)) && String(historyReason || '').trim().length < 3) return toast('Say why the commission is changed (at least 3 letters).');
+  const { error } = await sb.from('leads').update(value).eq('id', l.id);
+  if (error) return toast('Could not save: ' + error.message);
+  await audit('commission_edited', { ref: l.ref, ...value }); toast('Commission saved'); await Promise.all([loadLeads(), loadLedger()]);
+  try { const l2 = S.leads.find((x) => x.id === l.id), keep = S.commission && S.commission.get(l.id); if (S.commissionReady && l2 && (keep || l2.status === 'completed' || (l2.paid_amount || 0) > 0)) { S.commission.delete(l.id); const f = cmFacts(l2); if (f) await adminRpc('admin_commission_set', { p_row: f.snapshotRow, p_reason: String(historyReason || '').trim() }); else if (keep) S.commission.set(l.id, keep); await loadCommissions(); } } catch (e) { console.error('commission snapshot', e); toast('Saved, but the commission history could not be written: ' + (e.message || e)); }
+  openLead(l.id, true);
+}
 function commissionCard(l) {
   try { return commissionCardBody(l); } catch (e) { console.error('commissionCard', e); return '<div class="card" style="margin-top:12px"><h3>Commission &amp; Revenue Sharing</h3><p class="small muted" style="margin:0">Could not work out the split for this booking.</p></div>'; }
 }
@@ -702,13 +713,20 @@ function commissionCardBody(l) {
     ${row('Collected by Mechanix Pro', rupee2(a.byChannel.company_manual + a.byChannel.company_portal) + (a.byChannel.company_portal ? ` <span class="tiny muted">(${rupee2(a.byChannel.company_portal)} online)</span>` : ''))}${row('Collected by the ' + who.toLowerCase(), rupee2(a.byChannel.mechanic))}
     ${row(who + ' must pay Mechanix Pro', a.remitDue > 0.005 ? '<b>' + rupee2(a.remitDue) + '</b>' : rupee2(0))}${row('Mechanix Pro must pay the ' + who.toLowerCase(), a.payoutDue > 0.005 ? '<b>' + rupee2(a.payoutDue) + '</b>' : rupee2(0))}
     ${row('Settlement status', `<span class="pill ${status[1]}">${status[0]}</span>${a.remitAllocated || a.payoutAllocated ? ` <span class="tiny muted">already settled: ${rupee2(a.remitAllocated)} sent to us, ${rupee2(a.payoutAllocated)} paid out</span>` : ''}`)}</dl>
+    ${['owner', 'admin'].includes(S.me?.role) ? `<details class="cm-edit" style="margin-top:12px"><summary class="btn btn-primary btn-sm" style="display:inline-block">Edit commission</summary>
+      <div class="inline-form" style="margin-top:10px"><p class="tiny muted" style="margin:0 0 6px">This changes only this booking. The two percentages always add up to 100. Amounts are worked out on the service amount before GST.</p>
+        <label class="label" for="cc-co">Mechanix Pro commission (%)</label><input id="cc-co" inputmode="numeric" maxlength="3" value="${100 - sp.pct}">
+        <label class="label" for="cc-gp">${who} commission (%)</label><input id="cc-gp" inputmode="numeric" maxlength="3" value="${sp.pct}">
+        <label class="label" for="cc-reason">Reason for the change (required)</label><input id="cc-reason" maxlength="200" placeholder="For example: agreed lower rate for this job">
+        <div style="margin-top:8px"><button class="btn btn-primary btn-sm" type="button" data-act="saveCommissionCard">Save commission</button></div></div></details>` : ''}
+    <details style="margin-top:10px"><summary class="small" data-act="ccHistory" style="cursor:pointer">Commission modification history</summary><div id="cc-hist" style="margin-top:6px"><p class="small muted">Open to load.</p></div></details>
     <p class="tiny muted" style="margin:8px 0 0">${f.frozen ? 'Commission figures are saved for this job and do not change when the standard rate changes. ' : 'Commission figures follow the current rate until the job is completed and saved. '}Collections are live from the payment ledger.${S.commissionReady === false ? ' (The saved-commission table is not installed yet.)' : ''}</p></div>`;
 }
 // Save the first snapshot for completed jobs that have none (never overwrites). Owner and admin only; runs quietly after the data loads.
 async function syncCommissionSnapshots() {
   if (!S.commissionReady || !['owner', 'admin'].includes(S.me?.role)) return;
   const rows = [];
-  for (const l of S.leads) { if (rows.length >= 300) break; if (l.status !== 'completed' || (S.commission && S.commission.has(l.id))) continue; try { const f = cmFacts(l); if (f) rows.push(f.snapshotRow); } catch (e) { /* skip this one */ } }
+  for (const l of S.leads) { if (rows.length >= 300) break; if (!(l.status === 'completed' || (Number(l.paid_amount) || 0) > 0) || (S.commission && S.commission.has(l.id))) continue; try { const f = cmFacts(l); if (f) rows.push(f.snapshotRow); } catch (e) { /* skip this one */ } }
   if (!rows.length) return;
   try { await adminRpc('admin_commission_sync', { p_rows: rows }); await loadCommissions(); } catch (e) { console.error('commission sync', e); }
 }
@@ -1097,13 +1115,30 @@ const ACT = {
     const l = S.leads.find((x) => x.id === S.open); if (!l) return;
     const r = cleanCommission({ place: $('#cm-place').value, pct: $('#cm-pct').value, adjust: $('#cm-adj').value, reason: $('#cm-reason').value });
     if (!r.ok) return toast(r.error);
-    const { error } = await sb.from('leads').update(r.value).eq('id', l.id);
-    if (error) return toast('Could not save: ' + error.message);
-    await audit('commission_edited', { ref: l.ref, ...r.value }); toast('Commission saved'); await Promise.all([loadLeads(), loadLedger()]);
-    // An edit on a finished job (one with a saved split) updates the saved split too, and the audit log records who did it.
-    try { const l2 = S.leads.find((x) => x.id === l.id), keep = S.commission && S.commission.get(l.id); if (S.commissionReady && l2 && (keep || l2.status === 'completed')) { S.commission.delete(l.id); const f = cmFacts(l2); if (f) await adminRpc('admin_commission_set', { p_row: f.snapshotRow }); else if (keep) S.commission.set(l.id, keep); await loadCommissions(); } } catch (e) { console.error('commission snapshot', e); }
-    openLead(l.id, true);
+    await applyCommission(l, r.value, $('#cm-reason').value);
   },
+  // The Edit commission form in the Commission & Revenue Sharing card: the two percentages always add up to 100, and a reason is required.
+  async saveCommissionCard() {
+    const l = S.leads.find((x) => x.id === S.open); if (!l) return;
+    const gp = Number($('#cc-gp').value), reason = $('#cc-reason').value.trim();
+    if (!Number.isInteger(gp) || gp < 0 || gp > 100) return toast('The percentage must be a whole number from 0 to 100.');
+    const f = cmFacts(l); if (!f) return toast('Nothing to edit yet.');
+    if (gp === f.sp.pct && !l.commission_note) return toast('The percentage is unchanged.');
+    if (reason.length < 3) return toast('Say why the commission is changed (at least 3 letters).');
+    const r = cleanCommission({ place: f.party.kind === 'garage' ? 'garage' : (l.job_place || 'doorstep'), pct: gp, adjust: l.commission_adjust, reason: l.commission_note });
+    if (!r.ok) return toast(r.error);
+    await applyCommission(l, r.value, reason);
+  },
+  ccCoSync() { const co = Number($('#cc-co').value); if (Number.isFinite(co)) $('#cc-gp').value = String(Math.max(0, Math.min(100, 100 - Math.round(co)))); },
+  ccGpSync() { const gp = Number($('#cc-gp').value); if (Number.isFinite(gp)) $('#cc-co').value = String(Math.max(0, Math.min(100, 100 - Math.round(gp)))); },
+  async ccHistory() {
+    const box = $('#cc-hist'); if (!box) return;
+    try {
+      const rows = await adminRpc('admin_commission_history', { p_lead: S.open });
+      box.innerHTML = rows.length ? `<div class="scroll"><table class="rtable"><thead><tr><th>When</th><th>Who</th><th>Percent (Mechanix Pro)</th><th>Commission</th><th>Reason</th></tr></thead><tbody>${rows.map((h) => `<tr><td>${esc(when(h.changed_at))}</td><td>${esc(h.by || 'Admin')}</td><td>${h.old_pct == null ? 'first saved' : (100 - h.old_pct) + '% → '}${100 - h.new_pct}%</td><td>${h.old_company == null ? '' : rupee2(h.old_company) + ' → '}${rupee2(h.new_company)}</td><td class="tiny">${esc(h.reason || '')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="small muted">No changes recorded yet.</p>';
+    } catch (e) { box.innerHTML = '<p class="small muted">History could not load. Run the latest database update first.</p>'; }
+  },
+
   async copyText(btn) {
     const t = btn.getAttribute('data-text') || '';
     try { await navigator.clipboard.writeText(t); toast('Message copied'); } catch (e) { toast('Could not copy. Use Share on WhatsApp instead.'); }

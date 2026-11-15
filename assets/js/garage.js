@@ -142,7 +142,7 @@
       clear(app); app.classList.remove('g-wiz'); var dark = !!S.session && (active === 'home' || active === 'jobs'); app.classList.toggle('g-dark', dark); d.body.classList.toggle('g-dark-bg', dark);
       var head = el('header', { class: 'g-top' }, [el('div', { class: 'g-brand' }, [el('img', { src: '/assets/img/logo-mark.webp', alt: '', width: 28, height: 28 }), el('div', {}, [el('b', { text: 'Mechanix Pro Garage' }), el('span', { text: S.name || '' })])]),
         S.session && !noLock ? el('button', { class: 'g-lock', type: 'button', onclick: function () { lock('You are signed out.'); }, text: 'Lock' }) : null]);
-      var tabs = S.session ? el('nav', { class: 'g-tabs g-tabs-4', 'aria-label': 'Garage app' }, [['home', 'Home'], ['jobs', 'Jobs'], ['statement', 'Statement'], ['help', 'Help']].map(function (t) {
+      var tabs = S.session ? el('nav', { class: 'g-tabs g-tabs-4', 'aria-label': 'Garage app' }, [['home', 'Home'], ['jobs', 'Jobs'], ['statement', 'Money'], ['help', 'Help']].map(function (t) {
         return el('button', { class: 'g-tab' + (active === t[0] ? ' on' : ''), type: 'button', 'aria-current': active === t[0] ? 'page' : null, onclick: function () { if (t[0] === 'home') openHome(); else if (t[0] === 'jobs') openJobs(); else if (t[0] === 'statement') openStatement(); else go('help'); }, text: t[1] });
       })) : null;
       app.appendChild(head); app.appendChild(el('main', { class: 'g-main', id: 'gmain', tabindex: '-1' }, body)); if (tabs) app.appendChild(tabs);
@@ -665,7 +665,7 @@
         el('span', { class: 'g-chip g-chip-' + (b.status === 'settled' ? 'done' : 'work'), text: BD_STATUS[b.status] || b.status })]);
     }
     function renderStatement() {
-      var s = S.statement, body = [el('div', { class: 'g-h' }, [el('h1', { text: 'Statement' })])];
+      var s = S.statement, body = [el('div', { class: 'g-h' }, [el('h1', { text: 'Money' })])];
       if (s === null) body.push(loading('Loading your statement'));
       else if (s === 'error') body.push(retryCard('We could not load your statement.', openStatement));
       else {
@@ -673,7 +673,7 @@
         var E = s.earnings;
         if (E && E.with_breakdown) {
           var row2 = function (k, v) { return el('div', { class: 'g-rj-top' }, [el('span', { text: k }), el('b', { text: money(v) })]); };
-          body.push(el('div', { class: 'g-card g-earn', id: 'gEarnings' }, [el('h2', { text: 'Earnings' }), row2('Today', E.today), row2('This week (last 7 days)', E.week), row2('This month', E.month), row2('All completed jobs', E.total),
+          body.push(el('div', { class: 'g-card g-earn', id: 'gEarnings' }, [el('h2', { text: 'Earnings ledger' }), row2('Today', E.today), row2('This week (last 7 days)', E.week), row2('This month', E.month), row2('All completed jobs', E.total),
             el('p', { class: 'g-muted', text: E.jobs + (E.jobs === 1 ? ' completed booking' : ' completed bookings') + ' · ' + E.with_breakdown + ' with a commission breakdown' }),
             row2('Mechanix Pro commission', E.commission), row2('You collected from customers', E.received_by_garage), row2('You must pay Mechanix Pro', E.payable_to_mx), row2('Mechanix Pro must pay you', E.outstanding_from_mx)]));
         }
