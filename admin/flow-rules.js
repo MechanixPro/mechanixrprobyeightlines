@@ -9,6 +9,10 @@ const hasPii = (text) => {   // same rule as crm/crm-rules.js hasPii
 /** A lead whose confirmation fee is not paid yet. Old-style leads (no fee) are never pending. */
 export const confirmPending = (l) => !!l && l.confirm_fee != null && !l.confirm_paid_at && !['lost', 'junk'].includes(l.status);
 export const confirmPaid = (l) => !!l && l.confirm_fee != null && !!l.confirm_paid_at;
+/** A booking made by hand has no confirmation fee. It counts as paid once the desk has recorded the money (status paid, scheduled or completed, or a payment on record), so the flow stops asking for a payment link and offers the customer code. */
+export const paidManually = (l) => !!l && l.confirm_fee == null && !['lost', 'junk'].includes(l.status) && (['paid', 'scheduled', 'completed'].includes(l.status) || Number(l.paid_amount) > 0);
+/** Paid for the purposes of the flow screens: the online confirmation fee, or money the desk recorded on a booking made by hand. */
+export const flowPaid = (l) => confirmPaid(l) || paidManually(l);
 /** The badge in lead views: "Paid ₹49" or "Unpaid ₹49". null for a lead with no confirmation fee. */
 export function paidBadge(l) {
   if (!l || l.confirm_fee == null) return null;

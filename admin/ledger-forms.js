@@ -22,7 +22,7 @@ export function buildEntry(kind, f, ctx = {}) {
   if (kind === 'payment' || kind === 'refund') {
     const by = f.by;
     if (!CHANNELS.includes(by)) return fail('Choose who received the money.');
-    if (by === 'mechanic' && !lead?.mechanic_id) return fail('This job has no mechanic. Assign one first.');
+    if (by === 'mechanic' && !lead?.mechanic_id && !lead?.garage_id) return fail('This job has no garage or mechanic. Assign one first.');   // a garage job: the money the garage holds is recorded the same way
     const base = { ...common, lead_id: lead.id, mechanic_id: lead.mechanic_id ?? null, collected_by: by, amount };
     if (kind === 'payment') {
       const entry = { ...base, entry_type: 'customer_payment' };

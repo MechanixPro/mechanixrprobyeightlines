@@ -120,3 +120,15 @@ test('too-high cash says what is due, and money the desk recorded counts as alre
   const c = await collectAction(db, ops([]), 'payment_cash', lead({ paid_amount: 1180, inspect_first: true }), who, true, { amount: 100, method: 'cash' }, async () => 0);
   assert.equal(c.status, 409);
 });
+
+test('a discount on the booking comes off the quote before GST, so the amount due matches the invoice', async () => {
+  const { dueFor, discounted } = await import('../supabase/functions/_shared/collect-payment.ts');
+  const q = { total: 1180, gst_rate: 18, lines: [{ kind: 'parts', name: 'Parts', amount: 1000 }] };
+  assert.equal(discounted(q, {}), 1180);                                              // no discount: the quote total as before
+  assert.equal(discounted(q, { extra_discount: 100 }), 1062);                         // (1000 - 100) x 1.18
+  assert.equal(discounted(q, { coupon_discount: 50, extra_discount: 50 }), 1062);
+  assert.equal(discounted({ total: 0 }, { extra_discount: 100 }), 0);
+  const { db } = fake(lead({ extra_discount: 100 }), q);
+  const d = await dueFor(db, lead({ extra_discount: 100 }), async () => 0);
+  assert.equal(d.bill, 1062); assert.equal(d.due, 1062 - 99);                         // minus the confirmation fee already paid
+});

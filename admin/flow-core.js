@@ -2,7 +2,7 @@
 // phone approval, Ready and Delivered, the notification log with Resend, and the Dispatch list. ONE file: crm/flow-core.js is the source and admin/flow-core.js is a copy (a test checks they are identical).
 // It holds no business rules of its own. Every action calls the same database functions and Edge Functions, which check who may do what (admins pass, agents and technicians keep their limits).
 import { chip, emptyState, errorState, NOTICE_TONE, ISSUE_TONE } from './ds.js';
-import { paidBadge, visitSub, callScript, quoteTotals, quoteCheck, QUOTE_KINDS, PART_TYPES, NOTICE_LABEL, resendable, dispatchOrder, confirmPending, confirmPaid, ISSUE_TYPES, seenLine, mapsUrl, issueOrder } from './flow-rules.js';
+import { paidBadge, visitSub, callScript, quoteTotals, quoteCheck, QUOTE_KINDS, PART_TYPES, NOTICE_LABEL, resendable, dispatchOrder, confirmPending, confirmPaid, flowPaid, paidManually, ISSUE_TYPES, seenLine, mapsUrl, issueOrder } from './flow-rules.js';
 import { quoteStatus, validityLabel } from './quote-doc.js';
 import { garageLabel, garageSeenChip, garageStepChips, isHandled } from './garage-assign.js';
 import { statusOptions, statusJump, stateFromLead, approvalInfo, approveCheck, rejectCheck, refundStatus, refundMax, refundCheck, DELIVERY_STAGES, deliveryStages, deliveryVisible, deliveryCheck, deliveryNotifies, timelineKind, istStamp, legacyTimeline } from './manage-rules.js';
@@ -64,9 +64,10 @@ export function createFlow(deps) {
     if (['lost', 'junk'].includes(l.status)) return '';
     if (l.status === 'cancelled') return cancelledCard(flow && flow.cancel, flow);
     const badge = paidBadge(l), sub = visitSub(l), bt = [];
-    const open = !confirmPaid(l) && !['completed'].includes(l.status);
+    const open = !flowPaid(l) && !['completed'].includes(l.status);
     const amount = c && c.fee != null ? c.fee : null;
     if (badge) bt.push(chip(badge.text, badge.tone));
+    else if (paidManually(l)) bt.push(chip('Paid by the desk', 'good'));
     if (c && c.review) bt.push(chip('Fee needs a check', 'warn'));
     if (sub) bt.push(chip(sub.label));
     let h = `<section class="flow-card" aria-label="Paid confirmation"><h3>Paid confirmation ${bt.join(' ')}</h3>`;
@@ -76,11 +77,12 @@ export function createFlow(deps) {
       h += `<details class="flow-script" open><summary>Call script</summary><p>${esc(callScript(amount ?? '49 to 99'))}</p><button class="flow-btn flow-ghost" type="button" data-flow="copyScript" data-amount="${esc(amount ?? '')}">Copy script</button></details>`;
       if (c && c.link_sent_at) h += `<p class="flow-muted">Link sent ${esc(when(c.link_sent_at))}. If it is unpaid after ${esc(c.nudge_minutes)} minutes the team is reminded.</p>`;
     }
-    if (confirmPaid(l)) {
-      if (c) h += `<p class="flow-muted">Paid ${esc(when(c && c.paid_at))}. Door code: <b>${esc(DOOR[c && c.door] || '')}</b>${c && c.stage ? ' · Visit: <b>' + esc(STAGE[c.stage] || c.stage) + '</b>' : ''}</p>`;
+    if (flowPaid(l)) {
+      if (c && c.fee != null) h += `<p class="flow-muted">Paid ${esc(when(c && c.paid_at))}. Door code: <b>${esc(DOOR[c && c.door] || '')}</b>${c && c.stage ? ' · Visit: <b>' + esc(STAGE[c.stage] || c.stage) + '</b>' : ''}</p>`;
       const row = [];
       if ((can('assign_leads') || can('manage_technicians')) && l.mechanic_name) row.push('<button class="flow-btn" type="button" data-flow="jobLink">Job link for the mechanic</button>');
-      if (c && c.door !== 'verified') row.push('<button class="flow-btn" type="button" data-flow="doorCode">Show customer code</button><button class="flow-btn" type="button" data-flow="newDoorCode">New code</button>');
+      if (c && c.door !== 'verified') row.push(c.door === 'none' || !c.door ? '<button class="flow-btn flow-primary" type="button" data-flow="newDoorCode">Make customer code</button>' : '<button class="flow-btn" type="button" data-flow="doorCode">Show customer code</button><button class="flow-btn" type="button" data-flow="newDoorCode">New code</button>');
+      else if (!c) row.push('<button class="flow-btn flow-primary" type="button" data-flow="newDoorCode">Make customer code</button>');
       if (row.length) h += `<div class="flow-row">${row.join('')}</div>`;
       h += quoteBlock(l, flow) + checkBlock(flow);
       if (deps.garageDesk && deps.garageDesk.visible()) h += assignBlock(l, flow);
@@ -91,7 +93,7 @@ export function createFlow(deps) {
     if (flow && flow.notes && flow.notes.length) {
       h += `<h4>Messages</h4><ul class="flow-list">${flow.notes.map((n) => { const k = String(n.kind).split(':'); return `<li>${chip(n.status, NOTICE_TONE[n.status] || '')} ${esc(NOTICE_LABEL[k[0]] || n.kind)}${k[1] ? ' v' + esc(k[1]) : ''} <small class="flow-muted">${esc(when(n.at))}${n.error ? ' · ' + esc(n.error) : ''}</small>${rs.includes(n) ? ` <button class="flow-btn flow-sm" type="button" data-flow="resend" data-kind="${esc(k[0])}" data-n="${esc(k[1] || '')}">Resend</button>` : ''}</li>`; }).join('')}</ul>`;
     }
-    if ((confirmPaid(l) || ['paid', 'scheduled'].includes(l.status)) && l.status !== 'completed') h += '<div class="flow-row"><button class="flow-btn flow-ghost" type="button" data-flow="cancel">Cancel booking</button></div>';
+    if ((flowPaid(l) || ['paid', 'scheduled'].includes(l.status)) && l.status !== 'completed') h += '<div class="flow-row"><button class="flow-btn flow-ghost" type="button" data-flow="cancel">Cancel booking</button></div>';
     if (flow && flow.refunds && flow.refunds.rows && flow.refunds.rows.length) h += refundBlock(null, flow);
     return h + '</section>';
   }

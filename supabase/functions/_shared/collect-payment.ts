@@ -1,5 +1,6 @@
 // Collect payment at the end of a job. Pure helpers (no Deno APIs, so node --test runs them) plus one server routine shared by tech-job and garage-app.
 // Only payment link ids, urls and amounts are stored. Never card or bank details.
+import { buildInvoice } from './invoice.ts';
 export const r2 = (n: unknown): number => Math.round((Number(n) || 0) * 100) / 100;
 // Visit stages at or after the vehicle reaching the customer's door or the garage (mechanic link).
 export const ARRIVED_STAGES = ['arrived', 'started', 'repair_doorstep', 'picked_up', 'ready', 'returned'];
@@ -24,12 +25,20 @@ export const linkMessage = (first: string, amount: number, url: string): string 
 export const reusable = (lead: { final_link_id?: string | null; final_link_url?: string | null; final_link_amount?: unknown; final_paid_at?: unknown }, amount: number): boolean =>
   !!(lead.final_link_id && lead.final_link_url && !lead.final_paid_at && r2(lead.final_link_amount) === r2(amount));
 
+// The quote total is lines + GST. A coupon or a last-minute discount on the booking comes off the amount before GST, exactly as on the invoice (same buildInvoice), so the bill the customer pays matches the invoice.
+export const discounted = (q: any, lead: any): number => {
+  const total = Number(q?.total) || 0;
+  if (!total) return 0;
+  if (!(Number(lead?.coupon_discount) > 0 || Number(lead?.extra_discount) > 0) || !Array.isArray(q?.lines) || !q.lines.length) return total;
+  const inv = buildInvoice({ ref: '', name: '', phone: '', created_at: lead.created_at, invoice_override: { basis: 'excl', rate: Number(q.gst_rate) || 18, lines: q.lines }, coupon_discount: lead.coupon_discount, extra_discount: lead.extra_discount } as any, []);
+  return inv.total > 0 ? inv.total : total;
+};
 // Bill for the lead: the approved quote total, else the saved invoice, else the one built from the booking (caller passes a builder).
 export async function dueFor(db: any, lead: any, build: () => Promise<number>): Promise<{ bill: number; feePaid: number; due: number }> {
-  const { data: q } = await db.from('job_quotes').select('total').eq('lead_id', lead.id).eq('status', 'approved').order('version', { ascending: false }).limit(1).maybeSingle();
-  let bill = Number(q?.total) || 0;
+  const { data: q } = await db.from('job_quotes').select('total,lines,gst_rate').eq('lead_id', lead.id).eq('status', 'approved').order('version', { ascending: false }).limit(1).maybeSingle();
+  let bill = discounted(q, lead);
   // No approved quote yet (the customer has not tapped approve, but the garage estimate was approved and is out as a quote): use that live quote, not the catalogue price, so the amount due matches the real bill.
-  if (!bill) { const { data: lq } = await db.from('job_quotes').select('total').eq('lead_id', lead.id).in('status', ['sent', 'draft', 'changes_requested']).order('version', { ascending: false }).limit(1).maybeSingle(); bill = Number(lq?.total) || 0; }
+  if (!bill) { const { data: lq } = await db.from('job_quotes').select('total,lines,gst_rate').eq('lead_id', lead.id).in('status', ['sent', 'draft', 'changes_requested']).order('version', { ascending: false }).limit(1).maybeSingle(); bill = discounted(lq, lead); }
   if (!bill) { const { data: inv } = await db.from('invoices').select('total').eq('lead_id', lead.id).is('voided_at', null).order('revision', { ascending: false }).limit(1).maybeSingle(); bill = Number(inv?.total) || 0; }
   if (!bill) bill = await build().catch(() => 0);
   // Already paid = the larger of the confirmation fee and the ledger total (leads.paid_amount), so money the desk recorded in Admin counts and is never taken twice.
