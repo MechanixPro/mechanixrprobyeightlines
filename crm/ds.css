@@ -150,7 +150,7 @@ input[aria-invalid=true]{border-color:var(--bad)}
 .chip,.pill,.mx-chip,.tag{display:inline-flex;align-items:center;gap:var(--s1);min-height:24px;padding:2px var(--s3);border:0;border-radius:var(--radius-pill);background:var(--surface2);color:var(--text2);font:700 var(--fs-2)/1.2 var(--font);white-space:nowrap;vertical-align:middle}
 .chip.soft{background:transparent;box-shadow:inset 0 0 0 1px var(--border);color:var(--text3)}
 /* good */ .mx-chip--good,.pill.paid,.pill.scheduled,.pill.completed,.pill.p-ok,.pill.good,.chip.good,.st-paid,.st-scheduled,.st-completed,.veh-parts,.t-good,.step.done{background:var(--good-bg);color:var(--good-text)}
-/* bad */  .mx-chip--bad,.pill.lost,.pill.p-bad,.pill.bad,.chip.bad,.chip.late,.st-lost,.t-late,.step.stopped{background:var(--bad-bg);color:var(--bad-text)}
+/* bad */  .mx-chip--bad,.pill.lost,.pill.cancelled,.st-cancelled,.pill.p-bad,.pill.bad,.chip.bad,.chip.late,.st-lost,.t-late,.step.stopped{background:var(--bad-bg);color:var(--bad-text)}
 /* warn */ .mx-chip--warn,.pill.payment_sent,.pill.quoted,.pill.p-warn,.pill.warn,.chip.warn,.st-payment_sent,.veh-car{background:var(--accent-bg);color:var(--accent-text)}
 /* info */ .mx-chip--info,.pill.new,.pill.contacted,.pill.p-info,.pill.info,.chip.info,.st-new,.veh-bike,.t-new,.t-next{background:var(--info-bg);color:var(--info-text)}
 /* neutral */ .pill.off,.pill.p-mute,.pill.junk,.t-muted{background:var(--surface2);color:var(--text3)}

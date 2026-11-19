@@ -7,10 +7,11 @@ export const cardUrl = (code: string) => `${SITE}/warranty/?c=${encodeURICompone
 
 /** Creates the card for a completed booking, or returns the one it already has. With opts (from the admin), the days and what it covers are set,
  *  and an existing card is updated: same card number and service day, new end date. */
-export async function issueCard(db: any, leadId: string, opts?: { days?: number | null; covers?: string | null }): Promise<{ card?: any; error?: string }> {
+export async function issueCard(db: any, leadId: string, opts?: { days?: number | null; covers?: string | null; excludes?: string }): Promise<{ card?: any; error?: string }> {
   const { data: have } = await db.from('warranty_cards').select('*').eq('lead_id', leadId).maybeSingle();
-  if (have && opts && (opts.days || opts.covers !== undefined)) {
-    const d = opts.days || have.days, patch = { days: d, valid_until: validUntil(have.done_on, d), covers: opts.covers ?? null };
+  if (have && opts && (opts.days || opts.covers !== undefined || opts.excludes)) {
+    const d = opts.days || have.days, patch: any = { days: d, valid_until: validUntil(have.done_on, d), covers: opts.covers ?? null };
+    if (opts.excludes) patch.excludes = opts.excludes;   // only sent when given, so cards still work before the database update is run
     const { data, error } = await db.from('warranty_cards').update(patch).eq('id', have.id).select('*').single();
     return error ? { error: error.message } : { card: data };
   }
@@ -26,7 +27,8 @@ export async function issueCard(db: any, leadId: string, opts?: { days?: number 
   const done = istDate(lead.completed_at);
   for (let i = 0; i < 5; i++) {
     const code = makeCode(crypto.getRandomValues(new Uint8Array(6)));
-    const row = { code, lead_id: lead.id, customer_name: lead.name, phone: lead.phone, vehicle_reg: bike?.reg_no ? String(bike.reg_no).toUpperCase() : null, bike_label: bike ? [bike.brand && bike.brand !== 'Other' ? bike.brand : '', bike.model].filter(Boolean).join(' ') || null : null, service_name: svc?.name ?? null, covers: opts?.covers ?? null, done_on: done, valid_until: validUntil(done, days), days };
+    const row: any = { code, lead_id: lead.id, customer_name: lead.name, phone: lead.phone, vehicle_reg: bike?.reg_no ? String(bike.reg_no).toUpperCase() : null, bike_label: bike ? [bike.brand && bike.brand !== 'Other' ? bike.brand : '', bike.model].filter(Boolean).join(' ') || null : null, service_name: svc?.name ?? null, covers: opts?.covers ?? null, done_on: done, valid_until: validUntil(done, days), days };
+    if (opts?.excludes) row.excludes = opts.excludes;
     const { data, error } = await db.from('warranty_cards').insert(row).select('*').single();
     if (!error) return { card: data };
     if (error.code === '23505') { const again = (await db.from('warranty_cards').select('*').eq('lead_id', leadId).maybeSingle()).data; if (again) return { card: again }; continue; }

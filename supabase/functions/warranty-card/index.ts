@@ -17,9 +17,9 @@ Deno.serve(async (req) => {
   // The admin may set the days and what the card covers; without them the card uses the default days.
   const v = cleanWarrantyInput(b);
   if (!v.ok) return json(req, { error: v.error }, 400);
-  const opts = 'days' in b || 'covers' in b ? v.value : undefined;
+  const opts = 'days' in b || 'covers' in b || 'excludes' in b ? v.value : undefined;
   const r = await issueCard(db, String(b.lead_id ?? ''), opts);
   if (!r.card) return json(req, { error: r.error ?? 'Could not make the card' }, 400);
-  await db.from('audit_log').insert({ actor: user.id, action: 'warranty_card_issued', details: { code: r.card.code, days: r.card.days, covers: r.card.covers ?? null } });
-  return json(req, { ok: true, code: r.card.code, url: cardUrl(r.card.code), valid_until: r.card.valid_until, days: r.card.days, covers: r.card.covers ?? null, phone: r.card.phone, name: r.card.customer_name, sent_at: r.card.sent_at });
+  await db.from('audit_log').insert({ actor: user.id, action: 'warranty_card_issued', details: { code: r.card.code, days: r.card.days, covers: r.card.covers ?? null, excludes: r.card.excludes ?? null } });
+  return json(req, { ok: true, code: r.card.code, url: cardUrl(r.card.code), valid_until: r.card.valid_until, days: r.card.days, covers: r.card.covers ?? null, excludes: r.card.excludes ?? null, phone: r.card.phone, name: r.card.customer_name, sent_at: r.card.sent_at });
 });

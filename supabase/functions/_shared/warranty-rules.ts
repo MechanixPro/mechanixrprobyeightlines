@@ -17,11 +17,12 @@ export function validUntil(done: string, days: number): string {
 }
 export const MAX_WARRANTY_DAYS = 1095;
 /** What the admin sets when issuing: the number of days (1 to 3 years) and what the card covers. Blank means "use the default". */
-export function cleanWarrantyInput(b: any): { ok: true; value: { days: number | null; covers: string | null } } | { ok: false; error: string } {
+export function cleanWarrantyInput(b: any): { ok: true; value: { days: number | null; covers: string | null; excludes?: string } } | { ok: false; error: string } {
   const raw = String(b?.days ?? '').trim(), n = Number(raw);
   if (raw !== '' && (!Number.isInteger(n) || n < 1 || n > MAX_WARRANTY_DAYS)) return { ok: false, error: `Enter the warranty days as a whole number from 1 to ${MAX_WARRANTY_DAYS}.` };
   const covers = String(b?.covers ?? '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 160);
-  return { ok: true, value: { days: raw === '' ? null : n, covers: covers || null } };
+  const excludes = String(b?.excludes ?? '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 240);
+  return { ok: true, value: { days: raw === '' ? null : n, covers: covers || null, ...(excludes ? { excludes } : {}) } };
 }
 export const warrantyStatus =(until: string, now: number | Date = Date.now()): 'active' | 'expired' => (istDate(now) <= until ? 'active' : 'expired');
 

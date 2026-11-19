@@ -1,7 +1,7 @@
 // POST /functions/v1/send-invoice  { lead_id }  — called from the admin panel by a signed-in admin.
 // Emails the customer their invoice (GST split, company details) from booking@mechanixpro.in.
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { adminDb, env, json, corsHeaders } from '../_shared/util.ts';
+import { adminDb, env, json, corsHeaders, getSetting } from '../_shared/util.ts';
 import { sendEmail, FROM_BOOKING } from '../_shared/resend.ts';
 import { invoiceEmail } from '../_shared/email-templates.ts';
 import { buildInvoice, missingDetails } from '../_shared/invoice.ts';
@@ -27,6 +27,8 @@ Deno.serve(async (req) => {
   const { data: bike } = lead.bike_id ? await db.from('bikes').select('big_bike,engine_class,reg_no,brand,model').eq('id', lead.bike_id).maybeSingle() : { data: null };
   const { data: invNo } = await db.rpc('invoice_no_alloc', { p_lead: lead.id });
   const invoice = buildInvoice({ ...lead, booking_id: invNo ?? lead.booking_id, big_bike: bike?.big_bike ?? false, engine_class: bike?.engine_class ?? null }, services ?? [], { customer: cust, bike, number: invNo });
+  const hsn = String(await getSetting<string>(db, 'hsn_code', '') ?? '').trim();   // the SAC/HSN the owner set in Settings; blank prints nothing
+  if (hsn) (invoice as any).hsn = hsn;
   const miss = missingDetails(invoice);
   if (miss.length) return json(req, { error: 'Add the ' + miss.join(', ') + ' to the invoice first' }, 400);
   if (!invoice.lines.length) return json(req, { error: 'This booking has no priced items to invoice' }, 400);

@@ -36,13 +36,16 @@ async function contextOf(db: Db, lead: any): Promise<Ctx> {
     db.from('booking_secrets').select('track_token,door_code').eq('lead_id', lead.id).maybeSingle(),
   ]);
   const b = bike.data as { brand?: string; model?: string } | null;
-  const token = (sec.data as any)?.track_token ?? null;
+  let secrets: any = sec.data;
+  // A booking made or paid by hand may have no private tracking link yet. Without it the "Approve now" link in the quote email opens the plain tracking page and fails. Make the link first (safe to repeat: it returns what exists).
+  if (!secrets?.track_token) { try { await db.rpc('booking_open_secrets', { p_lead: lead.id }); const again = await db.from('booking_secrets').select('track_token,door_code').eq('lead_id', lead.id).maybeSingle(); secrets = again.data ?? secrets; } catch { /* the link stays the plain page; the team can still send the customer link from the booking */ } }
+  const token = secrets?.track_token ?? null;
   return {
     lead, email: (cust.data as any)?.email ?? lead.email ?? null,
     vehicleName: b ? [b.brand && b.brand !== 'Other' ? b.brand : '', b.model].filter(Boolean).join(' ') || (lead.vehicle === 'car' ? 'Car' : 'Bike') : (lead.vehicle === 'car' ? 'Car' : 'Bike'),
     service: (svc.data as any)?.name ?? (lead.vehicle === 'car' ? 'Car service or problem check' : 'Bike service'),
     mechanicFirst: (mech.data as any)?.name ? String((mech.data as any).name).trim().split(/\s+/)[0] : null,
-    token, code: (sec.data as any)?.door_code ?? null,
+    token, code: secrets?.door_code ?? null,
     address: [lead.address, lead.area, lead.pincode].filter(Boolean).join(', ') || 'Bengaluru',
     whenText: lead.preferred_date && lead.preferred_slot ? formatWhen(String(lead.preferred_date), String(lead.preferred_slot), lead.preferred_time ?? null) : 'We will confirm the time',
     trackUrl: token ? `${siteInfo().siteUrl}/track/?t=${token}` : `${siteInfo().siteUrl}/track/`,
