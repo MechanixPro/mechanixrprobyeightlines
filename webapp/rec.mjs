@@ -1,0 +1,17 @@
+import puppeteer from 'puppeteer-core';
+const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const url = 'file://' + process.cwd() + '/dist/index.html';
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const b = await puppeteer.launch({ executablePath: chrome, headless: 'new', args: ['--no-sandbox'] });
+const p = await b.newPage(); await p.setViewport({ width: 1280, height: 720 });
+const rec = await p.screencast({ path: 'motion-demo.mp4', speed: 1 });
+await p.goto(url); await wait(2400);
+await p.evaluate(() => document.getElementById('how').scrollIntoView({ behavior: 'smooth' })); await wait(2200);
+await p.evaluate(() => document.getElementById('services').scrollIntoView({ behavior: 'smooth' })); await wait(1400);
+await p.click('.svc:nth-child(2)'); await wait(1200);
+await p.click('.svc:nth-child(3)'); await wait(1200);
+await p.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' })); await wait(1400);
+await p.click('.loc'); await wait(1200);
+await p.type('input[aria-label="Search a state or city"]', 'del', { delay: 120 }); await wait(900);
+await p.click('.cty:not(.live)'); await wait(2600);
+await rec.stop(); await b.close(); console.log('rec ok');

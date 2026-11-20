@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 export const ROOT = new URL('../..', import.meta.url).pathname;
 export const read = (p) => readFileSync(join(ROOT, p), 'utf8');
-const SKIP = new Set(['node_modules', '.git', 'dist-site', 'dist-admin', 'dist-crm', 'admin', 'crm', 'supabase', 'docs', 'tests', 'scripts', 'brand-src', 'src', 'assets']);
+const SKIP = new Set(['node_modules', '.git', 'dist-site', 'dist-admin', 'dist-crm', 'admin', 'crm', 'supabase', 'docs', 'tests', 'scripts', 'brand-src', 'src', 'assets', 'webapp', 'preview']);   // webapp is the React source; preview is its hidden build (not a public page)
 export const publicFiles = () => {
   const out = [];
   const walk = (dir, rel) => {
