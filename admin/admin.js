@@ -21,7 +21,8 @@ import { filterAccounts, salesCsv, ledgerCsv, entryLabel } from './sales-view.js
 import { effectiveRate, jobSplit, cleanCommission, payoutShareText, statementShareText, PLACES } from './commission.js';
 import { customerSummaries, customerLeads, normPhone, bookingRows, summarize } from './customer-bookings.js';
 import { adsConversions } from './ads-export.js';
-import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge } from './booking-steps.js';
+import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge, flowPaid } from './booking-steps.js';
+import { progressSteps, progressHtml, moneyTriple, moneyHtml } from './booking-head.js';
 import { createFlow } from './flow-core.js';
 import { statusOptions, stateFromLead, PLAIN_STATES } from './manage-rules.js';
 import { isCrewTab, crewView, mountCrew } from './crew-screens.js';
@@ -860,6 +861,19 @@ function adCard(l) {
 }
 // How this booking was paid: who collected each rupee (company manual, online, mechanic), what is still owed, and every payment.
 // Top of a booking: the vehicle, what the invoice comes to, what the customer has paid, and what is left.
+
+// New booking head (Stage 1 of the redesign). Off by default; open the Admin with ?ui=2 to turn it on for this browser, ?ui=1 to turn it off.
+const newUi = () => { try { const q = new URLSearchParams(location.search).get('ui'); if (q === '2') localStorage.setItem('mx_ui2', '1'); else if (q === '1') localStorage.removeItem('mx_ui2'); return localStorage.getItem('mx_ui2') === '1'; } catch (e) { return false; } };
+function headNew(l) {
+  try {
+    const f = S.flow && S.flowFor === l.id ? S.flow : null, c = f && f.conf, ap = f && f.est && f.est.approval;
+    const b = bikeOf(l), a = salesModel().accounts.find((x) => x.lead_id === l.id);
+    const inv = a ? null : buildInvoice(withBike(l), S.services, { customer: S.customers.find((cu) => cu.id === l.customer_id), bike: b });
+    const total = a ? a.total : inv.total, paid = a ? a.collected : (l.paid_amount || 0), m = moneyTriple({ total: total || null, paid });
+    const steps = progressSteps({ confirmed: flowPaid(l), assigned: isAssigned(l), stage: c && c.stage, quoteStatus: ap && ap.status, completed: l.status === 'completed', balance: m.balance, hasInvoice: hasLiveInvoice(l.id), closed: ['lost', 'junk', 'cancelled'].includes(l.status) });
+    return `<div class="head-new">${progressHtml(steps)}${moneyHtml(m)}</div>`;
+  } catch (e) { return ''; }
+}
 function summaryStrip(l) {
   try {
     const b = bikeOf(l), a = salesModel().accounts.find((x) => x.lead_id === l.id);
@@ -949,7 +963,7 @@ function paintStatus(id) {
 }
 async function paintFlow(id) {
   const el = $('#flowCard'), l = leadOf(id); if (!el || !l) return;
-  try { S.flow = await flow.load(id); S.flowFor = id; el.innerHTML = flow.card(flow.withFlow(l, S.flow), S.flow); paintStatus(id); flow.mountTimeline($('#histCard'), id); } catch (e) { console.error('paintFlow', e); el.innerHTML = '<div class="alert" role="alert"><b>The paid-confirmation card could not be loaded.</b> ' + esc((e && e.message) || 'Try again.') + ' <button class="btn btn-ghost btn-sm" type="button" data-flow="reloadFlow">Retry</button></div>'; }
+  try { S.flow = await flow.load(id); S.flowFor = id; el.innerHTML = flow.card(flow.withFlow(l, S.flow), S.flow); const hn = $('#headNew'); if (hn) hn.innerHTML = headNew(l); paintStatus(id); flow.mountTimeline($('#histCard'), id); } catch (e) { console.error('paintFlow', e); el.innerHTML = '<div class="alert" role="alert"><b>The paid-confirmation card could not be loaded.</b> ' + esc((e && e.message) || 'Try again.') + ' <button class="btn btn-ghost btn-sm" type="button" data-flow="reloadFlow">Retry</button></div>'; }
 }
 async function openLeadBase(id, silent) {
   if (!silent && S.open !== id) S.dt = 'booking';
@@ -966,9 +980,9 @@ async function openLeadBase(id, silent) {
   const customerEmail = S.customers.find((c) => c.id === l.customer_id)?.email || '';
   $('#sheetPanel').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="sheetTitle" style="margin:0">${esc(bid(l))}</h2><button class="btn btn-ghost btn-sm" type="button" data-act="close">Close</button></div>
   <p style="margin:8px 0"><span class="pill ${l.status}">${LABEL[l.status]}</span> ${l.opted_out ? '<span class="pill lost">Opted out</span>' : ''} ${l.paid_amount ? `<span class="pill paid">Paid ${rupee(l.paid_amount)}</span>` : ''}</p>
-  ${stepBar(l)}${nextBtn(l)}
+  ${newUi() ? `<div id="headNew">${headNew(l)}</div>${nextBtn(l)}` : `${stepBar(l)}${nextBtn(l)}`}
   <div id="flowCard"></div>
-  ${summaryStrip(l)}
+  ${newUi() ? '' : summaryStrip(l)}
   <div class="qa"><a class="btn btn-wa btn-sm" href="${wa}" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="tel:+91${esc(l.phone)}">Call</a><button class="btn btn-ghost btn-sm" type="button" data-act="invoice">Invoice</button>${l.booking_id || ['lost', 'junk'].includes(l.status) ? '' : '<button class="btn btn-ghost btn-sm" type="button" data-act="giveId">Give booking ID</button>'}<button class="btn btn-ghost btn-sm" type="button" data-act="confirmBooking">Confirm and email customer</button>${!l.booking_id && !BOOKED_STATUSES.includes(l.status) && l.status !== 'junk' ? '<button class="btn btn-ghost btn-sm" type="button" data-act="markJunk">Mark as junk</button>' : ''}${l.status === 'junk' ? '<button class="btn btn-ghost btn-sm" type="button" data-act="restoreJunk">Restore</button>' : ''}<button class="btn btn-ghost btn-sm" type="button" data-act="issueFromLead">Log an issue</button></div>
   <div class="dtabs" role="tablist" aria-label="Booking sections">${dtab('booking', 'Booking')}${dtab('money', 'Money')}${dtab('customer', 'Customer')}${dtab('messages', 'Messages')}</div>
   ${panel('booking', `${DETAILS}

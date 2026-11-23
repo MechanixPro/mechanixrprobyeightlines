@@ -437,3 +437,19 @@ h1 .count{vertical-align:middle;margin-left:var(--s2)}
 .dp-det{margin:0 0 var(--s4);border:var(--bw) solid var(--border);border-radius:var(--radius);background:var(--surface)}
 .dp-det>summary{padding:var(--s3) var(--s4);font-weight:800;cursor:pointer;min-height:var(--tap)}
 .dp-f--wide{grid-column:1/-1}
+
+/* ---------- 15. new booking head (Stage 1): progress line and money block. Used only when the new design switch is on. ---------- */
+.mx-prog{display:flex;gap:0;list-style:none;margin:var(--s3) 0;padding:0;overflow-x:auto}
+.mx-prog__s{flex:1 1 0;min-width:72px;display:flex;flex-direction:column;align-items:center;gap:var(--s1);position:relative;font-size:var(--fs-2);color:var(--text3);text-align:center}
+.mx-prog__s+.mx-prog__s::before{content:"";position:absolute;top:7px;right:50%;width:100%;height:2px;background:var(--border)}
+.mx-prog__dot{position:relative;z-index:1;width:16px;height:16px;border-radius:50%;background:var(--surface);border:2px solid var(--border2)}
+.mx-prog__s--done .mx-prog__dot{background:var(--good);border-color:var(--good)}
+.mx-prog__s--done+.mx-prog__s::before,.mx-prog__s--current::before{background:var(--good)}
+.mx-prog__s--current .mx-prog__dot{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.mx-prog__s--current .mx-prog__l{color:var(--text);font-weight:700}
+.mx-prog__s--done .mx-prog__l{color:var(--text2)}
+.mx-money3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s3);margin:0;padding:var(--s3) var(--s4);background:var(--surface);border:var(--bw) solid var(--border);border-radius:var(--radius)}
+.mx-money3 dt{font-size:var(--fs-2);color:var(--text3)}
+.mx-money3 dd{margin:0;font-size:var(--fs-5);font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+.mx-money3__v--due{color:var(--warn-text)!important}.mx-money3__v--ok{color:var(--good-text)!important}
+@media(max-width:600px){.mx-prog__s{min-width:0;font-size:var(--fs-1)}.mx-prog__s--current .mx-prog__l{font-weight:600}}

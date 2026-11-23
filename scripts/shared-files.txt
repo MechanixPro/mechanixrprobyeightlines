@@ -21,3 +21,4 @@ kyc-rules.js
 watch.js
 geo-parse.js
 manage-rules.js
+booking-head.js
