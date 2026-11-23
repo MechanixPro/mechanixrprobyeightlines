@@ -15,7 +15,7 @@ test('one Add booking button and no duplicate Booked option', () => {
   assert.match(leads, /STATUSES\.filter\(\(s\) => s !== 'scheduled'\)/);
 });
 test('Booked filter covers paid and scheduled; assignment uses garage or mechanic data; date uses service date', () => {
-  const f = src.slice(src.indexOf('function filtered() {'), src.indexOf('function renderList() {'));
+  const f = src.slice(src.indexOf('function filtered('), src.indexOf('function renderList() {'));
   assert.match(f, /\['paid', 'scheduled'\]\.includes/);
   assert.match(f, /l\.preferred_date >= dr\.from/);
   assert.match(f, /isAssigned\(l\)/);
