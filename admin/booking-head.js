@@ -49,3 +49,18 @@ export function moneyHtml(m) {
   const tone = m.balance == null ? '' : m.balance > 0.005 ? ' mx-money3__v--due' : ' mx-money3__v--ok';
   return `<dl class="mx-money3"><div><dt>Invoice total</dt><dd class="mx-money3__v">${inr(m.total)}</dd></div><div><dt>Paid</dt><dd class="mx-money3__v">${inr(m.paid)}</dd></div><div><dt>Balance</dt><dd class="mx-money3__v${tone}">${inr(m.balance)}</dd></div></dl>`;
 }
+
+const DOOR = { none: 'No code yet', open: 'Code ready, not used yet', locked: 'Locked after 5 wrong tries', expired: 'Code expired', verified: 'Verified at the door' };
+const DOOR_TONE = { verified: 'good', open: 'warn', none: '', locked: 'bad', expired: 'bad' };
+/** Customer code card: shows only the state, never the code itself. door: none | open | locked | expired | verified (or missing = not loaded). */
+export function codeCardHtml(door) {
+  const known = Object.prototype.hasOwnProperty.call(DOOR, door);
+  const tone = known ? DOOR_TONE[door] : '';
+  return `<div class="mx-card3"><h3>Customer code</h3><p class="mx-card3__v${tone ? ' mx-card3__v--' + tone : ''}">${esc(known ? DOOR[door] : 'Not loaded yet')}</p><p class="mx-card3__s">The customer shares a 4-digit code before the bike leaves. It is never shown here.</p></div>`;
+}
+/** Partner card: who the job is assigned to. p: { name, kind: 'garage'|'technician', phone }. Phone is shown in full to staff who can already see it. */
+export function partnerCardHtml(p) {
+  if (!p || !p.name) return '<div class="mx-card3"><h3>Partner</h3><p class="mx-card3__v">Not assigned yet</p></div>';
+  const kind = p.kind === 'garage' ? 'Partner garage' : 'Technician';
+  return `<div class="mx-card3"><h3>Partner</h3><p class="mx-card3__v">${esc(p.name)}</p><p class="mx-card3__s">${kind}${p.phone ? ' · ' + esc(p.phone) : ''}</p></div>`;
+}

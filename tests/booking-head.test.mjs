@@ -38,3 +38,15 @@ test('html: escapes labels, marks current step, shows a dash for unknown money',
   assert.match(m, /Invoice total<\/dt><dd class="mx-money3__v">—/); assert.match(m, /₹49/);
   assert.match(moneyHtml(moneyTriple({ total: 500, paid: 500 })), /mx-money3__v--ok/);
 });
+import { codeCardHtml, partnerCardHtml } from '../crm/booking-head.js';
+test('code card shows the state, never a code, and handles unknown state', () => {
+  assert.match(codeCardHtml('verified'), /Verified at the door/); assert.match(codeCardHtml('verified'), /--good/);
+  assert.match(codeCardHtml('locked'), /Locked after 5 wrong tries/);
+  assert.match(codeCardHtml(undefined), /Not loaded yet/); assert.match(codeCardHtml('weird'), /Not loaded yet/);
+  assert.doesNotMatch(codeCardHtml('open'), /\d{4}/);
+});
+test('partner card escapes names and says when nobody is assigned', () => {
+  assert.match(partnerCardHtml(null), /Not assigned yet/);
+  const h = partnerCardHtml({ name: '<b>X</b>', kind: 'garage', phone: '+91 90000 00001' });
+  assert.doesNotMatch(h, /<b>X/); assert.match(h, /Partner garage/); assert.match(h, /90000 00001/);
+});

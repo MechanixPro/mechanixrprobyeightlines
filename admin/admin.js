@@ -23,7 +23,7 @@ import { customerSummaries, customerLeads, normPhone, bookingRows, summarize } f
 import { adsConversions } from './ads-export.js';
 import { bookingStep, nextAction as stepAction, stepGuard, lostReasonCheck, LOST_REASONS, conversionReport, paidBadge, flowPaid } from './booking-steps.js';
 import { PILLS, pillsHtml, maskPhone } from './booking-pills.js';
-import { progressSteps, progressHtml, moneyTriple, moneyHtml } from './booking-head.js';
+import { progressSteps, progressHtml, moneyTriple, moneyHtml, codeCardHtml, partnerCardHtml } from './booking-head.js';
 import { createFlow } from './flow-core.js';
 import { statusOptions, stateFromLead, PLAIN_STATES } from './manage-rules.js';
 import { isCrewTab, crewView, mountCrew } from './crew-screens.js';
@@ -875,7 +875,7 @@ function headNew(l) {
     const inv = a ? null : buildInvoice(withBike(l), S.services, { customer: S.customers.find((cu) => cu.id === l.customer_id), bike: b });
     const total = a ? a.total : inv.total, paid = a ? a.collected : (l.paid_amount || 0), m = moneyTriple({ total: total || null, paid });
     const steps = progressSteps({ confirmed: flowPaid(l), assigned: isAssigned(l), stage: c && c.stage, quoteStatus: ap && ap.status, completed: l.status === 'completed', balance: m.balance, hasInvoice: hasLiveInvoice(l.id), closed: ['lost', 'junk', 'cancelled'].includes(l.status) });
-    return `<div class="head-new">${progressHtml(steps)}${moneyHtml(m)}</div>`;
+    return `<div class="head-new">${progressHtml(steps)}${moneyHtml(m)}${codeCardHtml(c && c.door)}</div>`;
   } catch (e) { return ''; }
 }
 function summaryStrip(l) {

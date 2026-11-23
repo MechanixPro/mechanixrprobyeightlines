@@ -27,7 +27,7 @@ import { newBooking, editBooking } from './pages/booking.js';
 import { sendPaymentLink } from './pages/payment.js';
 import { createFlow } from './flow-core.js';
 import { flowPaid } from './flow-rules.js';
-import { progressSteps, progressHtml, moneyTriple, moneyHtml } from './booking-head.js';
+import { progressSteps, progressHtml, moneyTriple, moneyHtml, codeCardHtml, partnerCardHtml } from './booking-head.js';
 import { createGarageDesk } from './garage-desk.js';
 import { createQuoteDoc } from "./quote-doc.js";
 import { createRouting } from "./funnel.js";
@@ -377,7 +377,7 @@ function headNew(l) {
     const c = S.flow && S.flow.conf, ap = S.flow && S.flow.est && S.flow.est.approval, m0 = S.money || {};
     const m = moneyTriple({ total: m0.invoice_total != null ? m0.invoice_total : null, paid: m0.paid || 0 });
     const steps = progressSteps({ confirmed: flowPaid(l), assigned: !!(l.mechanic_id || l.mechanic_name || l.garage_id), stage: c && c.stage, quoteStatus: ap && ap.status, completed: l.status === 'completed', balance: m.balance, hasInvoice: m0.invoice_total != null, closed: ['lost', 'junk', 'cancelled'].includes(l.status) });
-    return progressHtml(steps) + moneyHtml(m);
+    return progressHtml(steps) + moneyHtml(m) + codeCardHtml(c && c.door) + partnerCardHtml(l.mechanic_name || l.garage_name ? { name: l.mechanic_name || l.garage_name, kind: l.garage_id ? 'garage' : 'technician', phone: l.mechanic_phone } : null);
   } catch (e) { return ''; }
 }
 function renderSheet() {
