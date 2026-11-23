@@ -26,6 +26,8 @@ import { myTargetsHtml } from './targets-view.js';
 import { newBooking, editBooking } from './pages/booking.js';
 import { sendPaymentLink } from './pages/payment.js';
 import { createFlow } from './flow-core.js';
+import { flowPaid } from './flow-rules.js';
+import { progressSteps, progressHtml, moneyTriple, moneyHtml } from './booking-head.js';
 import { createGarageDesk } from './garage-desk.js';
 import { createQuoteDoc } from "./quote-doc.js";
 import { createRouting } from "./funnel.js";
@@ -368,6 +370,16 @@ async function openLead(id, kind) {
   try { S.detail = await rpc('crm_lead', { p_id: id }); S.rating = await rpc('crm_lead_rating', { p_lead: id }).catch(() => null); S.money = await rpc('crm_lead_money', { p_lead: id }).catch(() => null); S.handover = await rpc('crm_handovers', { p_lead: id }).catch(() => null); S.flow = await flow.load(id); S.detail.lead = flow.withFlow(S.detail.lead, S.flow); if (can('assign_leads')) S.users = await ctx.users(); } catch (e) { toast(clean(e), true); S.busy = false; return; }
   S.busy = false; S.kind = kind || 'note'; renderSheet();
 }
+// New booking head (redesign, Crew stage 1). Off by default; open Crew with ?ui=2 to turn it on for this browser, ?ui=1 to turn it off.
+const newUi = () => { try { const q = new URLSearchParams(location.search).get('ui'); if (q === '2') localStorage.setItem('mx_ui2', '1'); else if (q === '1') localStorage.removeItem('mx_ui2'); return localStorage.getItem('mx_ui2') === '1'; } catch (e) { return false; } };
+function headNew(l) {
+  try {
+    const c = S.flow && S.flow.conf, ap = S.flow && S.flow.est && S.flow.est.approval, m0 = S.money || {};
+    const m = moneyTriple({ total: m0.invoice_total != null ? m0.invoice_total : null, paid: m0.paid || 0 });
+    const steps = progressSteps({ confirmed: flowPaid(l), assigned: !!(l.mechanic_id || l.mechanic_name || l.garage_id), stage: c && c.stage, quoteStatus: ap && ap.status, completed: l.status === 'completed', balance: m.balance, hasInvoice: m0.invoice_total != null, closed: ['lost', 'junk', 'cancelled'].includes(l.status) });
+    return progressHtml(steps) + moneyHtml(m);
+  } catch (e) { return ''; }
+}
 function renderSheet() {
   const d = S.detail, l = d.lead, sheet = $('#sheet');
   const mineOrBoss = l.crm_owner === S.me.user_id || canTech();
@@ -376,7 +388,7 @@ function renderSheet() {
   const t = timerInfo(l, new Date(), S.me.sla_minutes);
   sheet.hidden = false; document.body.classList.add('noscroll');
   $('#sheetPanel').innerHTML = `<div class="sheet-head"><div><h2 id="sheetTitle">${esc(l.name)}${vehicleTag(vehicleOf(l))}</h2><p class="muted small">${esc(idOr(l))} · ${esc(SOURCE_LABEL[l.source] || l.source)}${l.campaign ? ' · ' + esc(l.campaign) : ''}</p></div><button class="btn ghost" type="button" data-act="close" aria-label="Close">Close</button></div>
-    ${stepper(l)}${nextBtn(l)}<p class="bchip">${routing.chip(l)}</p>
+    ${newUi() ? headNew(l) : stepper(l)}${nextBtn(l)}<p class="bchip">${routing.chip(l)}</p>
     <div class="timer t-${t.tone}">${esc(t.label)}</div>
     <div class="facts">
       <div><span>Phone</span><b>${esc(l.phone)}</b></div><div><span>Area</span><b>${esc([l.area, l.pincode].filter(Boolean).join(' · ') || '—')}</b></div>

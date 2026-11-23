@@ -80,6 +80,7 @@ const clickTab = (t) => `(async()=>{const b=document.querySelector('#side [data-
 const crew = (name, hash, o = {}) => ({ name: 'crew-' + name, app: 'crm', url: '/crm/#' + hash, wait: '#view > div > *, #view .alert, #view .err', ...o });
 const adm = (name, tab, o = {}) => ({ name: 'admin-' + name, app: 'admin', url: '/admin/', wait: '#view:not([hidden]) > *, #view .err', step: tab ? clickTab(tab) : null, ...o });
 const SHOTS = [
+  crew('booking-head-new', 'mine', { url: '/crm/?ui=2#mine', step: `document.querySelector('.lead-card[data-id="lead-5"] [data-act="open"]').click()`, after: '#sheetPanel .mx-prog', noFull: true }),
   adm('bookings-pills-new', 'leads', { url: '/admin/?ui=2', after: '#view .pills', noFull: true }),
   adm('booking-sheet-old', 'leads', { url: '/admin/?ui=1', step: clickTab('leads') + `;(async()=>{for(let i=0;i<80&&!document.querySelector('#view [data-lead]');i++)await new Promise(r=>setTimeout(r,100));document.querySelector('#view [data-lead]').click()})()`, after: '#sheetPanel .dtabs [data-dt=booking]', noFull: true }),
   adm('booking-tabs-new', 'leads', { url: '/admin/?ui=2', step: clickTab('leads') + `;(async()=>{for(let i=0;i<80&&!document.querySelector('#view [data-lead]');i++)await new Promise(r=>setTimeout(r,100));document.querySelector('#view [data-lead]').click();for(let i=0;i<80&&!document.querySelector('[data-dt=partner]');i++)await new Promise(r=>setTimeout(r,100));document.querySelector('[data-dt=timeline]').click()})()`, after: '#sheetPanel #dt-timeline:not([hidden])', noFull: true }),

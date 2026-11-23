@@ -122,7 +122,7 @@ test('the lists give the step bar what it needs and keep their old columns, junk
 test('the desk and admin show the steps everywhere a lead appears', () => {
   const crm = read('crm/crm.js'), leads = read('crm/pages/leads.js'), web = read('crm/pages/webleads.js'), adm = read('admin/admin.js');
   assert.match(crm, /\$\{stepper\(l\)\}<div class="timer/);              // My day cards
-  assert.match(crm, /\$\{stepper\(l\)\}\$\{nextBtn\(l\)\}/);               // the lead panel
+  assert.match(crm, /\$\{(newUi\(\) \? headNew\(l\) : )?stepper\(l\)\}\$\{nextBtn\(l\)\}/);               // the lead panel
   assert.match(leads, /stepper\(\{ \.\.\.r, status: r\.stage \}, true\)/); assert.match(web, /stepper\(r, true\)/);
   assert.match(adm, /stepBar\(l, true\)/); assert.match(adm, /\$\{stepBar\(l\)\}\$\{nextBtn\(l\)\}/);   // admin rows, board cards and the booking details
   assert.match(adm, /conversionCard\(week, rl\)/);
