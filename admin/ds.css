@@ -453,3 +453,10 @@ h1 .count{vertical-align:middle;margin-left:var(--s2)}
 .mx-money3 dd{margin:0;font-size:var(--fs-5);font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
 .mx-money3__v--due{color:var(--warn-text)!important}.mx-money3__v--ok{color:var(--good-text)!important}
 @media(max-width:600px){.mx-prog__s{min-width:0;font-size:var(--fs-1)}.mx-prog__s--current .mx-prog__l{font-weight:600}}
+/* filter pills with counts (Bookings list, new design) */
+.pills{display:flex;gap:var(--s2);flex-wrap:wrap;margin:0 0 var(--s3)}
+.pill-f{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border-radius:var(--radius-pill);border:var(--bw) solid var(--border2);background:var(--surface);color:var(--text2);font:inherit;font-size:var(--fs-3);font-weight:600;cursor:pointer}
+.pill-f:hover{background:var(--surface2)}
+.pill-f.is-on{background:var(--navy);border-color:var(--navy);color:var(--on-navy)}
+.pill-n{font-variant-numeric:tabular-nums;font-size:var(--fs-2);padding:1px 7px;border-radius:var(--radius-pill);background:var(--surface3);color:var(--text)}
+.pill-f.is-on .pill-n{background:rgba(255,255,255,.2);color:var(--on-navy)}
