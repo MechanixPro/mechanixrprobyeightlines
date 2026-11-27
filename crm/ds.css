@@ -465,3 +465,5 @@ h1 .count{vertical-align:middle;margin-left:var(--s2)}
 .mx-card3__v{margin:0;font-size:var(--fs-4);font-weight:700;color:var(--text)}
 .mx-card3__v--good{color:var(--good-text)}.mx-card3__v--warn{color:var(--warn-text)}.mx-card3__v--bad{color:var(--bad-text)}
 .mx-card3__s{margin:var(--s1) 0 0;font-size:var(--fs-2);color:var(--text3)}
+
+.facts span{display:block}
