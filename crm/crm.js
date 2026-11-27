@@ -370,8 +370,8 @@ async function openLead(id, kind) {
   try { S.detail = await rpc('crm_lead', { p_id: id }); S.rating = await rpc('crm_lead_rating', { p_lead: id }).catch(() => null); S.money = await rpc('crm_lead_money', { p_lead: id }).catch(() => null); S.handover = await rpc('crm_handovers', { p_lead: id }).catch(() => null); S.flow = await flow.load(id); S.detail.lead = flow.withFlow(S.detail.lead, S.flow); if (can('assign_leads')) S.users = await ctx.users(); } catch (e) { toast(clean(e), true); S.busy = false; return; }
   S.busy = false; S.kind = kind || 'note'; renderSheet();
 }
-// New booking head (redesign, Crew stage 1). Off by default; open Crew with ?ui=2 to turn it on for this browser, ?ui=1 to turn it off.
-const newUi = () => { try { const q = new URLSearchParams(location.search).get('ui'); if (q === '2') localStorage.setItem('mx_ui2', '1'); else if (q === '1') localStorage.removeItem('mx_ui2'); return localStorage.getItem('mx_ui2') === '1'; } catch (e) { return false; } };
+// New booking head (redesign, Crew stage 1). On by default; open Crew with ?ui=2 to turn it on again, ?ui=1 to turn it off for this browser.
+const newUi = () => { try { const q = new URLSearchParams(location.search).get('ui'); if (q === '2') localStorage.removeItem('mx_ui2'); else if (q === '1') localStorage.setItem('mx_ui2', '0'); return localStorage.getItem('mx_ui2') !== '0'; } catch (e) { return true; } };
 function headNew(l) {
   try {
     const c = S.flow && S.flow.conf, ap = S.flow && S.flow.est && S.flow.est.approval, m0 = S.money || {};

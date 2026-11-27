@@ -866,8 +866,8 @@ function adCard(l) {
 // How this booking was paid: who collected each rupee (company manual, online, mechanic), what is still owed, and every payment.
 // Top of a booking: the vehicle, what the invoice comes to, what the customer has paid, and what is left.
 
-// New booking head (Stage 1 of the redesign). Off by default; open the Admin with ?ui=2 to turn it on for this browser, ?ui=1 to turn it off.
-const newUi = () => { try { const q = new URLSearchParams(location.search).get('ui'); if (q === '2') localStorage.setItem('mx_ui2', '1'); else if (q === '1') localStorage.removeItem('mx_ui2'); return localStorage.getItem('mx_ui2') === '1'; } catch (e) { return false; } };
+// New booking head (Stage 1 of the redesign). On by default; open the Admin with ?ui=2 to turn it on again, ?ui=1 to turn it off for this browser.
+const newUi = () => { try { const q = new URLSearchParams(location.search).get('ui'); if (q === '2') localStorage.removeItem('mx_ui2'); else if (q === '1') localStorage.setItem('mx_ui2', '0'); return localStorage.getItem('mx_ui2') !== '0'; } catch (e) { return true; } };
 function headNew(l) {
   try {
     const f = S.flow && S.flowFor === l.id ? S.flow : null, c = f && f.conf, ap = f && f.est && f.est.approval;
