@@ -326,3 +326,10 @@ tr.is-paid td:first-child{box-shadow:inset 4px 0 0 var(--good)}
 
 .at-sec{border:1px solid var(--line,#d9dee7);border-radius:8px;padding:8px 10px;margin:8px 0}.at-sec summary{cursor:pointer;font-weight:700}.at-clause{margin:10px 0;display:grid;gap:6px}.at-clause input,.at-clause textarea{width:100%;font:inherit;padding:8px;border:1px solid var(--line,#c8cfda);border-radius:6px}.at-plan{display:flex;flex-wrap:wrap;gap:8px}.flow-box:has(.at-sec){max-height:88vh;overflow:auto}
 @media(max-width:640px){button.row[data-lead]{grid-template-columns:minmax(0,1fr) auto}button.row[data-lead]>:first-child{grid-column:1/-1}}
+@media(max-width:640px){
+  .sheet-save{margin-top:12px;padding-top:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));gap:0}
+  .sheet-save .btn{width:100%}.sheet-save .tiny{display:none}
+  button.row[data-lead] .steps.compact{flex-wrap:nowrap;max-width:100%}
+  button.row[data-lead] .steps.compact .step:not(.current){flex-basis:8px}
+  button.row[data-lead] .steps.compact .step.current{min-width:0;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
