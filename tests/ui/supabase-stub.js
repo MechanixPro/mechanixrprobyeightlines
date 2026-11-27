@@ -15,12 +15,14 @@ window.__UI_PENDING = 0;   // calls still in flight; the click-through harness w
 const track = (p) => { window.__UI_PENDING++; return Promise.resolve(p).finally(() => { window.__UI_PENDING--; }); };
 
 function emptyCrew(name, a) {
-  const list = ['crm_queue', 'crm_call_queue', 'crm_my_leads', 'crm_leads_list', 'crm_dispatch_list', 'crm_service_watch', 'crm_open_issues', 'crm_replies_waiting', 'crm_unstaffed_jobs', 'crm_conversion_rows', 'crm_duplicate_customers'];
+  const list = ['crm_queue', 'crm_call_queue', 'crm_my_leads', 'crm_leads_list', 'crm_dispatch_list', 'crm_service_watch', 'crm_open_issues', 'crm_replies_waiting', 'crm_unstaffed_jobs', 'crm_conversion_rows', 'crm_duplicate_customers', 'crm_web_leads', 'crm_rsa_list', 'crm_tickets_list', 'crm_visits_list', 'crm_garage_list', 'crm_garage_hub_summary', 'crm_garage_load', 'crm_garage_requests_list', 'crm_announcement_list', 'crm_mechanic_list', 'crm_mechanic_performance', 'crm_playbooks_list', 'crm_redo_list', 'crm_shield_list'];
   if (list.includes(name)) return [];
   if (name === 'crm_leads_summary') return { all: 0, new: 0, followups: 0, converted: 0, won: 0, lost: 0, junk: 0, unassigned: 0, pct: null, by_vehicle: {} };
   if (name === 'crm_dashboard') return { range: { from: new Date().toISOString() }, leads: { total: 0, won: 0, won_pct: 0, lost: 0, lost_pct: 0 }, unassigned: 0, chats: { unreplied: 0, total: 0 }, targets: { team: { daily_done: 0, daily_target: 30, monthly_done: 0, monthly_target: 600 }, me: { daily_done: 0, daily_target: 8, monthly_done: 0, monthly_target: 160 } }, agents: [], attribution: [] };
   if (name === 'crm_tech_board') return { techs: [], unassigned: [] };
   if (name === 'crm_targets_progress') return { now_ist: '2027-01-12T15:00:00', can_see_all: true, people: [] };
+  if (name === 'crm_wa_inbox') return { rows: [], counts: { unread: 0, waiting: 0, mine: 0, all: 0 } };
+  if (name === 'crm_shield_month') return { cap: 20000, used: 0 };
   if (name === 'crm_funnel') return { stages: [], money: false };
   return undefined;
 }

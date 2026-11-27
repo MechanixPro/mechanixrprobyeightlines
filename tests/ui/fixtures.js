@@ -87,7 +87,7 @@ const crewHandlers = {
   crm_unpaid_bookings: (a, ui) => (ui && ui.unpaid ? [{ id: 'lead-1', ref: 'L-1001', name: '[Customer Name 1]', phone: '[Phone]', vehicle: 'bike', service: 'Bike service', created_at: ago(20), confirm_fee: 49 }, { id: 'lead-2', ref: 'L-1002', name: '[Customer Name 2]', phone: '[Phone]', vehicle: 'car', service: 'Car service', created_at: ago(60 * 5), confirm_fee: 99 }, { id: 'lead-3', ref: 'L-1003', name: '[Customer Name 3]', phone: '[Phone]', vehicle: 'bike', service: 'Brake pads', created_at: ago(60 * 30), confirm_fee: 69 }] : []),
   crm_replies_waiting: () => [{ id: 'lead-2', name: '[Customer Name 2]', wrote_at: ago(8) }],
   crm_dispositions_list: () => [{ disposition: 'Interested', sub_disposition: 'Call later' }],
-  crm_users_list: () => [{ user_id: 'u1', name: '[Care Buddy 1]', active: true }, { user_id: 'u2', name: '[Care Buddy 2]', active: true }],
+  crm_users_list: () => [{ user_id: 'u1', name: '[Care Buddy 1]', role: 'sales', designation: 'sales', active: true, daily_target: 8, monthly_target: 160, custom_permissions: false }, { user_id: 'u2', name: '[Care Buddy 2]', role: 'support', designation: 'support', active: true, daily_target: 6, monthly_target: 120, custom_permissions: true }],
   crm_unstaffed_jobs: () => [],
   crm_tech_board: () => ({ techs: [{ name: '[Mechanic Name]', area: 'HSR Layout', jobs: [{ id: 'lead-6', booking_id: 'MP-2611-0006', slot: 'afternoon', area: 'HSR Layout', status: 'paid' }] }, { name: '[Mechanic Name 2]', area: 'Whitefield', jobs: [] }], unassigned: [{ id: 'lead-5', booking_id: 'MP-2611-0005', slot: 'morning', area: 'Indiranagar', status: 'paid' }] }),
   crm_mechanic_picker: () => [{ id: 'mech-1', name: '[Mechanic Name]', area: 'HSR Layout' }, { id: 'mech-2', name: '[Mechanic Name 2]', area: 'Whitefield' }],
@@ -156,6 +156,53 @@ Object.assign(crewHandlers, {
   crm_garage_access_list: () => gAccess, crm_garage_assignments_list: (a) => (a.p_lead ? gAssign.filter((x) => x.lead_id === a.p_lead) : gAssign), crm_garage_estimates_inbox: (a) => gEstimates.filter((e) => !a.p_status || e.status === a.p_status),
 });
 Object.assign(adminRpc, { crm_garage_picker: () => [{ id: 'g-1', name: '[Garage Name]', code: 'G-0001', pincode: '560102', status: 'live' }], crm_garage_access_list: crewHandlers.crm_garage_access_list, crm_garage_assignments_list: crewHandlers.crm_garage_assignments_list, crm_garage_estimates_inbox: crewHandlers.crm_garage_estimates_inbox });
+
+// Crew screens that read their own list RPCs (Inbox, Web leads, RSA, Tickets, Visits, Garages, Garage app, Mechanics, Knowledge, Follow-ups). Placeholders only.
+const waRow = (i, o = {}) => ({ phone: ph(i), name: '[Customer Name ' + i + ']', last_message_at: ago(5 + i * 50), last_preview: '[Message preview ' + i + ']', unread: 0, status: 'open', paid: false, booking_id: null, assigned_name: 'Care Buddy Demo', waiting: false, window_open: true, ...o });
+const hubs = [{ id: 1, name: '[Hub 1]', direction: 'East', ring: 'Inner', live: 1, garages: 2 }, { id: 2, name: '[Hub 2]', direction: 'South', ring: 'Inner', live: 0, garages: 1 }, { id: 3, name: '[Hub 3]', direction: 'North', ring: 'Outer', live: 0, garages: 0 }];
+const gList = [
+  { id: 'g-1', name: '[Garage Name 1]', code: 'G-0001', mobile: ph(21), pincode: '560102', owner_name: '[Host Name 1]', hub: '[Hub 1]', status: 'live', open_now: true, score: 86, tier: 'silver', next_visit: null, mechanics: 3 },
+  { id: 'g-2', name: '[Garage Name 2]', code: 'G-0002', mobile: ph(22), pincode: '560034', owner_name: '[Host Name 2]', hub: '[Hub 2]', status: 'pilot', open_now: true, score: 74, tier: null, next_visit: ahead(1500), mechanics: 2 },
+  { id: 'g-3', name: '[Garage Name 3]', code: 'G-0003', mobile: ph(23), pincode: '560103', owner_name: '[Host Name 3]', hub: '[Hub 1]', status: 'applied', open_now: false, score: null, tier: null, next_visit: ahead(3000), mechanics: 0 },
+];
+const mechs = [
+  { id: 'm-1', name: '[Mechanic Name 1]', phone: ph(31), area: 'Indiranagar', status: 'live', skills: ['two-wheeler', 'scooter'], pincodes: ['560038', '560008'], garage: '[Garage Name 1]', docs_done: 5 },
+  { id: 'm-2', name: '[Mechanic Name 2]', phone: ph(32), area: 'HSR Layout', status: 'trained', skills: ['electric', 'battery'], pincodes: ['560102'], garage: null, docs_done: 4 },
+  { id: 'm-3', name: '[Mechanic Name 3]', phone: ph(33), area: 'Whitefield', status: 'applied', skills: [], pincodes: [], garage: null, docs_done: 1 },
+];
+Object.assign(crewHandlers, {
+  crm_wa_inbox: () => ({ rows: [waRow(1, { unread: 2, waiting: true, assigned_name: null }), waRow(2, { booking_id: 'MP-2611-0002', paid: true }), waRow(3, { window_open: false }), waRow(4, { status: 'closed' })], counts: { unread: 1, waiting: 1, mine: 3, all: 4 } }),
+  crm_web_leads: () => [
+    { id: 'lead-1', booking_id: 'MP-2611-0001', name: '[Customer Name 1]', phone: ph(1), service: 'Basic service', area: 'Indiranagar', status: 'new', owner: null, created_at: ago(30), vehicle: 'bike' },
+    { id: 'lead-2', booking_id: null, name: '[Customer Name 2]', phone: ph(2), service: 'Brake check', area: 'HSR Layout', status: 'contacted', owner: 'Care Buddy Demo', created_at: ago(200), vehicle: 'bike' },
+    { id: 'lead-3', booking_id: 'MP-2611-0003', name: '[Customer Name 3]', phone: ph(3), service: 'Car AC check', area: 'Whitefield', status: 'quoted', owner: 'Care Buddy Demo', created_at: ago(700), vehicle: 'car' }],
+  crm_rsa_list: () => [
+    { id: 'rsa-1', code: 'RSA-0001', customer_name: '[Customer Name 1]', problem: 'puncture', brand: '[Brand]', model: '[Model]', status: 'new', priority: 'high', injured: false, rider_safe: true, eta_minutes: null, mechanic: null, address: '[Landmark], Indiranagar', created_at: ago(8) },
+    { id: 'rsa-2', code: 'RSA-0002', customer_name: '[Customer Name 2]', problem: 'battery', brand: null, model: null, status: 'dispatched', priority: 'normal', injured: false, rider_safe: true, eta_minutes: 25, mechanic: '[Mechanic Name 1]', address: null, created_at: ago(40) },
+    { id: 'rsa-3', code: 'RSA-0003', customer_name: '[Customer Name 3]', problem: 'accident', brand: '[Brand]', model: '[Model]', status: 'guiding', priority: 'critical', injured: true, rider_safe: false, eta_minutes: 15, mechanic: null, address: '[Landmark], Hebbal', created_at: ago(3) }],
+  crm_tickets_list: () => [
+    { id: 't-1', code: 'TK-0001', title: '[Ticket title 1]', category: 'booking_issue', status: 'open', priority: 'high', legal: false, owner: 'Care Buddy Demo', created_at: ago(90), lead: '[Customer Name 1]', garage: null },
+    { id: 't-2', code: 'TK-0002', title: '[Ticket title 2]', category: 'garage_issue', status: 'in_progress', priority: 'normal', legal: false, owner: null, created_at: ago(600), lead: null, garage: '[Garage Name 1]' },
+    { id: 't-3', code: 'TK-0003', title: '[Ticket title 3]', category: 'legal_accident', status: 'waiting', priority: 'critical', legal: true, owner: '[Staff Name]', created_at: ago(1500), lead: null, garage: null }],
+  crm_visits_list: () => [
+    { id: 'v-1', scheduled_at: ahead(1200), garage: '[Garage Name 3]', garage_code: 'G-0003', mobile: ph(23), kind: 'onboarding', inspector: '[Staff Name]', inspector_id: 'me-1', status: 'scheduled', score: null, notes: null },
+    { id: 'v-2', scheduled_at: ahead(3000), garage: '[Garage Name 2]', garage_code: 'G-0002', mobile: ph(22), kind: 'inspection', inspector: null, inspector_id: null, status: 'scheduled', score: null, notes: null }],
+  crm_garage_list: () => gList,
+  crm_garage_hub_summary: () => hubs,
+  crm_garage_load: () => [{ id: 'g-1', ops_state: 'active', dispatchable: true, full: false, capacity: 4, today: 2 }, { id: 'g-2', ops_state: 'active', dispatchable: false, full: true, capacity: 2, today: 2 }],
+  crm_garage_requests_list: () => [
+    { id: 'rq-1', type: 'hours', status: 'pending', garage: '[Garage Name 1]', ref: null, reason: '[Reason]', details: { open_days: 'Mon-Sat', open_time: '10:00', close_time: '18:00' }, created_at: ago(120) },
+    { id: 'rq-2', type: 'cancel', status: 'approved', garage: '[Garage Name 2]', ref: 'MP-2611-0006', reason: '[Reason]', details: null, created_at: ago(2000) }],
+  crm_announcement_list: () => [{ id: 'an-1', title: '[Announcement title]', kind: 'info', body: '[Announcement text]', active: true, read: 1, created_at: ago(1000) }],
+  crm_mechanic_list: () => mechs,
+  crm_mechanic_performance: () => [{ id: 'm-1', assigned: 12, completion_pct: 92, avg_hours: 2.4, rating: 4.6, rated: 8 }, { id: 'm-2', assigned: 4, completion_pct: 75, avg_hours: 3.1, rating: null, rated: 0 }],
+  crm_playbooks_list: () => [
+    { id: 'pb-1', title: '[Playbook title 1]', symptom: '[Symptom]', status: 'published', version: 2, reviewed_by: '[Staff Name]', safety_critical: false, open_flags: 0 },
+    { id: 'pb-2', title: '[Playbook title 2]', symptom: '[Symptom]', status: 'draft', version: 1, reviewed_by: null, safety_critical: true, open_flags: 1 }],
+  crm_redo_list: () => [{ id: 'rd-1', lead_id: 'lead-1', status: 'open', name: '[Customer Name 1]', phone: ph(1), ref: 'MP-2611-0001', area: 'Indiranagar', reason: '[Reason]', decision_note: null, created_at: ago(300) }],
+  crm_shield_list: () => [{ id: 'sh-1', lead_id: 'lead-2', status: 'open', name: '[Customer Name 2]', phone: ph(2), ref: 'MP-2611-0002', area: 'HSR Layout', description: '[Damage description]', amount: 1200, recover_from: null, decision_note: null, created_at: ago(500) }],
+  crm_shield_month: () => ({ cap: 20000, used: 4500 }),
+});
 
 // ---- Click-through harness additions (personas, extra leads, write results, Edge Function replies). Placeholders only. ----
 const PERSONA = (o) => ({ ...crewMe, ...o });

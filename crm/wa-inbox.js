@@ -19,9 +19,9 @@ export function mountWaInbox(root, deps) {
   async function refresh(quiet) {
     const my = ++S.token;
     try {
-      const d = await deps.rpc('crm_wa_inbox', { p_filter: S.tab, p_q: S.q || null, p_limit: 100 });
+      const d = (await deps.rpc('crm_wa_inbox', { p_filter: S.tab, p_q: S.q || null, p_limit: 100 })) || {};
       if (my !== S.token || !root.isConnected) return;
-      S.rows = d.rows || []; S.counts = d.counts || {};
+      S.rows = Array.isArray(d.rows) ? d.rows : []; S.counts = d.counts || {};
       $('#waTabs').innerHTML = tabsHtml(S.counts, S.tab);
       $('#waList').innerHTML = listHtml(S.rows, S.phone) + (S.rows.length >= 100 ? '<p class="muted small">Showing the latest 100. Use search to find older chats.</p>' : '');
       const bb = document.querySelector('#inBadge'); if (bb && S.counts.unread != null) { bb.textContent = S.counts.unread; bb.hidden = !S.counts.unread; }

@@ -4,7 +4,8 @@ const STATUS = [['new', 'New'], ['guiding', 'Guiding on the phone'], ['dispatche
 const st = { open: true };
 
 export async function render(root, ctx) {
-  const list = await rpc('crm_rsa_list', { p_status: null, p_open_only: st.open });
+  const raw = await rpc('crm_rsa_list', { p_status: null, p_open_only: st.open });
+  const list = Array.isArray(raw) ? raw : [];
   root.innerHTML = `${head('RSA Cases', 'Roadside assistance. Check the rider is safe first, then guide on the phone or dispatch.', `${ctx.can('manage_rsa') ? '<button class="btn primary" type="button" id="new">+ RSA case</button>' : ''}`)}
     ${chips([['1', 'Open'], ['0', 'All']], st.open ? '1' : '0')}
     ${list.length ? `<div class="cards">${list.map(card).join('')}</div>` : empty('No roadside cases here.')}`;

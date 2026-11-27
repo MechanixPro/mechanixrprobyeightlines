@@ -6,7 +6,8 @@ export const SCORE = [['gap', 'Coverage gap it fills', 20], ['capacity', 'Capaci
 const st = { status: 'scheduled', from: '', to: '' };
 
 export async function render(root, ctx) {
-  const list = await rpc('crm_visits_list', { p_from: st.from || null, p_to: st.to || null, p_status: st.status || null, p_inspector: null });
+  const raw = await rpc('crm_visits_list', { p_from: st.from || null, p_to: st.to || null, p_status: st.status || null, p_inspector: null });
+  const list = Array.isArray(raw) ? raw : [];
   root.innerHTML = `${head('Garage Visits', 'Onboarding visits and inspections. A completed visit gives the garage its score out of 100.',
     `<label class="small muted">From <input id="from" type="date" value="${st.from}"></label><label class="small muted">To <input id="to" type="date" value="${st.to}"></label>${ctx.can('schedule_visits') ? '<button class="btn primary" type="button" id="new">+ Visit</button>' : ''}`)}
     ${chips([['scheduled', 'Scheduled'], ['done', 'Done'], ['', 'All']], st.status)}

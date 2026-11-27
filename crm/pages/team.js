@@ -11,7 +11,8 @@ const GROUPS = [['Leads and bookings', ['view_all_leads', 'take_leads', 'add_lea
 export async function render(root, ctx) {
   const auto = ctx.can('manage_users') ? await rpc('crm_automation_status').catch(() => null) : null;
   const roster = canRoster(ctx) ? await rpc('crm_roster_get', { p_from: rosterFrom || null, p_days: 7 }).catch(() => null) : null;
-  const [users, dash] = await Promise.all([rpc('crm_users_list'), ctx.can('view_team_performance') || ctx.page('dashboard') ? rpc('crm_dashboard', {}).catch(() => null) : null]);
+  const [rawUsers, dash] = await Promise.all([rpc('crm_users_list'), ctx.can('view_team_performance') || ctx.page('dashboard') ? rpc('crm_dashboard', {}).catch(() => null) : null]);
+  const users = Array.isArray(rawUsers) ? rawUsers : [];
   const team = dash?.targets?.team;
   const canUsers = ctx.can('manage_users'), canTargets = ctx.can('edit_targets');
   root.innerHTML = `${head('Team', 'Everyone on the sales and support team is a Care Buddy. The permission boxes decide what each person can open and do.')}

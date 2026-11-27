@@ -14,7 +14,8 @@ export async function render(root, ctx) {
 }
 
 async function playbooks(body, ctx) {
-  const list = await rpc('crm_playbooks_list', { p_search: st.q || null, p_problem: st.problem || null });
+  const raw = await rpc('crm_playbooks_list', { p_search: st.q || null, p_problem: st.problem || null });
+  const list = Array.isArray(raw) ? raw : [];
   const edit = ctx.can('edit_knowledge');
   body.innerHTML = `<div class="row wrap"><select id="prob" aria-label="Problem">${'<option value="">Every problem</option>'}${PROBLEMS.map(([k, t]) => `<option value="${k}"${k === st.problem ? ' selected' : ''}>${t}</option>`).join('')}</select>${edit ? '<button class="btn primary" type="button" id="new">+ Playbook</button>' : ''}</div>
     ${list.length ? `<div class="cards">${list.map((b) => `<article class="lead-card tone-${b.status === 'published' ? 'good' : 'next'}" data-open="${b.id}" tabindex="0" role="button"><div class="lc-top"><div><h2>${esc(b.title)}</h2><p class="muted small">${esc(b.symptom || '')}</p></div></div>

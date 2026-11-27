@@ -4,7 +4,8 @@ import { sourceName, vehicleOf, VEHICLE_LABEL } from '../crm-rules.js';
 const st = { filter: 'open', q: '', vehicle: '' };
 
 export async function render(root, ctx) {
-  const rows = await rpc('crm_web_leads', { p_filter: st.filter, p_search: st.q || null, p_vehicle: st.vehicle || null });
+  const raw = await rpc('crm_web_leads', { p_filter: st.filter, p_search: st.q || null, p_vehicle: st.vehicle || null });
+  const rows = Array.isArray(raw) ? raw : [];
   root.innerHTML = `${head('Web leads', 'Bookings made on mechanixpro.in. They are kept apart from the desk numbers. Open one to call, take it or log what happened.',
     `<input id="wq" type="search" placeholder="Search name, mobile or ref" value="${esc(st.q)}" aria-label="Search web leads"><select id="wv" aria-label="Vehicle"><option value="">All vehicles</option>${['bike', 'car', 'parts'].map((v) => `<option value="${v}"${v === st.vehicle ? ' selected' : ''}>${VEHICLE_LABEL[v]}</option>`).join('')}</select>`)}
     ${chips([['open', 'Open', null], ['all', 'All', null]], st.filter)}

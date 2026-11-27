@@ -6,7 +6,8 @@ const PRI = [['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['critical'
 const st = { status: '', mine: false };
 
 export async function render(root, ctx) {
-  const list = await rpc('crm_tickets_list', { p_status: st.status || null, p_category: null, p_mine: st.mine });
+  const raw = await rpc('crm_tickets_list', { p_status: st.status || null, p_category: null, p_mine: st.mine });
+  const list = Array.isArray(raw) ? raw : [];
   root.innerHTML = `${head('Tickets', 'Escalations, booking issues, roadside cases, garage issues and inspections. Legal or accident tickets are seen by supervisors only.',
     `${ctx.can('create_tickets') ? '<button class="btn primary" type="button" id="new">+ Ticket</button>' : ''}`)}
     ${chips([['', 'All'], ...STATUS.map(([k, t]) => [k, t])], st.status)}<label class="check inline"><input type="checkbox" id="mine" ${st.mine ? 'checked' : ''}><span>Only mine</span></label>

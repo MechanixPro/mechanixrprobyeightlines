@@ -8,7 +8,8 @@ const SHIFTS = [['morning', 'Morning'], ['day', 'Day'], ['evening', 'Evening'], 
 const st = { status: '', q: '', from: '', to: '' };
 
 export async function render(root, ctx) {
-  const [list, perf] = await Promise.all([rpc('crm_mechanic_list', { p_status: st.status || null, p_search: st.q || null, p_skill: null }), rpc('crm_mechanic_performance', { p_from: st.from || null, p_to: st.to || null }).catch(() => [])]);
+  const [rawList, rawPerf] = await Promise.all([rpc('crm_mechanic_list', { p_status: st.status || null, p_search: st.q || null, p_skill: null }), rpc('crm_mechanic_performance', { p_from: st.from || null, p_to: st.to || null }).catch(() => [])]);
+  const list = Array.isArray(rawList) ? rawList : [], perf = Array.isArray(rawPerf) ? rawPerf : [];
   const pf = new Map(perf.map((x) => [x.id, x]));
   const pcell = (m) => { const x = pf.get(m.id); return x ? `<td class="n">${x.assigned}</td><td class="n">${x.completion_pct == null ? '—' : x.completion_pct + '%'}</td><td class="n">${x.avg_hours == null ? '—' : x.avg_hours + ' h'}</td><td class="n">${x.rating == null ? '—' : x.rating + ' / 5 <small class="muted">(' + x.rated + ')</small>'}</td>` : '<td></td><td></td><td></td><td></td>'; };
   root.innerHTML = `${head('Mechanics', 'Onboard each mechanic one step at a time. Going live needs the full checklist, skills and service PIN codes.',

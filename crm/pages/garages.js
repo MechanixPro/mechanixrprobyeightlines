@@ -8,7 +8,8 @@ const st = { status: '', q: '', hub: '' };
 const TEMPLATE = 'name,owner_name,mobile,address,landmark,pincode,lat,lng,categories,open_days,open_time,close_time,bays,trade_id,legal_name,notes\nSample Motors,Ravi Kumar,9876543210,"12 Main Road, HSR Layout",Near BDA complex,560102,12.9116,77.6389,2-wheeler;ev,Mon-Sat,09:00,19:00,4,,,\n';
 
 export async function render(root, ctx) {
-  const [list, hubs, load] = await Promise.all([rpc('crm_garage_list', { p_status: st.status || null, p_search: st.q || null, p_hub: st.hub ? Number(st.hub) : null }), rpc('crm_garage_hub_summary'), rpc('crm_garage_load').catch(() => [])]);
+  const [rawList, rawHubs, rawLoad] = await Promise.all([rpc('crm_garage_list', { p_status: st.status || null, p_search: st.q || null, p_hub: st.hub ? Number(st.hub) : null }), rpc('crm_garage_hub_summary'), rpc('crm_garage_load').catch(() => [])]);
+  const list = Array.isArray(rawList) ? rawList : [], hubs = Array.isArray(rawHubs) ? rawHubs : [], load = Array.isArray(rawLoad) ? rawLoad : [];
   const ld = new Map(load.map((x) => [x.id, x]));
   const manage = ctx.can('manage_garages');
   root.innerHTML = `${head('Garages', 'Partner garages from application to live. Hubs show where Bengaluru is covered and where it is not.',
@@ -74,7 +75,7 @@ function importCsv(ctx) {
 }
 
 async function detail(id, ctx, hubs) {
-  const d = await rpc('crm_garage_get', { p_id: id }); const g = d.garage, manage = ctx.can('manage_garages'); const gl = (await rpc('crm_garage_load').catch(() => [])).find((x) => x.id === id);
+  const d = await rpc('crm_garage_get', { p_id: id }); const g = d.garage, manage = ctx.can('manage_garages'); const gl = (await rpc('crm_garage_load').catch(() => []) || []).find((x) => x.id === id);
   const next = NEXT[g.status];
   const m = modal({ title: `${g.name} (${g.code})`, wide: true, cancel: 'Close',
     body: `<p class="muted small">${tag(label(PIPE, g.status), g.status === 'live' ? 'st-completed' : 'st-new')} ${g.tier ? tag(g.tier, 'soft') : ''} Score ${g.score ?? '—'} · Hub: ${esc(d.hub || '—')}</p>
