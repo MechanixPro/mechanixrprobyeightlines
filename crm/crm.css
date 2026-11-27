@@ -123,3 +123,10 @@ body:not(.admin){font-size:var(--fs-4)}
 .watch-act{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:520px}.watch-act .btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
 .watch-bigcall{flex:2 1 100%;min-height:56px;font-size:18px;font-weight:700}
 @media(max-width:640px){.watch-card{grid-template-columns:1fr}.watch-act{justify-content:flex-start;max-width:none}.watch-act .btn{flex:1 1 calc(50% - 8px)}}
+@media(max-width:699px){
+  table.leads td[data-label="Source"],table.leads td[data-label="Technician"],table.leads td[data-label="Disposition"],table.leads td[data-label="Sub disposition"],table.leads td[data-label="Created date"],table.leads td[data-label="Last activity date"]{display:none}
+  table.leads tr{display:grid;grid-template-columns:1fr 1fr;column-gap:12px;padding-block:var(--s2)}
+  table.leads td{padding:2px 0}
+  table.leads td:first-child,table.leads td[data-label="Stage"],table.leads td.pick-col{grid-column:1/-1}
+  table.leads td.pick-col{justify-self:end;padding:0}
+}
