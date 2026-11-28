@@ -132,3 +132,11 @@ body:not(.admin){font-size:var(--fs-4)}
   table.leads td[data-label="Owner"],table.leads td[data-label="Technician"]{grid-column:1}
   table.leads td[data-label="Follow-up"]{grid-column:2;grid-row:span 2}
 }
+@media(max-width:699px){
+  table.garages td[data-label="Score"],table.garages td[data-label="Tier"],table.garages td[data-label="Next visit"],table.garages td[data-label="Mechanics"]{display:none}
+  table.mechs td[data-label="Skills"],table.mechs td[data-label="PIN codes"],table.mechs td[data-label="Garage"],table.mechs td[data-label="Checklist"],table.mechs td[data-label="Avg time to finish"],table.mechs td[data-label="Customer rating"]{display:none}
+  table.webl td[data-label="Booked"]{display:none}
+  table.garages tr,table.mechs tr,table.webl tr{display:grid;grid-auto-flow:row dense;grid-template-columns:1fr 1fr;column-gap:12px;padding-block:var(--s2)}
+  table.garages td,table.mechs td,table.webl td{padding:2px 0}
+  table.garages td:first-child,table.mechs td:first-child,table.webl td:first-child,table.garages td[data-label="Stage"],table.mechs td[data-label="Stage"],table.webl td[data-label="Status"],table.mechs td:last-child{grid-column:1/-1}
+}
